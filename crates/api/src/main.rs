@@ -8,9 +8,11 @@
 //! cargo run -p auto-load
 //! ```
 use axum::{response::Html, routing::get, Router};
+use clap::Parser;
 use listenfd::ListenFd;
 use tokio::net::TcpListener;
 
+mod cli;
 mod error;
 mod prelude;
 
@@ -18,10 +20,21 @@ use crate::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ Logger                                                                      │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
 
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ App                                                                         │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
+    let args = crate::cli::App::parse();
+
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ Router                                                                      │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
     let app = Router::new().route("/", get(handler));
 
     let mut listenfd = ListenFd::from_env();
@@ -34,7 +47,10 @@ async fn main() -> Result<()> {
             TcpListener::from_std(listener).context("Failed to convert to TcpListener")?
         }
         // Otherwise fall back to local listening.
-        None => TcpListener::bind("127.0.0.1:3000").await?,
+        None => {
+            let host_port = format!("{}:{}", args.host, args.port);
+            TcpListener::bind(host_port).await?
+        }
     };
 
     let local_addr = listener.local_addr()?;

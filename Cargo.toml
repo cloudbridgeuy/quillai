@@ -17,6 +17,7 @@ incremental = true
 debug = 0
 
 [workspace.dependencies]
+clap = { version = "4.5.35", features = ["derive", "env", "string"] }
 tokio = { version = "1.44.0", features = ["full"] }
 env_logger = "0.11.3"
 log = "0.4.22"

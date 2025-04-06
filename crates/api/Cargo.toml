@@ -20,4 +20,5 @@ log = { workspace = true }
 env_logger = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+clap = { workspace = true }
 listenfd = "1.0.2"

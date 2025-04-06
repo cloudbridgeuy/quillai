@@ -23,9 +23,6 @@ pub enum Commands {
     Run(RunArgs),
 }
 
-#[derive(Args, Debug)]
-pub struct RunArgs {}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = App::parse();
 
@@ -40,11 +37,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-pub fn run(_: RunArgs) -> Result<(), Box<dyn Error>> {
+#[derive(Args, Debug)]
+pub struct RunArgs {
+    /// API port
+    #[clap(long, default_value = "2908")]
+    api_port: u32,
+}
+
+pub fn run(args: RunArgs) -> Result<(), Box<dyn Error>> {
+    let port = format!("http::{}", args.api_port);
     let arguments = vec![
         "--no-pid",
         "-s",
-        "http::3000",
+        port.as_str(),
         "--",
         "cargo",
         "watch",
@@ -56,7 +61,7 @@ pub fn run(_: RunArgs) -> Result<(), Box<dyn Error>> {
         "crates/api",
     ];
 
-    bunt::println!("{$magenta}Running API...{/$}");
+    bunt::println!("{$magenta}Running API on port {[bold]}...{/$}", port);
     cmd("systemfd", arguments).read()?;
 
     Ok(())
