@@ -22,3 +22,5 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 listenfd = "1.0.2"
+sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite"] }
+axum_thiserror = "0.1.0"

@@ -1,7 +1,13 @@
-#[derive(thiserror::Error)]
+use axum::http::StatusCode;
+
+#[derive(thiserror::Error, axum_thiserror::ErrorStatus)]
 pub enum Error {
-    #[error("io error")]
-    Io(#[from] std::io::Error),
+    #[error("sqlx error")]
+    #[status(StatusCode::INTERNAL_SERVER_ERROR)]
+    Sqlx(#[from] sqlx::Error),
+    #[error("invalid log level")]
+    #[status(StatusCode::INTERNAL_SERVER_ERROR)]
+    InvalidLogLevel,
 }
 
 /// Format error messages for display

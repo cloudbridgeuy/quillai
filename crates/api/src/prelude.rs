@@ -1,3 +1,3 @@
 pub use crate::error::Error;
 
-pub use anyhow::{anyhow, Context, Result};
+pub use anyhow::{Context, Result};

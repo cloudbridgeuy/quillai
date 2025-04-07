@@ -42,10 +42,16 @@ pub struct RunArgs {
     /// API port
     #[clap(long, default_value = "2908")]
     api_port: u32,
+
+    /// Log level
+    #[clap(long, default_value = "info")]
+    log_level: String,
 }
 
 pub fn run(args: RunArgs) -> Result<(), Box<dyn Error>> {
     let port = format!("http::{}", args.api_port);
+    let command = format!("run --bin api -- --log-level {}", args.log_level);
+
     let arguments = vec![
         "--no-pid",
         "-s",
@@ -54,9 +60,7 @@ pub fn run(args: RunArgs) -> Result<(), Box<dyn Error>> {
         "cargo",
         "watch",
         "-x",
-        "run --bin api",
-        "-L",
-        "info",
+        &command,
         "-C",
         "crates/api",
     ];

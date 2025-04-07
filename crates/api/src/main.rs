@@ -7,9 +7,10 @@
 //! ```not_rust
 //! cargo run -p auto-load
 //! ```
-use axum::{response::Html, routing::get, Router};
+use axum::{extract::State, response::Html, routing::get, Router};
 use clap::Parser;
 use listenfd::ListenFd;
+use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use tokio::net::TcpListener;
 
 mod cli;
@@ -21,22 +22,34 @@ use crate::prelude::*;
 #[tokio::main]
 async fn main() -> Result<()> {
     // ╭─────────────────────────────────────────────────────────────────────────────╮
-    // │ Logger                                                                      │
-    // ╰─────────────────────────────────────────────────────────────────────────────╯
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
-
-    // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ App                                                                         │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
     let args = crate::cli::App::parse();
 
     // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ Logger                                                                      │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
+    env_logger::builder()
+        .filter_level(log::LevelFilter::from(args.log_level))
+        .init();
+
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ DB                                                                          │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
+    let pool = SqlitePoolOptions::new()
+        .max_connections(args.db_max_connections)
+        .acquire_timeout(std::time::Duration::from_secs(args.db_acquire_timeout))
+        .connect(&args.db_url)
+        .await?;
+
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Router                                                                      │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
-    let app = Router::new().route("/", get(handler));
+    let app = Router::new().route("/", get(handler)).with_state(pool);
 
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ Dev mode                                                                    │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
     let mut listenfd = ListenFd::from_env();
     let listener = match listenfd.take_tcp_listener(0)? {
         // If we are given a TCP listener on listen `fd` 0,
@@ -53,6 +66,9 @@ async fn main() -> Result<()> {
         }
     };
 
+    // ╭─────────────────────────────────────────────────────────────────────────────╮
+    // │ Run                                                                         │
+    // ╰─────────────────────────────────────────────────────────────────────────────╯
     let local_addr = listener.local_addr()?;
     log::info!("Listening on {}", local_addr);
 
@@ -61,6 +77,11 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn handler() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+async fn handler(State(pool): State<SqlitePool>) -> std::result::Result<Html<String>, Error> {
+    let value: String = sqlx::query_scalar("SELECT 'hello world from sqlite'")
+        .fetch_one(&pool)
+        .await
+        .map_err(Error::Sqlx)?;
+
+    Ok(Html(format!("<h1>Hello, {}!</h1>", value)))
 }
