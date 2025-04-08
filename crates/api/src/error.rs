@@ -7,7 +7,7 @@ pub enum Error {
     Sqlx(#[from] sqlx::Error),
     #[error("invalid log level")]
     #[status(StatusCode::INTERNAL_SERVER_ERROR)]
-    InvalidLogLevel,
+    InvalidLogLevel(#[from] quillai_log::Error),
 }
 
 /// Format error messages for display

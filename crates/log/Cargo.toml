@@ -1,0 +1,15 @@
+[package]
+name = "quillai_log"
+version = "0.0.0"
+homepage = "https://github.com/cloudbridgeuy/quillai/crates/log/README.md"
+description = "QuillAi Log"
+autobins = false
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+log = { workspace = true }
+clap = { workspace = true }
+thiserror = { workspace = true }
