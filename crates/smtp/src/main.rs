@@ -1,8 +1,9 @@
 mod cli;
+mod parser;
 mod prelude;
 
 use clap::Parser;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 
 #[allow(unused_imports)]
 use tokio::net::{TcpListener, TcpStream};
@@ -72,6 +73,9 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
         if bytes_read == 0 {
             break;
         }
+
+        // Parse the line
+        // React to the parsed line
 
         writer
             .write_all(format!("Read {} bytes", bytes_read).as_bytes())

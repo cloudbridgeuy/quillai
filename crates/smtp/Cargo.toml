@@ -27,3 +27,4 @@ regex = { version = "1.11.1", features = ["logging"] }
 tokio-native-tls = "0.3.1"
 native-tls = "0.2.14"
 openssl = "0.10.72"
+nom = "8.0.0"
