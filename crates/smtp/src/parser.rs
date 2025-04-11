@@ -157,16 +157,6 @@
 
 use nom::{IResult, Parser};
 
-use crate::prelude::*;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SmtpState {
-    Init,
-    Command(SmtpCommand),
-    Data,
-    Quit,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum SmtpCommand {
     Ehlo,
@@ -201,44 +191,38 @@ fn email(input: &str) -> IResult<&str, &str> {
     .parse(input)
 }
 
-fn parse_ehlo(input: &str) -> IResult<&str, SmtpState> {
-    let (input, command) = nom::combinator::value(
+pub fn parse_ehlo(input: &str) -> IResult<&str, SmtpCommand> {
+    nom::combinator::value(
         SmtpCommand::Ehlo,
         nom::sequence::preceded(
             nom::character::multispace0(),
             nom::bytes::complete::tag_no_case("Ehlo"),
         ),
     )
-    .parse(input)?;
-
-    Ok((input, SmtpState::Command(command)))
+    .parse(input)
 }
 
-fn mail_from(input: &str) -> IResult<&str, SmtpState> {
+fn mail_from(input: &str) -> IResult<&str, SmtpCommand> {
     let (input, _) = nom::bytes::complete::tag_no_case("Mail From")(input)?;
+    let (input, _) = nom::bytes::complete::take_until("<")(input)?;
     let (input, email) = email(input)?;
 
-    Ok((
-        input,
-        SmtpState::Command(SmtpCommand::MailFrom(email.to_string())),
-    ))
+    Ok((input, SmtpCommand::MailFrom(email.to_string())))
 }
 
-fn rcpt_to(input: &str) -> IResult<&str, SmtpState> {
-    let (input, _) = nom::bytes::complete::tag_no_case("Mail From")(input)?;
+fn rcpt_to(input: &str) -> IResult<&str, SmtpCommand> {
+    let (input, _) = nom::bytes::complete::tag_no_case("Rcpt To")(input)?;
+    let (input, _) = nom::bytes::complete::take_until("<")(input)?;
     let (input, email) = email(input)?;
 
-    Ok((
-        input,
-        SmtpState::Command(SmtpCommand::RcptTo(email.to_string())),
-    ))
+    Ok((input, SmtpCommand::RcptTo(email.to_string())))
 }
 
-fn parse_command(input: &str) -> IResult<&str, SmtpState> {
+pub fn parse_command(input: &str) -> IResult<&str, SmtpCommand> {
     nom::sequence::preceded(
         nom::character::multispace0(),
         nom::branch::alt((
-            nom::combinator::value(SmtpState::Data, nom::bytes::complete::tag_no_case("Data")),
+            nom::combinator::value(SmtpCommand::Data, nom::bytes::complete::tag_no_case("Data")),
             mail_from,
             rcpt_to,
         )),
@@ -246,17 +230,8 @@ fn parse_command(input: &str) -> IResult<&str, SmtpState> {
     .parse(input)
 }
 
-fn parse_data(_: &str) -> IResult<&str, SmtpState> {
+pub fn parse_data(_: &str) -> IResult<&str, SmtpCommand> {
     todo!()
-}
-
-fn parse(input: &str, state: SmtpState) -> IResult<&str, SmtpState> {
-    match state {
-        SmtpState::Init => parse_ehlo(input),
-        SmtpState::Command(_) => parse_command(input),
-        SmtpState::Data => parse_data(input),
-        SmtpState::Quit => panic!(),
-    }
 }
 
 /*
@@ -275,18 +250,19 @@ fn parse(input: &str, state: SmtpState) -> IResult<&str, SmtpState> {
 - Sender: QUIT
 - Receiver: 221 Bye
 */
-#[test]
-fn parse_smtp_message() -> Result<()> {
-    assert_eq!(
-        parse("EHLO", SmtpState::Init)?,
-        ("", SmtpState::Command(SmtpCommand::Ehlo))
-    );
-    assert_eq!(
-        parse("    EHLO", SmtpState::Init)?,
-        ("", SmtpState::Command(SmtpCommand::Ehlo))
-    );
+mod test {
+    #[allow(unused_imports)]
+    use super::*;
+    #[allow(unused_imports)]
+    use crate::prelude::Result;
 
-    assert!(parse("    INVALID", SmtpState::Init).is_err(),);
+    #[test]
+    fn parse_smtp_message() -> Result<()> {
+        assert_eq!(parse_ehlo("EHLO")?, ("", SmtpCommand::Ehlo));
+        assert_eq!(parse_ehlo("    EHLO")?, ("", SmtpCommand::Ehlo));
 
-    Ok(())
+        assert!(parse_ehlo("    INVALID").is_err(),);
+
+        Ok(())
+    }
 }
