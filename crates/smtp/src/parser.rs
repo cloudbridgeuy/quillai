@@ -230,8 +230,11 @@ pub fn parse_header(input: &str) -> IResult<&str, Header> {
     let (input, (key, value)) = nom::sequence::separated_pair(
         nom::bytes::complete::take_until(":"),
         nom::character::char(':'),
-        // Take until end of line
-        nom::bytes::complete::take_until("\r\n"),
+        nom::sequence::preceded(
+            nom::character::multispace0(),
+            // is alhpanumeric
+            nom::bytes::complete::take_till(|_| true),
+        ),
     )
     .parse(input)?;
 
