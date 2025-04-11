@@ -162,6 +162,7 @@ pub enum SmtpCommand {
     Ehlo,
     MailFrom(String),
     RcptTo(String),
+    Starttls,
     Noop,
     Rset,
     Data,
@@ -219,6 +220,10 @@ pub fn parse_command(input: &str) -> IResult<&str, SmtpCommand> {
             nom::combinator::value(SmtpCommand::Data, nom::bytes::complete::tag_no_case("data")),
             nom::combinator::value(SmtpCommand::Ehlo, nom::bytes::complete::tag_no_case("ehlo")),
             nom::combinator::value(SmtpCommand::Quit, nom::bytes::complete::tag_no_case("quit")),
+            nom::combinator::value(
+                SmtpCommand::Starttls,
+                nom::bytes::complete::tag_no_case("starttls"),
+            ),
             mail_from,
             rcpt_to,
         )),

@@ -4,6 +4,7 @@ mod prelude;
 
 use clap::Parser;
 use futures::{stream::iter, SinkExt, StreamExt};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio_util::codec::{Framed, LinesCodec};
 
 #[allow(unused_imports)]
@@ -78,8 +79,70 @@ async fn send_commands(
 }
 
 async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
-    // let (reader, writer) = stream.split();
-    // let mut writer = BufWriter::new(writer);
+    let (reader, writer) = stream.split();
+    let mut writer = BufWriter::new(writer);
+    let mut reader = BufReader::new(reader);
+
+    let mut is_tls = false;
+    let mut line = String::new();
+
+    writer.write_all(b"220 My SMTP server\r\n").await?;
+    writer.flush().await?;
+
+    while reader.read_line(&mut line).await? != 0 {
+        let command = match crate::parser::parse_command(line.as_str()) {
+            Ok((_, c)) => c,
+            Err(e) => {
+                log::error!("Failed to parse command: {:?}", e);
+                writer.write_all(b"500 Unknown command\r\n").await?;
+                writer.flush().await?;
+                break;
+            }
+        };
+
+        match command {
+            SmtpCommand::Ehlo => {
+                writer.write_all(b"250-windmill Hello\r\n").await?;
+                writer.write_all(b"250-STARTTLS\r\n").await?;
+                writer.write_all(b"250 What you've got?\r\n").await?;
+                writer.flush().await?;
+            }
+            SmtpCommand::Starttls => {
+                writer.write_all(b"220 Ready to start TLS\r\n").await?;
+                writer.flush().await?;
+                is_tls = true;
+                break;
+            }
+            SmtpCommand::Quit => {
+                writer.write_all(b"221 Bye\r\n").await?;
+                writer.flush().await?;
+                return Ok(());
+            }
+            SmtpCommand::Noop => {
+                writer.write_all(b"250 Ok\r\n").await?;
+                writer.flush().await?;
+            }
+            SmtpCommand::MailFrom(_) | SmtpCommand::RcptTo(_) => {
+                writer
+                    .write_all(b"530 Must issue a STARTTLS command first\r\n")
+                    .await?;
+                writer.flush().await?;
+            }
+            SmtpCommand::Data | SmtpCommand::Rset => {
+                writer
+                    .write_all(b"530 Must issue a STARTTLS command first\r\n")
+                    .await?;
+                writer.flush().await?;
+            }
+        }
+
+        line.clear();
+    }
+
+    if !is_tls {
+        return Err(anyhow::anyhow!("Failed to initialize STARTLS"));
+    }
+
     let mut state = SmtpState::Command;
 
     let mut mailfrom: Option<String> = None;
@@ -90,7 +153,7 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
 
     let mut framed = Framed::new(stream, LinesCodec::new());
 
-    send_commands(&mut framed, vec![format!("220 {}", "My SMTP Server")]).await?;
+    // send_commands(&mut framed, vec![format!("220 {}", "My SMTP Server")]).await?;
 
     while let Some(line_str) = framed.next().await {
         let line = line_str?;
@@ -141,6 +204,11 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
                     }
                     SmtpCommand::Quit => {
                         send_commands(&mut framed, vec!["221 Bye".to_string()]).await?;
+                    }
+                    _ => {
+                        send_commands(&mut framed, vec!["500 Unrecognized command".to_string()])
+                            .await?;
+                        break;
                     }
                 }
             }
