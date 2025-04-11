@@ -8,7 +8,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 #[allow(unused_imports)]
 use tokio::net::{TcpListener, TcpStream};
 
-use crate::parser::SmtpCommand;
+use crate::parser::{Header, SmtpCommand};
 use crate::prelude::*;
 
 #[tokio::main]
@@ -56,8 +56,7 @@ async fn listen(addr: std::net::SocketAddr) -> Result<()> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SmtpState {
-    Init,
-    Command(SmtpCommand),
+    Command,
     Data,
     Quit,
 }
@@ -72,11 +71,15 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
         .await?;
     writer.flush().await?;
 
-    let mut state = SmtpState::Init;
+    let mut state = SmtpState::Command;
 
     let mut line = String::new();
-    let mut mail_from = String::new();
-    let mut rcpt_to = String::new();
+
+    let mut mailfrom: Option<String> = None;
+    let mut rcpts: Vec<String> = Vec::new();
+    let mut headers: Vec<Header> = Vec::new();
+    let mut parsing_headers = true;
+    let mut message = String::new();
 
     loop {
         line.clear();
@@ -84,24 +87,11 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
         if bytes_read == 0 {
             break;
         }
-
         log::debug!("Received line: {}", line.trim());
 
         // Move to the next state
-        state = match state {
-            SmtpState::Init => {
-                let command = match crate::parser::parse_ehlo(line.as_str()) {
-                    Ok((_, c)) => c,
-                    Err(e) => {
-                        log::error!("Failed to parse EHLO command: {:?}", e);
-                        writer.write_all(b"500 Unrecognized command\r\n").await?;
-                        writer.flush().await?;
-                        break;
-                    }
-                };
-                SmtpState::Command(command)
-            }
-            SmtpState::Command(_) => {
+        match state {
+            SmtpState::Command => {
                 let command = match crate::parser::parse_command(line.as_str()) {
                     Ok((_, c)) => c,
                     Err(e) => {
@@ -112,53 +102,101 @@ async fn handle_connection(stream: &mut TcpStream) -> Result<()> {
                     }
                 };
 
-                SmtpState::Command(command)
-            }
-            SmtpState::Data => todo!(),
-            SmtpState::Quit => {
-                writer.write_all(b"221 Bye\r\n").await?;
-                break;
-            }
-        };
-
-        match state {
-            SmtpState::Init => {
-                log::error!("State never moved out of initialization. Dropping connection.");
-                writer.write_all(b"500 Internal error\r\n").await?;
-                writer.flush().await?;
-                break;
-            }
-            SmtpState::Command(ref command) => {
-                log::info!("Parsed command: {:?}", command);
-                // Handle the command here
                 match command {
                     SmtpCommand::Ehlo => {
                         writer.write_all(b"250 Hello\r\n").await?;
+                        writer.flush().await?;
                     }
                     SmtpCommand::MailFrom(email) => {
-                        mail_from = email.clone();
+                        mailfrom = Some(email.clone());
                         writer.write_all(b"250 OK\r\n").await?;
+                        writer.flush().await?;
                     }
                     SmtpCommand::RcptTo(email) => {
-                        rcpt_to = email.clone();
+                        rcpts.push(email.clone());
                         writer.write_all(b"250 OK\r\n").await?;
+                        writer.flush().await?;
+                    }
+                    SmtpCommand::Noop => {
+                        writer.write_all(b"250 OK\r\n").await?;
+                        writer.flush().await?;
+                    }
+                    SmtpCommand::Rset => {
+                        mailfrom = None;
+                        rcpts = Vec::new();
+                        headers = Vec::new();
+                        message = String::new();
+                        writer.write_all(b"250 OK\r\n").await?;
+                        writer.flush().await?;
                     }
                     SmtpCommand::Data => {
                         writer
                             .write_all(b"354 Start mail input; end with <CRLF>.<CRLF>\r\n")
                             .await?;
+                        writer.flush().await?;
+                        state = SmtpState::Data;
                     }
                     SmtpCommand::Quit => {
                         writer.write_all(b"221 Bye\r\n").await?;
-                        break;
+                        writer.flush().await?;
                     }
                 }
-                writer.flush().await?;
             }
-            _ => {}
-        }
+            SmtpState::Data => {
+                if line.trim() == "." {
+                    writer.write_all(b"250 OK\r\n").await?;
+                    writer.flush().await?;
+                    state = SmtpState::Quit;
+                } else if parsing_headers && line == "\r\n" {
+                    parsing_headers = false;
+                } else if parsing_headers {
+                    match crate::parser::parse_header(line.as_str()) {
+                        Ok((_, h)) => {
+                            headers.push(h);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to parse header: {:?}", e);
+                            writer.write_all(b"500 Unrecognized header\r\n").await?;
+                            writer.flush().await?;
+                            break;
+                        }
+                    };
+                } else {
+                    message.push_str(&line);
+                    message.push('\n');
+                }
+            }
+            SmtpState::Quit => {
+                let command = match crate::parser::parse_command(line.as_str()) {
+                    Ok((_, c)) => c,
+                    Err(e) => {
+                        log::error!("Failed to parse command: {:?}", e);
+                        writer.write_all(b"500 Unrecognized command\r\n").await?;
+                        writer.flush().await?;
+                        break;
+                    }
+                };
+
+                match command {
+                    SmtpCommand::Quit => {
+                        writer.write_all(b"221 Bye\r\n").await?;
+                        writer.flush().await?;
+                    }
+                    _ => {
+                        writer.write_all(b"500 Unrecognized command\r\n").await?;
+                        writer.flush().await?;
+                    }
+                };
+            }
+        };
     }
 
-    log::debug!("Mail from {} to {}", mail_from, rcpt_to);
+    log::debug!(
+        "Mail from {} to {}",
+        mailfrom.unwrap_or_default(),
+        rcpts.join(", ")
+    );
+    log::debug!("Headers: {:?}", headers);
+    log::debug!("Message: {:?}", message);
     Ok(())
 }

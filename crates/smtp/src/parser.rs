@@ -162,10 +162,13 @@ pub enum SmtpCommand {
     Ehlo,
     MailFrom(String),
     RcptTo(String),
+    Noop,
+    Rset,
     Data,
     Quit,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Header {
     name: String,
     value: String,
@@ -191,18 +194,7 @@ fn email(input: &str) -> IResult<&str, &str> {
     .parse(input)
 }
 
-pub fn parse_ehlo(input: &str) -> IResult<&str, SmtpCommand> {
-    nom::combinator::value(
-        SmtpCommand::Ehlo,
-        nom::sequence::preceded(
-            nom::character::multispace0(),
-            nom::bytes::complete::tag_no_case("Ehlo"),
-        ),
-    )
-    .parse(input)
-}
-
-fn mail_from(input: &str) -> IResult<&str, SmtpCommand> {
+pub fn mail_from(input: &str) -> IResult<&str, SmtpCommand> {
     let (input, _) = nom::bytes::complete::tag_no_case("Mail From")(input)?;
     let (input, _) = nom::bytes::complete::take_until("<")(input)?;
     let (input, email) = email(input)?;
@@ -210,7 +202,7 @@ fn mail_from(input: &str) -> IResult<&str, SmtpCommand> {
     Ok((input, SmtpCommand::MailFrom(email.to_string())))
 }
 
-fn rcpt_to(input: &str) -> IResult<&str, SmtpCommand> {
+pub fn rcpt_to(input: &str) -> IResult<&str, SmtpCommand> {
     let (input, _) = nom::bytes::complete::tag_no_case("Rcpt To")(input)?;
     let (input, _) = nom::bytes::complete::take_until("<")(input)?;
     let (input, email) = email(input)?;
@@ -222,7 +214,11 @@ pub fn parse_command(input: &str) -> IResult<&str, SmtpCommand> {
     nom::sequence::preceded(
         nom::character::multispace0(),
         nom::branch::alt((
-            nom::combinator::value(SmtpCommand::Data, nom::bytes::complete::tag_no_case("Data")),
+            nom::combinator::value(SmtpCommand::Noop, nom::bytes::complete::tag_no_case("noop")),
+            nom::combinator::value(SmtpCommand::Rset, nom::bytes::complete::tag_no_case("rset")),
+            nom::combinator::value(SmtpCommand::Data, nom::bytes::complete::tag_no_case("data")),
+            nom::combinator::value(SmtpCommand::Ehlo, nom::bytes::complete::tag_no_case("ehlo")),
+            nom::combinator::value(SmtpCommand::Quit, nom::bytes::complete::tag_no_case("quit")),
             mail_from,
             rcpt_to,
         )),
@@ -230,8 +226,22 @@ pub fn parse_command(input: &str) -> IResult<&str, SmtpCommand> {
     .parse(input)
 }
 
-pub fn parse_data(_: &str) -> IResult<&str, SmtpCommand> {
-    todo!()
+pub fn parse_header(input: &str) -> IResult<&str, Header> {
+    let (input, (key, value)) = nom::sequence::separated_pair(
+        nom::bytes::complete::take_until(":"),
+        nom::character::char(':'),
+        // Take until end of line
+        nom::bytes::complete::take_until("\r\n"),
+    )
+    .parse(input)?;
+
+    Ok((
+        input,
+        Header {
+            name: key.trim().to_string(),
+            value: value.trim().to_string(),
+        },
+    ))
 }
 
 /*
@@ -258,10 +268,10 @@ mod test {
 
     #[test]
     fn parse_smtp_message() -> Result<()> {
-        assert_eq!(parse_ehlo("EHLO")?, ("", SmtpCommand::Ehlo));
-        assert_eq!(parse_ehlo("    EHLO")?, ("", SmtpCommand::Ehlo));
+        assert_eq!(parse_command("EHLO")?, ("", SmtpCommand::Ehlo));
+        assert_eq!(parse_command("    EHLO")?, ("", SmtpCommand::Ehlo));
 
-        assert!(parse_ehlo("    INVALID").is_err(),);
+        assert!(parse_command("    INVALID").is_err(),);
 
         Ok(())
     }
