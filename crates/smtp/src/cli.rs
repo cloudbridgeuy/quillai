@@ -16,4 +16,12 @@ pub struct App {
         env = "QUILLAI_SMTP_LOG_LEVEL"
     )]
     pub log_level: quillai_log::LogLevel,
+
+    /// Certificate file path.
+    #[clap(long, env = "QUILLAI_SMTP_CERT")]
+    pub cert: String,
+
+    /// Certificate private key path.
+    #[clap(long, env = "QUILLAI_SMTP_KEY")]
+    pub key: String,
 }
