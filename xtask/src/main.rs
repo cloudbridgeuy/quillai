@@ -19,8 +19,10 @@ pub struct App {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Run all the project services in development mode.
-    Run(RunArgs),
+    /// Run the project API.
+    Api(ApiArgs),
+    /// Run the blog.
+    Blog(BlogArgs),
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,7 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.command {
         Some(command) => match command {
-            Commands::Run(args) => run(args),
+            Commands::Api(args) => api(args),
+            Commands::Blog(args) => blog(args),
         },
         None => {
             println!("No command specified.");
@@ -38,7 +41,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Args, Debug)]
-pub struct RunArgs {
+pub struct BlogArgs {
+    /// Blog port
+    #[clap(long, default_value = "5150")]
+    blog_port: String,
+
+    /// Specify the environment
+    #[clap(long, default_value = "development")]
+    environment: String,
+}
+
+pub fn blog(args: BlogArgs) -> Result<(), Box<dyn Error>> {
+    let arguments = vec![
+        "loco",
+        "start",
+        "--port",
+        &args.blog_port,
+        "--environment",
+        &args.environment,
+    ];
+
+    bunt::println!("{$magenta}Running Blog...{/$}");
+    cmd("cargo", arguments)
+        .dir("./crates/blog")
+        .stdout_to_stderr()
+        .stderr_capture()
+        .run()?;
+
+    Ok(())
+}
+
+#[derive(Args, Debug)]
+pub struct ApiArgs {
     /// API port
     #[clap(long, default_value = "2908")]
     api_port: u32,
@@ -48,7 +82,7 @@ pub struct RunArgs {
     log_level: String,
 }
 
-pub fn run(args: RunArgs) -> Result<(), Box<dyn Error>> {
+pub fn api(args: ApiArgs) -> Result<(), Box<dyn Error>> {
     let port = format!("http::{}", args.api_port);
     let command = format!("run --bin api -- --log-level {}", args.log_level);
 

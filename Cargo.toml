@@ -17,6 +17,7 @@ incremental = true
 debug = 0
 
 [workspace.dependencies]
+loco-rs = { version = "0.15" }
 quillai_log = { version = "0.0.0", path = "./crates/log" }
 clap = { version = "4.5.35", features = ["derive", "env", "string"] }
 tokio = { version = "1.44.0", features = ["full"] }
@@ -24,3 +25,16 @@ env_logger = "0.11.3"
 log = "0.4.22"
 thiserror = "1.0.56"
 anyhow = "1.0.97"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+async-trait = { version = "0.1.74" }
+axum = "0.8.3"
+axum-extra = { version = "0.10", features = ["form"] }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
+sea-orm = { version = "1.1.0", features = [
+  "sqlx-sqlite",
+  "sqlx-postgres",
+  "runtime-tokio-rustls",
+  "macros",
+] }
