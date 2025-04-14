@@ -72,7 +72,7 @@ pub async fn comments(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Res
     let item = load_item(&ctx, id).await?;
     let comments = item.find_related(comments::Entity).all(&ctx.db).await?;
 
-    format::json(item)
+    format::json(comments)
 }
 
 pub fn routes() -> Routes {
