@@ -1,0 +1,27 @@
+[package]
+name = "quillai_app"
+version = "0.1.0"
+homepage = "https://github.com/cloudbridgeuy/quillai/crates/app/README.md"
+description = "QuillAi APP"
+autobins = false
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
+
+[dependencies]
+quillai_log = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+axum = "0.8.3"
+listenfd = "1.0.2"
+sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite"] }
+axum_thiserror = "0.1.0"
