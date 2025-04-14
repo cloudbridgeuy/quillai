@@ -10,3 +10,5 @@ Cargo.lock
 **/*.rs.bk
 
 .bacon-locations
+
+/node_modules/
