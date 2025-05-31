@@ -12,3 +12,4 @@ Cargo.lock
 .bacon-locations
 
 /node_modules/
+**/node_modules/
