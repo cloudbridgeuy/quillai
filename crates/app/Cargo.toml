@@ -10,18 +10,18 @@ edition.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "api"
+name = "quillai_app"
 path = "src/main.rs"
 
 [dependencies]
-quillai_log = { workspace = true }
-tokio = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-clap = { workspace = true }
-axum = "0.8.3"
-listenfd = "1.0.2"
-sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite"] }
-axum_thiserror = "0.1.0"
+dioxus = { version = "0.6.3", features = ["router"] }
+tree-sitter-c2rust = "0.25.2"
+
+[features]
+default = ["web"]
+# The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature
+web = ["dioxus/web"]
+# The feature that are only required for the desktop = ["dioxus/desktop"] build target should be optional and only enabled in the desktop = ["dioxus/desktop"] feature
+desktop = ["dioxus/desktop"]
+# The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
+mobile = ["dioxus/mobile"]

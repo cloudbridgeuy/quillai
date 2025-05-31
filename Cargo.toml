@@ -1,5 +1,5 @@
 [workspace]
-members = ["xtask/", "crates/*"]
+members = ["xtask/", "crates/*", "crates/app"]
 resolver = "2"
 
 [workspace.package]
@@ -15,6 +15,16 @@ debug = 0
 incremental = true
 # Set this to 1 or 2 to get more useful backtraces in debugger.
 debug = 0
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
 
 [workspace.dependencies]
 loco-rs = { version = "0.15" }
