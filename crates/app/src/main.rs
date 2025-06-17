@@ -2,7 +2,9 @@
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to
 // import wherever you need dioxus
 use dioxus::prelude::*;
+use dioxus_logger::{self, tracing::Level};
 
+use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 use views::{Blog, Editor, Home, Navbar};
 
 /// Define a components module that contains all shared components for our app.
@@ -43,11 +45,29 @@ enum Route {
 // the asset in the browser or a local path in desktop bundles.
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const QUILL_SNOW_CSS: Asset = asset!("/assets/quill.snow.css");
+const QUILL_JS: Asset = asset!("/assets/quill.2.0.3.js");
 
 fn main() {
+    // Init logger
+    dioxus_logger::init(Level::INFO).expect("failed to init logger");
     // The `launch` function is the main entry point for a dioxus app. It takes a component and
     // renders it with the platform feature you have enabled
     dioxus::launch(App);
+}
+
+pub struct State {
+    pub ss: SyntaxSet,
+    pub ts: ThemeSet,
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            ss: SyntaxSet::load_defaults_newlines(),
+            ts: ThemeSet::load_defaults(),
+        }
+    }
 }
 
 /// App is the main component of our app. Components are the building blocks of dioxus apps. Each
@@ -58,6 +78,9 @@ fn main() {
 /// autocomplete
 #[component]
 fn App() -> Element {
+    // Load these once at the start of your program
+    use_context_provider(|| Signal::new(State::new()));
+
     // The `rsx!` macro lets us define HTML inside of rust. It expands to an Element with all of
     // our HTML inside.
     rsx! {
@@ -66,6 +89,9 @@ fn App() -> Element {
         // our favicon and main CSS file into the head of our app.
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
+        document::Link { rel: "stylesheet", href: QUILL_SNOW_CSS }
+
+        script { src: QUILL_JS }
 
         // The router component renders the route enum we defined above. It will handle
         // synchronization of the URL and render the layouts and components for the active route.

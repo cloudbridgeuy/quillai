@@ -5,5 +5,5 @@
 mod hero;
 pub use hero::Hero;
 
-mod editor;
-pub use editor::Editor;
+mod quill;
+pub use quill::Editor;

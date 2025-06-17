@@ -15,7 +15,11 @@ path = "src/main.rs"
 
 [dependencies]
 dioxus = { version = "0.6.3", features = ["router"] }
-tree-sitter-c2rust = "0.25.2"
+dioxus-logger = { version = "0.6.2" }
+js-sys = "0.3.77"
+syntect = { version = "5.2.0", default-features = false, features = [
+  "default-fancy",
+] }
 
 [features]
 default = ["web"]
