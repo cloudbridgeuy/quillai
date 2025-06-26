@@ -149,23 +149,46 @@ debug!(
 );
 ```
 
-### Using Spans for Context
+### Understanding Spans
+
+**Spans** are the core concept in structured tracing. Think of a span as a "unit of work" that:
+- Has a name and duration (start/end time)
+- Can carry structured fields (key-value pairs)
+- Provides context to all logging that happens within it
+- Can be nested to show relationships between operations
+- Tracks the flow of execution across async boundaries
 
 ```rust
 use quillai_log::{info_span, info, Instrument};
 
 async fn handle_request(user_id: u64) {
-    let span = info_span!("request", user_id = user_id);
+    // Create a span that will track this entire request
+    let span = info_span!("request", user_id = user_id, request_type = "api");
     
     async {
-        info!("Processing user request");
-        // ... your logic here
-        info!("Request completed");
+        info!("Processing user request");  // This log includes user_id automatically
+        
+        // Nested span for database operation
+        let db_span = debug_span!("database", table = "users", operation = "SELECT");
+        async {
+            info!("Querying database");  // This log includes user_id + table + operation
+        }
+        .instrument(db_span)
+        .await;
+        
+        info!("Request completed");  // Back to request span context
     }
-    .instrument(span)
+    .instrument(span)  // All logs in this block will include the span context
     .await;
 }
 ```
+
+**Why spans are powerful:**
+- **Automatic Context**: All logs within a span inherit its fields
+- **Distributed Tracing**: Track requests across service boundaries  
+- **Performance Monitoring**: Built-in timing and metrics
+- **Debugging**: See the exact path of execution that led to an error
+- **Async-Aware**: Context flows correctly across async operations
 
 ### Creating Custom Spans
 
@@ -299,6 +322,19 @@ Demonstrates:
 - Span-based context tracking across async operations
 - Integration with external crates (reqwest/hyper)
 - Error handling and performance monitoring
+
+### Spans Demonstration
+```bash
+RUST_LOG=debug cargo run --example spans_demo
+```
+Deep dive into spans - the core feature of structured tracing:
+- Basic span creation and manual/automatic entry
+- Nested spans showing hierarchy and context inheritance
+- Spans with fields that apply to all contained logs
+- Async operations with concurrent span tracking
+- Span timing and performance metrics
+- Error handling within span contexts
+- Advanced patterns and dynamic span creation
 
 ### JSON Output
 ```bash
