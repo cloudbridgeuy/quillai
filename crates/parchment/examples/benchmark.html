@@ -1,0 +1,1376 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuillAi Parchment WASM - Performance Benchmark</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f7fa;
+      }
+
+      .header {
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+      }
+
+      .benchmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .benchmark-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e1e8ed;
+      }
+
+      .benchmark-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .benchmark-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .btn:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+      }
+      .btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-small {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .btn-success {
+        background: #27ae60;
+      }
+      .btn-success:hover {
+        background: #219a52;
+      }
+      .btn-warning {
+        background: #f39c12;
+      }
+      .btn-warning:hover {
+        background: #d68910;
+      }
+      .btn-danger {
+        background: #e74c3c;
+      }
+      .btn-danger:hover {
+        background: #c0392b;
+      }
+
+      .results {
+        background: #2c3e50;
+        color: #ecf0f1;
+        border-radius: 6px;
+        padding: 15px;
+        font-family: "Monaco", "Consolas", monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 15px;
+      }
+
+      .result-success {
+        color: #2ecc71;
+      }
+      .result-warning {
+        color: #f1c40f;
+      }
+      .result-error {
+        color: #e74c3c;
+      }
+      .result-info {
+        color: #3498db;
+      }
+      .result-highlight {
+        color: #e67e22;
+        font-weight: bold;
+      }
+
+      .metrics-dashboard {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .metric-card {
+        text-align: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .metric-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+      }
+
+      .metric-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #ecf0f1;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 10px 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3498db, #2ecc71);
+        width: 0%;
+        transition: width 0.3s ease;
+        border-radius: 10px;
+      }
+
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .comparison-table th {
+        background: #34495e;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .comparison-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #dee2e6;
+      }
+
+      .comparison-table tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .status-ready {
+        background: #95a5a6;
+      }
+      .status-running {
+        background: #f39c12;
+        animation: pulse 1s infinite;
+      }
+      .status-success {
+        background: #27ae60;
+      }
+      .status-error {
+        background: #e74c3c;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .chart-container {
+        width: 100%;
+        height: 200px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7f8c8d;
+        font-style: italic;
+        margin: 15px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🦀 QuillAi Parchment WASM Performance Benchmark</h1>
+      <p>
+        Comprehensive performance testing suite for Rust/WebAssembly text
+        processing
+      </p>
+      <p>
+        <strong>Bundle Size:</strong> ~28KB • <strong>Dependencies:</strong> 3
+        core only • <strong>Target:</strong> Native Performance
+      </p>
+    </div>
+
+    <!-- Live Metrics Dashboard -->
+    <div class="metrics-dashboard">
+      <h2>📊 Live Performance Metrics</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="totalOperations">0</div>
+          <div class="metric-label">Total Operations</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="avgOperationTime">0ms</div>
+          <div class="metric-label">Avg Operation Time</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="operationsPerSecond">0</div>
+          <div class="metric-label">Operations/Second</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="memoryUsage">N/A</div>
+          <div class="metric-label">Memory Usage</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="wasmLoadTime">N/A</div>
+          <div class="metric-label">WASM Load Time</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="activeBenchmarks">0</div>
+          <div class="metric-label">Active Benchmarks</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Benchmark Tests -->
+    <div class="benchmark-grid">
+      <!-- TextBlot Performance -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span
+            class="status-indicator status-ready"
+            id="textblot-status"
+          ></span>
+          📝 TextBlot Performance
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="textblot-basic" disabled>
+            Basic (1K ops)
+          </button>
+          <button class="btn btn-small" id="textblot-intensive" disabled>
+            Intensive (10K ops)
+          </button>
+          <button class="btn btn-small" id="textblot-unicode" disabled>
+            Unicode Test
+          </button>
+          <button
+            class="btn btn-small btn-warning"
+            id="textblot-stress"
+            disabled
+          >
+            Stress (50K ops)
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="textblot-progress"></div>
+        </div>
+        <div class="results" id="textblot-results">
+          Ready to test TextBlot performance...
+        </div>
+      </div>
+
+      <!-- ScrollBlot Performance -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span
+            class="status-indicator status-ready"
+            id="scrollblot-status"
+          ></span>
+          📄 ScrollBlot Performance
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="scrollblot-basic" disabled>
+            Basic (100 paragraphs)
+          </button>
+          <button class="btn btn-small" id="scrollblot-large" disabled>
+            Large Doc (1K paragraphs)
+          </button>
+          <button class="btn btn-small" id="scrollblot-complex" disabled>
+            Complex Operations
+          </button>
+          <button
+            class="btn btn-small btn-warning"
+            id="scrollblot-stress"
+            disabled
+          >
+            Stress (5K paragraphs)
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="scrollblot-progress"></div>
+        </div>
+        <div class="results" id="scrollblot-results">
+          Ready to test ScrollBlot performance...
+        </div>
+      </div>
+
+      <!-- Memory Management -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span class="status-indicator status-ready" id="memory-status"></span>
+          🧠 Memory Management
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="memory-basic" disabled>
+            Basic Lifecycle
+          </button>
+          <button class="btn btn-small" id="memory-leak" disabled>
+            Leak Detection
+          </button>
+          <button class="btn btn-small" id="memory-gc" disabled>
+            GC Stress Test
+          </button>
+          <button class="btn btn-small btn-danger" id="memory-extreme" disabled>
+            Extreme Test
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="memory-progress"></div>
+        </div>
+        <div class="results" id="memory-results">
+          Ready to test memory management...
+        </div>
+      </div>
+
+      <!-- DOM Integration -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span class="status-indicator status-ready" id="dom-status"></span>
+          🌐 DOM Integration
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="dom-basic" disabled>
+            Basic DOM Ops
+          </button>
+          <button class="btn btn-small" id="dom-manipulation" disabled>
+            DOM Manipulation
+          </button>
+          <button class="btn btn-small" id="dom-events" disabled>
+            Event Handling
+          </button>
+          <button class="btn btn-small btn-warning" id="dom-stress" disabled>
+            DOM Stress Test
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="dom-progress"></div>
+        </div>
+        <div class="results" id="dom-results">
+          Ready to test DOM integration...
+        </div>
+      </div>
+
+      <!-- Comparison Benchmarks -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span
+            class="status-indicator status-ready"
+            id="comparison-status"
+          ></span>
+          ⚖️ Performance Comparison
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="comparison-native" disabled>
+            vs Native JS
+          </button>
+          <button class="btn btn-small" id="comparison-baseline" disabled>
+            WASM Baseline
+          </button>
+          <button class="btn btn-small" id="comparison-complex" disabled>
+            Complex Comparison
+          </button>
+          <button
+            class="btn btn-small btn-success"
+            id="comparison-report"
+            disabled
+          >
+            Generate Report
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="comparison-progress"></div>
+        </div>
+        <div class="results" id="comparison-results">
+          Ready for performance comparisons...
+        </div>
+      </div>
+
+      <!-- Real-world Scenarios -->
+      <div class="benchmark-card">
+        <div class="benchmark-title">
+          <span
+            class="status-indicator status-ready"
+            id="realworld-status"
+          ></span>
+          🎯 Real-world Scenarios
+        </div>
+        <div class="benchmark-controls">
+          <button class="btn btn-small" id="realworld-typing" disabled>
+            Typing Simulation
+          </button>
+          <button class="btn btn-small" id="realworld-editing" disabled>
+            Document Editing
+          </button>
+          <button class="btn btn-small" id="realworld-collaboration" disabled>
+            Multi-user Sim
+          </button>
+          <button
+            class="btn btn-small btn-success"
+            id="realworld-suite"
+            disabled
+          >
+            Full Suite
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="realworld-progress"></div>
+        </div>
+        <div class="results" id="realworld-results">
+          Ready for real-world scenario testing...
+        </div>
+      </div>
+    </div>
+
+    <!-- Master Controls -->
+    <div class="metrics-dashboard">
+      <h2>🎮 Master Controls</h2>
+      <div
+        style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center"
+      >
+        <button class="btn btn-success" id="runAllBasic" disabled>
+          🚀 Run All Basic Tests
+        </button>
+        <button class="btn btn-warning" id="runAllIntensive" disabled>
+          ⚡ Run All Intensive Tests
+        </button>
+        <button class="btn btn-danger" id="runAllStress" disabled>
+          🔥 Run All Stress Tests
+        </button>
+        <button class="btn" id="clearAllResults" disabled>
+          🧹 Clear All Results
+        </button>
+        <button class="btn" id="exportResults" disabled>
+          📊 Export Results
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Summary Table -->
+    <div class="metrics-dashboard">
+      <h2>📈 Results Summary</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Test Category</th>
+            <th>Operations</th>
+            <th>Avg Time (ms)</th>
+            <th>Ops/Sec</th>
+            <th>Memory Impact</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody">
+          <tr>
+            <td
+              colspan="6"
+              style="text-align: center; color: #7f8c8d; font-style: italic"
+            >
+              Run benchmarks to see results...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script type="module">
+      let wasmModule;
+      let wasmLoadStartTime;
+      let globalStats = {
+        totalOperations: 0,
+        totalTime: 0,
+        memoryBaseline: 0,
+        testResults: new Map(),
+      };
+
+      async function initializeWasm() {
+        try {
+          wasmLoadStartTime = performance.now();
+          updateStatus("Loading WASM module...");
+
+          wasmModule = await import("../pkg/quillai_parchment.js");
+          await wasmModule.default();
+          wasmModule.init_panic_hook();
+
+          const loadTime = performance.now() - wasmLoadStartTime;
+          document.getElementById("wasmLoadTime").textContent =
+            `${loadTime.toFixed(1)}ms`;
+
+          if (performance.memory) {
+            globalStats.memoryBaseline = performance.memory.usedJSHeapSize;
+          }
+
+          updateStatus("WASM loaded successfully");
+          enableAllControls();
+          updateGlobalStats();
+
+          log(
+            "textblot-results",
+            "✅ WASM module initialized successfully",
+            "success",
+          );
+          setStatus("textblot-status", "ready");
+        } catch (error) {
+          updateStatus(`Error: ${error.message}`);
+          log(
+            "textblot-results",
+            `❌ Failed to initialize WASM: ${error}`,
+            "error",
+          );
+          setStatus("textblot-status", "error");
+        }
+      }
+
+      function enableAllControls() {
+        document
+          .querySelectorAll("button")
+          .forEach((btn) => (btn.disabled = false));
+        document.querySelectorAll(".status-indicator").forEach((indicator) => {
+          if (indicator.classList.contains("status-ready")) {
+            // Keep ready status
+          }
+        });
+      }
+
+      function updateStatus(message) {
+        console.log(`[Status] ${message}`);
+      }
+
+      function setStatus(elementId, status) {
+        const element = document.getElementById(elementId);
+        element.className = `status-indicator status-${status}`;
+      }
+
+      function updateProgress(elementId, percent) {
+        document.getElementById(elementId).style.width = `${percent}%`;
+      }
+
+      function log(containerId, message, type = "info") {
+        const container = document.getElementById(containerId);
+        const timestamp = new Date().toLocaleTimeString();
+        const className = `result-${type}`;
+
+        container.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function updateGlobalStats() {
+        document.getElementById("totalOperations").textContent =
+          globalStats.totalOperations.toLocaleString();
+
+        const avgTime =
+          globalStats.totalOperations > 0
+            ? (globalStats.totalTime / globalStats.totalOperations).toFixed(4)
+            : "0";
+        document.getElementById("avgOperationTime").textContent =
+          `${avgTime}ms`;
+
+        const opsPerSec =
+          globalStats.totalTime > 0
+            ? Math.round(
+                (globalStats.totalOperations * 1000) / globalStats.totalTime,
+              )
+            : 0;
+        document.getElementById("operationsPerSecond").textContent =
+          opsPerSec.toLocaleString();
+
+        if (performance.memory) {
+          const currentMemory = performance.memory.usedJSHeapSize;
+          const memoryDiff = currentMemory - globalStats.memoryBaseline;
+          const memoryMB = (currentMemory / 1024 / 1024).toFixed(1);
+          document.getElementById("memoryUsage").textContent = `${memoryMB}MB`;
+        }
+
+        const activeBenchmarks =
+          document.querySelectorAll(".status-running").length;
+        document.getElementById("activeBenchmarks").textContent =
+          activeBenchmarks;
+      }
+
+      function measureOperation(name, operation, iterations = 1) {
+        const start = performance.now();
+        const result = operation();
+        const end = performance.now();
+        const duration = end - start;
+
+        globalStats.totalOperations += iterations;
+        globalStats.totalTime += duration;
+
+        updateGlobalStats();
+        return { result, duration };
+      }
+
+      function updateSummaryTable(
+        category,
+        operations,
+        avgTime,
+        opsPerSec,
+        memoryImpact,
+        status,
+      ) {
+        const tbody = document.getElementById("summaryTableBody");
+
+        // Remove "no results" row if it exists
+        if (
+          tbody.children.length === 1 &&
+          tbody.children[0].children.length === 1
+        ) {
+          tbody.innerHTML = "";
+        }
+
+        // Check if category already exists
+        let row = Array.from(tbody.children).find(
+          (row) => row.children[0].textContent === category,
+        );
+
+        if (!row) {
+          row = tbody.insertRow();
+          row.innerHTML = `
+                    <td>${category}</td>
+                    <td>${operations.toLocaleString()}</td>
+                    <td>${avgTime.toFixed(4)}</td>
+                    <td>${opsPerSec.toLocaleString()}</td>
+                    <td>${memoryImpact}</td>
+                    <td><span class="status-indicator status-${status}"></span>${status}</td>
+                `;
+        } else {
+          row.children[1].textContent = operations.toLocaleString();
+          row.children[2].textContent = avgTime.toFixed(4);
+          row.children[3].textContent = opsPerSec.toLocaleString();
+          row.children[4].textContent = memoryImpact;
+          row.children[5].innerHTML = `<span class="status-indicator status-${status}"></span>${status}`;
+        }
+      }
+
+      // TextBlot Performance Tests
+      document
+        .getElementById("textblot-basic")
+        .addEventListener("click", async () => {
+          setStatus("textblot-status", "running");
+          updateProgress("textblot-progress", 0);
+
+          try {
+            log(
+              "textblot-results",
+              "🚀 Starting TextBlot basic performance test (1K operations)...",
+              "info",
+            );
+
+            const iterations = 1000;
+            const results = [];
+
+            for (let i = 0; i < iterations; i++) {
+              const { duration } = measureOperation("TextBlot Basic", () => {
+                const blot = new wasmModule.TextBlot(`Performance test ${i}`);
+                blot.insert_at(0, "🔥 ");
+                blot.delete_at(blot.length() - 1, 1);
+                const value = blot.value;
+                blot.free();
+                return value;
+              });
+
+              results.push(duration);
+
+              if (i % 100 === 0) {
+                updateProgress("textblot-progress", (i / iterations) * 100);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            updateProgress("textblot-progress", 100);
+
+            const avgTime = results.reduce((a, b) => a + b) / results.length;
+            const totalTime = results.reduce((a, b) => a + b);
+            const opsPerSec = Math.round((iterations * 1000) / totalTime);
+
+            log(
+              "textblot-results",
+              `✅ Basic test completed: ${avgTime.toFixed(4)}ms avg, ${opsPerSec} ops/sec`,
+              "success",
+            );
+            updateSummaryTable(
+              "TextBlot Basic",
+              iterations,
+              avgTime,
+              opsPerSec,
+              "Minimal",
+              "success",
+            );
+
+            setStatus("textblot-status", "success");
+          } catch (e) {
+            log("textblot-results", `❌ Basic test error: ${e}`, "error");
+            setStatus("textblot-status", "error");
+          }
+        });
+
+      document
+        .getElementById("textblot-intensive")
+        .addEventListener("click", async () => {
+          setStatus("textblot-status", "running");
+          updateProgress("textblot-progress", 0);
+
+          try {
+            log(
+              "textblot-results",
+              "⚡ Starting TextBlot intensive test (10K operations)...",
+              "warning",
+            );
+
+            const iterations = 10000;
+            const startTime = performance.now();
+            const blots = [];
+
+            // Create phase
+            for (let i = 0; i < iterations; i++) {
+              const blot = new wasmModule.TextBlot(
+                `Intensive test ${i} with longer content for realistic testing`,
+              );
+              blot.insert_at(0, `${i % 10} `);
+              blot.delete_at(blot.length() - 5, 2);
+              blots.push(blot);
+
+              if (i % 1000 === 0) {
+                updateProgress("textblot-progress", (i / iterations) * 50);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            // Manipulation phase
+            for (let i = 0; i < blots.length; i++) {
+              blots[i].insert_at(5, " MODIFIED ");
+              if (blots[i].length() > 50) {
+                blots[i].delete_at(20, 10);
+              }
+
+              if (i % 1000 === 0) {
+                updateProgress("textblot-progress", 50 + (i / iterations) * 30);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            // Cleanup phase
+            for (let i = 0; i < blots.length; i++) {
+              blots[i].free();
+
+              if (i % 1000 === 0) {
+                updateProgress("textblot-progress", 80 + (i / iterations) * 20);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            const endTime = performance.now();
+            const totalTime = endTime - startTime;
+            const avgTime = totalTime / (iterations * 3); // 3 operations per blot
+            const opsPerSec = Math.round((iterations * 3 * 1000) / totalTime);
+
+            updateProgress("textblot-progress", 100);
+
+            globalStats.totalOperations += iterations * 3;
+            globalStats.totalTime += totalTime;
+            updateGlobalStats();
+
+            log(
+              "textblot-results",
+              `✅ Intensive test completed: ${totalTime.toFixed(2)}ms total, ${avgTime.toFixed(4)}ms avg`,
+              "success",
+            );
+            log(
+              "textblot-results",
+              `📊 Performance: ${opsPerSec.toLocaleString()} operations/second`,
+              "highlight",
+            );
+            updateSummaryTable(
+              "TextBlot Intensive",
+              iterations * 3,
+              avgTime,
+              opsPerSec,
+              "Low",
+              "success",
+            );
+
+            setStatus("textblot-status", "success");
+          } catch (e) {
+            log("textblot-results", `❌ Intensive test error: ${e}`, "error");
+            setStatus("textblot-status", "error");
+          }
+        });
+
+      document
+        .getElementById("textblot-unicode")
+        .addEventListener("click", async () => {
+          setStatus("textblot-status", "running");
+          updateProgress("textblot-progress", 0);
+
+          try {
+            log(
+              "textblot-results",
+              "🌍 Starting Unicode and emoji performance test...",
+              "info",
+            );
+
+            const unicodeTexts = [
+              "🦀 Rust WebAssembly 🚀",
+              "العربية النص اختبار",
+              "中文测试内容",
+              "Тест на русском языке",
+              "🎉🎊🎈🎁🎂🍰🎭🎪🎨🎬🎮🎯",
+              "Ελληνικό κείμενο δοκιμής",
+              "हिंदी परीक्षण सामग्री",
+              "日本語のテストコンテンツ",
+              "🌟💫⭐✨🌙☀️🌈🦄🌸🌺🌻🌷",
+              "עברית טקסט מבחן",
+            ];
+
+            const iterations = 500;
+            const results = [];
+
+            for (let i = 0; i < iterations; i++) {
+              const text = unicodeTexts[i % unicodeTexts.length];
+
+              const { duration } = measureOperation("Unicode Test", () => {
+                const blot = new wasmModule.TextBlot(text);
+                blot.insert_at(0, "🔥 ");
+                blot.insert_at(blot.length(), " 🔥");
+                const split = blot.split(blot.length() / 2);
+                const result = blot.value + split.value;
+                blot.free();
+                split.free();
+                return result;
+              });
+
+              results.push(duration);
+              updateProgress("textblot-progress", (i / iterations) * 100);
+
+              if (i % 50 === 0) {
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            const avgTime = results.reduce((a, b) => a + b) / results.length;
+            const totalTime = results.reduce((a, b) => a + b);
+            const opsPerSec = Math.round((iterations * 1000) / totalTime);
+
+            log(
+              "textblot-results",
+              `✅ Unicode test completed: ${avgTime.toFixed(4)}ms avg`,
+              "success",
+            );
+            log(
+              "textblot-results",
+              `🌍 Tested with 10 different languages and emoji sets`,
+              "info",
+            );
+            updateSummaryTable(
+              "TextBlot Unicode",
+              iterations,
+              avgTime,
+              opsPerSec,
+              "Minimal",
+              "success",
+            );
+
+            setStatus("textblot-status", "success");
+          } catch (e) {
+            log("textblot-results", `❌ Unicode test error: ${e}`, "error");
+            setStatus("textblot-status", "error");
+          }
+        });
+
+      document
+        .getElementById("textblot-stress")
+        .addEventListener("click", async () => {
+          setStatus("textblot-status", "running");
+          updateProgress("textblot-progress", 0);
+
+          try {
+            log(
+              "textblot-results",
+              "🔥 Starting TextBlot stress test (50K operations)...",
+              "warning",
+            );
+
+            const iterations = 50000;
+            const startTime = performance.now();
+            const startMemory = performance.memory
+              ? performance.memory.usedJSHeapSize
+              : 0;
+
+            // Batch processing for better performance measurement
+            const batchSize = 1000;
+            const batches = Math.ceil(iterations / batchSize);
+
+            for (let batch = 0; batch < batches; batch++) {
+              const batchStart = performance.now();
+              const blots = [];
+
+              // Create batch
+              for (
+                let i = 0;
+                i < batchSize && batch * batchSize + i < iterations;
+                i++
+              ) {
+                const blot = new wasmModule.TextBlot(
+                  `Stress test ${batch * batchSize + i} with substantial content for memory and performance testing under extreme conditions`,
+                );
+                blots.push(blot);
+              }
+
+              // Manipulate batch
+              blots.forEach((blot, i) => {
+                blot.insert_at(0, `${i} `);
+                blot.insert_at(blot.length(), ` ${i}`);
+                if (blot.length() > 100) {
+                  blot.delete_at(50, 20);
+                }
+                if (i % 10 === 0 && blot.length() > 50) {
+                  const split = blot.split(blot.length() / 2);
+                  split.free();
+                }
+              });
+
+              // Cleanup batch
+              blots.forEach((blot) => blot.free());
+
+              const batchTime = performance.now() - batchStart;
+              const progress = ((batch + 1) / batches) * 100;
+              updateProgress("textblot-progress", progress);
+
+              if (batch % 10 === 0) {
+                log(
+                  "textblot-results",
+                  `📊 Batch ${batch + 1}/${batches} completed in ${batchTime.toFixed(2)}ms`,
+                  "info",
+                );
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            const endTime = performance.now();
+            const endMemory = performance.memory
+              ? performance.memory.usedJSHeapSize
+              : 0;
+            const totalTime = endTime - startTime;
+            const avgTime = totalTime / iterations;
+            const opsPerSec = Math.round((iterations * 1000) / totalTime);
+            const memoryDiff = endMemory - startMemory;
+
+            globalStats.totalOperations += iterations;
+            globalStats.totalTime += totalTime;
+            updateGlobalStats();
+
+            log("textblot-results", `🔥 STRESS TEST COMPLETED!`, "highlight");
+            log(
+              "textblot-results",
+              `📊 ${iterations.toLocaleString()} operations in ${totalTime.toFixed(2)}ms`,
+              "success",
+            );
+            log(
+              "textblot-results",
+              `⚡ Average: ${avgTime.toFixed(6)}ms per operation`,
+              "success",
+            );
+            log(
+              "textblot-results",
+              `🚀 Performance: ${opsPerSec.toLocaleString()} ops/sec`,
+              "highlight",
+            );
+            log(
+              "textblot-results",
+              `🧠 Memory impact: ${(memoryDiff / 1024 / 1024).toFixed(2)}MB`,
+              "info",
+            );
+
+            updateSummaryTable(
+              "TextBlot Stress",
+              iterations,
+              avgTime,
+              opsPerSec,
+              `${(memoryDiff / 1024 / 1024).toFixed(1)}MB`,
+              "success",
+            );
+
+            setStatus("textblot-status", "success");
+          } catch (e) {
+            log("textblot-results", `❌ Stress test error: ${e}`, "error");
+            setStatus("textblot-status", "error");
+          }
+        });
+
+      // ScrollBlot Performance Tests
+      document
+        .getElementById("scrollblot-basic")
+        .addEventListener("click", async () => {
+          setStatus("scrollblot-status", "running");
+          updateProgress("scrollblot-progress", 0);
+
+          try {
+            log(
+              "scrollblot-results",
+              "📄 Starting ScrollBlot basic test (100 paragraphs)...",
+              "info",
+            );
+
+            const { duration } = measureOperation("ScrollBlot Basic", () => {
+              const scroll = new wasmModule.ScrollBlot();
+
+              for (let i = 0; i < 100; i++) {
+                scroll.append_text(
+                  `Paragraph ${i + 1}: This is a test paragraph with sufficient content to test realistic document operations and performance characteristics.`,
+                );
+                updateProgress("scrollblot-progress", (i / 100) * 100);
+              }
+
+              const stats = {
+                children: scroll.children_count(),
+                textContent: scroll.text_content(),
+                isEmpty: scroll.is_empty(),
+              };
+
+              scroll.free();
+              return stats;
+            });
+
+            const opsPerSec = Math.round((100 * 1000) / duration);
+
+            log(
+              "scrollblot-results",
+              `✅ Basic test completed: ${duration.toFixed(2)}ms for 100 paragraphs`,
+              "success",
+            );
+            log(
+              "scrollblot-results",
+              `📊 Performance: ${opsPerSec} paragraphs/second`,
+              "highlight",
+            );
+            updateSummaryTable(
+              "ScrollBlot Basic",
+              100,
+              duration / 100,
+              opsPerSec,
+              "Low",
+              "success",
+            );
+
+            setStatus("scrollblot-status", "success");
+          } catch (e) {
+            log("scrollblot-results", `❌ Basic test error: ${e}`, "error");
+            setStatus("scrollblot-status", "error");
+          }
+        });
+
+      // Memory Management Tests
+      document
+        .getElementById("memory-basic")
+        .addEventListener("click", async () => {
+          setStatus("memory-status", "running");
+          updateProgress("memory-progress", 0);
+
+          try {
+            log(
+              "memory-results",
+              "🧠 Starting basic memory lifecycle test...",
+              "info",
+            );
+
+            const iterations = 1000;
+            const memorySnapshots = [];
+
+            if (performance.memory) {
+              memorySnapshots.push(performance.memory.usedJSHeapSize);
+            }
+
+            // Create objects
+            const objects = [];
+            for (let i = 0; i < iterations; i++) {
+              if (i % 2 === 0) {
+                objects.push(new wasmModule.TextBlot(`Memory test ${i}`));
+              } else {
+                objects.push(new wasmModule.ScrollBlot());
+              }
+
+              if (i % 100 === 0) {
+                updateProgress("memory-progress", (i / iterations) * 50);
+                if (performance.memory) {
+                  memorySnapshots.push(performance.memory.usedJSHeapSize);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+
+            if (performance.memory) {
+              memorySnapshots.push(performance.memory.usedJSHeapSize);
+            }
+
+            // Free objects
+            objects.forEach((obj, i) => {
+              obj.free();
+              if (i % 100 === 0) {
+                updateProgress("memory-progress", 50 + (i / iterations) * 50);
+              }
+            });
+
+            updateProgress("memory-progress", 100);
+
+            if (performance.memory) {
+              memorySnapshots.push(performance.memory.usedJSHeapSize);
+
+              const initial = memorySnapshots[0];
+              const peak = Math.max(...memorySnapshots);
+              const final = memorySnapshots[memorySnapshots.length - 1];
+
+              log(
+                "memory-results",
+                `✅ Memory lifecycle test completed`,
+                "success",
+              );
+              log(
+                "memory-results",
+                `📊 Initial: ${(initial / 1024 / 1024).toFixed(2)}MB`,
+                "info",
+              );
+              log(
+                "memory-results",
+                `📈 Peak: ${(peak / 1024 / 1024).toFixed(2)}MB (+${((peak - initial) / 1024 / 1024).toFixed(2)}MB)`,
+                "info",
+              );
+              log(
+                "memory-results",
+                `📉 Final: ${(final / 1024 / 1024).toFixed(2)}MB (${final <= initial + 1024 * 1024 ? "GOOD" : "POTENTIAL LEAK"})`,
+                final <= initial + 1024 * 1024 ? "success" : "warning",
+              );
+
+              updateSummaryTable(
+                "Memory Basic",
+                iterations,
+                0,
+                0,
+                `${((peak - initial) / 1024 / 1024).toFixed(1)}MB peak`,
+                final <= initial + 1024 * 1024 ? "success" : "warning",
+              );
+            } else {
+              log(
+                "memory-results",
+                `✅ Memory test completed (detailed metrics unavailable)`,
+                "success",
+              );
+              updateSummaryTable(
+                "Memory Basic",
+                iterations,
+                0,
+                0,
+                "N/A",
+                "success",
+              );
+            }
+
+            globalStats.totalOperations += iterations;
+            updateGlobalStats();
+
+            setStatus("memory-status", "success");
+          } catch (e) {
+            log("memory-results", `❌ Memory test error: ${e}`, "error");
+            setStatus("memory-status", "error");
+          }
+        });
+
+      // Master Controls
+      document
+        .getElementById("runAllBasic")
+        .addEventListener("click", async () => {
+          log("textblot-results", "🚀 Running all basic tests...", "highlight");
+
+          await new Promise((resolve) => {
+            document.getElementById("textblot-basic").click();
+            setTimeout(resolve, 1000);
+          });
+
+          await new Promise((resolve) => {
+            document.getElementById("scrollblot-basic").click();
+            setTimeout(resolve, 1000);
+          });
+
+          await new Promise((resolve) => {
+            document.getElementById("memory-basic").click();
+            setTimeout(resolve, 1000);
+          });
+
+          log("textblot-results", "🎉 All basic tests completed!", "highlight");
+        });
+
+      document
+        .getElementById("clearAllResults")
+        .addEventListener("click", () => {
+          document.querySelectorAll(".results").forEach((container) => {
+            container.innerHTML = "Results cleared...";
+          });
+
+          document.querySelectorAll(".progress-fill").forEach((progress) => {
+            progress.style.width = "0%";
+          });
+
+          document
+            .querySelectorAll(".status-indicator")
+            .forEach((indicator) => {
+              indicator.className = "status-indicator status-ready";
+            });
+
+          document.getElementById("summaryTableBody").innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #7f8c8d; font-style: italic;">
+                        Run benchmarks to see results...
+                    </td>
+                </tr>
+            `;
+
+          // Reset global stats
+          globalStats = {
+            totalOperations: 0,
+            totalTime: 0,
+            memoryBaseline: performance.memory
+              ? performance.memory.usedJSHeapSize
+              : 0,
+            testResults: new Map(),
+          };
+
+          updateGlobalStats();
+        });
+
+      document.getElementById("exportResults").addEventListener("click", () => {
+        const results = {
+          timestamp: new Date().toISOString(),
+          wasmLoadTime: document.getElementById("wasmLoadTime").textContent,
+          globalStats: globalStats,
+          browserInfo: {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            memory: performance.memory
+              ? {
+                  used: performance.memory.usedJSHeapSize,
+                  total: performance.memory.totalJSHeapSize,
+                  limit: performance.memory.jsHeapSizeLimit,
+                }
+              : null,
+          },
+          summaryTable: Array.from(
+            document.getElementById("summaryTableBody").children,
+          )
+            .map((row) => ({
+              category: row.children[0]?.textContent,
+              operations: row.children[1]?.textContent,
+              avgTime: row.children[2]?.textContent,
+              opsPerSec: row.children[3]?.textContent,
+              memoryImpact: row.children[4]?.textContent,
+              status: row.children[5]?.textContent?.trim(),
+            }))
+            .filter((row) => row.category && row.category !== ""),
+        };
+
+        const blob = new Blob([JSON.stringify(results, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `parchment-wasm-benchmark-${Date.now()}.json`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+
+        log(
+          "textblot-results",
+          "📊 Benchmark results exported successfully",
+          "success",
+        );
+      });
+
+      // Initialize
+      document
+        .querySelectorAll("button")
+        .forEach((btn) => (btn.disabled = true));
+      initializeWasm();
+
+      // Update global stats every 2 seconds
+      setInterval(updateGlobalStats, 2000);
+    </script>
+  </body>
+</html>

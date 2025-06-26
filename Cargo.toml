@@ -4,8 +4,9 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-license = "MIT"
+license = "./LICENSE"
 authors = ["Guzmán Monné"]
+repository = "https://github.com/cloudbridgeuy/quillai"
 
 [profile.dev]
 # Disabling debug info speeds up builds.
