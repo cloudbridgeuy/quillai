@@ -29,9 +29,7 @@ async fn main() -> Result<()> {
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Logger                                                                      │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
-    env_logger::builder()
-        .filter_level(log::LevelFilter::from(args.log_level))
-        .init();
+    quillai_log::init_simple_logger(args.log_level)?;
 
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ DB                                                                          │
@@ -70,7 +68,7 @@ async fn main() -> Result<()> {
     // │ Run                                                                         │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
     let local_addr = listener.local_addr()?;
-    log::info!("Listening on {}", local_addr);
+    quillai_log::info!("Listening on {}", local_addr);
 
     axum::serve(listener, app).await?;
 

@@ -17,9 +17,7 @@ async fn main() -> Result<()> {
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Logger                                                                      │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
-    env_logger::builder()
-        .filter_level(log::LevelFilter::from(args.log_level))
-        .init();
+    quillai_log::init_simple_logger(args.log_level)?;
 
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Start listening                                                             │
