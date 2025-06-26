@@ -18,7 +18,7 @@
 //! ```
 
 use clap::ValueEnum;
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 // Re-export tracing macros for convenience
 pub use tracing::{debug, error, info, trace, warn};
@@ -265,13 +265,19 @@ pub fn init_simple_logger(level: LogLevel) -> Result<(), Error> {
 }
 
 /// Create a span with the given name and level
-pub fn create_span(level: Level, name: &'static str) -> Span {
-    span!(level, name)
+pub fn create_span(level: Level, name: &str) -> Span {
+    match level {
+        Level::ERROR => error_span!("span", name = name),
+        Level::WARN => warn_span!("span", name = name),
+        Level::INFO => info_span!("span", name = name),
+        Level::DEBUG => debug_span!("span", name = name),
+        Level::TRACE => trace_span!("span", name = name),
+    }
 }
 
 /// Create an info span (most common case)
-pub fn info_span(name: &'static str) -> Span {
-    info_span!(name)
+pub fn create_info_span(name: &str) -> Span {
+    info_span!("span", name = name)
 }
 
 /// Add fields to the current span
@@ -296,6 +302,7 @@ pub mod testing {
 }
 
 // For backward compatibility with existing code using log crate
+#[cfg(feature = "log-compat")]
 #[deprecated(since = "0.1.0", note = "Use tracing::Level instead")]
 pub mod log_compat {
     use super::LogLevel;

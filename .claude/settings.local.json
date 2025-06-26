@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(cargo test:*)",
-      "WebFetch(domain:dioxuslabs.com)"
+      "WebFetch(domain:dioxuslabs.com)",
+      "Bash(mkdir:*)",
+      "Bash(cargo run:*)",
+      "Bash(RUST_LOG=debug cargo run --example comprehensive_logging -p quillai_log)"
     ],
     "deny": []
   }

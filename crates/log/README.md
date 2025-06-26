@@ -180,10 +180,45 @@ info!(table = "users", operation = "select", "Querying database");
 
 ## Environment Variables
 
-The logger respects standard tracing environment variables:
+The logger respects standard tracing environment variables for fine-grained control:
 
-- `RUST_LOG`: Set log level and filters (e.g., `RUST_LOG=debug,hyper=warn`)
-- Environment filters override the programmatic log level
+### Basic Usage
+```bash
+# Set global log level
+RUST_LOG=debug cargo run
+
+# Set different levels for different crates
+RUST_LOG=info,quillai_log=debug,reqwest=warn cargo run
+
+# Very detailed logging
+RUST_LOG=trace cargo run
+```
+
+### Advanced Filtering
+```bash
+# Only show logs from specific modules
+RUST_LOG=quillai_log::auth,quillai_log::database cargo run
+
+# Complex filtering with levels
+RUST_LOG="info,hyper=warn,h2=off,rustls=error" cargo run
+
+# Target-based filtering
+RUST_LOG="[quillai_log::api]=debug,[hyper::client]=info" cargo run
+```
+
+### Production Examples
+```bash
+# Production: minimal logging
+RUST_LOG=warn,quillai_log=info cargo run
+
+# Debugging: detailed logs for specific components
+RUST_LOG=info,quillai_log::auth=debug,sqlx=debug cargo run
+
+# Performance monitoring: trace spans only
+RUST_LOG="[{user_request}]=trace" cargo run
+```
+
+Environment filters override the programmatic log level, giving you runtime control without code changes.
 
 ## JSON Output
 
@@ -243,6 +278,48 @@ The `tracing` ecosystem is designed for high-performance, async-aware logging:
 - Efficient structured data handling
 - Async-aware span tracking
 - Minimal allocation overhead
+
+## Examples
+
+This crate includes several comprehensive examples that demonstrate different use cases:
+
+### Basic Usage
+```bash
+cargo run --example basic_usage
+```
+Shows simple logging with different levels and structured fields.
+
+### Comprehensive Logging
+```bash
+# Show all log levels including debug/trace
+RUST_LOG=debug cargo run --example comprehensive_logging
+```
+Demonstrates:
+- All log levels and structured logging
+- Span-based context tracking across async operations
+- Integration with external crates (reqwest/hyper)
+- Error handling and performance monitoring
+
+### JSON Output
+```bash
+cargo run --example json_output --features json
+```
+Shows structured JSON logging perfect for log aggregation systems.
+
+### External Crate Integration
+
+The library seamlessly integrates with the tracing ecosystem, so logs from external crates like `reqwest`, `hyper`, `sqlx`, `tokio`, etc. will automatically appear in your structured logs:
+
+```rust
+// Your application logs
+info!(user_id = 42, "Processing request");
+
+// External crate logs (reqwest/hyper) will also appear:
+// DEBUG starting new connection: https://api.example.com/
+// DEBUG connected to 1.2.3.4:443
+```
+
+This provides complete observability across your entire application stack.
 
 ## Testing
 
