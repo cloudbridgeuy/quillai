@@ -137,7 +137,11 @@ wasm-pack build --target bundler --out-dir pkg
 ### JavaScript Integration
 
 ```javascript
-import init, { version, create_registry, Scope } from "./pkg/parchment.js";
+import init, {
+  version,
+  create_registry,
+  Scope,
+} from "./pkg/quillai_parchment.js";
 
 async function run() {
   await init();
@@ -153,7 +157,7 @@ async function run() {
 ```html
 <!-- See example.html for complete demo -->
 <script type="module">
-  import init, { test_scope_operations } from "./pkg/parchment.js";
+  import init, { test_scope_operations } from "./pkg/quillai_parchment.js";
   await init();
   const result = test_scope_operations(); // Returns 1 for success
 </script>

@@ -3,6 +3,7 @@ use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::dom::Dom;
 use crate::scope::Scope;
+use crate::text_operations::{Position, TextMatch, TextSelection, TextStatistics, TextUtils, TextVisitor, TextCollector, TextSearcher};
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
@@ -199,6 +200,393 @@ impl ScrollBlot {
     pub fn is_observing_mutations(&self) -> bool {
         self.mutation_observer.is_some()
     }
+
+    // === Document-wide Selection Management ===
+
+    /// Get document-wide selection information
+    #[wasm_bindgen]
+    pub fn get_document_selection(&self) -> Result<Option<TextSelection>, JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+
+        if selection.range_count() == 0 {
+            return Ok(None);
+        }
+
+        let range = selection.get_range_at(0)?;
+        
+        // Convert DOM range to our TextSelection format
+        let start_path = self.get_path_to_node(&range.start_container()?)?;
+        let end_path = self.get_path_to_node(&range.end_container()?)?;
+
+        let text_selection = TextSelection::new(
+            start_path,
+            range.start_offset()?,
+            end_path,
+            range.end_offset()?,
+        );
+
+        Ok(Some(text_selection))
+    }
+
+    /// Set document-wide selection using path-based coordinates
+    #[wasm_bindgen]
+    pub fn set_document_selection(
+        &self,
+        start_path: Vec<u32>,
+        start_offset: u32,
+        end_path: Vec<u32>,
+        end_offset: u32,
+    ) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+        let document = window.document().ok_or("No document object")?;
+
+        // Find the nodes at the specified paths
+        let start_node = self.get_node_at_path(&start_path)?;
+        let end_node = self.get_node_at_path(&end_path)?;
+
+        // Create a new range
+        let range = document.create_range()?;
+        range.set_start(&start_node, start_offset)?;
+        range.set_end(&end_node, end_offset)?;
+
+        // Apply the selection
+        selection.remove_all_ranges()?;
+        selection.add_range(&range)?;
+
+        Ok(())
+    }
+
+    /// Clear current selection
+    #[wasm_bindgen]
+    pub fn clear_selection(&self) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+        selection.remove_all_ranges()?;
+        Ok(())
+    }
+
+    /// Get selected text content from the document
+    #[wasm_bindgen]
+    pub fn get_selected_text(&self) -> Result<String, JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+
+        if selection.range_count() == 0 {
+            return Ok(String::new());
+        }
+
+        let range = selection.get_range_at(0)?;
+        
+        // Extract text content directly from the range
+        Ok(range.to_string().into())
+    }
+
+    /// Helper method to get path from root to a specific node
+    fn get_path_to_node(&self, target_node: &Node) -> Result<Vec<u32>, JsValue> {
+        let mut path = Vec::new();
+        let mut current_node = target_node.clone();
+        let root_node = self.as_node();
+
+        // Traverse up the tree until we reach the root
+        while current_node != root_node {
+            if let Some(parent) = current_node.parent_node() {
+                // Find the index of current_node among its siblings
+                let siblings = parent.child_nodes();
+                for i in 0..siblings.length() {
+                    if let Some(sibling) = siblings.get(i) {
+                        if sibling == current_node {
+                            path.insert(0, i);
+                            break;
+                        }
+                    }
+                }
+                current_node = parent;
+            } else {
+                return Err("Node is not within this ScrollBlot".into());
+            }
+        }
+
+        Ok(path)
+    }
+
+    /// Helper method to get node at a specific path
+    fn get_node_at_path(&self, path: &[u32]) -> Result<Node, JsValue> {
+        let mut current_node = self.as_node();
+
+        for &index in path {
+            let children = current_node.child_nodes();
+            if let Some(child) = children.get(index) {
+                current_node = child;
+            } else {
+                return Err(format!("Invalid path: index {} not found", index).into());
+            }
+        }
+
+        Ok(current_node)
+    }
+
+    // === Find and Replace Operations ===
+
+    /// Find all occurrences of a pattern in the document
+    #[wasm_bindgen]
+    pub fn find_text(&self, pattern: &str, case_sensitive: bool) -> Result<Vec<TextMatch>, JsValue> {
+        if pattern.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut searcher = TextSearcher::new(pattern.to_string(), case_sensitive);
+        self.traverse_text_nodes(&mut searcher)?;
+        Ok(searcher.matches)
+    }
+
+    /// Find next occurrence from current position
+    #[wasm_bindgen]
+    pub fn find_next(&self, pattern: &str, from_position: Option<Position>) -> Result<Option<TextMatch>, JsValue> {
+        let matches = self.find_text(pattern, true)?;
+        
+        if matches.is_empty() {
+            return Ok(None);
+        }
+
+        // If no position specified, return first match
+        let from_pos = match from_position {
+            Some(pos) => pos,
+            None => return Ok(matches.into_iter().next()),
+        };
+
+        // Find the first match after the specified position
+        for text_match in &matches {
+            if self.is_position_after(&text_match.start_path(), text_match.start_offset, &from_pos.path(), from_pos.offset) {
+                return Ok(Some(text_match.clone()));
+            }
+        }
+
+        // If no match found after position, wrap around to first match
+        Ok(matches.into_iter().next())
+    }
+
+    /// Replace single occurrence of pattern
+    #[wasm_bindgen]
+    pub fn replace_text(&mut self, pattern: &str, replacement: &str, occurrence: Option<u32>) -> Result<bool, JsValue> {
+        let matches = self.find_text(pattern, true)?;
+        
+        if matches.is_empty() {
+            return Ok(false);
+        }
+
+        let target_index = occurrence.unwrap_or(0) as usize;
+        if target_index >= matches.len() {
+            return Ok(false);
+        }
+
+        let text_match = &matches[target_index];
+        self.replace_at_match(text_match, replacement)?;
+        Ok(true)
+    }
+
+    /// Replace all occurrences of pattern
+    #[wasm_bindgen]
+    pub fn replace_all(&mut self, pattern: &str, replacement: &str) -> Result<u32, JsValue> {
+        let matches = self.find_text(pattern, true)?;
+        let count = matches.len() as u32;
+
+        // Replace in reverse order to maintain position validity
+        for text_match in matches.iter().rev() {
+            self.replace_at_match(text_match, replacement)?;
+        }
+
+        Ok(count)
+    }
+
+    /// Replace within selection only
+    #[wasm_bindgen]
+    pub fn replace_in_selection(&mut self, pattern: &str, replacement: &str) -> Result<u32, JsValue> {
+        let selection = match self.get_document_selection()? {
+            Some(sel) => sel,
+            None => return Ok(0),
+        };
+
+        let matches = self.find_text(pattern, true)?;
+        let mut replaced_count = 0;
+
+        // Filter matches that are within the selection
+        for text_match in matches.iter().rev() {
+            if self.is_match_in_selection(&text_match, &selection) {
+                self.replace_at_match(text_match, replacement)?;
+                replaced_count += 1;
+            }
+        }
+
+        Ok(replaced_count)
+    }
+
+    /// Helper method to replace text at a specific match
+    fn replace_at_match(&mut self, text_match: &TextMatch, replacement: &str) -> Result<(), JsValue> {
+        let node = self.get_node_at_path(&text_match.start_path())?;
+        
+        if let Some(text_node) = node.dyn_ref::<web_sys::Text>() {
+            let current_text = text_node.text_content().unwrap_or_default();
+            let start = text_match.start_offset as usize;
+            let end = text_match.end_offset as usize;
+            
+            let mut chars: Vec<char> = current_text.chars().collect();
+            
+            // Remove the matched text
+            for _ in start..end.min(chars.len()) {
+                if start < chars.len() {
+                    chars.remove(start);
+                }
+            }
+            
+            // Insert replacement text
+            let replacement_chars: Vec<char> = replacement.chars().collect();
+            for (i, &ch) in replacement_chars.iter().enumerate() {
+                chars.insert(start + i, ch);
+            }
+            
+            let new_text: String = chars.into_iter().collect();
+            text_node.set_text_content(Some(&new_text));
+        }
+
+        Ok(())
+    }
+
+    /// Helper method to check if a position is after another position
+    fn is_position_after(&self, path1: &[u32], offset1: u32, path2: &[u32], offset2: u32) -> bool {
+        // Compare paths first
+        for (_i, (&p1, &p2)) in path1.iter().zip(path2.iter()).enumerate() {
+            if p1 > p2 {
+                return true;
+            } else if p1 < p2 {
+                return false;
+            }
+        }
+
+        // If paths are equal up to the shorter length, compare by length
+        if path1.len() > path2.len() {
+            return true;
+        } else if path1.len() < path2.len() {
+            return false;
+        }
+
+        // If paths are identical, compare offsets
+        offset1 > offset2
+    }
+
+    /// Helper method to check if a match is within a selection
+    fn is_match_in_selection(&self, text_match: &TextMatch, selection: &TextSelection) -> bool {
+        // Simplified check - in a full implementation, this would need more sophisticated path comparison
+        text_match.start_path() == selection.start_path() && 
+        text_match.start_offset >= selection.start_offset &&
+        text_match.end_offset <= selection.end_offset
+    }
+
+    // === Text Statistics ===
+
+    /// Count total words in document
+    #[wasm_bindgen]
+    pub fn word_count(&self) -> u32 {
+        let text = self.collect_all_text();
+        TextUtils::count_words(&text)
+    }
+
+    /// Count characters with option to include/exclude spaces
+    #[wasm_bindgen]
+    pub fn character_count(&self, include_spaces: bool) -> u32 {
+        let text = self.collect_all_text();
+        TextUtils::count_characters(&text, include_spaces)
+    }
+
+    /// Count paragraphs (block-level elements)
+    #[wasm_bindgen]
+    pub fn paragraph_count(&self) -> u32 {
+        let mut count = 0;
+        let mut current_node = self.children.head;
+
+        while let Some(node_ptr) = current_node {
+            unsafe {
+                let node_ref = node_ptr.as_ref();
+                let child = node_ref.val.as_ref();
+
+                // Count block-level elements as paragraphs
+                if matches!(child.get_scope(), Scope::BlockBlot) {
+                    count += 1;
+                }
+
+                current_node = node_ref.next;
+            }
+        }
+
+        count.max(1) // At least 1 paragraph even if empty
+    }
+
+    /// Get comprehensive text statistics
+    #[wasm_bindgen]
+    pub fn get_statistics(&self) -> TextStatistics {
+        let text = self.collect_all_text();
+        
+        let words = TextUtils::count_words(&text);
+        let characters = TextUtils::count_characters(&text, true);
+        let characters_no_spaces = TextUtils::count_characters(&text, false);
+        let paragraphs = self.paragraph_count();
+        let lines = TextUtils::estimate_lines(&text);
+        let sentences = TextUtils::count_sentences(&text);
+
+        TextStatistics::new(
+            words,
+            characters,
+            characters_no_spaces,
+            paragraphs,
+            lines,
+            sentences,
+        )
+    }
+
+    /// Collect all text content from the document
+    fn collect_all_text(&self) -> String {
+        let mut collector = TextCollector::new();
+        if let Err(_) = self.traverse_text_nodes(&mut collector) {
+            // Fallback to DOM text content if traversal fails
+            return self.text_content();
+        }
+        collector.collected_text
+    }
+
+    /// Traverse all text nodes in the document using the visitor pattern
+    fn traverse_text_nodes(&self, visitor: &mut dyn TextVisitor) -> Result<(), JsValue> {
+        self.traverse_text_nodes_recursive(&self.as_node(), &mut Vec::new(), visitor)
+    }
+
+    /// Recursive helper for text node traversal
+    fn traverse_text_nodes_recursive(
+        &self,
+        node: &Node,
+        current_path: &mut Vec<u32>,
+        visitor: &mut dyn TextVisitor,
+    ) -> Result<(), JsValue> {
+        // Check if this is a text node
+        if node.node_type() == Node::TEXT_NODE {
+            if let Some(text_content) = node.text_content() {
+                if !text_content.trim().is_empty() {
+                    visitor.visit_text(&text_content, current_path);
+                }
+            }
+        } else {
+            // Traverse child nodes
+            let children = node.child_nodes();
+            for i in 0..children.length() {
+                if let Some(child) = children.get(i) {
+                    current_path.push(i);
+                    self.traverse_text_nodes_recursive(&child, current_path, visitor)?;
+                    current_path.pop();
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl BlotTrait for ScrollBlot {
@@ -381,7 +769,7 @@ impl BlotTrait for ScrollBlot {
                         // Add to our children LinkedList
                         self.children.insert_at_tail(child_blot);
                     }
-                    Err(_e) => {
+                    Err(e) => {
                         // Log warning for unsupported nodes but continue processing
                         #[cfg(debug_assertions)]
                         web_sys::console::warn_2(

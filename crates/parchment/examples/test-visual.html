@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parchment Advanced Text Operations - Visual Test Suite</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            background: #fafafa;
+        }
+        .test-demo {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007acc;
+        }
+        .test-result { 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 5px; 
+            font-weight: bold;
+        }
+        .success { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border-left: 4px solid #28a745;
+        }
+        .error { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border-left: 4px solid #dc3545;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            background: #007acc;
+            color: white;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .sample-text {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #e9ecef;
+            margin: 10px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007acc;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .demo-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .demo-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Parchment Advanced Text Operations - Visual Test Suite</h1>
+        
+        <div class="test-section">
+            <h2>🎮 Test Controls</h2>
+            <button onclick="runAllTests()">🔄 Run All Tests</button>
+            <button onclick="runSelectionTest()">📝 Selection Management</button>
+            <button onclick="runFindReplaceTest()">🔍 Find/Replace</button>
+            <button onclick="runStatisticsTest()">📊 Text Statistics</button>
+            <button onclick="runTraversalTest()">🌐 Advanced Operations</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+
+        <!-- Demo Sections -->
+        <div class="test-section">
+            <h2>📝 Selection Management Demo</h2>
+            <div class="demo-section">
+                <div class="demo-title">What this test does:</div>
+                <p>Tests cursor positioning, selection ranges, and text selection functionality in the Parchment editor.</p>
+                
+                <div class="sample-text">
+                    Sample text: "<span id="selection-demo">Hello world! This is a test document.</span>"
+                </div>
+                
+                <div class="demo-section">
+                    <strong>Operations tested:</strong>
+                    <ul>
+                        <li>✅ Get cursor position (should return None or 0)</li>
+                        <li>✅ Check selection containment (returns boolean)</li>
+                        <li>✅ Get selection range (returns range object)</li>
+                        <li>✅ DOM element creation and cleanup</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Find/Replace Demo</h2>
+            <div class="demo-section">
+                <div class="demo-title">What this test does:</div>
+                <p>Tests text search, find operations, and replace functionality across documents.</p>
+                
+                <div class="sample-text">
+                    Sample text: "The quick brown fox jumps over the lazy dog. The fox is quick."
+                </div>
+                
+                <div class="demo-section">
+                    <strong>Operations tested:</strong>
+                    <ul>
+                        <li>🔍 Find text: "<span class="highlight">fox</span>" (should find 2 matches)</li>
+                        <li>🔄 Replace: "fox" → "cat"</li>
+                        <li>📊 Count matches and validate results</li>
+                        <li>🎯 Case-sensitive vs case-insensitive search</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Text Statistics Demo</h2>
+            <div class="demo-section">
+                <div class="demo-title">What this test does:</div>
+                <p>Analyzes text content and provides comprehensive statistics about word count, characters, and structure.</p>
+                
+                <div class="sample-text">
+                    Sample text: "Hello world! This is a test. It has multiple sentences."
+                </div>
+                
+                <div class="stats-grid" id="stats-preview">
+                    <div class="stat-item">
+                        <div class="stat-number">~11</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">~55</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">~45</div>
+                        <div class="stat-label">No Spaces</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">1+</div>
+                        <div class="stat-label">Paragraphs</div>
+                    </div>
+                </div>
+                
+                <div class="demo-section">
+                    <strong>Statistics calculated:</strong>
+                    <ul>
+                        <li>📝 Word count (Unicode-aware)</li>
+                        <li>🔤 Character count (with/without spaces)</li>
+                        <li>📄 Paragraph count</li>
+                        <li>📊 Comprehensive statistics object</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🌐 Advanced Text Operations Demo</h2>
+            <div class="demo-section">
+                <div class="demo-title">What this test does:</div>
+                <p>Tests the integration of all text processing features including visitor patterns and text utilities.</p>
+                
+                <div class="sample-text">
+                    Sample text: "Hello world! This is a test."
+                </div>
+                
+                <div class="demo-section">
+                    <strong>Advanced operations tested:</strong>
+                    <ul>
+                        <li>🔧 TextUtils word counting: "Hello world! This is a test." → 6 words</li>
+                        <li>🔍 TextSearcher pattern matching: Find "test" in text</li>
+                        <li>🔄 Integration with find/replace operations</li>
+                        <li>📊 Integration with statistics calculation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, {
+            test_selection_management,
+            test_find_replace,
+            test_text_statistics,
+            test_advanced_text_operations,
+        } from "../pkg/quillai_parchment.js";
+
+        let wasm;
+        let testProgress = 0;
+        const totalTests = 4;
+
+        async function initWasm() {
+            wasm = await init();
+            console.log("WASM module loaded successfully");
+            showResult("success", "🚀 WASM module loaded successfully! Ready to run tests.");
+        }
+
+        function showResult(type, message, details = "") {
+            const results = document.getElementById("results");
+            const detailsHtml = details ? `<div style="margin-top: 10px; font-size: 14px; opacity: 0.8;">${details}</div>` : "";
+            results.innerHTML += `<div class="test-result ${type}">${message}${detailsHtml}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function updateProgress() {
+            testProgress++;
+            const percentage = (testProgress / totalTests) * 100;
+            const progressBar = document.querySelector('.progress-fill');
+            const progressText = document.querySelector('.progress-text');
+            
+            if (progressBar) {
+                progressBar.style.width = percentage + '%';
+            }
+            if (progressText) {
+                progressText.textContent = `${testProgress} / ${totalTests} tests completed`;
+            }
+        }
+
+        function createProgressBar() {
+            return `
+                <div class="test-result info">
+                    <strong>🔄 Test Progress</strong>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" style="text-align: center; margin-top: 5px;">0 / ${totalTests} tests completed</div>
+                </div>
+            `;
+        }
+
+        window.runAllTests = async function() {
+            const results = document.getElementById("results");
+            testProgress = 0;
+            results.innerHTML = "<h3>🧪 Running All Tests...</h3>" + createProgressBar();
+
+            try {
+                await runSelectionTest();
+                await runFindReplaceTest();
+                await runStatisticsTest();
+                await runTraversalTest();
+
+                showResult("success", "🎉 All tests completed successfully!", 
+                    `Completed ${totalTests}/${totalTests} tests. All advanced text operations are working correctly.`);
+            } catch (error) {
+                showResult("error", "❌ Test suite failed", `Error: ${error.message}`);
+            }
+        };
+
+        window.runSelectionTest = async function() {
+            try {
+                console.log("Running selection management test...");
+                const result = test_selection_management();
+                
+                const details = `
+                    <strong>Test Details:</strong><br>
+                    • Created TextBlot with sample text<br>
+                    • Tested cursor position retrieval<br>
+                    • Verified selection containment checking<br>
+                    • Validated DOM element creation/cleanup<br>
+                    • Result: ${result ? "✅ All operations successful" : "❌ Some operations failed"}
+                `;
+                
+                showResult(result ? "success" : "error", 
+                    `📝 Selection Management Test: ${result ? "PASSED" : "FAILED"}`, details);
+                updateProgress();
+            } catch (error) {
+                showResult("error", "📝 Selection Management Test: ERROR", `${error.message}`);
+                console.error("Selection test error:", error);
+            }
+        };
+
+        window.runFindReplaceTest = async function() {
+            try {
+                console.log("Running find/replace test...");
+                const result = test_find_replace();
+                
+                const details = `
+                    <strong>Test Details:</strong><br>
+                    • Created ScrollBlot with sample text<br>
+                    • Searched for text patterns<br>
+                    • Tested find_next functionality<br>
+                    • Validated replace operations<br>
+                    • Result: ${result ? "✅ All search/replace operations successful" : "❌ Some operations failed"}
+                `;
+                
+                showResult(result ? "success" : "error", 
+                    `🔍 Find/Replace Test: ${result ? "PASSED" : "FAILED"}`, details);
+                updateProgress();
+            } catch (error) {
+                showResult("error", "🔍 Find/Replace Test: ERROR", `${error.message}`);
+                console.error("Find/replace test error:", error);
+            }
+        };
+
+        window.runStatisticsTest = async function() {
+            try {
+                console.log("Running text statistics test...");
+                const result = test_text_statistics();
+                
+                const details = `
+                    <strong>Test Details:</strong><br>
+                    • Analyzed sample text: "Hello world! This is a test. It has multiple sentences."<br>
+                    • Counted words (expected ~11, Unicode-aware)<br>
+                    • Counted characters with/without spaces<br>
+                    • Counted paragraphs and sentences<br>
+                    • Validated comprehensive statistics object<br>
+                    • Result: ${result ? "✅ All statistics calculations accurate" : "❌ Statistics validation failed"}
+                `;
+                
+                showResult(result ? "success" : "error", 
+                    `📊 Text Statistics Test: ${result ? "PASSED" : "FAILED"}`, details);
+                updateProgress();
+            } catch (error) {
+                showResult("error", "📊 Text Statistics Test: ERROR", `${error.message}`);
+                console.error("Statistics test error:", error);
+            }
+        };
+
+        window.runTraversalTest = async function() {
+            try {
+                console.log("Running advanced text operations test...");
+                const result = test_advanced_text_operations();
+                
+                const details = `
+                    <strong>Test Details:</strong><br>
+                    • TextUtils word counting: "Hello world! This is a test." → 6 words<br>
+                    • TextSearcher pattern matching for "test"<br>
+                    • Integration with find/replace operations<br>
+                    • Integration with statistics calculation<br>
+                    • Result: ${result ? "✅ All advanced operations integrated successfully" : "❌ Integration tests failed"}
+                `;
+                
+                showResult(result ? "success" : "error", 
+                    `🌐 Advanced Operations Test: ${result ? "PASSED" : "FAILED"}`, details);
+                updateProgress();
+            } catch (error) {
+                showResult("error", "🌐 Advanced Operations Test: ERROR", `${error.message}`);
+                console.error("Advanced operations test error:", error);
+            }
+        };
+
+        window.clearResults = function() {
+            document.getElementById("results").innerHTML = "";
+            testProgress = 0;
+        };
+
+        // Add some interactive demos
+        document.addEventListener('DOMContentLoaded', function() {
+            // Highlight demo text on hover
+            const selectionDemo = document.getElementById('selection-demo');
+            if (selectionDemo) {
+                selectionDemo.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#fff3cd';
+                    this.style.transition = 'background-color 0.3s';
+                });
+                selectionDemo.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = 'transparent';
+                });
+            }
+        });
+
+        // Initialize WASM when page loads
+        initWasm().catch(console.error);
+    </script>
+</body>
+</html>

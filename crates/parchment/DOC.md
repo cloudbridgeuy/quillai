@@ -23,7 +23,10 @@ wasm-pack build --target bundler --out-dir pkg
     <div id="editor" contenteditable="true">Start typing...</div>
 
     <script type="module">
-      import init, { version, create_registry } from './pkg/parchment.js';
+      import init, {
+        version,
+        create_registry,
+      } from "./pkg/quillai_parchment.js";
 
       async function setupParchment() {
         // Initialize WASM
@@ -35,8 +38,8 @@ wasm-pack build --target bundler --out-dir pkg
         console.log(`Parchment WASM v${version()} ready!`);
 
         // Your editor is now powered by Rust/WASM
-        document.getElementById('editor').addEventListener('input', () => {
-          console.log('Document updated via Parchment');
+        document.getElementById("editor").addEventListener("input", () => {
+          console.log("Document updated via Parchment");
         });
       }
 
@@ -55,14 +58,14 @@ wasm-pack build --target nodejs --out-dir pkg-node
 
 ```javascript
 // app.js
-const parchment = require('./pkg-node/parchment.js');
+const parchment = require("./pkg-node/quillai_parchment.js");
 
 // Registry is automatically initialized
 const registry = parchment.create_registry();
 console.log(`Parchment WASM v${parchment.version()} ready!`);
 
 // Create a document programmatically
-console.log('Registry created:', typeof registry);
+console.log("Registry created:", typeof registry);
 ```
 
 ## 📦 Installation & Setup
@@ -105,7 +108,7 @@ import init, {
   create_registry,
   init_panic_hook,
   test_scope_operations,
-} from './pkg/parchment.js';
+} from "./pkg/quillai_parchment.js";
 
 async function initParchment() {
   // Initialize WASM module
@@ -116,7 +119,7 @@ async function initParchment() {
 
   // Test basic functionality
   const scopeResult = test_scope_operations();
-  console.log('Scope test:', scopeResult === 1 ? 'PASS' : 'FAIL');
+  console.log("Scope test:", scopeResult === 1 ? "PASS" : "FAIL");
 
   return {
     version: version(),
@@ -129,7 +132,7 @@ async function initParchment() {
 
 ```html
 <script type="module">
-  const wasmModule = await import('./pkg/parchment.js');
+  const wasmModule = await import("./pkg/quillai_parchment.js");
   await wasmModule.default(); // Initialize
 
   const parchment = {
@@ -143,16 +146,16 @@ async function initParchment() {
 
 ```javascript
 // CommonJS (automatic initialization)
-const parchment = require('./pkg-node/parchment.js');
+const parchment = require("./pkg-node/quillai_parchment.js");
 
 // ES Modules with createRequire
-import { createRequire } from 'module';
+import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const parchment = require('./pkg-node/parchment.js');
+const parchment = require("./pkg-node/quillai_parchment.js");
 
 // Test the module
-console.log('Version:', parchment.version());
-console.log('Registry:', parchment.create_registry());
+console.log("Version:", parchment.version());
+console.log("Registry:", parchment.create_registry());
 ```
 
 ## 🧠 Core Concepts
@@ -219,7 +222,10 @@ const registry = create_registry();
 ### Creating Your First Document
 
 ```javascript
-import init, { create_registry, test_scroll_blot } from './pkg/parchment.js';
+import init, {
+  create_registry,
+  test_scroll_blot,
+} from "./pkg/quillai_parchment.js";
 
 async function createDocument() {
   await init();
@@ -229,7 +235,7 @@ async function createDocument() {
 
   // Test ScrollBlot (root document)
   const scrollResult = test_scroll_blot();
-  console.log('Document created:', scrollResult === 1);
+  console.log("Document created:", scrollResult === 1);
 
   // In a real implementation, you'd get the ScrollBlot instance
   // and start building your document tree
@@ -244,11 +250,11 @@ Based on the test functions, here's how text operations work:
 // Test text blot functionality
 const textResult = test_text_blot();
 if (textResult === 1) {
-  console.log('Text operations working:');
-  console.log('- insert_at() - Insert text at specific position');
-  console.log('- delete_at() - Delete text range');
-  console.log('- split() - Split text node at position');
-  console.log('- merge() - Merge adjacent text nodes');
+  console.log("Text operations working:");
+  console.log("- insert_at() - Insert text at specific position");
+  console.log("- delete_at() - Delete text range");
+  console.log("- split() - Split text node at position");
+  console.log("- merge() - Merge adjacent text nodes");
 }
 ```
 
@@ -258,11 +264,11 @@ if (textResult === 1) {
 // Test block blot functionality
 const blockResult = test_block_blot();
 if (blockResult === 1) {
-  console.log('Block operations working:');
-  console.log('- Paragraph creation');
-  console.log('- Heading elements');
-  console.log('- List containers');
-  console.log('- Custom block types');
+  console.log("Block operations working:");
+  console.log("- Paragraph creation");
+  console.log("- Heading elements");
+  console.log("- List containers");
+  console.log("- Custom block types");
 }
 ```
 
@@ -272,11 +278,11 @@ if (blockResult === 1) {
 // Test inline formatting
 const inlineResult = test_inline_blot();
 if (inlineResult === 1) {
-  console.log('Inline formatting available:');
-  console.log('- Bold, italic, underline');
-  console.log('- Code snippets');
-  console.log('- Links and highlights');
-  console.log('- Custom inline formats');
+  console.log("Inline formatting available:");
+  console.log("- Bold, italic, underline");
+  console.log("- Code snippets");
+  console.log("- Links and highlights");
+  console.log("- Custom inline formats");
 }
 ```
 
@@ -286,11 +292,11 @@ if (inlineResult === 1) {
 // Test embed functionality
 const embedResult = test_embed_blot();
 if (embedResult === 1) {
-  console.log('Embed types supported:');
-  console.log('- Images and videos');
-  console.log('- Horizontal rules');
-  console.log('- Interactive elements');
-  console.log('- Custom embeds');
+  console.log("Embed types supported:");
+  console.log("- Images and videos");
+  console.log("- Horizontal rules");
+  console.log("- Interactive elements");
+  console.log("- Custom embeds");
 }
 ```
 
@@ -340,7 +346,7 @@ Test bitwise scope operations.
 
 ```javascript
 const result = test_scope_operations();
-console.log(result === 1 ? 'Scopes working' : 'Scope error');
+console.log(result === 1 ? "Scopes working" : "Scope error");
 ```
 
 #### `test_text_blot(): number`
@@ -388,7 +394,7 @@ try {
 
   // Your Parchment operations
 } catch (error) {
-  console.error('Parchment error:', error);
+  console.error("Parchment error:", error);
 
   // Common issues:
   // - WASM not loaded
@@ -443,7 +449,7 @@ try {
         test_block_blot,
         test_inline_blot,
         test_embed_blot,
-      } from './pkg/parchment.js';
+      } from "./pkg/quillai_parchment.js";
 
       let parchment = null;
       let registry = null;
@@ -469,15 +475,15 @@ try {
         if (!parchment) return;
 
         const result = parchment.test_text_blot();
-        console.log('Text operation:', result === 1 ? 'Success' : 'Failed');
+        console.log("Text operation:", result === 1 ? "Success" : "Failed");
 
         // In real implementation, you'd call actual TextBlot methods
-        const editor = document.getElementById('editor');
-        const textSpan = document.createElement('span');
-        textSpan.textContent = ' [Text via Parchment WASM] ';
-        textSpan.style.backgroundColor = '#e3f2fd';
-        textSpan.style.padding = '2px 4px';
-        textSpan.style.borderRadius = '3px';
+        const editor = document.getElementById("editor");
+        const textSpan = document.createElement("span");
+        textSpan.textContent = " [Text via Parchment WASM] ";
+        textSpan.style.backgroundColor = "#e3f2fd";
+        textSpan.style.padding = "2px 4px";
+        textSpan.style.borderRadius = "3px";
 
         editor.appendChild(textSpan);
       };
@@ -486,14 +492,14 @@ try {
         if (!parchment) return;
 
         const result = parchment.test_block_blot();
-        console.log('Block operation:', result === 1 ? 'Success' : 'Failed');
+        console.log("Block operation:", result === 1 ? "Success" : "Failed");
 
-        const editor = document.getElementById('editor');
-        const block = document.createElement('p');
-        block.textContent = 'New paragraph created via BlockBlot';
-        block.style.borderLeft = '3px solid #4caf50';
-        block.style.paddingLeft = '10px';
-        block.style.margin = '10px 0';
+        const editor = document.getElementById("editor");
+        const block = document.createElement("p");
+        block.textContent = "New paragraph created via BlockBlot";
+        block.style.borderLeft = "3px solid #4caf50";
+        block.style.paddingLeft = "10px";
+        block.style.margin = "10px 0";
 
         editor.appendChild(block);
       };
@@ -502,14 +508,14 @@ try {
         if (!parchment) return;
 
         const result = parchment.test_inline_blot();
-        console.log('Inline operation:', result === 1 ? 'Success' : 'Failed');
+        console.log("Inline operation:", result === 1 ? "Success" : "Failed");
 
-        const editor = document.getElementById('editor');
-        const inline = document.createElement('strong');
-        inline.textContent = '[Bold via InlineBlot]';
-        inline.style.backgroundColor = '#fff3cd';
-        inline.style.padding = '2px 4px';
-        inline.style.borderRadius = '3px';
+        const editor = document.getElementById("editor");
+        const inline = document.createElement("strong");
+        inline.textContent = "[Bold via InlineBlot]";
+        inline.style.backgroundColor = "#fff3cd";
+        inline.style.padding = "2px 4px";
+        inline.style.borderRadius = "3px";
 
         editor.appendChild(inline);
       };
@@ -518,31 +524,31 @@ try {
         if (!parchment) return;
 
         const result = parchment.test_embed_blot();
-        console.log('Embed operation:', result === 1 ? 'Success' : 'Failed');
+        console.log("Embed operation:", result === 1 ? "Success" : "Failed");
 
-        const editor = document.getElementById('editor');
-        const embed = document.createElement('div');
-        embed.innerHTML = '🖼️ [Image placeholder via EmbedBlot]';
-        embed.style.backgroundColor = '#f8d7da';
-        embed.style.padding = '10px';
-        embed.style.borderRadius = '4px';
-        embed.style.margin = '10px 0';
-        embed.style.textAlign = 'center';
+        const editor = document.getElementById("editor");
+        const embed = document.createElement("div");
+        embed.innerHTML = "🖼️ [Image placeholder via EmbedBlot]";
+        embed.style.backgroundColor = "#f8d7da";
+        embed.style.padding = "10px";
+        embed.style.borderRadius = "4px";
+        embed.style.margin = "10px 0";
+        embed.style.textAlign = "center";
 
         editor.appendChild(embed);
       };
 
       window.showState = function () {
         const state = {
-          version: parchment ? parchment.version() : 'Not loaded',
-          registry: registry ? 'Initialized' : 'Not created',
-          elementCount: document.getElementById('editor').children.length,
+          version: parchment ? parchment.version() : "Not loaded",
+          registry: registry ? "Initialized" : "Not created",
+          elementCount: document.getElementById("editor").children.length,
           textContent: document
-            .getElementById('editor')
+            .getElementById("editor")
             .textContent.substring(0, 100),
         };
 
-        document.getElementById('state').innerHTML = `
+        document.getElementById("state").innerHTML = `
                 <h3>Editor State</h3>
                 <pre>${JSON.stringify(state, null, 2)}</pre>
             `;
@@ -569,7 +575,7 @@ class ParchmentEditor {
   async init() {
     if (!window.parchmentModule) {
       // Load WASM once, share across instances
-      const module = await import('./pkg/parchment.js');
+      const module = await import("./pkg/quillai_parchment.js");
       await module.default();
       module.init_panic_hook();
       window.parchmentModule = module;
@@ -602,24 +608,24 @@ class ParchmentEditor {
     return {
       id: this.containerId,
       initialized: this.initialized,
-      registry: this.registry ? 'Active' : 'None',
+      registry: this.registry ? "Active" : "None",
     };
   }
 }
 
 // Usage
-const editor1 = new ParchmentEditor('editor-1');
-const editor2 = new ParchmentEditor('editor-2');
+const editor1 = new ParchmentEditor("editor-1");
+const editor2 = new ParchmentEditor("editor-2");
 
 Promise.all([editor1.init(), editor2.init()]).then(() => {
-  console.log('Both editors ready with isolated state');
+  console.log("Both editors ready with isolated state");
 
   // Test isolation
-  editor1.insertContent('text');
-  editor2.insertContent('block');
+  editor1.insertContent("text");
+  editor2.insertContent("block");
 
-  console.log('Editor 1 state:', editor1.getState());
-  console.log('Editor 2 state:', editor2.getState());
+  console.log("Editor 1 state:", editor1.getState());
+  console.log("Editor 2 state:", editor2.getState());
 });
 ```
 
@@ -627,7 +633,7 @@ Promise.all([editor1.init(), editor2.init()]).then(() => {
 
 ```javascript
 #!/usr/bin/env node
-const parchment = require('./pkg-node/parchment.js');
+const parchment = require("./pkg-node/quillai_parchment.js");
 
 class DocumentProcessor {
   constructor() {
@@ -636,15 +642,15 @@ class DocumentProcessor {
   }
 
   processDocument(content) {
-    console.log('Processing document...');
+    console.log("Processing document...");
 
     // Test all blot types
     const tests = [
-      { name: 'Text', fn: parchment.test_text_blot },
-      { name: 'Block', fn: parchment.test_block_blot },
-      { name: 'Inline', fn: parchment.test_inline_blot },
-      { name: 'Embed', fn: parchment.test_embed_blot },
-      { name: 'Scroll', fn: parchment.test_scroll_blot },
+      { name: "Text", fn: parchment.test_text_blot },
+      { name: "Block", fn: parchment.test_block_blot },
+      { name: "Inline", fn: parchment.test_inline_blot },
+      { name: "Embed", fn: parchment.test_embed_blot },
+      { name: "Scroll", fn: parchment.test_scroll_blot },
     ];
 
     const results = tests.map((test) => ({
@@ -664,9 +670,9 @@ class DocumentProcessor {
 // CLI usage
 if (require.main === module) {
   const processor = new DocumentProcessor();
-  const result = processor.processDocument('Sample document content');
+  const result = processor.processDocument("Sample document content");
 
-  console.log('Processing complete:');
+  console.log("Processing complete:");
   console.log(JSON.stringify(result, null, 2));
 }
 
@@ -691,11 +697,11 @@ From comprehensive testing:
 ```javascript
 // Typical performance (from test-runner.js)
 const metrics = {
-  versionCalls: '0.0002ms average', // 10,000 iterations
-  registryCreation: '0.0002ms average', // 10,000 iterations
-  scopeOperations: '0.000011ms average', // 100,000 iterations
-  memoryPerOperation: '0.09 KB', // 20,000 operations
-  memoryLeaks: 'Zero detected', // Extended testing
+  versionCalls: "0.0002ms average", // 10,000 iterations
+  registryCreation: "0.0002ms average", // 10,000 iterations
+  scopeOperations: "0.000011ms average", // 100,000 iterations
+  memoryPerOperation: "0.09 KB", // 20,000 operations
+  memoryLeaks: "Zero detected", // Extended testing
 };
 ```
 
@@ -705,7 +711,7 @@ const metrics = {
 
 ```javascript
 // Preload WASM for faster startup
-const wasmPromise = import('./pkg/parchment.js');
+const wasmPromise = import("./pkg/quillai_parchment.js");
 
 async function fastInit() {
   const module = await wasmPromise;
@@ -748,9 +754,9 @@ function batchTextOperations() {
 // Monitor memory usage
 function monitorMemory() {
   if (performance.memory) {
-    console.log('Used:', performance.memory.usedJSHeapSize);
-    console.log('Total:', performance.memory.totalJSHeapSize);
-    console.log('Limit:', performance.memory.jsHeapSizeLimit);
+    console.log("Used:", performance.memory.usedJSHeapSize);
+    console.log("Total:", performance.memory.totalJSHeapSize);
+    console.log("Limit:", performance.memory.jsHeapSizeLimit);
   }
 }
 
@@ -775,7 +781,7 @@ monitorMemory(); // Should show minimal increase
 ```javascript
 // Issue: "fetch is not defined" in Node.js
 // Solution: Use the Node.js build
-const parchment = require('./pkg-node/parchment.js'); // ✅ Correct
+const parchment = require("./pkg-node/quillai_parchment.js"); // ✅ Correct
 
 // Issue: WASM not loading in browser
 // Solution: Ensure proper MIME types
@@ -790,10 +796,10 @@ const parchment = require('./pkg-node/parchment.js'); // ✅ Correct
 import init, {
   test_text_blot, // ✅ Explicitly import test functions
   test_block_blot,
-} from './pkg/parchment.js';
+} from "./pkg/quillai_parchment.js";
 
 // Or check if functions exist
-if (typeof test_text_blot === 'function') {
+if (typeof test_text_blot === "function") {
   const result = test_text_blot();
 }
 ```
@@ -834,19 +840,19 @@ init_panic_hook(); // Better Rust error messages
 // Test all functionality
 function runDiagnostics() {
   const tests = [
-    { name: 'Scope', fn: test_scope_operations },
-    { name: 'Text', fn: test_text_blot },
-    { name: 'Block', fn: test_block_blot },
-    { name: 'Inline', fn: test_inline_blot },
-    { name: 'Embed', fn: test_embed_blot },
-    { name: 'Scroll', fn: test_scroll_blot },
+    { name: "Scope", fn: test_scope_operations },
+    { name: "Text", fn: test_text_blot },
+    { name: "Block", fn: test_block_blot },
+    { name: "Inline", fn: test_inline_blot },
+    { name: "Embed", fn: test_embed_blot },
+    { name: "Scroll", fn: test_scroll_blot },
   ];
 
-  console.log('Parchment Diagnostics:');
+  console.log("Parchment Diagnostics:");
   tests.forEach((test) => {
     try {
       const result = test.fn();
-      console.log(`${test.name}: ${result === 1 ? 'PASS' : 'FAIL'}`);
+      console.log(`${test.name}: ${result === 1 ? "PASS" : "FAIL"}`);
     } catch (error) {
       console.log(`${test.name}: ERROR - ${error.message}`);
     }
@@ -871,12 +877,12 @@ function runDiagnostics() {
 
 ```javascript
 // TypeScript Parchment
-import { Registry, BlockBlot } from 'parchment';
+import { Registry, BlockBlot } from "parchment";
 const registry = new Registry();
 const blot = new BlockBlot(domNode);
 
 // Rust/WASM Parchment
-import { create_registry, test_block_blot } from './pkg/parchment.js';
+import { create_registry, test_block_blot } from "./pkg/quillai_parchment.js";
 const registry = create_registry();
 const result = test_block_blot(); // Returns 1 for success
 ```
@@ -885,10 +891,10 @@ const result = test_block_blot(); // Returns 1 for success
 
 ```javascript
 // Before: ~50KB bundle, 10+ dependencies
-import Parchment from 'parchment';
+import Parchment from "parchment";
 
 // After: 16.5KB bundle, 3 dependencies
-import { create_registry } from './pkg/parchment.js';
+import { create_registry } from "./pkg/quillai_parchment.js";
 
 // Performance boost:
 // - 3x smaller bundle
@@ -922,10 +928,10 @@ import { create_registry } from './pkg/parchment.js';
 
    ```javascript
    // Old
-   import { Registry } from 'parchment';
+   import { Registry } from "parchment";
 
    // New
-   import { create_registry } from './pkg/parchment.js';
+   import { create_registry } from "./pkg/quillai_parchment.js";
    ```
 
 4. **Update initialization**:
@@ -962,12 +968,15 @@ cargo run --bin server --features server
 #### Basic WASM Test
 
 ```javascript
-import init, { version, test_scope_operations } from './pkg/parchment.js';
+import init, {
+  version,
+  test_scope_operations,
+} from "./pkg/quillai_parchment.js";
 
 async function test() {
   await init();
-  console.log('Version:', version());
-  console.log('Scopes:', test_scope_operations() === 1 ? 'OK' : 'ERROR');
+  console.log("Version:", version());
+  console.log("Scopes:", test_scope_operations() === 1 ? "OK" : "ERROR");
 }
 ```
 
@@ -999,11 +1008,11 @@ async function robustInit() {
     init_panic_hook();
 
     const registry = create_registry();
-    if (!registry) throw new Error('Registry creation failed');
+    if (!registry) throw new Error("Registry creation failed");
 
     return { registry, version: version() };
   } catch (error) {
-    console.error('Parchment initialization failed:', error);
+    console.error("Parchment initialization failed:", error);
     return null;
   }
 }
@@ -1014,7 +1023,7 @@ async function robustInit() {
 #### React Hook
 
 ```javascript
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function useParchment() {
   const [parchment, setParchment] = useState(null);
@@ -1024,7 +1033,7 @@ function useParchment() {
   useEffect(() => {
     async function loadParchment() {
       try {
-        const module = await import('./pkg/parchment.js');
+        const module = await import("./pkg/quillai_parchment.js");
         await module.default();
         module.init_panic_hook();
 
@@ -1066,7 +1075,7 @@ function MyEditor() {
 #### Vue Composition API
 
 ```javascript
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue";
 
 export function useParchment() {
   const parchment = ref(null);
@@ -1075,7 +1084,7 @@ export function useParchment() {
 
   onMounted(async () => {
     try {
-      const module = await import('./pkg/parchment.js');
+      const module = await import("./pkg/quillai_parchment.js");
       await module.default();
 
       parchment.value = {

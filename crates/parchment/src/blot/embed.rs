@@ -186,49 +186,47 @@ impl LeafBlotTrait for EmbedBlot {
     }
 }
 
+#[wasm_bindgen]
 impl EmbedBlot {
     /// Create an image embed blot
-    pub fn create_image(src: &str, alt: Option<&str>) -> Result<EmbedBlot, JsValue> {
+    pub fn create_image(src: String, alt: Option<String>) -> Result<EmbedBlot, JsValue> {
         let element = Dom::create_element("img")?;
-        element.set_attribute("src", src)?;
+        element.set_attribute("src", &src)?;
 
         if let Some(alt_text) = alt {
-            element.set_attribute("alt", alt_text)?;
+            element.set_attribute("alt", &alt_text)?;
         }
 
         Ok(EmbedBlot {
             dom_node: element,
-            value: src.to_string(),
+            value: src,
         })
     }
 
-    /// Create a video embed blot
-    pub fn create_video(src: &str, controls: bool) -> Result<EmbedBlot, JsValue> {
+    /// Create a video embed blot (simplified for WASM)
+    pub fn create_video(src: String) -> Result<EmbedBlot, JsValue> {
         let element = Dom::create_element("video")?;
-        element.set_attribute("src", src)?;
-
-        if controls {
-            element.set_attribute("controls", "")?;
-        }
+        element.set_attribute("src", &src)?;
+        element.set_attribute("controls", "")?; // Always add controls for usability
 
         Ok(EmbedBlot {
             dom_node: element,
-            value: src.to_string(),
+            value: src,
         })
     }
 
     /// Create a link embed blot
-    pub fn create_link(href: &str, text: Option<&str>) -> Result<EmbedBlot, JsValue> {
+    pub fn create_link(href: String, text: Option<String>) -> Result<EmbedBlot, JsValue> {
         let element = Dom::create_element("a")?;
-        element.set_attribute("href", href)?;
+        element.set_attribute("href", &href)?;
 
         if let Some(link_text) = text {
-            element.set_text_content(Some(link_text));
+            element.set_text_content(Some(&link_text));
         }
 
         Ok(EmbedBlot {
             dom_node: element,
-            value: href.to_string(),
+            value: href,
         })
     }
 

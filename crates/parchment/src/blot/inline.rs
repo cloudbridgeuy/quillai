@@ -78,6 +78,126 @@ impl InlineBlot {
     pub fn children_count(&self) -> usize {
         self.children.length as usize
     }
+
+    /// Create a bold InlineBlot with text content
+    #[wasm_bindgen]
+    pub fn create_bold(text: String) -> Result<InlineBlot, JsValue> {
+        let strong = Dom::create_element("strong")?;
+        let text_node = Dom::create_text_node(&text)?;
+        strong.append_child(&text_node)?;
+        
+        let mut inline = InlineBlot {
+            dom_node: strong,
+            children: LinkedList::new(),
+        };
+        
+        // Build children from the DOM structure
+        inline.build_children()?;
+        Ok(inline)
+    }
+
+    /// Check if this InlineBlot represents bold formatting
+    #[wasm_bindgen]
+    pub fn is_bold(&self) -> bool {
+        let tag_name = self.dom_node.tag_name().to_lowercase();
+        tag_name == "strong" || tag_name == "b"
+    }
+
+    /// Create an italic InlineBlot with text content
+    #[wasm_bindgen]
+    pub fn create_italic(text: String) -> Result<InlineBlot, JsValue> {
+        let em = Dom::create_element("em")?;
+        let text_node = Dom::create_text_node(&text)?;
+        em.append_child(&text_node)?;
+        
+        let mut inline = InlineBlot {
+            dom_node: em,
+            children: LinkedList::new(),
+        };
+        
+        // Build children from the DOM structure
+        inline.build_children()?;
+        Ok(inline)
+    }
+
+    /// Check if this InlineBlot represents italic formatting
+    #[wasm_bindgen]
+    pub fn is_italic(&self) -> bool {
+        let tag_name = self.dom_node.tag_name().to_lowercase();
+        tag_name == "em" || tag_name == "i"
+    }
+
+    /// Create an underlined InlineBlot with text content
+    #[wasm_bindgen]
+    pub fn create_underline(text: String) -> Result<InlineBlot, JsValue> {
+        let u = Dom::create_element("u")?;
+        let text_node = Dom::create_text_node(&text)?;
+        u.append_child(&text_node)?;
+        
+        let mut inline = InlineBlot {
+            dom_node: u,
+            children: LinkedList::new(),
+        };
+        
+        // Build children from the DOM structure
+        inline.build_children()?;
+        Ok(inline)
+    }
+
+    /// Check if this InlineBlot represents underlined formatting
+    #[wasm_bindgen]
+    pub fn is_underlined(&self) -> bool {
+        let tag_name = self.dom_node.tag_name().to_lowercase();
+        tag_name == "u"
+    }
+
+    /// Create a code InlineBlot with text content
+    #[wasm_bindgen]
+    pub fn create_code(text: String) -> Result<InlineBlot, JsValue> {
+        let code = Dom::create_element("code")?;
+        let text_node = Dom::create_text_node(&text)?;
+        code.append_child(&text_node)?;
+        
+        let mut inline = InlineBlot {
+            dom_node: code,
+            children: LinkedList::new(),
+        };
+        
+        // Build children from the DOM structure
+        inline.build_children()?;
+        Ok(inline)
+    }
+
+    /// Check if this InlineBlot represents code formatting
+    #[wasm_bindgen]
+    pub fn is_code(&self) -> bool {
+        let tag_name = self.dom_node.tag_name().to_lowercase();
+        tag_name == "code"
+    }
+
+    /// Create a strike-through InlineBlot with text content
+    #[wasm_bindgen]
+    pub fn create_strike(text: String) -> Result<InlineBlot, JsValue> {
+        let s = Dom::create_element("s")?;
+        let text_node = Dom::create_text_node(&text)?;
+        s.append_child(&text_node)?;
+        
+        let mut inline = InlineBlot {
+            dom_node: s,
+            children: LinkedList::new(),
+        };
+        
+        // Build children from the DOM structure
+        inline.build_children()?;
+        Ok(inline)
+    }
+
+    /// Check if this InlineBlot represents strike-through formatting
+    #[wasm_bindgen]
+    pub fn is_strike(&self) -> bool {
+        let tag_name = self.dom_node.tag_name().to_lowercase();
+        tag_name == "s" || tag_name == "del" || tag_name == "strike"
+    }
 }
 
 impl BlotTrait for InlineBlot {

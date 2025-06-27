@@ -580,7 +580,7 @@ impl MutationHandler {
                         "Node addition ignored - unsupported type or duplicate",
                     ));
                 }
-                Err(_e) => {
+                Err(e) => {
                     // Error creating blot
                     #[cfg(debug_assertions)]
                     web_sys::console::error_1(&e);

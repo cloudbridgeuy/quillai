@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Parchment Advanced Text Operations Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .test-result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 3px;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Parchment Advanced Text Operations Test</h1>
+
+    <div class="test-section">
+      <h2>Test Controls</h2>
+      <button onclick="runAllTests()">Run All Tests</button>
+      <button onclick="runSelectionTest()">Test Selection Management</button>
+      <button onclick="runFindReplaceTest()">Test Find/Replace</button>
+      <button onclick="runStatisticsTest()">Test Text Statistics</button>
+      <button onclick="runTraversalTest()">Test Text Traversal</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+      import init, {
+        test_selection_management,
+        test_find_replace,
+        test_text_statistics,
+        test_advanced_text_operations,
+      } from "../pkg/quillai_parchment.js";
+
+      let wasm;
+
+      async function initWasm() {
+        wasm = await init();
+        console.log("WASM module loaded successfully");
+        document.getElementById("results").innerHTML =
+          '<div class="test-result success">WASM module loaded successfully! Ready to run tests.</div>';
+      }
+
+      window.runAllTests = async function () {
+        const results = document.getElementById("results");
+        results.innerHTML = "<h3>Running All Tests...</h3>";
+
+        try {
+          await runSelectionTest();
+          await runFindReplaceTest();
+          await runStatisticsTest();
+          await runTraversalTest();
+
+          results.innerHTML +=
+            '<div class="test-result success"><strong>All tests completed!</strong></div>';
+        } catch (error) {
+          results.innerHTML += `<div class="test-result error"><strong>Test suite failed:</strong> ${error.message}</div>`;
+        }
+      };
+
+      window.runSelectionTest = async function () {
+        const results = document.getElementById("results");
+        try {
+          console.log("Running selection management test...");
+          const result = test_selection_management();
+          results.innerHTML += `<div class="test-result success"><strong>Selection Management Test:</strong> ${result ? "PASSED" : "FAILED"}</div>`;
+        } catch (error) {
+          results.innerHTML += `<div class="test-result error"><strong>Selection Management Test:</strong> ERROR - ${error.message}</div>`;
+          console.error("Selection test error:", error);
+        }
+      };
+
+        window.runFindReplaceTest = async function () {
+          const results = document.getElementById("results");
+          try {
+            console.log("Running find/replace test...");
+            const result = test_find_replace();
+            results.innerHTML += `<div class="test-result success"><strong>Find/Replace Test:</strong> ${
+              result ? "PASSED" : "FAILED"
+            }</div>`;
+          } catch (error) {
+            results.innerHTML += `<div class="test-result error"><strong>Find/Replace Test:</strong> ERROR - ${error.message}</div>`;
+            console.error("Find/replace test error:", error);
+          }
+        };
+
+      window.runStatisticsTest = async function () {
+        const results = document.getElementById("results");
+        try {
+          console.log("Running text statistics test...");
+          const result = test_text_statistics();
+          results.innerHTML += `<div class="test-result success"><strong>Text Statistics Test:</strong> ${result ? "PASSED" : "FAILED"}</div>`;
+        } catch (error) {
+          results.innerHTML += `<div class="test-result error"><strong>Text Statistics Test:</strong> ERROR - ${error.message}</div>`;
+          console.error("Statistics test error:", error);
+        }
+      };
+
+        window.runTraversalTest = async function () {
+          const results = document.getElementById("results");
+          try {
+            console.log("Running text traversal test...");
+            const result = test_advanced_text_operations();
+            results.innerHTML += `<div class="test-result success"><strong>Text Traversal Test:</strong> ${
+              result ? "PASSED" : "FAILED"
+            }</div>`;
+          } catch (error) {
+            results.innerHTML += `<div class="test-result error"><strong>Text Traversal Test:</strong> ERROR - ${error.message}</div>`;
+            console.error("Traversal test error:", error);
+          }
+        };
+
+      // Initialize WASM when page loads
+      initWasm().catch(console.error);
+    </script>
+  </body>
+</html>

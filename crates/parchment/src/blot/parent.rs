@@ -211,7 +211,7 @@ impl BlotTrait for ParentBlot {
                         // Add to our children LinkedList
                         self.children.insert_at_tail(child_blot);
                     }
-                    Err(_e) => {
+                    Err(e) => {
                         // Log warning for unsupported nodes but continue processing
                         #[cfg(debug_assertions)]
                         web_sys::console::warn_2(

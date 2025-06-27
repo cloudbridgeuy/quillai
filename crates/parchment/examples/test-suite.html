@@ -137,6 +137,11 @@
       </div>
 
       <div class="test-section">
+        <h2>✨ Phase 1.5: Rich Text Formatting</h2>
+        <div id="formatting-tests"></div>
+      </div>
+
+      <div class="test-section">
         <h2>🏗️ Phase 2: Blot Creation and Management</h2>
         <div id="blot-tests"></div>
       </div>
@@ -371,6 +376,12 @@
         test_mutation_observer_node_changes,
         test_mutation_observer_optimization,
         test_registry_instance_management,
+        test_bold_formatting,
+        test_italic_formatting,
+        test_underline_formatting,
+        test_code_formatting,
+        test_strike_formatting,
+        test_all_formatting_types,
       } from "../pkg/quillai_parchment.js";
 
       let parchment = null;
@@ -399,6 +410,18 @@
             test_registry_element_detection,
             test_scope_completeness,
             test_registry_instance_management,
+            test_bold_formatting,
+            test_italic_formatting,
+            test_underline_formatting,
+            test_code_formatting,
+            test_strike_formatting,
+            test_all_formatting_types,
+            test_mutation_observer_creation,
+            test_mutation_observer_dom_changes,
+            test_mutation_observer_attributes,
+            test_mutation_observer_text_changes,
+            test_mutation_observer_node_changes,
+            test_mutation_observer_optimization,
           };
           console.log("Parchment WASM initialized successfully");
           return true;
@@ -443,6 +466,7 @@
 
       function clearResults() {
         document.getElementById("basic-tests").innerHTML = "";
+        document.getElementById("formatting-tests").innerHTML = "";
         document.getElementById("blot-tests").innerHTML = "";
         document.getElementById("text-tests").innerHTML = "";
         document.getElementById("advanced-tests").innerHTML = "";
@@ -605,6 +629,105 @@
             "Basic Tests Error",
             "fail",
             "An error occurred during basic testing",
+            error.toString(),
+          );
+          container.appendChild(errorResult);
+        }
+      }
+
+      // Phase 1.5: Rich Text Formatting Tests
+      async function runFormattingTests() {
+        const container = document.getElementById("formatting-tests");
+
+        try {
+          // Test Bold Formatting
+          if (parchment && parchment.test_bold_formatting) {
+            const boldTest = parchment.test_bold_formatting();
+            const result1 = createTestResult(
+              "Bold Formatting",
+              boldTest === 1 ? "pass" : "fail",
+              boldTest === 1
+                ? "Bold formatting creation and detection working"
+                : "Bold formatting failed",
+              `Test result: ${boldTest} (expected: 1)`,
+            );
+            container.appendChild(result1);
+          }
+
+          // Test Italic Formatting
+          if (parchment && parchment.test_italic_formatting) {
+            const italicTest = parchment.test_italic_formatting();
+            const result2 = createTestResult(
+              "Italic Formatting",
+              italicTest === 1 ? "pass" : "fail",
+              italicTest === 1
+                ? "Italic formatting creation and detection working"
+                : "Italic formatting failed",
+              `Test result: ${italicTest} (expected: 1)`,
+            );
+            container.appendChild(result2);
+          }
+
+          // Test Underline Formatting
+          if (parchment && parchment.test_underline_formatting) {
+            const underlineTest = parchment.test_underline_formatting();
+            const result3 = createTestResult(
+              "Underline Formatting",
+              underlineTest === 1 ? "pass" : "fail",
+              underlineTest === 1
+                ? "Underline formatting creation and detection working"
+                : "Underline formatting failed",
+              `Test result: ${underlineTest} (expected: 1)`,
+            );
+            container.appendChild(result3);
+          }
+
+          // Test Code Formatting
+          if (parchment && parchment.test_code_formatting) {
+            const codeTest = parchment.test_code_formatting();
+            const result4 = createTestResult(
+              "Code Formatting",
+              codeTest === 1 ? "pass" : "fail",
+              codeTest === 1
+                ? "Code formatting creation and detection working"
+                : "Code formatting failed",
+              `Test result: ${codeTest} (expected: 1)`,
+            );
+            container.appendChild(result4);
+          }
+
+          // Test Strike-through Formatting
+          if (parchment && parchment.test_strike_formatting) {
+            const strikeTest = parchment.test_strike_formatting();
+            const result5 = createTestResult(
+              "Strike-through Formatting",
+              strikeTest === 1 ? "pass" : "fail",
+              strikeTest === 1
+                ? "Strike-through formatting creation and detection working"
+                : "Strike-through formatting failed",
+              `Test result: ${strikeTest} (expected: 1)`,
+            );
+            container.appendChild(result5);
+          }
+
+          // Test All Formatting Types Together
+          if (parchment && parchment.test_all_formatting_types) {
+            const allFormattingTest = parchment.test_all_formatting_types();
+            const result6 = createTestResult(
+              "All Formatting Types",
+              allFormattingTest === 1 ? "pass" : "fail",
+              allFormattingTest === 1
+                ? "All formatting types working correctly"
+                : "Some formatting types failed",
+              `Test result: ${allFormattingTest} (expected: 1)`,
+            );
+            container.appendChild(result6);
+          }
+        } catch (error) {
+          const errorResult = createTestResult(
+            "Formatting Tests Error",
+            "fail",
+            "An error occurred during formatting testing",
             error.toString(),
           );
           container.appendChild(errorResult);
@@ -1817,6 +1940,7 @@
         console.log("Running all tests...");
 
         await runBasicTests();
+        await runFormattingTests();
         await runBlotTests();
         await runTextTests();
         await runAdvancedTests();

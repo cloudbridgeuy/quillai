@@ -11,13 +11,22 @@ async fn main() {
     // Change working directory to crates/parchment
     let parchment_dir = std::path::Path::new("crates/parchment");
     if parchment_dir.exists() {
-        std::env::set_current_dir(parchment_dir).expect("Failed to change to crates/parchment directory");
+        std::env::set_current_dir(parchment_dir)
+            .expect("Failed to change to crates/parchment directory");
         println!("🚀 Starting Parchment WASM Demo Server");
-        println!("📁 Changed working directory to: {:?}", std::env::current_dir().unwrap());
+        println!(
+            "📁 Changed working directory to: {:?}",
+            std::env::current_dir().unwrap()
+        );
     } else {
         println!("🚀 Starting Parchment WASM Demo Server");
-        println!("📁 Working directory: {:?}", std::env::current_dir().unwrap());
-        println!("⚠️  Warning: crates/parchment directory not found, serving from current directory");
+        println!(
+            "📁 Working directory: {:?}",
+            std::env::current_dir().unwrap()
+        );
+        println!(
+            "⚠️  Warning: crates/parchment directory not found, serving from current directory"
+        );
     }
     println!("📁 Serving files from crates/parchment directory");
     println!("📄 Available examples:");
@@ -25,6 +34,7 @@ async fn main() {
     println!("   - http://localhost:3000/examples/test-suite.html");
     println!("   - http://localhost:3000/examples/benchmark.html");
     println!("   - http://localhost:3000/examples/editor-demo.html");
+    println!("   - http://localhost:3000/examples/test.html");
     println!("⚠️ Make sure you've run 'wasm-pack build' first!");
     println!("🛑 Press Ctrl+C to stop the server\n");
 
@@ -83,27 +93,27 @@ async fn serve_directory_listing() -> Result<impl Reply, Infallible> {
 <body>
     <h1>🦀 Parchment WASM Examples</h1>
     <p>Choose an example to explore the Rust/WebAssembly implementation of Parchment:</p>
-    
+
     <div class="example">
         <a href="examples/basic-usage.html">📝 Basic Usage</a>
         <div class="description">Demonstrates fundamental TextBlot and ScrollBlot operations, DOM integration, and performance testing.</div>
     </div>
-    
+
     <div class="example">
         <a href="examples/test-suite.html">🧪 Test Suite</a>
         <div class="description">Complete test suite with multiple editor instances, mutation observers, and comprehensive validation.</div>
     </div>
-    
+
     <div class="example">
         <a href="examples/benchmark.html">⚡ Performance Benchmark</a>
         <div class="description">Comprehensive performance testing and benchmarking suite for WASM operations.</div>
     </div>
-    
+
     <div class="example">
         <a href="examples/editor-demo.html">🎛️ Editor Demo</a>
         <div class="description">Interactive rich text editor demonstration with real-time editing capabilities.</div>
     </div>
-    
+
     <div style="margin-top: 30px; color: #666; font-size: 0.9em;">
         <p>📦 <strong>WASM Package:</strong> <a href="pkg/">View generated package files</a></p>
         <p>📚 <strong>Documentation:</strong> <a href="README.md">README.md</a></p>
@@ -112,9 +122,10 @@ async fn serve_directory_listing() -> Result<impl Reply, Infallible> {
 </html>"#;
 
     let mut response = Response::new(html_content.into());
-    response
-        .headers_mut()
-        .insert("content-type", HeaderValue::from_static("text/html; charset=utf-8"));
+    response.headers_mut().insert(
+        "content-type",
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
     response
         .headers_mut()
         .insert("access-control-allow-origin", HeaderValue::from_static("*"));

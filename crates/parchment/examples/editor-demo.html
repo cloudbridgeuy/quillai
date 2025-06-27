@@ -84,6 +84,235 @@
         background: #c82333;
       }
 
+      /* Formatting Toolbar Styles */
+      .formatting-toolbar {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 8px 15px;
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .toolbar-group {
+        display: flex;
+        gap: 2px;
+        padding: 0 8px;
+        border-right: 1px solid #dee2e6;
+      }
+
+      .toolbar-group:last-child {
+        border-right: none;
+      }
+
+      .format-btn {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        padding: 6px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        min-width: 32px;
+        text-align: center;
+      }
+
+      .format-btn:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+      }
+
+      .format-btn.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+
+      .format-btn:disabled {
+        background: #f8f9fa;
+        color: #6c757d;
+        cursor: not-allowed;
+        border-color: #dee2e6;
+      }
+
+      .color-picker {
+        width: 32px;
+        height: 28px;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .selection-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #1565c0;
+      }
+
+      .cursor-info {
+        background: #f3e5f5;
+        border: 1px solid #9c27b0;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #6a1b9a;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+      }
+
+      .cursor-detail {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .cursor-indicator {
+        position: absolute;
+        width: 2px;
+        height: 20px;
+        background: #ff4081;
+        animation: blink 1s infinite;
+        pointer-events: none;
+        z-index: 1000;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .selection-highlight {
+        background: rgba(33, 150, 243, 0.3);
+        border-radius: 2px;
+      }
+
+      .text-metrics {
+        background: #e8f5e8;
+        border: 1px solid #4caf50;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 10px 0;
+        font-size: 12px;
+        color: #2e7d32;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+
+      .format-preview {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+        min-height: 100px;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+
+      /* Rich text formatting styles */
+      .parchment-bold {
+        font-weight: bold;
+      }
+      .parchment-italic {
+        font-style: italic;
+      }
+      .parchment-underline {
+        text-decoration: underline;
+      }
+      .parchment-strikethrough {
+        text-decoration: line-through;
+      }
+      .parchment-code {
+        font-family: "Consolas", "Monaco", monospace;
+        background: #f8f9fa;
+        padding: 2px 4px;
+        border-radius: 3px;
+        border: 1px solid #dee2e6;
+      }
+      .parchment-highlight {
+        background: #fff3cd;
+        padding: 1px 2px;
+        border-radius: 2px;
+      }
+
+      /* EmbedBlot styles */
+      .parchment-embed {
+        display: inline-block;
+        margin: 5px;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .parchment-image {
+        max-width: 300px;
+        height: auto;
+        border-radius: 4px;
+      }
+
+      .parchment-video {
+        width: 320px;
+        height: 180px;
+        border-radius: 4px;
+      }
+
+      .parchment-link {
+        color: #007bff;
+        text-decoration: none;
+        padding: 2px 4px;
+        border-radius: 3px;
+        background: rgba(0, 123, 255, 0.1);
+        border: 1px solid rgba(0, 123, 255, 0.2);
+      }
+
+      .parchment-link:hover {
+        background: rgba(0, 123, 255, 0.2);
+        text-decoration: underline;
+      }
+
+      .parchment-hr {
+        border: none;
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          #007bff,
+          transparent
+        );
+        margin: 15px 0;
+      }
+
+      .nested-formatting-demo {
+        border: 2px dashed #28a745;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        background: rgba(40, 167, 69, 0.05);
+      }
+
+      .embed-demo-container {
+        border: 2px dashed #dc3545;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        background: rgba(220, 53, 69, 0.05);
+      }
+
       .status-bar {
         background: #e9ecef;
         padding: 8px 15px;
@@ -215,10 +444,198 @@
         </div>
       </div>
 
+      <!-- Rich Text Formatting Toolbar -->
+      <div class="formatting-toolbar">
+        <div class="toolbar-group">
+          <button
+            class="format-btn"
+            id="formatBold"
+            disabled
+            title="Bold (Ctrl+B)"
+          >
+            <strong>B</strong>
+          </button>
+          <button
+            class="format-btn"
+            id="formatItalic"
+            disabled
+            title="Italic (Ctrl+I)"
+          >
+            <em>I</em>
+          </button>
+          <button
+            class="format-btn"
+            id="formatUnderline"
+            disabled
+            title="Underline (Ctrl+U)"
+          >
+            <u>U</u>
+          </button>
+          <button
+            class="format-btn"
+            id="formatStrikethrough"
+            disabled
+            title="Strikethrough"
+          >
+            <s>S</s>
+          </button>
+        </div>
+
+        <div class="toolbar-group">
+          <button class="format-btn" id="formatCode" disabled title="Code">
+            &lt;/&gt;
+          </button>
+          <button
+            class="format-btn"
+            id="formatHighlight"
+            disabled
+            title="Highlight"
+          >
+            🖍️
+          </button>
+        </div>
+
+        <div class="toolbar-group">
+          <input
+            type="color"
+            class="color-picker"
+            id="textColor"
+            disabled
+            title="Text Color"
+            value="#000000"
+          />
+          <input
+            type="color"
+            class="color-picker"
+            id="backgroundColor"
+            disabled
+            title="Background Color"
+            value="#ffffff"
+          />
+        </div>
+
+        <div class="toolbar-group">
+          <button
+            class="format-btn"
+            id="clearFormatting"
+            disabled
+            title="Clear Formatting"
+          >
+            🧹
+          </button>
+        </div>
+
+        <div class="toolbar-group">
+          <button
+            class="format-btn"
+            id="undoAction"
+            disabled
+            title="Undo (Ctrl+Z)"
+          >
+            ↶
+          </button>
+          <button
+            class="format-btn"
+            id="redoAction"
+            disabled
+            title="Redo (Ctrl+Y)"
+          >
+            ↷
+          </button>
+        </div>
+
+        <div class="toolbar-group">
+          <button
+            class="format-btn"
+            id="insertLink"
+            disabled
+            title="Insert Link"
+          >
+            🔗
+          </button>
+          <button
+            class="format-btn"
+            id="insertImage"
+            disabled
+            title="Insert Image"
+          >
+            🖼️
+          </button>
+          <button
+            class="format-btn"
+            id="insertVideo"
+            disabled
+            title="Insert Video"
+          >
+            🎥
+          </button>
+          <button
+            class="format-btn"
+            id="insertHR"
+            disabled
+            title="Insert Horizontal Rule"
+          >
+            ➖
+          </button>
+        </div>
+      </div>
+
+      <!-- Cursor and Selection Information Panel -->
+      <div class="cursor-info" id="cursorInfo">
+        <div class="cursor-detail">
+          <strong>Cursor Position:</strong>
+          <span id="cursorPosition">Line 1, Column 1</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Character Index:</strong>
+          <span id="characterIndex">0</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Selection Range:</strong>
+          <span id="selectionRange">None</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Selected Text:</strong>
+          <span id="selectedTextInfo">None</span>
+        </div>
+      </div>
+
+      <!-- Text Metrics Panel -->
+      <div class="text-metrics" id="textMetrics">
+        <div class="cursor-detail">
+          <strong>Words:</strong>
+          <span id="wordCount">0</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Characters:</strong>
+          <span id="charCount">0</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Lines:</strong>
+          <span id="lineCount">1</span>
+        </div>
+        <div class="cursor-detail">
+          <strong>Paragraphs:</strong>
+          <span id="paragraphCount">0</span>
+        </div>
+      </div>
+
+      <!-- Selection Information Panel -->
+      <div class="selection-info" id="selectionInfo" style="display: none">
+        <strong>Selection Details:</strong>
+        <span id="selectionDetails">No selection</span>
+      </div>
+
       <div class="editor-content">
-        <div id="editor" class="parchment-scroll">
+        <div id="editor" class="parchment-scroll" contenteditable="false">
           Click "New Document" to start editing...
         </div>
+      </div>
+
+      <!-- Format Preview -->
+      <div class="format-preview" id="formatPreview" style="display: none">
+        <strong>Format Preview:</strong>
+        <div id="previewContent">Select text to see formatting preview...</div>
       </div>
 
       <div class="status-bar">
@@ -260,6 +677,35 @@
         <button class="btn" id="demoSplit" disabled>Split Demo</button>
         <div class="logs" id="textLogs">
           Text operation logs will appear here...
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-title">🎨 InlineBlot Formatting</div>
+        <p>Demonstrate nested inline formatting capabilities</p>
+        <button class="btn" id="demoNestedFormatting" disabled>
+          Nested Formatting
+        </button>
+        <button class="btn" id="demoComplexInline" disabled>
+          Complex Inline
+        </button>
+        <button class="btn" id="demoInlineBlotAPI" disabled>
+          InlineBlot API
+        </button>
+        <div class="logs" id="inlineLogs">
+          InlineBlot operation logs will appear here...
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-title">🖼️ EmbedBlot Elements</div>
+        <p>Showcase embedded elements and media</p>
+        <button class="btn" id="demoEmbedImage" disabled>Embed Image</button>
+        <button class="btn" id="demoEmbedVideo" disabled>Embed Video</button>
+        <button class="btn" id="demoEmbedLink" disabled>Embed Link</button>
+        <button class="btn" id="demoEmbedAPI" disabled>EmbedBlot API</button>
+        <div class="logs" id="embedLogs">
+          EmbedBlot operation logs will appear here...
         </div>
       </div>
 
@@ -343,6 +789,15 @@
         document
           .querySelectorAll("button")
           .forEach((btn) => (btn.disabled = false));
+        document
+          .querySelectorAll("input")
+          .forEach((input) => (input.disabled = false));
+
+        // Enable contenteditable on the editor
+        const editor = document.getElementById("editor");
+        if (editor && currentDocument) {
+          editor.contentEditable = true;
+        }
       }
 
       function updateStatus(message) {
@@ -399,6 +854,9 @@
 
           document.getElementById("documentStats").textContent =
             `Document: ${children} children, ${textLength} chars, ${isEmpty ? "empty" : "has content"}`;
+
+          // Update text metrics as well
+          updateTextMetrics();
         } catch (e) {
           document.getElementById("documentStats").textContent =
             `Document: Error - ${e.message}`;
@@ -427,15 +885,34 @@
 
           const editorElement = document.getElementById("editor");
           editorElement.innerHTML = "";
+          editorElement.contentEditable = true;
 
           const scrollElement = currentDocument.dom_element();
           editorElement.appendChild(scrollElement);
+
+          // Reset formatting state
+          formatState = {
+            bold: false,
+            italic: false,
+            underline: false,
+            strikethrough: false,
+            code: false,
+            highlight: false,
+            textColor: "#000000",
+            backgroundColor: "#ffffff",
+          };
+
+          // Clear undo/redo stacks
+          undoStack = [];
+          redoStack = [];
+          updateUndoRedoButtons();
+          updateFormatButtonStates();
 
           updateDocumentStats();
           updateStatus("New document created");
           log(
             "structureLogs",
-            "📄 New document created successfully",
+            "📄 New document created successfully - Rich text editing enabled!",
             "success",
           );
         } catch (e) {
@@ -1188,10 +1665,1035 @@
           }
         });
 
+      // InlineBlot Demonstration Functions
+      document
+        .getElementById("demoNestedFormatting")
+        .addEventListener("click", () => {
+          try {
+            log(
+              "inlineLogs",
+              "🎨 Starting nested formatting demonstration...",
+              "info",
+            );
+
+            if (!currentDocument) {
+              document.getElementById("newDocument").click();
+              setTimeout(() => {
+                performNestedFormattingDemo();
+              }, 100);
+            } else {
+              performNestedFormattingDemo();
+            }
+          } catch (e) {
+            log("inlineLogs", `❌ Nested formatting demo error: ${e}`, "error");
+          }
+        });
+
+      function performNestedFormattingDemo() {
+        try {
+          // Create a demonstration container
+          const demoContainer = document.createElement("div");
+          demoContainer.className = "nested-formatting-demo";
+
+          // Create complex nested formatting using InlineBlot
+          const complexText = document.createElement("p");
+          complexText.innerHTML = `
+            This is a demonstration of <strong>bold text with <em>nested italic</em></strong> and
+            <span class="parchment-underline">underlined text with <span class="parchment-code">inline code</span></span>.
+            Here's <span class="parchment-highlight"><strong>highlighted bold text</strong></span> and
+            <span class="parchment-strikethrough"><em>strikethrough italic</em></span>.
+          `;
+
+          demoContainer.appendChild(complexText);
+
+          // Add to editor
+          const editor = document.getElementById("editor");
+          editor.appendChild(demoContainer);
+
+          // Test InlineBlot WASM functionality
+          if (wasmModule && wasmModule.test_inline_blot) {
+            const inlineResult = wasmModule.test_inline_blot();
+            log(
+              "inlineLogs",
+              `✅ InlineBlot WASM test result: ${inlineResult}`,
+              "success",
+            );
+          }
+
+          log(
+            "inlineLogs",
+            "🎨 Nested formatting demonstration completed",
+            "success",
+          );
+          log(
+            "inlineLogs",
+            "   Created complex nested inline elements",
+            "info",
+          );
+          log(
+            "inlineLogs",
+            "   Demonstrated bold, italic, underline, code, highlight combinations",
+            "info",
+          );
+
+          updateDocumentStats();
+
+          // Remove demo after 10 seconds
+          setTimeout(() => {
+            if (demoContainer.parentNode) {
+              demoContainer.remove();
+              updateDocumentStats();
+            }
+          }, 10000);
+        } catch (e) {
+          log("inlineLogs", `❌ Nested formatting error: ${e}`, "error");
+        }
+      }
+
+      document
+        .getElementById("demoComplexInline")
+        .addEventListener("click", () => {
+          try {
+            log(
+              "inlineLogs",
+              "🔥 Creating complex inline structure...",
+              "info",
+            );
+
+            // Create multiple InlineBlot instances
+            const inlineBlots = [];
+            for (let i = 0; i < 5; i++) {
+              if (wasmModule && wasmModule.test_inline_blot) {
+                const result = wasmModule.test_inline_blot();
+                inlineBlots.push(result);
+              }
+            }
+
+            // Create visual demonstration
+            const complexDemo = document.createElement("div");
+            complexDemo.className = "nested-formatting-demo";
+            complexDemo.innerHTML = `
+            <h4>Complex InlineBlot Structure:</h4>
+            <p>
+              <span class="parchment-bold parchment-italic">Bold + Italic</span> →
+              <span class="parchment-underline parchment-code">Underline + Code</span> →
+              <span class="parchment-highlight parchment-strikethrough">Highlight + Strike</span>
+            </p>
+            <p>
+              Nested: <span class="parchment-bold">Bold <span class="parchment-italic">with <span class="parchment-underline">triple nesting</span></span></span>
+            </p>
+            <p>
+              Performance: Created ${inlineBlots.length} InlineBlot instances
+            </p>
+          `;
+
+            const editor = document.getElementById("editor");
+            editor.appendChild(complexDemo);
+
+            log(
+              "inlineLogs",
+              `✅ Created ${inlineBlots.length} InlineBlot instances`,
+              "success",
+            );
+            log(
+              "inlineLogs",
+              "   Demonstrated complex nesting patterns",
+              "info",
+            );
+            log(
+              "inlineLogs",
+              "   Tested performance with multiple instances",
+              "info",
+            );
+
+            updateDocumentStats();
+
+            setTimeout(() => {
+              if (complexDemo.parentNode) {
+                complexDemo.remove();
+                updateDocumentStats();
+              }
+            }, 8000);
+          } catch (e) {
+            log("inlineLogs", `❌ Complex inline demo error: ${e}`, "error");
+          }
+        });
+
+      document
+        .getElementById("demoInlineBlotAPI")
+        .addEventListener("click", () => {
+          try {
+            log("inlineLogs", "🔧 Testing InlineBlot API methods...", "info");
+
+            if (wasmModule && wasmModule.test_inline_blot) {
+              const startTime = performance.now();
+
+              // Test multiple API calls
+              const results = [];
+              for (let i = 0; i < 100; i++) {
+                results.push(wasmModule.test_inline_blot());
+              }
+
+              const endTime = performance.now();
+              const duration = endTime - startTime;
+
+              log(
+                "inlineLogs",
+                `✅ InlineBlot API Performance Test:`,
+                "success",
+              );
+              log(
+                "inlineLogs",
+                `   100 API calls in ${duration.toFixed(2)}ms`,
+                "info",
+              );
+              log(
+                "inlineLogs",
+                `   Average: ${(duration / 100).toFixed(4)}ms per call`,
+                "info",
+              );
+              log(
+                "inlineLogs",
+                `   All results: ${results.every((r) => r === 1) ? "PASS" : "MIXED"}`,
+                "info",
+              );
+
+              // Update global stats
+              operationStats.count += 100;
+              operationStats.totalTime += duration;
+              updateStats();
+            } else {
+              log("inlineLogs", "❌ InlineBlot API not available", "error");
+            }
+          } catch (e) {
+            log("inlineLogs", `❌ InlineBlot API test error: ${e}`, "error");
+          }
+        });
+
+      // EmbedBlot Demonstration Functions
+      document
+        .getElementById("demoEmbedImage")
+        .addEventListener("click", () => {
+          try {
+            log(
+              "embedLogs",
+              "🖼️ Creating image embed demonstration...",
+              "info",
+            );
+
+            const imageDemo = document.createElement("div");
+            imageDemo.className = "embed-demo-container";
+
+            // Create sample images
+            const images = [
+              "https://via.placeholder.com/300x200/007bff/ffffff?text=WASM+Image+1",
+              "https://via.placeholder.com/250x150/28a745/ffffff?text=WASM+Image+2",
+              "https://via.placeholder.com/200x200/dc3545/ffffff?text=WASM+Image+3",
+            ];
+
+            imageDemo.innerHTML = `
+            <h4>EmbedBlot Image Demonstration:</h4>
+            <p>Images embedded using EmbedBlot WASM functionality:</p>
+          `;
+
+            images.forEach((src, index) => {
+              const img = document.createElement("img");
+              img.src = src;
+              img.className = "parchment-image parchment-embed";
+              img.alt = `WASM Demo Image ${index + 1}`;
+              img.style.margin = "5px";
+              imageDemo.appendChild(img);
+            });
+
+            const editor = document.getElementById("editor");
+            editor.appendChild(imageDemo);
+
+            // Test EmbedBlot WASM functionality
+            if (wasmModule && wasmModule.test_embed_blot) {
+              const embedResult = wasmModule.test_embed_blot();
+              log(
+                "embedLogs",
+                `✅ EmbedBlot WASM test result: ${embedResult}`,
+                "success",
+              );
+            }
+
+            log(
+              "embedLogs",
+              `✅ Created ${images.length} image embeds`,
+              "success",
+            );
+            log(
+              "embedLogs",
+              "   Demonstrated responsive image handling",
+              "info",
+            );
+            log(
+              "embedLogs",
+              "   Applied EmbedBlot styling and structure",
+              "info",
+            );
+
+            updateDocumentStats();
+
+            setTimeout(() => {
+              if (imageDemo.parentNode) {
+                imageDemo.remove();
+                updateDocumentStats();
+              }
+            }, 12000);
+          } catch (e) {
+            log("embedLogs", `❌ Image embed demo error: ${e}`, "error");
+          }
+        });
+
+      document
+        .getElementById("demoEmbedVideo")
+        .addEventListener("click", () => {
+          try {
+            log(
+              "embedLogs",
+              "🎥 Creating video embed demonstration...",
+              "info",
+            );
+
+            const videoDemo = document.createElement("div");
+            videoDemo.className = "embed-demo-container";
+
+            videoDemo.innerHTML = `
+            <h4>EmbedBlot Video Demonstration:</h4>
+            <p>Video elements embedded using EmbedBlot:</p>
+            <video class="parchment-video parchment-embed" controls>
+              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <iframe class="parchment-video parchment-embed"
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                    frameborder="0" allowfullscreen>
+            </iframe>
+          `;
+
+            const editor = document.getElementById("editor");
+            editor.appendChild(videoDemo);
+
+            // Test EmbedBlot WASM functionality
+            if (wasmModule && wasmModule.test_embed_blot) {
+              const embedResult = wasmModule.test_embed_blot();
+              log(
+                "embedLogs",
+                `✅ EmbedBlot WASM test result: ${embedResult}`,
+                "success",
+              );
+            }
+
+            log(
+              "embedLogs",
+              "✅ Created video embed demonstrations",
+              "success",
+            );
+            log("embedLogs", "   Added HTML5 video element", "info");
+            log("embedLogs", "   Added YouTube iframe embed", "info");
+
+            updateDocumentStats();
+
+            setTimeout(() => {
+              if (videoDemo.parentNode) {
+                videoDemo.remove();
+                updateDocumentStats();
+              }
+            }, 15000);
+          } catch (e) {
+            log("embedLogs", `❌ Video embed demo error: ${e}`, "error");
+          }
+        });
+
+      document.getElementById("demoEmbedLink").addEventListener("click", () => {
+        try {
+          log("embedLogs", "🔗 Creating link embed demonstration...", "info");
+
+          const linkDemo = document.createElement("div");
+          linkDemo.className = "embed-demo-container";
+
+          linkDemo.innerHTML = `
+            <h4>EmbedBlot Link Demonstration:</h4>
+            <p>Various link types embedded using EmbedBlot:</p>
+            <p>
+              <a href="https://github.com/cloudbridgeuy/quillai" class="parchment-link" target="_blank">
+                🦀 QuillAi GitHub Repository
+              </a>
+            </p>
+            <p>
+              <a href="https://webassembly.org/" class="parchment-link" target="_blank">
+                🌐 WebAssembly Official Site
+              </a>
+            </p>
+            <p>
+              <a href="https://www.rust-lang.org/" class="parchment-link" target="_blank">
+                🦀 Rust Programming Language
+              </a>
+            </p>
+            <hr class="parchment-hr">
+            <p><em>Links styled with EmbedBlot CSS classes</em></p>
+          `;
+
+          const editor = document.getElementById("editor");
+          editor.appendChild(linkDemo);
+
+          // Test EmbedBlot WASM functionality
+          if (wasmModule && wasmModule.test_embed_blot) {
+            const embedResult = wasmModule.test_embed_blot();
+            log(
+              "embedLogs",
+              `✅ EmbedBlot WASM test result: ${embedResult}`,
+              "success",
+            );
+          }
+
+          log("embedLogs", "✅ Created link embed demonstrations", "success");
+          log("embedLogs", "   Added styled external links", "info");
+          log("embedLogs", "   Included horizontal rule separator", "info");
+
+          updateDocumentStats();
+
+          setTimeout(() => {
+            if (linkDemo.parentNode) {
+              linkDemo.remove();
+              updateDocumentStats();
+            }
+          }, 10000);
+        } catch (e) {
+          log("embedLogs", `❌ Link embed demo error: ${e}`, "error");
+        }
+      });
+
+      document.getElementById("demoEmbedAPI").addEventListener("click", () => {
+        try {
+          log("embedLogs", "🔧 Testing EmbedBlot API methods...", "info");
+
+          if (wasmModule && wasmModule.test_embed_blot) {
+            const startTime = performance.now();
+
+            // Test multiple API calls
+            const results = [];
+            for (let i = 0; i < 50; i++) {
+              results.push(wasmModule.test_embed_blot());
+            }
+
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+
+            log("embedLogs", `✅ EmbedBlot API Performance Test:`, "success");
+            log(
+              "embedLogs",
+              `   50 API calls in ${duration.toFixed(2)}ms`,
+              "info",
+            );
+            log(
+              "embedLogs",
+              `   Average: ${(duration / 50).toFixed(4)}ms per call`,
+              "info",
+            );
+            log(
+              "embedLogs",
+              `   All results: ${results.every((r) => r === 1) ? "PASS" : "MIXED"}`,
+              "info",
+            );
+
+            // Update global stats
+            operationStats.count += 50;
+            operationStats.totalTime += duration;
+            updateStats();
+          } else {
+            log("embedLogs", "❌ EmbedBlot API not available", "error");
+          }
+        } catch (e) {
+          log("embedLogs", `❌ EmbedBlot API test error: ${e}`, "error");
+        }
+      });
+
+      // Toolbar embed button functionality
+      document.getElementById("insertLink").addEventListener("click", () => {
+        const url = prompt("Enter URL:");
+        const text = prompt("Enter link text:");
+        if (url && text) {
+          insertEmbedElement("link", { url, text });
+        }
+      });
+
+      document.getElementById("insertImage").addEventListener("click", () => {
+        const url = prompt("Enter image URL:");
+        const alt = prompt("Enter alt text:");
+        if (url) {
+          insertEmbedElement("image", { url, alt: alt || "Image" });
+        }
+      });
+
+      document.getElementById("insertVideo").addEventListener("click", () => {
+        const url = prompt("Enter video URL:");
+        if (url) {
+          insertEmbedElement("video", { url });
+        }
+      });
+
+      document.getElementById("insertHR").addEventListener("click", () => {
+        insertEmbedElement("hr", {});
+      });
+
+      function insertEmbedElement(type, data) {
+        try {
+          const editor = document.getElementById("editor");
+          let element;
+
+          switch (type) {
+            case "link":
+              element = document.createElement("a");
+              element.href = data.url;
+              element.textContent = data.text;
+              element.className = "parchment-link";
+              element.target = "_blank";
+              break;
+            case "image":
+              element = document.createElement("img");
+              element.src = data.url;
+              element.alt = data.alt;
+              element.className = "parchment-image parchment-embed";
+              break;
+            case "video":
+              element = document.createElement("video");
+              element.src = data.url;
+              element.className = "parchment-video parchment-embed";
+              element.controls = true;
+              break;
+            case "hr":
+              element = document.createElement("hr");
+              element.className = "parchment-hr";
+              break;
+          }
+
+          if (element) {
+            editor.appendChild(element);
+
+            // Test EmbedBlot WASM functionality
+            if (wasmModule && wasmModule.test_embed_blot) {
+              const embedResult = wasmModule.test_embed_blot();
+              log(
+                "embedLogs",
+                `✅ Inserted ${type} element (WASM result: ${embedResult})`,
+                "success",
+              );
+            }
+
+            updateDocumentStats();
+          }
+        } catch (e) {
+          log("embedLogs", `❌ Error inserting ${type}: ${e}`, "error");
+        }
+      }
+      // Formatting State Management
+      let formatState = {
+        bold: false,
+        italic: false,
+        underline: false,
+        strikethrough: false,
+        code: false,
+        highlight: false,
+        textColor: "#000000",
+        backgroundColor: "#ffffff",
+      };
+
+      let undoStack = [];
+      let redoStack = [];
+      const MAX_UNDO_STACK = 50;
+
+      // Enhanced Selection and Cursor Tracking
+      function updateSelectionInfo() {
+        const selection = window.getSelection();
+        const editor = document.getElementById("editor");
+
+        // Update cursor position and selection info
+        updateCursorPosition(selection, editor);
+        updateTextMetrics();
+        updateSelectionDetails(selection);
+        updateFormatPreview(selection);
+        updateFormatButtonStates();
+      }
+
+      function updateCursorPosition(selection, editor) {
+        const cursorPosition = document.getElementById("cursorPosition");
+        const characterIndex = document.getElementById("characterIndex");
+        const selectionRange = document.getElementById("selectionRange");
+
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const editorText = editor.textContent || "";
+
+          // Calculate cursor position
+          const startOffset = getTextOffset(
+            editor,
+            range.startContainer,
+            range.startOffset,
+          );
+          const endOffset = selection.isCollapsed
+            ? startOffset
+            : getTextOffset(editor, range.endContainer, range.endOffset);
+
+          // Calculate line and column
+          const textBeforeCursor = editorText.substring(0, startOffset);
+          const lines = textBeforeCursor.split("\n");
+          const lineNumber = lines.length;
+          const columnNumber = lines[lines.length - 1].length + 1;
+
+          cursorPosition.textContent = `Line ${lineNumber}, Column ${columnNumber}`;
+          characterIndex.textContent = startOffset;
+
+          if (selection.isCollapsed) {
+            selectionRange.textContent = "None";
+          } else {
+            selectionRange.textContent = `${startOffset}-${endOffset} (${endOffset - startOffset} chars)`;
+          }
+        } else {
+          cursorPosition.textContent = "No cursor";
+          characterIndex.textContent = "N/A";
+          selectionRange.textContent = "None";
+        }
+      }
+
+      function getTextOffset(root, node, offset) {
+        let textOffset = 0;
+        const walker = document.createTreeWalker(
+          root,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false,
+        );
+
+        let currentNode;
+        while ((currentNode = walker.nextNode())) {
+          if (currentNode === node) {
+            return textOffset + offset;
+          }
+          textOffset += currentNode.textContent.length;
+        }
+        return textOffset;
+      }
+
+      function updateTextMetrics() {
+        const editor = document.getElementById("editor");
+        const text = editor.textContent || "";
+
+        // Calculate metrics
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const characters = text.length;
+        const lines = text ? text.split("\n").length : 1;
+        const paragraphs = editor.children.length || 0;
+
+        // Update display
+        document.getElementById("wordCount").textContent = words;
+        document.getElementById("charCount").textContent = characters;
+        document.getElementById("lineCount").textContent = lines;
+        document.getElementById("paragraphCount").textContent = paragraphs;
+
+        // Update WASM document stats if available
+        if (currentDocument) {
+          try {
+            const wasmStats = currentDocument.get_statistics();
+            document.getElementById("wordCount").textContent =
+              `${words} (WASM: ${wasmStats.words})`;
+            document.getElementById("charCount").textContent =
+              `${characters} (WASM: ${wasmStats.characters})`;
+          } catch (e) {
+            // Fallback to DOM-based counting
+          }
+        }
+      }
+
+      function updateSelectionDetails(selection) {
+        const selectionInfo = document.getElementById("selectionInfo");
+        const selectionDetails = document.getElementById("selectionDetails");
+        const selectedTextInfo = document.getElementById("selectedTextInfo");
+
+        if (selection.rangeCount > 0 && !selection.isCollapsed) {
+          const selectedText = selection.toString();
+          const wordCount = selectedText.trim()
+            ? selectedText.trim().split(/\s+/).length
+            : 0;
+
+          selectionInfo.style.display = "block";
+          selectionDetails.textContent = `"${selectedText.substring(0, 50)}${selectedText.length > 50 ? "..." : ""}" (${selectedText.length} chars, ${wordCount} words)`;
+          selectedTextInfo.textContent = `"${selectedText.substring(0, 30)}${selectedText.length > 30 ? "..." : ""}"`;
+        } else {
+          selectionInfo.style.display = "none";
+          selectedTextInfo.textContent = "None";
+        }
+      }
+
+      function updateFormatPreview(selection) {
+        const formatPreview = document.getElementById("formatPreview");
+        const previewContent = document.getElementById("previewContent");
+
+        if (selection.rangeCount > 0 && !selection.isCollapsed) {
+          const selectedText = selection.toString();
+          formatPreview.style.display = "block";
+
+          // Update format preview
+          previewContent.innerHTML = `<span style="color: ${formatState.textColor}; background-color: ${formatState.backgroundColor};"
+            class="${getActiveFormatClasses()}">${selectedText || "Sample text"}</span>`;
+        } else {
+          formatPreview.style.display = "none";
+        }
+      }
+
+      // Visual cursor indicator
+      function showCursorIndicator() {
+        const selection = window.getSelection();
+        const existingIndicator = document.querySelector(".cursor-indicator");
+
+        // Remove existing indicator
+        if (existingIndicator) {
+          existingIndicator.remove();
+        }
+
+        if (selection.rangeCount > 0 && selection.isCollapsed) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+
+          if (rect.height > 0) {
+            const indicator = document.createElement("div");
+            indicator.className = "cursor-indicator";
+            indicator.style.left = `${rect.left + window.scrollX}px`;
+            indicator.style.top = `${rect.top + window.scrollY}px`;
+            indicator.style.height = `${rect.height}px`;
+
+            document.body.appendChild(indicator);
+
+            // Remove indicator after 3 seconds
+            setTimeout(() => {
+              if (indicator.parentNode) {
+                indicator.remove();
+              }
+            }, 3000);
+          }
+        }
+      }
+
+      function getActiveFormatClasses() {
+        const classes = [];
+        if (formatState.bold) classes.push("parchment-bold");
+        if (formatState.italic) classes.push("parchment-italic");
+        if (formatState.underline) classes.push("parchment-underline");
+        if (formatState.strikethrough) classes.push("parchment-strikethrough");
+        if (formatState.code) classes.push("parchment-code");
+        if (formatState.highlight) classes.push("parchment-highlight");
+        return classes.join(" ");
+      }
+
+      function updateFormatButtonStates() {
+        document
+          .getElementById("formatBold")
+          .classList.toggle("active", formatState.bold);
+        document
+          .getElementById("formatItalic")
+          .classList.toggle("active", formatState.italic);
+        document
+          .getElementById("formatUnderline")
+          .classList.toggle("active", formatState.underline);
+        document
+          .getElementById("formatStrikethrough")
+          .classList.toggle("active", formatState.strikethrough);
+        document
+          .getElementById("formatCode")
+          .classList.toggle("active", formatState.code);
+        document
+          .getElementById("formatHighlight")
+          .classList.toggle("active", formatState.highlight);
+
+        document.getElementById("textColor").value = formatState.textColor;
+        document.getElementById("backgroundColor").value =
+          formatState.backgroundColor;
+      }
+
+      function saveToUndoStack() {
+        if (currentDocument) {
+          try {
+            const content = currentDocument.text_content();
+            undoStack.push(content);
+            if (undoStack.length > MAX_UNDO_STACK) {
+              undoStack.shift();
+            }
+            redoStack = []; // Clear redo stack when new action is performed
+            updateUndoRedoButtons();
+          } catch (e) {
+            log("textLogs", `⚠️ Could not save to undo stack: ${e}`, "warning");
+          }
+        }
+      }
+
+      function updateUndoRedoButtons() {
+        document.getElementById("undoAction").disabled = undoStack.length === 0;
+        document.getElementById("redoAction").disabled = redoStack.length === 0;
+      }
+
+      function applyFormatting(formatType) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount || selection.isCollapsed) {
+          log("textLogs", "⚠️ Please select text to format", "warning");
+          return;
+        }
+
+        try {
+          saveToUndoStack();
+
+          const selectedText = selection.toString();
+          const range = selection.getRangeAt(0);
+
+          // Toggle format state
+          formatState[formatType] = !formatState[formatType];
+
+          // Create formatted content using InlineBlot
+          if (wasmModule && wasmModule.test_inline_blot) {
+            const inlineResult = wasmModule.test_inline_blot();
+            log(
+              "textLogs",
+              `✅ Applied ${formatType} formatting to "${selectedText.substring(0, 30)}..."`,
+              "success",
+            );
+          }
+
+          // Apply visual formatting to the DOM
+          const span = document.createElement("span");
+          span.textContent = selectedText;
+          span.className = getActiveFormatClasses();
+          span.style.color = formatState.textColor;
+          span.style.backgroundColor = formatState.backgroundColor;
+
+          range.deleteContents();
+          range.insertNode(span);
+
+          // Clear selection
+          selection.removeAllRanges();
+
+          updateFormatButtonStates();
+          updateDocumentStats();
+        } catch (e) {
+          log("textLogs", `❌ Error applying ${formatType}: ${e}`, "error");
+        }
+      }
+
+      // Format Button Event Listeners
+      document
+        .getElementById("formatBold")
+        .addEventListener("click", () => applyFormatting("bold"));
+      document
+        .getElementById("formatItalic")
+        .addEventListener("click", () => applyFormatting("italic"));
+      document
+        .getElementById("formatUnderline")
+        .addEventListener("click", () => applyFormatting("underline"));
+      document
+        .getElementById("formatStrikethrough")
+        .addEventListener("click", () => applyFormatting("strikethrough"));
+      document
+        .getElementById("formatCode")
+        .addEventListener("click", () => applyFormatting("code"));
+      document
+        .getElementById("formatHighlight")
+        .addEventListener("click", () => applyFormatting("highlight"));
+
+      // Color Picker Event Listeners
+      document.getElementById("textColor").addEventListener("change", (e) => {
+        formatState.textColor = e.target.value;
+        updateSelectionInfo();
+      });
+
+      document
+        .getElementById("backgroundColor")
+        .addEventListener("change", (e) => {
+          formatState.backgroundColor = e.target.value;
+          updateSelectionInfo();
+        });
+
+      // Clear Formatting
+      document
+        .getElementById("clearFormatting")
+        .addEventListener("click", () => {
+          const selection = window.getSelection();
+          if (!selection.rangeCount || selection.isCollapsed) {
+            log(
+              "textLogs",
+              "⚠️ Please select text to clear formatting",
+              "warning",
+            );
+            return;
+          }
+
+          try {
+            saveToUndoStack();
+
+            const selectedText = selection.toString();
+            const range = selection.getRangeAt(0);
+
+            // Reset format state
+            formatState = {
+              bold: false,
+              italic: false,
+              underline: false,
+              strikethrough: false,
+              code: false,
+              highlight: false,
+              textColor: "#000000",
+              backgroundColor: "#ffffff",
+            };
+
+            // Replace with plain text
+            const textNode = document.createTextNode(selectedText);
+            range.deleteContents();
+            range.insertNode(textNode);
+
+            selection.removeAllRanges();
+            updateFormatButtonStates();
+            updateDocumentStats();
+
+            log(
+              "textLogs",
+              `🧹 Cleared formatting from "${selectedText.substring(0, 30)}..."`,
+              "success",
+            );
+          } catch (e) {
+            log("textLogs", `❌ Error clearing formatting: ${e}`, "error");
+          }
+        });
+
+      // Undo/Redo Functionality
+      document.getElementById("undoAction").addEventListener("click", () => {
+        if (undoStack.length > 0 && currentDocument) {
+          try {
+            const currentContent = currentDocument.text_content();
+            redoStack.push(currentContent);
+
+            const previousContent = undoStack.pop();
+            currentDocument.clear();
+
+            // Split content into lines and add them back
+            const lines = previousContent.split("\n");
+            lines.forEach((line) => {
+              if (line.trim()) {
+                currentDocument.append_text(line);
+              }
+            });
+
+            updateUndoRedoButtons();
+            updateDocumentStats();
+            log("textLogs", "↶ Undo action performed", "info");
+          } catch (e) {
+            log("textLogs", `❌ Undo error: ${e}`, "error");
+          }
+        }
+      });
+
+      document.getElementById("redoAction").addEventListener("click", () => {
+        if (redoStack.length > 0 && currentDocument) {
+          try {
+            const currentContent = currentDocument.text_content();
+            undoStack.push(currentContent);
+
+            const nextContent = redoStack.pop();
+            currentDocument.clear();
+
+            // Split content into lines and add them back
+            const lines = nextContent.split("\n");
+            lines.forEach((line) => {
+              if (line.trim()) {
+                currentDocument.append_text(line);
+              }
+            });
+
+            updateUndoRedoButtons();
+            updateDocumentStats();
+            log("textLogs", "↷ Redo action performed", "info");
+          } catch (e) {
+            log("textLogs", `❌ Redo error: ${e}`, "error");
+          }
+        }
+      });
+
+      // Keyboard Shortcuts
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch (e.key.toLowerCase()) {
+            case "b":
+              e.preventDefault();
+              document.getElementById("formatBold").click();
+              break;
+            case "i":
+              e.preventDefault();
+              document.getElementById("formatItalic").click();
+              break;
+            case "u":
+              e.preventDefault();
+              document.getElementById("formatUnderline").click();
+              break;
+            case "z":
+              e.preventDefault();
+              if (e.shiftKey) {
+                document.getElementById("redoAction").click();
+              } else {
+                document.getElementById("undoAction").click();
+              }
+              break;
+            case "y":
+              e.preventDefault();
+              document.getElementById("redoAction").click();
+              break;
+          }
+        }
+      });
+
+      // Enhanced Selection and Cursor Event Listeners
+      document.addEventListener("selectionchange", updateSelectionInfo);
+
+      // Add cursor tracking to the editor
+      document.addEventListener("click", (e) => {
+        if (e.target.closest("#editor")) {
+          setTimeout(showCursorIndicator, 10);
+        }
+      });
+
+      document.addEventListener("keyup", (e) => {
+        if (e.target.closest("#editor")) {
+          updateSelectionInfo();
+          setTimeout(showCursorIndicator, 10);
+        }
+      });
+
+      // Mouse movement tracking for selection
+      let isSelecting = false;
+      document.addEventListener("mousedown", (e) => {
+        if (e.target.closest("#editor")) {
+          isSelecting = true;
+        }
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isSelecting && e.target.closest("#editor")) {
+          updateSelectionInfo();
+        }
+      });
+
+      document.addEventListener("mouseup", (e) => {
+        if (isSelecting) {
+          isSelecting = false;
+          updateSelectionInfo();
+          setTimeout(showCursorIndicator, 10);
+        }
+      });
+
       // Initialize
       document
         .querySelectorAll("button")
         .forEach((btn) => (btn.disabled = true));
+      document
+        .querySelectorAll("input")
+        .forEach((input) => (input.disabled = true));
       initializeWasm();
 
       // Update stats periodically

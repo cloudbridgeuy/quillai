@@ -2,7 +2,7 @@ use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
 use crate::dom::Dom;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
-use web_sys::{Node, Text};
+use web_sys::{Node, Range, Selection, Text, Window};
 
 /// TextBlot represents a text node in the document
 /// This is the fundamental building block for all text content
@@ -198,6 +198,135 @@ impl TextBlot {
         let actual_end = std::cmp::min(end, chars.len());
         let actual_start = std::cmp::min(start, actual_end);
         chars[actual_start..actual_end].iter().collect()
+    }
+
+    // === Selection Management Methods ===
+
+    /// Get the current selection range within this text node
+    /// Returns None if no selection exists or selection doesn't intersect this node
+    #[wasm_bindgen]
+    pub fn get_selection_range(&self) -> Result<Option<Vec<u32>>, JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+
+        if selection.range_count() == 0 {
+            return Ok(None);
+        }
+
+        let range = selection.get_range_at(0)?;
+        
+        // Check if the selection intersects with this text node
+        let text_node: &Node = self.dom_node.as_ref();
+        
+        // Check if this text node is within the selection range
+        if range.intersects_node(text_node)? {
+            let start_offset = if range.start_container()? == *text_node {
+                range.start_offset()?
+            } else {
+                0
+            };
+
+            let end_offset = if range.end_container()? == *text_node {
+                range.end_offset()?
+            } else {
+                self.value().len() as u32
+            };
+
+            Ok(Some(vec![start_offset, end_offset]))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Set selection range within this text node
+    #[wasm_bindgen]
+    pub fn set_selection_range(&self, start: u32, end: u32) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+        let document = window.document().ok_or("No document object")?;
+
+        // Create a new range
+        let range = document.create_range()?;
+        let text_node: &Node = self.dom_node.as_ref();
+
+        // Validate offsets
+        let text_length = self.value().len() as u32;
+        let actual_start = start.min(text_length);
+        let actual_end = end.min(text_length).max(actual_start);
+
+        // Set the range to span from start to end within this text node
+        range.set_start(text_node, actual_start)?;
+        range.set_end(text_node, actual_end)?;
+
+        // Apply the selection
+        selection.remove_all_ranges()?;
+        selection.add_range(&range)?;
+
+        Ok(())
+    }
+
+    /// Get cursor position relative to this text node
+    /// Returns None if cursor is not within this text node
+    #[wasm_bindgen]
+    pub fn get_cursor_position(&self) -> Result<Option<u32>, JsValue> {
+        let window = web_sys::window().ok_or("No window object")?;
+        let selection = window.get_selection()?.ok_or("No selection object")?;
+
+        if selection.range_count() == 0 {
+            return Ok(None);
+        }
+
+        let range = selection.get_range_at(0)?;
+        
+        // Check if selection is collapsed (cursor position)
+        if !range.collapsed() {
+            return Ok(None);
+        }
+
+        let text_node: &Node = self.dom_node.as_ref();
+        
+        // Check if cursor is within this text node
+        if range.start_container()? == *text_node {
+            Ok(Some(range.start_offset()?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Set cursor position within this text node
+    #[wasm_bindgen]
+    pub fn set_cursor_position(&self, position: u32) -> Result<(), JsValue> {
+        self.set_selection_range(position, position)
+    }
+
+    /// Check if this text node contains the current selection
+    #[wasm_bindgen]
+    pub fn contains_selection(&self) -> bool {
+        match self.get_selection_range() {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this text node contains the current cursor
+    #[wasm_bindgen]
+    pub fn contains_cursor(&self) -> bool {
+        match self.get_cursor_position() {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
+    }
+
+    /// Get the selected text within this text node
+    #[wasm_bindgen]
+    pub fn get_selected_text(&self) -> Result<String, JsValue> {
+        if let Some(range) = self.get_selection_range()? {
+            let start = range[0] as usize;
+            let end = range[1] as usize;
+            Ok(self.substring(start, end))
+        } else {
+            Ok(String::new())
+        }
     }
 }
 
