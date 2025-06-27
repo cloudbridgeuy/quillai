@@ -3,7 +3,10 @@ use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::dom::Dom;
 use crate::scope::Scope;
-use crate::text_operations::{Position, TextMatch, TextSelection, TextStatistics, TextUtils, TextVisitor, TextCollector, TextSearcher};
+use crate::text_operations::{
+    Position, TextCollector, TextMatch, TextSearcher, TextSelection, TextStatistics, TextUtils,
+    TextVisitor,
+};
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
@@ -214,7 +217,7 @@ impl ScrollBlot {
         }
 
         let range = selection.get_range_at(0)?;
-        
+
         // Convert DOM range to our TextSelection format
         let start_path = self.get_path_to_node(&range.start_container()?)?;
         let end_path = self.get_path_to_node(&range.end_container()?)?;
@@ -278,7 +281,7 @@ impl ScrollBlot {
         }
 
         let range = selection.get_range_at(0)?;
-        
+
         // Extract text content directly from the range
         Ok(range.to_string().into())
     }
@@ -331,7 +334,11 @@ impl ScrollBlot {
 
     /// Find all occurrences of a pattern in the document
     #[wasm_bindgen]
-    pub fn find_text(&self, pattern: &str, case_sensitive: bool) -> Result<Vec<TextMatch>, JsValue> {
+    pub fn find_text(
+        &self,
+        pattern: &str,
+        case_sensitive: bool,
+    ) -> Result<Vec<TextMatch>, JsValue> {
         if pattern.is_empty() {
             return Ok(Vec::new());
         }
@@ -343,9 +350,13 @@ impl ScrollBlot {
 
     /// Find next occurrence from current position
     #[wasm_bindgen]
-    pub fn find_next(&self, pattern: &str, from_position: Option<Position>) -> Result<Option<TextMatch>, JsValue> {
+    pub fn find_next(
+        &self,
+        pattern: &str,
+        from_position: Option<Position>,
+    ) -> Result<Option<TextMatch>, JsValue> {
         let matches = self.find_text(pattern, true)?;
-        
+
         if matches.is_empty() {
             return Ok(None);
         }
@@ -358,7 +369,12 @@ impl ScrollBlot {
 
         // Find the first match after the specified position
         for text_match in &matches {
-            if self.is_position_after(&text_match.start_path(), text_match.start_offset, &from_pos.path(), from_pos.offset) {
+            if self.is_position_after(
+                &text_match.start_path(),
+                text_match.start_offset,
+                &from_pos.path(),
+                from_pos.offset,
+            ) {
                 return Ok(Some(text_match.clone()));
             }
         }
@@ -369,9 +385,14 @@ impl ScrollBlot {
 
     /// Replace single occurrence of pattern
     #[wasm_bindgen]
-    pub fn replace_text(&mut self, pattern: &str, replacement: &str, occurrence: Option<u32>) -> Result<bool, JsValue> {
+    pub fn replace_text(
+        &mut self,
+        pattern: &str,
+        replacement: &str,
+        occurrence: Option<u32>,
+    ) -> Result<bool, JsValue> {
         let matches = self.find_text(pattern, true)?;
-        
+
         if matches.is_empty() {
             return Ok(false);
         }
@@ -402,7 +423,11 @@ impl ScrollBlot {
 
     /// Replace within selection only
     #[wasm_bindgen]
-    pub fn replace_in_selection(&mut self, pattern: &str, replacement: &str) -> Result<u32, JsValue> {
+    pub fn replace_in_selection(
+        &mut self,
+        pattern: &str,
+        replacement: &str,
+    ) -> Result<u32, JsValue> {
         let selection = match self.get_document_selection()? {
             Some(sel) => sel,
             None => return Ok(0),
@@ -413,7 +438,7 @@ impl ScrollBlot {
 
         // Filter matches that are within the selection
         for text_match in matches.iter().rev() {
-            if self.is_match_in_selection(&text_match, &selection) {
+            if self.is_match_in_selection(text_match, &selection) {
                 self.replace_at_match(text_match, replacement)?;
                 replaced_count += 1;
             }
@@ -423,29 +448,33 @@ impl ScrollBlot {
     }
 
     /// Helper method to replace text at a specific match
-    fn replace_at_match(&mut self, text_match: &TextMatch, replacement: &str) -> Result<(), JsValue> {
+    fn replace_at_match(
+        &mut self,
+        text_match: &TextMatch,
+        replacement: &str,
+    ) -> Result<(), JsValue> {
         let node = self.get_node_at_path(&text_match.start_path())?;
-        
+
         if let Some(text_node) = node.dyn_ref::<web_sys::Text>() {
             let current_text = text_node.text_content().unwrap_or_default();
             let start = text_match.start_offset as usize;
             let end = text_match.end_offset as usize;
-            
+
             let mut chars: Vec<char> = current_text.chars().collect();
-            
+
             // Remove the matched text
             for _ in start..end.min(chars.len()) {
                 if start < chars.len() {
                     chars.remove(start);
                 }
             }
-            
+
             // Insert replacement text
             let replacement_chars: Vec<char> = replacement.chars().collect();
             for (i, &ch) in replacement_chars.iter().enumerate() {
                 chars.insert(start + i, ch);
             }
-            
+
             let new_text: String = chars.into_iter().collect();
             text_node.set_text_content(Some(&new_text));
         }
@@ -456,7 +485,7 @@ impl ScrollBlot {
     /// Helper method to check if a position is after another position
     fn is_position_after(&self, path1: &[u32], offset1: u32, path2: &[u32], offset2: u32) -> bool {
         // Compare paths first
-        for (_i, (&p1, &p2)) in path1.iter().zip(path2.iter()).enumerate() {
+        for (&p1, &p2) in path1.iter().zip(path2.iter()) {
             if p1 > p2 {
                 return true;
             } else if p1 < p2 {
@@ -478,9 +507,9 @@ impl ScrollBlot {
     /// Helper method to check if a match is within a selection
     fn is_match_in_selection(&self, text_match: &TextMatch, selection: &TextSelection) -> bool {
         // Simplified check - in a full implementation, this would need more sophisticated path comparison
-        text_match.start_path() == selection.start_path() && 
-        text_match.start_offset >= selection.start_offset &&
-        text_match.end_offset <= selection.end_offset
+        text_match.start_path() == selection.start_path()
+            && text_match.start_offset >= selection.start_offset
+            && text_match.end_offset <= selection.end_offset
     }
 
     // === Text Statistics ===
@@ -526,7 +555,7 @@ impl ScrollBlot {
     #[wasm_bindgen]
     pub fn get_statistics(&self) -> TextStatistics {
         let text = self.collect_all_text();
-        
+
         let words = TextUtils::count_words(&text);
         let characters = TextUtils::count_characters(&text, true);
         let characters_no_spaces = TextUtils::count_characters(&text, false);
@@ -547,7 +576,7 @@ impl ScrollBlot {
     /// Collect all text content from the document
     fn collect_all_text(&self) -> String {
         let mut collector = TextCollector::new();
-        if let Err(_) = self.traverse_text_nodes(&mut collector) {
+        if self.traverse_text_nodes(&mut collector).is_err() {
             // Fallback to DOM text content if traversal fails
             return self.text_content();
         }
@@ -556,37 +585,36 @@ impl ScrollBlot {
 
     /// Traverse all text nodes in the document using the visitor pattern
     fn traverse_text_nodes(&self, visitor: &mut dyn TextVisitor) -> Result<(), JsValue> {
-        self.traverse_text_nodes_recursive(&self.as_node(), &mut Vec::new(), visitor)
+        traverse_text_nodes_recursive(&self.as_node(), &mut Vec::new(), visitor)
     }
+}
 
-    /// Recursive helper for text node traversal
-    fn traverse_text_nodes_recursive(
-        &self,
-        node: &Node,
-        current_path: &mut Vec<u32>,
-        visitor: &mut dyn TextVisitor,
-    ) -> Result<(), JsValue> {
-        // Check if this is a text node
-        if node.node_type() == Node::TEXT_NODE {
-            if let Some(text_content) = node.text_content() {
-                if !text_content.trim().is_empty() {
-                    visitor.visit_text(&text_content, current_path);
-                }
-            }
-        } else {
-            // Traverse child nodes
-            let children = node.child_nodes();
-            for i in 0..children.length() {
-                if let Some(child) = children.get(i) {
-                    current_path.push(i);
-                    self.traverse_text_nodes_recursive(&child, current_path, visitor)?;
-                    current_path.pop();
-                }
+/// Recursive helper for text node traversal
+fn traverse_text_nodes_recursive(
+    node: &Node,
+    current_path: &mut Vec<u32>,
+    visitor: &mut dyn TextVisitor,
+) -> Result<(), JsValue> {
+    // Check if this is a text node
+    if node.node_type() == Node::TEXT_NODE {
+        if let Some(text_content) = node.text_content() {
+            if !text_content.trim().is_empty() {
+                visitor.visit_text(&text_content, current_path);
             }
         }
-
-        Ok(())
+    } else {
+        // Traverse child nodes
+        let children = node.child_nodes();
+        for i in 0..children.length() {
+            if let Some(child) = children.get(i) {
+                current_path.push(i);
+                traverse_text_nodes_recursive(&child, current_path, visitor)?;
+                current_path.pop();
+            }
+        }
     }
+
+    Ok(())
 }
 
 impl BlotTrait for ScrollBlot {
@@ -624,8 +652,11 @@ impl BlotTrait for ScrollBlot {
         // Start mutation observer when ScrollBlot is attached
         if let Err(_e) = self.start_mutation_observer() {
             // Log error in development
-            #[cfg(debug_assertions)]
-            web_sys::console::warn_2(&JsValue::from_str("Failed to start mutation observer:"), &_e);
+
+            web_sys::console::warn_2(
+                &JsValue::from_str("Failed to start mutation observer:"),
+                &_e,
+            );
         }
     }
 
@@ -771,7 +802,7 @@ impl BlotTrait for ScrollBlot {
                     }
                     Err(e) => {
                         // Log warning for unsupported nodes but continue processing
-                        #[cfg(debug_assertions)]
+
                         web_sys::console::warn_2(
                             &JsValue::from_str("Failed to create blot from DOM node:"),
                             &e,

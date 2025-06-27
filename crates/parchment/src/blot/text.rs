@@ -2,7 +2,7 @@ use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
 use crate::dom::Dom;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
-use web_sys::{Node, Range, Selection, Text, Window};
+use web_sys::{Node, Text};
 
 /// TextBlot represents a text node in the document
 /// This is the fundamental building block for all text content
@@ -214,10 +214,10 @@ impl TextBlot {
         }
 
         let range = selection.get_range_at(0)?;
-        
+
         // Check if the selection intersects with this text node
         let text_node: &Node = self.dom_node.as_ref();
-        
+
         // Check if this text node is within the selection range
         if range.intersects_node(text_node)? {
             let start_offset = if range.start_container()? == *text_node {
@@ -277,14 +277,14 @@ impl TextBlot {
         }
 
         let range = selection.get_range_at(0)?;
-        
+
         // Check if selection is collapsed (cursor position)
         if !range.collapsed() {
             return Ok(None);
         }
 
         let text_node: &Node = self.dom_node.as_ref();
-        
+
         // Check if cursor is within this text node
         if range.start_container()? == *text_node {
             Ok(Some(range.start_offset()?))
@@ -302,19 +302,13 @@ impl TextBlot {
     /// Check if this text node contains the current selection
     #[wasm_bindgen]
     pub fn contains_selection(&self) -> bool {
-        match self.get_selection_range() {
-            Ok(Some(_)) => true,
-            _ => false,
-        }
+        matches!(self.get_selection_range(), Ok(Some(_)))
     }
 
     /// Check if this text node contains the current cursor
     #[wasm_bindgen]
     pub fn contains_cursor(&self) -> bool {
-        match self.get_cursor_position() {
-            Ok(Some(_)) => true,
-            _ => false,
-        }
+        matches!(self.get_cursor_position(), Ok(Some(_)))
     }
 
     /// Get the selected text within this text node

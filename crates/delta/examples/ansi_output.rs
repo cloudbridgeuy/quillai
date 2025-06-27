@@ -1,4 +1,4 @@
-use delta::{AttributeValue, Delta};
+use quillai_delta::{AttributeValue, Delta};
 use std::collections::BTreeMap;
 
 /// ANSI escape codes for text formatting
@@ -141,7 +141,7 @@ fn delta_to_ansi_string(delta: &Delta) -> String {
 
     for op in delta.ops() {
         match op {
-            delta::Op::Insert { text, attributes } => {
+            quillai_delta::Op::Insert { text, attributes } => {
                 // Reset and apply new formatting
                 if !current_formatting.is_empty() {
                     result.push_str(AnsiCodes::RESET);
@@ -152,7 +152,7 @@ fn delta_to_ansi_string(delta: &Delta) -> String {
                 result.push_str(text);
             }
 
-            delta::Op::InsertEmbed { embed, attributes } => {
+            quillai_delta::Op::InsertEmbed { embed, attributes } => {
                 // Handle embeds as special formatted text
                 if !current_formatting.is_empty() {
                     result.push_str(AnsiCodes::RESET);
@@ -163,7 +163,7 @@ fn delta_to_ansi_string(delta: &Delta) -> String {
                 result.push_str(&format!("[{}:{}]", embed.embed_type, embed.data));
             }
 
-            delta::Op::Retain {
+            quillai_delta::Op::Retain {
                 length: _,
                 attributes,
             } => {
@@ -178,7 +178,7 @@ fn delta_to_ansi_string(delta: &Delta) -> String {
                 }
             }
 
-            delta::Op::Delete(_) | delta::Op::RetainEmbed { .. } => {
+            quillai_delta::Op::Delete(_) | quillai_delta::Op::RetainEmbed { .. } => {
                 // Delete and RetainEmbed operations don't produce output in this context
                 // They would be used when applying changes to an existing document
             }
@@ -390,4 +390,3 @@ fn main() {
 
     println!("✨ Demo complete! ✨");
 }
-

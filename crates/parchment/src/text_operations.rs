@@ -186,9 +186,9 @@ impl TextUtils {
         }
 
         let current_char = chars[pos];
-        
+
         // Check for sentence-ending punctuation
-        matches!(current_char, '.' | '!' | '?') && 
+        matches!(current_char, '.' | '!' | '?') &&
         // Followed by whitespace or end of text
         (pos + 1 >= chars.len() || chars[pos + 1].is_whitespace())
     }
@@ -256,7 +256,7 @@ impl TextUtils {
 
         // Count explicit line breaks
         let explicit_lines = text.matches('\n').count() as u32 + 1;
-        
+
         // Estimate wrapped lines (assuming ~80 characters per line)
         let char_count = text.chars().count() as u32;
         let estimated_wrapped_lines = (char_count / 80).max(1);
@@ -272,6 +272,7 @@ pub trait TextVisitor {
 }
 
 /// A visitor that collects all text content
+#[derive(Default)]
 pub struct TextCollector {
     pub collected_text: String,
 }
@@ -344,3 +345,4 @@ impl TextVisitor for TextSearcher {
         self.current_offset += text.len() as u32;
     }
 }
+

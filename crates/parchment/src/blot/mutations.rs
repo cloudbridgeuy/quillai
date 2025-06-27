@@ -179,7 +179,7 @@ impl MutationHandler {
                 }
                 _ => {
                     // Unknown mutation type - log warning in development
-                    #[cfg(debug_assertions)]
+
                     web_sys::console::warn_1(&JsValue::from_str(&format!(
                         "Unknown mutation type: {}",
                         record.type_()
@@ -212,7 +212,7 @@ impl MutationHandler {
 
         if self.optimize_context.iteration_count >= MAX_OPTIMIZE_ITERATIONS {
             // Log warning about hitting iteration limit
-            #[cfg(debug_assertions)]
+
             web_sys::console::warn_1(&JsValue::from_str(
                 "Optimize cycle hit maximum iterations - possible infinite loop",
             ));
@@ -278,7 +278,6 @@ impl MutationHandler {
             }
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_2(
             &JsValue::from_str(&format!("Attribute mutation: {}", attr_name)),
             &JsValue::from_str(old_value.as_ref().unwrap_or(&String::new())),
@@ -323,7 +322,6 @@ impl MutationHandler {
             self.apply_class_formatting(element, class, false);
         }
 
-        #[cfg(debug_assertions)]
         if !added_classes.is_empty() || !removed_classes.is_empty() {
             web_sys::console::log_1(&JsValue::from_str(&format!(
                 "Class changes - Added: {:?}, Removed: {:?}",
@@ -347,7 +345,6 @@ impl MutationHandler {
             self.sync_style_formatting(element, &current_style, &old_style);
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_2(
             &JsValue::from_str("Style attribute changed from:"),
             &JsValue::from_str(&format!("'{}' to '{}'", old_style, current_style)),
@@ -370,7 +367,6 @@ impl MutationHandler {
             self.notify_blot_attribute_change(element, attr_name, &old_val, &current_value);
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Attribute '{}' changed from '{}' to '{}'",
             attr_name, old_val, current_value
@@ -386,7 +382,7 @@ impl MutationHandler {
     ) {
         // This would look up class-based attributors and apply/remove formatting
         // For now, just log the operation
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "{} class formatting: {}",
             if _is_added { "Applying" } else { "Removing" },
@@ -408,7 +404,7 @@ impl MutationHandler {
         _old_style: &str,
     ) {
         // This would parse style changes and update style-based attributors
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str("Syncing style formatting"));
 
         // In a full implementation, this would:
@@ -427,7 +423,7 @@ impl MutationHandler {
         _new_value: &str,
     ) {
         // This would find the blot and call its attribute change handler
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Notifying blot of attribute change: {}",
             _attr_name
@@ -464,7 +460,6 @@ impl MutationHandler {
             }
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Text content changed from '{}' to '{}'",
             old_content, current_content
@@ -475,7 +470,7 @@ impl MutationHandler {
     fn find_text_blot_for_node(&self, _text_node: &web_sys::Text) -> Option<*mut dyn BlotTrait> {
         // This would use the registry to find the TextBlot associated with this DOM node
         // For now, return None since we don't have the full registry lookup implementation
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str("Looking up TextBlot for text node"));
 
         // In a full implementation, this would:
@@ -493,7 +488,7 @@ impl MutationHandler {
         _old_content: &str,
     ) {
         // Update the TextBlot's internal state to match the new DOM content
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Syncing TextBlot content from '{}' to '{}'",
             _old_content, _current_content
@@ -512,7 +507,6 @@ impl MutationHandler {
 
     /// Handle text nodes that don't have associated TextBlots
     fn handle_orphaned_text_node(&self, _text_node: &web_sys::Text, _content: &str) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Found orphaned text node with content: '{}'",
             _content
@@ -550,7 +544,6 @@ impl MutationHandler {
     /// Consider merging two adjacent text nodes if beneficial
     #[allow(dead_code)]
     fn consider_text_node_merge(&self, _first_text: &web_sys::Text, _second_text: &web_sys::Text) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Considering text node merge"));
 
         // In a full implementation, this would:
@@ -575,20 +568,17 @@ impl MutationHandler {
                 }
                 Ok(None) => {
                     // Node type not supported or already has a blot
-                    #[cfg(debug_assertions)]
+
                     web_sys::console::log_1(&JsValue::from_str(
                         "Node addition ignored - unsupported type or duplicate",
                     ));
                 }
                 Err(e) => {
-                    // Error creating blot
-                    #[cfg(debug_assertions)]
                     web_sys::console::error_1(&e);
                 }
             }
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_2(&JsValue::from_str("Node added:"), &node.clone().into());
     }
 
@@ -622,7 +612,7 @@ impl MutationHandler {
             }
             _ => {
                 // Other node types (comments, etc.) are typically ignored
-                #[cfg(debug_assertions)]
+
                 web_sys::console::log_1(&JsValue::from_str(&format!(
                     "Ignoring node addition for type: {}",
                     node.node_type()
@@ -636,7 +626,7 @@ impl MutationHandler {
     fn node_has_existing_blot(&self, _node: &Node) -> bool {
         // This would check the registry's WeakMap-like storage
         // For now, assume no existing blot to avoid duplicates in this implementation
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str("Checking for existing blot"));
 
         // In a full implementation, this would:
@@ -652,7 +642,6 @@ impl MutationHandler {
         _text_node: &web_sys::Text,
         _content: &str,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Creating TextBlot for text node with content: '{}'",
             _content
@@ -676,7 +665,6 @@ impl MutationHandler {
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
         let tag_name = element.tag_name().to_lowercase();
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Creating element blot for: {}",
             tag_name
@@ -690,7 +678,6 @@ impl MutationHandler {
             ElementBlotType::Inline => self.create_inline_blot_for_element(element),
             ElementBlotType::Embed => self.create_embed_blot_for_element(element),
             ElementBlotType::Unknown => {
-                #[cfg(debug_assertions)]
                 web_sys::console::log_1(&JsValue::from_str(&format!(
                     "Unknown element type for: {}",
                     tag_name
@@ -747,7 +734,6 @@ impl MutationHandler {
         &self,
         _element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Creating BlockBlot"));
 
         // In a full implementation, this would create a new BlockBlot instance
@@ -759,7 +745,6 @@ impl MutationHandler {
         &self,
         _element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Creating InlineBlot"));
 
         // In a full implementation, this would create a new InlineBlot instance
@@ -771,7 +756,6 @@ impl MutationHandler {
         &self,
         _element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Creating EmbedBlot"));
 
         // In a full implementation, this would create a new EmbedBlot instance
@@ -788,7 +772,6 @@ impl MutationHandler {
             // Insert the blot into the parent's LinkedList
             self.perform_blot_insertion(parent_blot, _new_blot, insert_position);
         } else {
-            #[cfg(debug_assertions)]
             web_sys::console::warn_1(&JsValue::from_str(
                 "Could not find parent blot for node insertion",
             ));
@@ -798,7 +781,7 @@ impl MutationHandler {
     /// Find the parent blot that corresponds to a DOM node
     fn find_parent_blot_for_node(&self, _parent_node: &Node) -> Option<*mut dyn BlotTrait> {
         // This would use the registry to find the blot associated with the parent DOM node
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str("Looking up parent blot"));
 
         // In a full implementation, this would:
@@ -822,7 +805,6 @@ impl MutationHandler {
             current_sibling = sibling.previous_sibling();
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Calculated insert position: {}",
             position
@@ -838,7 +820,6 @@ impl MutationHandler {
         _new_blot: Box<dyn BlotTrait>,
         _position: usize,
     ) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Performing blot insertion"));
 
         // In a full implementation, this would:
@@ -858,19 +839,18 @@ impl MutationHandler {
                 self.remove_blot_and_cleanup(removed_blot, node, parent);
             } else {
                 // No blot found - might be a node that was never tracked
-                #[cfg(debug_assertions)]
+
                 web_sys::console::log_1(&JsValue::from_str("No blot found for removed node"));
             }
         }
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_2(&JsValue::from_str("Node removed:"), &node.clone().into());
     }
 
     /// Find the blot associated with a DOM node that was removed
     fn find_blot_for_removed_node(&self, _node: &Node) -> Option<*mut dyn BlotTrait> {
         // Look up the blot in the registry before it gets cleaned up
-        #[cfg(debug_assertions)]
+
         web_sys::console::log_1(&JsValue::from_str("Looking up blot for removed node"));
 
         // In a full implementation, this would:
@@ -894,7 +874,6 @@ impl MutationHandler {
         // 4. Perform final cleanup
         self.finalize_blot_cleanup(blot_ptr);
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Completed blot removal and cleanup"));
     }
 
@@ -908,7 +887,6 @@ impl MutationHandler {
             // Remove from the LinkedList
             self.perform_blot_removal_from_parent(parent_blot, remove_position);
         } else {
-            #[cfg(debug_assertions)]
             web_sys::console::warn_1(&JsValue::from_str(
                 "Could not find parent blot for node removal",
             ));
@@ -924,7 +902,6 @@ impl MutationHandler {
         // We need to look at the next sibling (if any) and count backwards
         // This is because the removed node is no longer in the DOM tree
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(
             "Calculating removal position (simplified)",
         ));
@@ -939,7 +916,6 @@ impl MutationHandler {
 
     /// Remove a blot from its parent's LinkedList at the specified position
     fn perform_blot_removal_from_parent(&self, _parent_blot: *mut dyn BlotTrait, _position: usize) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Removing blot from parent LinkedList"));
 
         // In a full implementation, this would:
@@ -951,7 +927,6 @@ impl MutationHandler {
 
     /// Recursively clean up any child blots
     fn cleanup_child_blots(&self, _blot_ptr: *mut dyn BlotTrait) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Cleaning up child blots"));
 
         // In a full implementation, this would:
@@ -965,7 +940,6 @@ impl MutationHandler {
 
     /// Unregister a blot from the registry
     fn unregister_blot_from_registry(&self, _blot_ptr: *mut dyn BlotTrait, _node: &Node) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Unregistering blot from registry"));
 
         // In a full implementation, this would:
@@ -979,7 +953,6 @@ impl MutationHandler {
 
     /// Perform final cleanup for a removed blot
     fn finalize_blot_cleanup(&self, _blot_ptr: *mut dyn BlotTrait) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Finalizing blot cleanup"));
 
         // In a full implementation, this would:
@@ -995,7 +968,6 @@ impl MutationHandler {
     /// Handle removal of text nodes specifically
     #[allow(dead_code)]
     fn handle_text_node_removal(&self, _text_node: &web_sys::Text) {
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str("Handling text node removal"));
 
         // Text nodes have simpler cleanup requirements
@@ -1011,7 +983,6 @@ impl MutationHandler {
     fn handle_element_removal(&self, element: &web_sys::Element) {
         let _tag_name = element.tag_name().to_lowercase();
 
-        #[cfg(debug_assertions)]
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Handling element removal: {}",
             _tag_name
@@ -1030,7 +1001,7 @@ impl MutationHandler {
         if let Some(_scroll_blot) = &self.scroll_blot {
             // Check all blots to see if their DOM nodes are still connected to the document
             // Mark any disconnected blots for removal
-            #[cfg(debug_assertions)]
+
             web_sys::console::log_1(&JsValue::from_str("Checking for orphaned blots"));
 
             // This would require walking the blot tree and checking DOM connectivity
@@ -1043,7 +1014,7 @@ impl MutationHandler {
     fn merge_adjacent_text_nodes(&mut self) {
         if let Some(_scroll_blot) = &self.scroll_blot {
             // Find adjacent TextBlots and merge them if possible
-            #[cfg(debug_assertions)]
+
             web_sys::console::log_1(&JsValue::from_str("Merging adjacent text nodes"));
 
             // This would require:
@@ -1060,7 +1031,7 @@ impl MutationHandler {
     fn validate_parent_child_relationships(&mut self) {
         if let Some(_scroll_blot) = &self.scroll_blot {
             // Ensure blot tree structure matches DOM tree structure
-            #[cfg(debug_assertions)]
+
             web_sys::console::log_1(&JsValue::from_str("Validating parent-child relationships"));
 
             // This would require:
@@ -1077,7 +1048,7 @@ impl MutationHandler {
     fn clean_up_empty_containers(&mut self) {
         if let Some(_scroll_blot) = &self.scroll_blot {
             // Remove empty parent blots that don't need to be preserved
-            #[cfg(debug_assertions)]
+
             web_sys::console::log_1(&JsValue::from_str("Cleaning up empty containers"));
 
             // This would require:

@@ -623,9 +623,9 @@ mod tests {
         list.insert_at_tail(1);
         list.insert_at_tail(2);
         println!("Linked List is {list}");
-        let retrived_item = list.get(1);
-        assert!(retrived_item.is_some());
-        assert_eq!(2, *retrived_item.unwrap());
+        let retrieved_item = list.get(1);
+        assert!(retrieved_item.is_some());
+        assert_eq!(2, *retrieved_item.unwrap());
     }
 
     #[test]
@@ -634,9 +634,9 @@ mod tests {
         list_str.insert_at_tail("A".to_string());
         list_str.insert_at_tail("B".to_string());
         println!("Linked List is {list_str}");
-        let retrived_item = list_str.get(1);
-        assert!(retrived_item.is_some());
-        assert_eq!("B", *retrived_item.unwrap());
+        let retrieved_item = list_str.get(1);
+        assert!(retrieved_item.is_some());
+        assert_eq!("B", *retrieved_item.unwrap());
     }
 
     #[test]
