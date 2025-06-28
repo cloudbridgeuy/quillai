@@ -1,3 +1,34 @@
+//!
+//! The Registry module provides the core infrastructure for managing blot types,
+//! their metadata, and the mapping between DOM nodes and blot instances. It serves
+//! as the central coordination point for the Parchment document model.
+//!
+//! ## Key Responsibilities
+//!
+//! - **Type Registration**: Register blot types with their tag names and metadata
+//! - **DOM Mapping**: Create appropriate blot instances from DOM nodes
+//! - **Lookup Operations**: Find blot types by name or tag
+//! - **Instance Management**: Track DOM node to blot instance relationships
+//!
+//! ## Architecture
+//!
+//! The registry uses a two-tier system:
+//! 1. **Type Registry**: Maps blot names ↔ tag names for type lookup
+//! 2. **Definition Registry**: Thread-safe global storage for blot definitions
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use quillai_parchment::Registry;
+//!
+//! let mut registry = Registry::new();
+//! registry.register_blot_type("text", "span");
+//!
+//! // Query by name or tag
+//! let tag = registry.query_by_name("text");
+//! let name = registry.query_by_tag("span");
+//! ```
+
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use wasm_bindgen::prelude::*;
@@ -6,45 +37,119 @@ use web_sys::{Element, Node};
 use crate::blot::traits_simple::{BlotTrait, RegistryDefinition};
 use crate::scope::Scope;
 
-// Error type for registry operations
+/// Error type for registry operations and blot creation failures
+///
+/// Provides structured error handling for registry operations, including
+/// blot registration failures, DOM node processing errors, and lookup failures.
 #[wasm_bindgen]
 pub struct ParchmentError {
     message: String,
 }
 
 impl ParchmentError {
+    /// Create a new ParchmentError with the given message
+    ///
+    /// # Parameters
+    /// * `message` - Error description
     pub fn new(message: &str) -> Self {
         Self {
             message: message.to_string(),
         }
     }
 
+    /// Get the error message
+    ///
+    /// # Returns
+    /// Reference to the error message string
     pub fn message(&self) -> &str {
         &self.message
     }
 }
 
-// Temporary trait for attributors
+/// Trait for attributor implementations that manage formatting attributes
+///
+/// Attributors handle the application, removal, and querying of formatting
+/// attributes on DOM elements. This trait provides a common interface for
+/// different attributor types (base, class, style).
 pub trait AttributorTrait {
+    /// Get the attribute name this attributor manages
     fn attr_name(&self) -> &str;
+
+    /// Get the key name used for this attributor
     fn key_name(&self) -> &str;
+
+    /// Get the scope this attributor operates within
     fn scope(&self) -> Scope;
+
+    /// Add/apply the attributor's formatting to a DOM element
+    ///
+    /// # Parameters
+    /// * `node` - DOM element to apply formatting to
+    /// * `value` - Formatting value to apply
+    ///
+    /// # Returns
+    /// `true` if the formatting was successfully applied
     fn add(&self, node: &Element, value: &JsValue) -> bool;
+
+    /// Remove the attributor's formatting from a DOM element
+    ///
+    /// # Parameters
+    /// * `node` - DOM element to remove formatting from
     fn remove(&self, node: &Element);
+
+    /// Get the current value of this attributor on a DOM element
+    ///
+    /// # Parameters
+    /// * `node` - DOM element to query
+    ///
+    /// # Returns
+    /// Current attributor value as JsValue
     fn value(&self, node: &Element) -> JsValue;
 }
 
 /// Global registry for blot definitions using thread-safe OnceLock
+///
+/// This static registry provides thread-safe access to blot definitions across
+/// the entire application. It uses OnceLock for lazy initialization and Mutex
+/// for thread-safe access to the underlying HashMap.
 static DEFINITION_REGISTRY: OnceLock<Mutex<HashMap<String, RegistryDefinition>>> = OnceLock::new();
 
+/// Central registry for managing blot types and DOM-to-blot mappings
+///
+/// The Registry serves as the coordination point for the Parchment document model,
+/// managing the relationships between blot names, DOM tag names, and blot instances.
+/// It provides both type-level registration and instance-level DOM mapping.
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::Registry;
+///
+/// let mut registry = Registry::new();
+///
+/// // Register a blot type
+/// registry.register_blot_type("paragraph", "p");
+///
+/// // Query by name or tag
+/// assert_eq!(registry.query_by_name("paragraph"), Some(&"p".to_string()));
+/// assert_eq!(registry.query_by_tag("p"), Some(&"paragraph".to_string()));
+/// ```
 #[wasm_bindgen]
 pub struct Registry {
-    // Registry storage
+    /// Maps blot names to their corresponding DOM tag names
     blot_names: HashMap<String, String>,
+    /// Maps DOM tag names to their corresponding blot names
     tag_names: HashMap<String, String>,
 }
 
 impl Registry {
+    /// Create a new empty registry
+    ///
+    /// Initializes a new registry with empty blot name and tag name mappings.
+    /// This is typically used when creating a fresh document or editor instance.
+    ///
+    /// # Returns
+    /// New Registry instance with empty mappings
     pub fn new() -> Self {
         Self {
             blot_names: HashMap::new(),
@@ -52,7 +157,24 @@ impl Registry {
         }
     }
 
-    /// Register a blot type with its metadata
+    /// Register a blot type with its corresponding DOM tag name
+    ///
+    /// Creates a bidirectional mapping between a blot name and its DOM tag name,
+    /// allowing lookup in both directions. This is essential for the DOM-to-blot
+    /// creation process and blot-to-DOM serialization.
+    ///
+    /// # Parameters
+    /// * `blot_name` - The name of the blot type (e.g., "paragraph", "bold")
+    /// * `tag_name` - The corresponding DOM tag name (e.g., "p", "strong")
+    ///
+    /// # Examples
+    /// ```rust
+    /// use quillai_parchment::Registry;
+    ///
+    /// let mut registry = Registry::new();
+    /// registry.register_blot_type("paragraph", "p");
+    /// registry.register_blot_type("bold", "strong");
+    /// ```
     pub fn register_blot_type(&mut self, blot_name: &str, tag_name: &str) {
         self.blot_names
             .insert(blot_name.to_string(), tag_name.to_string());
@@ -60,7 +182,16 @@ impl Registry {
             .insert(tag_name.to_string(), blot_name.to_string());
     }
 
-    /// Register a blot definition
+    /// Register a blot definition in the global registry
+    ///
+    /// Stores a complete blot definition in the thread-safe global registry.
+    /// This enables runtime blot creation and type checking.
+    ///
+    /// # Parameters
+    /// * `definition` - Complete blot definition with metadata
+    ///
+    /// # Returns
+    /// `Ok(())` on success, `Err(String)` if registry lock fails
     pub fn register_definition(definition: RegistryDefinition) -> Result<(), String> {
         let registry = DEFINITION_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()));
 
@@ -73,17 +204,35 @@ impl Registry {
         }
     }
 
-    /// Query registry by name
+    /// Query DOM tag name by blot name
+    ///
+    /// # Parameters
+    /// * `name` - Blot name to look up
+    ///
+    /// # Returns
+    /// DOM tag name if found, None otherwise
     pub fn query_by_name(&self, name: &str) -> Option<&String> {
         self.blot_names.get(name)
     }
 
-    /// Query registry by tag
+    /// Query blot name by DOM tag name
+    ///
+    /// # Parameters
+    /// * `tag` - DOM tag name to look up
+    ///
+    /// # Returns
+    /// Blot name if found, None otherwise
     pub fn query_by_tag(&self, tag: &str) -> Option<&String> {
         self.tag_names.get(tag)
     }
 
-    /// Query definition by name
+    /// Query blot definition from global registry
+    ///
+    /// # Parameters
+    /// * `name` - Blot name to look up
+    ///
+    /// # Returns
+    /// Cloned blot definition if found, None otherwise
     pub fn query_definition(name: &str) -> Option<RegistryDefinition> {
         let registry = DEFINITION_REGISTRY.get()?;
         let map = registry.lock().ok()?;
@@ -109,8 +258,24 @@ impl Registry {
         None
     }
 
-    /// Create a blot from a DOM node - mirrors TypeScript Registry.create()
-    /// Implements proper blot type detection based on DOM node characteristics
+    /// Create appropriate blot instance from DOM node
+    ///
+    /// Analyzes a DOM node and creates the corresponding blot type based on
+    /// node type, tag name, and CSS properties. This is the core method for
+    /// converting existing DOM content into the Parchment document model.
+    ///
+    /// # Parameters
+    /// * `dom_node` - DOM node to convert to blot
+    ///
+    /// # Returns
+    /// Boxed blot trait object on success, JsValue error on failure
+    ///
+    /// # Examples
+    /// ```javascript
+    /// // From JavaScript after WASM init
+    /// const pElement = document.createElement('p');
+    /// const blot = Registry.create_blot_from_node(pElement);
+    /// ```
     pub fn create_blot_from_node(dom_node: &Node) -> Result<Box<dyn BlotTrait>, JsValue> {
         use web_sys::{Element, Text};
 

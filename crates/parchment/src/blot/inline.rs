@@ -1,3 +1,35 @@
+//! Inline blot implementation for inline formatting and containers
+//!
+//! InlineBlot represents inline-level elements that provide formatting or grouping
+//! within text content. These blots can contain other inline blots or text blots,
+//! creating nested formatting structures like bold italic text or linked content.
+//!
+//! ## Common Use Cases
+//!
+//! - **Text Formatting**: Bold (`<strong>`), italic (`<em>`), underline (`<u>`)
+//! - **Links**: Anchor elements (`<a>`) with href attributes
+//! - **Code**: Inline code spans (`<code>`)
+//! - **Custom Formatting**: Spans with CSS classes for custom styling
+//!
+//! ## Nesting Behavior
+//!
+//! InlineBlots can be nested to create complex formatting:
+//! ```html
+//! <strong><em>Bold and italic text</em></strong>
+//! <a href="..."><strong>Bold link</strong></a>
+//! ```
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use quillai_parchment::{InlineBlot, TextBlot};
+//! 
+//! // Create bold formatting
+//! let bold = InlineBlot::from_element(create_element("strong")?);
+//! let text = TextBlot::new("Bold text")?;
+//! bold.append_child(Box::new(text))?;
+//! ```
+
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::dom::Dom;
@@ -5,19 +37,64 @@ use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
-/// InlineBlot represents an inline-level element (span, strong, em, etc.)
-/// It can contain other inline elements or text content
+/// Inline blot for inline-level formatting and content containers
+///
+/// InlineBlot represents inline elements that can contain other inline elements
+/// or text content. It provides the foundation for text formatting (bold, italic),
+/// links, and other inline structures within the document.
+///
+/// # Characteristics
+///
+/// - **Inline Flow**: Flows within text content without creating line breaks
+/// - **Nestable**: Can contain other inline blots for complex formatting
+/// - **Container**: Implements ParentBlotTrait for child management
+/// - **Flexible**: Supports any inline HTML element as the underlying DOM node
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::{InlineBlot, TextBlot};
+/// 
+/// // Create a bold span
+/// let mut bold = InlineBlot::new(None)?;  // Creates <span>
+/// bold.dom_element().set_tag_name("strong");
+/// 
+/// // Add text content
+/// let text = TextBlot::new("Bold text")?;
+/// bold.append_child(Box::new(text))?;
+/// 
+/// // Create nested formatting
+/// let mut italic = InlineBlot::new(None)?;
+/// italic.dom_element().set_tag_name("em");
+/// bold.append_child(Box::new(italic))?;
+/// ```
 #[wasm_bindgen]
 pub struct InlineBlot {
-    /// The underlying DOM element (typically a <span> tag)
+    /// The underlying DOM element (span, strong, em, a, etc.)
     dom_node: Element,
-    /// Children collection using LinkedList
+    /// Child blots managed in a linked list for efficient operations
     children: LinkedList<Box<dyn BlotTrait>>,
 }
 
 #[wasm_bindgen]
 impl InlineBlot {
     /// Create a new InlineBlot with optional DOM element
+    ///
+    /// Creates a new inline blot, either wrapping the provided DOM element
+    /// or creating a new `<span>` element if none is provided.
+    ///
+    /// # Parameters
+    /// * `element` - Optional DOM element to wrap, creates `<span>` if None
+    ///
+    /// # Returns
+    /// New InlineBlot instance on success, JsValue error on DOM creation failure
+    ///
+    /// # Examples
+    /// ```javascript
+    /// // From JavaScript after WASM init
+    /// const span = new InlineBlot();  // Creates <span>
+    /// const strong = new InlineBlot(document.createElement('strong'));
+    /// ```
     #[wasm_bindgen(constructor)]
     pub fn new(element: Option<Element>) -> Result<InlineBlot, JsValue> {
         let dom_node = match element {
@@ -31,7 +108,16 @@ impl InlineBlot {
         })
     }
 
-    /// Create an InlineBlot from an existing Element
+    /// Create an InlineBlot from an existing DOM element
+    ///
+    /// Wraps an existing DOM element in an InlineBlot. This is typically used
+    /// when converting existing DOM content into the Parchment document model.
+    ///
+    /// # Parameters
+    /// * `element` - DOM element to wrap (should be inline-level)
+    ///
+    /// # Returns
+    /// New InlineBlot wrapping the provided element
     pub fn from_element(element: Element) -> InlineBlot {
         InlineBlot {
             dom_node: element,
@@ -40,6 +126,21 @@ impl InlineBlot {
     }
 
     /// Create an InlineBlot with initial text content
+    ///
+    /// Convenience method that creates a new inline blot and immediately
+    /// adds the specified text content as a child TextBlot.
+    ///
+    /// # Parameters
+    /// * `text` - Initial text content to add
+    ///
+    /// # Returns
+    /// New InlineBlot containing the text content
+    ///
+    /// # Examples
+    /// ```rust
+    /// let bold_text = InlineBlot::with_text("Bold content")?;
+    /// assert_eq!(bold_text.text_content(), "Bold content");
+    /// ```
     pub fn with_text(text: &str) -> Result<InlineBlot, JsValue> {
         let mut inline = InlineBlot::new(None)?;
         inline.append_text(text)?;

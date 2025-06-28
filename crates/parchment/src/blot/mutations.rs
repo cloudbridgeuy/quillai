@@ -1,3 +1,51 @@
+//! Mutation detection and DOM synchronization system
+//!
+//! This module provides the mutation observation infrastructure that keeps the
+//! Parchment blot tree synchronized with DOM changes. It handles automatic
+//! detection of DOM modifications and coordinates the update and optimization
+//! cycles that maintain document consistency.
+//!
+//! ## Key Components
+//!
+//! - **[MutationObserverWrapper]**: Rust-friendly wrapper for DOM MutationObserver
+//! - **[UpdateContext]**: Context for coordinating update operations
+//! - **[OptimizeContext]**: Context for optimization cycles after mutations
+//! - **MutationHandler**: Internal processor for mutation records
+//!
+//! ## Mutation Lifecycle
+//!
+//! 1. **Detection**: MutationObserver detects DOM changes
+//! 2. **Processing**: MutationHandler processes mutation records
+//! 3. **Update**: Affected blots are updated to match DOM state
+//! 4. **Optimization**: Document structure is optimized for consistency
+//! 5. **Completion**: Changes are finalized and observers re-enabled
+//!
+//! ## Safety and Performance
+//!
+//! - **Infinite Loop Protection**: Maximum iteration limits prevent runaway updates
+//! - **Batch Processing**: Multiple mutations are processed together efficiently
+//! - **Selective Updates**: Only affected blots are updated, not the entire tree
+//! - **Memory Safety**: Proper cleanup of WASM closures and references
+//!
+//! ## Usage Examples
+//!
+//! ```rust
+//! use quillai_parchment::MutationObserverWrapper;
+//! 
+//! // Create observer for a document root
+//! let root_node = document.get_element_by_id("editor")?;
+//! let observer = MutationObserverWrapper::new(root_node.into())?;
+//! 
+//! // Start observing
+//! observer.observe()?;
+//! 
+//! // DOM changes are now automatically detected and processed
+//! // ...
+//! 
+//! // Stop observing when done
+//! observer.disconnect();
+//! ```
+
 use crate::blot::traits_simple::BlotTrait;
 use crate::registry::Registry;
 use js_sys::Array;
@@ -8,43 +56,114 @@ use wasm_bindgen::prelude::*;
 use web_sys::{MutationObserver, MutationRecord, Node};
 
 /// Maximum number of optimize iterations to prevent infinite loops
+///
+/// This safety limit prevents runaway optimization cycles that could occur
+/// if blot updates trigger additional mutations in a feedback loop.
 const MAX_OPTIMIZE_ITERATIONS: usize = 100;
 
-/// Context for update operations during DOM mutations
+/// Context object for coordinating update operations during mutation processing
+///
+/// UpdateContext carries information about the current mutation processing
+/// cycle, including the mutation records being processed and iteration count
+/// for safety monitoring.
+///
+/// # Examples
+///
+/// ```rust
+/// let context = UpdateContext {
+///     mutation_records: vec![mutation_record],
+///     iteration_count: 1,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct UpdateContext {
+    /// The mutation records being processed in this update cycle
     pub mutation_records: Vec<MutationRecord>,
+    /// Current iteration count for infinite loop detection
     pub iteration_count: usize,
 }
 
-/// Context for optimize operations after DOM mutations
+/// Context object for coordinating optimization operations after mutations
+///
+/// OptimizeContext tracks the optimization phase that follows mutation
+/// processing, ensuring document consistency and preventing optimization loops.
+///
+/// # Examples
+///
+/// ```rust
+/// let context = OptimizeContext {
+///     iteration_count: 1,
+///     has_changes: true,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct OptimizeContext {
+    /// Current optimization iteration count
     pub iteration_count: usize,
+    /// Whether changes were made during this optimization cycle
     pub has_changes: bool,
 }
 
-/// Wrapper for MutationObserver that provides Rust-friendly API
-/// and integrates with the Parchment blot system
+/// Rust-friendly wrapper for DOM MutationObserver with Parchment integration
+///
+/// MutationObserverWrapper provides a safe, ergonomic interface to the browser's
+/// MutationObserver API, handling the complexities of WASM closures and
+/// integrating with the Parchment blot system for automatic synchronization.
+///
+/// # Features
+///
+/// - **Automatic Synchronization**: Keeps blot tree in sync with DOM changes
+/// - **Memory Safety**: Proper cleanup of WASM closures and references
+/// - **Error Handling**: Robust error handling for mutation processing
+/// - **Performance**: Efficient batch processing of multiple mutations
+///
+/// # Lifecycle
+///
+/// 1. Create observer with target DOM node
+/// 2. Start observation with `observe()`
+/// 3. Mutations are automatically detected and processed
+/// 4. Stop observation with `disconnect()` when done
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::MutationObserverWrapper;
+/// 
+/// // Create and start observer
+/// let observer = MutationObserverWrapper::new(root_node)?;
+/// observer.observe()?;
+/// 
+/// // Observer now automatically handles DOM changes
+/// // ...
+/// 
+/// // Clean up when done
+/// observer.disconnect();
+/// ```
 pub struct MutationObserverWrapper {
+    /// The underlying DOM MutationObserver
     observer: MutationObserver,
+    /// The DOM node being observed for changes
     target_node: Node,
-    /// Closure that handles mutation records - must be kept alive for WASM
+    /// WASM closure for handling mutation callbacks (must be kept alive)
     #[allow(dead_code)]
     callback: Closure<dyn FnMut(Array, MutationObserver)>,
-    /// Shared state for handling mutations
+    /// Shared state for processing mutations
     handler: Rc<RefCell<MutationHandler>>,
 }
 
-/// Internal handler for processing mutation records
+/// Internal handler for processing mutation records and coordinating updates
+///
+/// MutationHandler manages the complex process of translating DOM mutations
+/// into blot tree updates, coordinating with the registry and managing
+/// update/optimization cycles.
 struct MutationHandler {
-    /// Reference to the scroll blot for document-level operations
+    /// Optional reference to the root scroll blot for document operations
     scroll_blot: Option<*mut dyn BlotTrait>,
-    /// Registry for finding blots from DOM nodes
+    /// Registry for mapping DOM nodes to blots
     registry: Option<Registry>,
-    /// Current update context
+    /// Current update context for mutation processing
     update_context: UpdateContext,
-    /// Current optimize context
+    /// Current optimization context for post-mutation cleanup
     optimize_context: OptimizeContext,
 }
 

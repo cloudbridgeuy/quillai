@@ -1,14 +1,64 @@
+//! High-performance doubly-linked list implementation for blot management.
+//!
+//! This module provides a custom doubly-linked list optimized for Parchment's
+//! document operations. Unlike standard collections, this implementation uses
+//! raw pointers for maximum performance while maintaining memory safety through
+//! careful ownership management.
+//!
+//! # Design Goals
+//!
+//! - **Performance**: O(1) insertion/deletion at head and tail
+//! - **Memory Safety**: Safe abstractions over unsafe pointer operations
+//! - **Flexibility**: Support for insertion/deletion at arbitrary positions
+//! - **Iterator Support**: Standard Rust iteration patterns
+//!
+//! # Usage Examples
+//!
+//! ```rust
+//! use parchment::collection::LinkedList;
+//!
+//! // Create and populate a list
+//! let mut list = LinkedList::new();
+//! list.push(1);
+//! list.push(2);
+//! list.insert(1, 10);
+//!
+//! // Access elements
+//! assert_eq!(list.get(0), Some(&1));
+//! assert_eq!(list.get(1), Some(&10));
+//! assert_eq!(list.get(2), Some(&2));
+//!
+//! // Search and iterate
+//! let found = list.find(|&x| x == 10);
+//! assert_eq!(found, Some(&10));
+//!
+//! for item in list.iter() {
+//!     // Process each item
+//! }
+//! ```
+
 use std::fmt::{self, Display, Formatter};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 
+/// A node in the doubly-linked list.
+///
+/// Each node contains a value and optional pointers to the next and previous
+/// nodes in the list. The `next` field is public to allow external manipulation
+/// while `prev` is private to maintain list integrity.
 pub struct Node<T> {
+    /// The value stored in this node
     pub val: T,
+    /// Pointer to the next node in the list (public for external access)
     pub next: Option<NonNull<Node<T>>>,
+    /// Pointer to the previous node in the list (private for integrity)
     prev: Option<NonNull<Node<T>>>,
 }
 
 impl<T> Node<T> {
+    /// Create a new node with the given value.
+    ///
+    /// The node is created with no connections to other nodes.
     fn new(t: T) -> Node<T> {
         Node {
             val: t,
@@ -18,11 +68,35 @@ impl<T> Node<T> {
     }
 }
 
+/// A high-performance doubly-linked list implementation.
+///
+/// This linked list is optimized for document operations where frequent
+/// insertion and deletion at arbitrary positions is required. It uses
+/// raw pointers for performance while maintaining memory safety through
+/// careful ownership management.
+///
+/// # Characteristics
+///
+/// - **Doubly-linked**: Each node has pointers to both next and previous nodes
+/// - **Null-pointer optimized**: Uses `NonNull<T>` for better performance
+/// - **Memory safe**: Proper cleanup through `Drop` implementation
+/// - **Generic**: Works with any type `T`
+///
+/// # Memory Layout
+///
+/// ```text
+/// head -> [Node] <-> [Node] <-> [Node] <- tail
+///           |          |          |
+///         val_1      val_2      val_3
+/// ```
 pub struct LinkedList<T> {
+    /// Number of elements in the list
     pub length: u32,
+    /// Pointer to the first node (None if empty)
     pub head: Option<NonNull<Node<T>>>,
+    /// Pointer to the last node (None if empty)
     pub tail: Option<NonNull<Node<T>>>,
-    // Act like we own boxed nodes since we construct and leak them
+    /// Phantom data to indicate ownership of boxed nodes
     marker: PhantomData<Box<Node<T>>>,
 }
 
@@ -33,6 +107,16 @@ impl<T> Default for LinkedList<T> {
 }
 
 impl<T> LinkedList<T> {
+    /// Create a new empty linked list.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let list: LinkedList<i32> = LinkedList::new();
+    /// assert_eq!(list.length, 0);
+    /// ```
     pub fn new() -> Self {
         Self {
             length: 0,
@@ -42,6 +126,25 @@ impl<T> LinkedList<T> {
         }
     }
 
+    /// Insert an element at the head (beginning) of the list.
+    ///
+    /// This operation is O(1) and updates the head pointer to point to the new node.
+    ///
+    /// # Arguments
+    ///
+    /// * `obj` - The value to insert
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.insert_at_head(1);
+    /// list.insert_at_head(2);
+    /// assert_eq!(list.get(0), Some(&2)); // Most recently inserted
+    /// assert_eq!(list.get(1), Some(&1));
+    /// ```
     pub fn insert_at_head(&mut self, obj: T) {
         let mut node = Box::new(Node::new(obj));
         node.next = self.head;
@@ -55,6 +158,25 @@ impl<T> LinkedList<T> {
         self.length += 1;
     }
 
+    /// Insert an element at the tail (end) of the list.
+    ///
+    /// This operation is O(1) and updates the tail pointer to point to the new node.
+    ///
+    /// # Arguments
+    ///
+    /// * `obj` - The value to insert
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.insert_at_tail(1);
+    /// list.insert_at_tail(2);
+    /// assert_eq!(list.get(0), Some(&1));
+    /// assert_eq!(list.get(1), Some(&2)); // Most recently inserted
+    /// ```
     pub fn insert_at_tail(&mut self, obj: T) {
         let mut node = Box::new(Node::new(obj));
         node.next = None;
@@ -68,6 +190,32 @@ impl<T> LinkedList<T> {
         self.length += 1;
     }
 
+    /// Insert an element at the specified index.
+    ///
+    /// This operation is O(n) as it requires traversal to the insertion point.
+    /// If the index equals the length, the element is inserted at the tail.
+    /// If the index is 0, the element is inserted at the head.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to insert at (0-based)
+    /// * `obj` - The value to insert
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index > length`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.insert_at_ith(0, 1);
+    /// list.insert_at_ith(1, 3);
+    /// list.insert_at_ith(1, 2); // Insert in middle
+    /// assert_eq!(list.get(1), Some(&2));
+    /// ```
     pub fn insert_at_ith(&mut self, index: u32, obj: T) {
         if self.length < index {
             panic!("Index out of bounds");
@@ -108,6 +256,26 @@ impl<T> LinkedList<T> {
         }
     }
 
+    /// Remove and return the element at the head of the list.
+    ///
+    /// This operation is O(1) and updates the head pointer to the next node.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(T)` - The value that was at the head
+    /// * `None` - If the list is empty
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// assert_eq!(list.delete_head(), Some(1));
+    /// assert_eq!(list.length, 1);
+    /// ```
     pub fn delete_head(&mut self) -> Option<T> {
         // Safety: head_ptr points to a leaked boxed node managed by this list
         // We reassign pointers that pointed to the head node
@@ -128,6 +296,26 @@ impl<T> LinkedList<T> {
         // None
     }
 
+    /// Remove and return the element at the tail of the list.
+    ///
+    /// This operation is O(1) and updates the tail pointer to the previous node.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(T)` - The value that was at the tail
+    /// * `None` - If the list is empty
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// assert_eq!(list.delete_tail(), Some(2));
+    /// assert_eq!(list.length, 1);
+    /// ```
     pub fn delete_tail(&mut self) -> Option<T> {
         // Safety: tail_ptr points to a leaked boxed node managed by this list
         // We reassign pointers that pointed to the tail node
@@ -143,6 +331,35 @@ impl<T> LinkedList<T> {
         })
     }
 
+    /// Remove and return the element at the specified index.
+    ///
+    /// This operation is O(n) as it requires traversal to the deletion point.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to delete from (0-based)
+    ///
+    /// # Returns
+    ///
+    /// * `Some(T)` - The value that was at the index
+    /// * `None` - If the index is out of bounds
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= length`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// list.push(3);
+    /// assert_eq!(list.delete_ith(1), Some(2));
+    /// assert_eq!(list.length, 2);
+    /// ```
     pub fn delete_ith(&mut self, index: u32) -> Option<T> {
         if self.length <= index {
             panic!("Index out of bounds");
@@ -183,14 +400,77 @@ impl<T> LinkedList<T> {
         }
     }
 
+    /// Get a reference to the element at the specified index.
+    ///
+    /// This operation is O(n) as it requires traversal to the target position.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to access (0-based)
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&T)` - Reference to the value at the index
+    /// * `None` - If the index is out of bounds
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// assert_eq!(list.get(0), Some(&1));
+    /// assert_eq!(list.get(5), None);
+    /// ```
     pub fn get(&self, index: i32) -> Option<&T> {
         Self::get_ith_node(self.head, index).map(|ptr| unsafe { &(*ptr.as_ptr()).val })
     }
 
+    /// Get a mutable reference to the element at the specified index.
+    ///
+    /// This operation is O(n) as it requires traversal to the target position.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to access (0-based)
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&mut T)` - Mutable reference to the value at the index
+    /// * `None` - If the index is out of bounds
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// if let Some(val) = list.get_mut(0) {
+    ///     *val = 10;
+    /// }
+    /// assert_eq!(list.get(0), Some(&10));
+    /// ```
     pub fn get_mut(&mut self, index: i32) -> Option<&mut T> {
         Self::get_ith_node(self.head, index).map(|ptr| unsafe { &mut (*ptr.as_ptr()).val })
     }
 
+    /// Internal helper to get the node at a specific index.
+    ///
+    /// This is a recursive function that traverses the list to find the node
+    /// at the specified index.
+    ///
+    /// # Arguments
+    ///
+    /// * `node` - Starting node for traversal
+    /// * `index` - Target index (decremented with each recursive call)
+    ///
+    /// # Returns
+    ///
+    /// * `Some(NonNull<Node<T>>)` - Pointer to the node at the index
+    /// * `None` - If the index is out of bounds
     fn get_ith_node(node: Option<NonNull<Node<T>>>, index: i32) -> Option<NonNull<Node<T>>> {
         match node {
             None => None,
@@ -201,7 +481,33 @@ impl<T> LinkedList<T> {
         }
     }
 
-    /// Find the first element that matches the predicate
+    /// Find the first element that matches the predicate.
+    ///
+    /// This operation is O(n) in the worst case, traversing the list until
+    /// a matching element is found or the end is reached.
+    ///
+    /// # Arguments
+    ///
+    /// * `predicate` - Function that returns true for the desired element
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&T)` - Reference to the first matching element
+    /// * `None` - If no element matches the predicate
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// list.push(3);
+    ///
+    /// let found = list.find(|&x| x > 2);
+    /// assert_eq!(found, Some(&3));
+    /// ```
     pub fn find<F>(&self, predicate: F) -> Option<&T>
     where
         F: Fn(&T) -> bool,
@@ -219,7 +525,33 @@ impl<T> LinkedList<T> {
         None
     }
 
-    /// Find the index of an element (by pointer equality)
+    /// Find the index of the first element that matches the predicate.
+    ///
+    /// This operation is O(n) in the worst case, traversing the list until
+    /// a matching element is found or the end is reached.
+    ///
+    /// # Arguments
+    ///
+    /// * `predicate` - Function that returns true for the desired element
+    ///
+    /// # Returns
+    ///
+    /// * `Some(usize)` - Index of the first matching element
+    /// * `None` - If no element matches the predicate
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// list.push(3);
+    ///
+    /// let index = list.index_of(|&x| x == 2);
+    /// assert_eq!(index, Some(1));
+    /// ```
     pub fn index_of<F>(&self, predicate: F) -> Option<usize>
     where
         F: Fn(&T) -> bool,
@@ -239,13 +571,58 @@ impl<T> LinkedList<T> {
         None
     }
 
-    /// Calculate offset to a given index
+    /// Calculate offset to a given index.
+    ///
+    /// For a linked list, the offset is equivalent to the index since
+    /// each element is at a sequential position.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The target index
+    ///
+    /// # Returns
+    ///
+    /// The offset value (same as index for linked lists)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let list: LinkedList<i32> = LinkedList::new();
+    /// assert_eq!(list.offset(5), 5);
+    /// ```
     pub fn offset(&self, index: usize) -> usize {
         // For LinkedList, offset is just the index itself
         index
     }
 
-    /// Check if the list contains an element matching the predicate
+    /// Check if the list contains an element matching the predicate.
+    ///
+    /// This is a convenience method that returns true if any element
+    /// matches the given predicate.
+    ///
+    /// # Arguments
+    ///
+    /// * `predicate` - Function that returns true for the desired element
+    ///
+    /// # Returns
+    ///
+    /// * `true` - If at least one element matches
+    /// * `false` - If no elements match
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    ///
+    /// assert!(list.contains(|&x| x == 2));
+    /// assert!(!list.contains(|&x| x == 5));
+    /// ```
     pub fn contains<F>(&self, predicate: F) -> bool
     where
         F: Fn(&T) -> bool,
@@ -253,7 +630,32 @@ impl<T> LinkedList<T> {
         self.find(predicate).is_some()
     }
 
-    /// Iterate over elements in range [start, start+length)
+    /// Iterate over elements in a specific range with a callback.
+    ///
+    /// This method calls the provided callback for each element in the range
+    /// [start, start+length), passing both the element and its index.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - Starting index (inclusive)
+    /// * `length` - Number of elements to process
+    /// * `callback` - Function called for each element with (element, index)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// list.push(3);
+    /// list.push(4);
+    ///
+    /// let mut sum = 0;
+    /// list.for_each_at(1, 2, |&val, _idx| sum += val);
+    /// assert_eq!(sum, 5); // 2 + 3
+    /// ```
     pub fn for_each_at<F>(&self, start: usize, length: usize, mut callback: F)
     where
         F: FnMut(&T, usize),
@@ -282,22 +684,108 @@ impl<T> LinkedList<T> {
         }
     }
 
-    /// Convenience method: push to end (alias for insert_at_tail)
+    /// Push an element to the end of the list.
+    ///
+    /// This is a convenience method that calls [`insert_at_tail`].
+    ///
+    /// # Arguments
+    ///
+    /// * `obj` - The value to push
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// assert_eq!(list.length, 2);
+    /// ```
+    ///
+    /// [`insert_at_tail`]: #method.insert_at_tail
     pub fn push(&mut self, obj: T) {
         self.insert_at_tail(obj);
     }
 
-    /// Convenience method: pop from end (alias for delete_tail)
+    /// Pop an element from the end of the list.
+    ///
+    /// This is a convenience method that calls [`delete_tail`].
+    ///
+    /// # Returns
+    ///
+    /// * `Some(T)` - The value that was at the end
+    /// * `None` - If the list is empty
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// assert_eq!(list.pop(), Some(1));
+    /// assert_eq!(list.pop(), None);
+    /// ```
+    ///
+    /// [`delete_tail`]: #method.delete_tail
     pub fn pop(&mut self) -> Option<T> {
         self.delete_tail()
     }
 
-    /// Convenience method: insert at index (alias for insert_at_ith)
+    /// Insert an element at the specified index.
+    ///
+    /// This is a convenience method that calls [`insert_at_ith`] with
+    /// proper bounds checking.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to insert at
+    /// * `obj` - The value to insert
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.insert(0, 1);
+    /// list.insert(1, 2);
+    /// assert_eq!(list.get(1), Some(&2));
+    /// ```
+    ///
+    /// [`insert_at_ith`]: #method.insert_at_ith
     pub fn insert(&mut self, index: i32, obj: T) {
         self.insert_at_ith(index as u32, obj);
     }
 
-    /// Convenience method: remove at index (alias for delete_ith)
+    /// Remove an element at the specified index.
+    ///
+    /// This is a convenience method that calls [`delete_ith`] with
+    /// bounds checking to prevent panics.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The position to remove from
+    ///
+    /// # Returns
+    ///
+    /// * `Some(T)` - The value that was removed
+    /// * `None` - If the index is out of bounds
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// assert_eq!(list.remove(0), Some(1));
+    /// assert_eq!(list.remove(10), None);
+    /// ```
+    ///
+    /// [`delete_ith`]: #method.delete_ith
     pub fn remove(&mut self, index: i32) -> Option<T> {
         if index >= 0 && index < self.length as i32 {
             self.delete_ith(index as u32)
@@ -306,7 +794,32 @@ impl<T> LinkedList<T> {
         }
     }
 
-    /// Create an iterator over the linked list
+    /// Create an iterator over the linked list.
+    ///
+    /// The iterator yields raw pointers to the values for performance reasons.
+    /// This is safe as long as the list is not modified during iteration.
+    ///
+    /// # Returns
+    ///
+    /// A [`LinkedListIterator`] that yields `*const T` pointers
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    ///
+    /// for item_ptr in list.iter() {
+    ///     unsafe {
+    ///         println!("Value: {}", *item_ptr);
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// [`LinkedListIterator`]: struct.LinkedListIterator.html
     pub fn iter(&self) -> LinkedListIterator<T> {
         LinkedListIterator {
             current: self.head,
@@ -315,15 +828,33 @@ impl<T> LinkedList<T> {
     }
 }
 
-/// Iterator for LinkedList
+/// Iterator for traversing a [`LinkedList`].
+///
+/// This iterator yields raw pointers to the values for performance reasons.
+/// The pointers are valid as long as the list is not modified during iteration.
+///
+/// # Safety
+///
+/// The iterator returns `*const T` pointers that must be dereferenced safely.
+/// The caller must ensure the list is not modified during iteration.
+///
+/// [`LinkedList`]: struct.LinkedList.html
 pub struct LinkedListIterator<T> {
+    /// Current node being processed
     current: Option<NonNull<Node<T>>>,
+    /// Phantom data for type safety
     phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> Iterator for LinkedListIterator<T> {
     type Item = *const T;
 
+    /// Advance the iterator and return the next item.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(*const T)` - Pointer to the next value
+    /// * `None` - If the iterator is exhausted
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current_ptr) = self.current {
             unsafe {
@@ -338,6 +869,10 @@ impl<T> Iterator for LinkedListIterator<T> {
 }
 
 impl<T> Drop for LinkedList<T> {
+    /// Clean up the linked list by deallocating all nodes.
+    ///
+    /// This implementation ensures that all heap-allocated nodes are
+    /// properly freed when the list goes out of scope.
     fn drop(&mut self) {
         // Pop items until there are none left
         while self.delete_head().is_some() {}
@@ -348,6 +883,21 @@ impl<T> Display for LinkedList<T>
 where
     T: Display,
 {
+    /// Format the linked list for display.
+    ///
+    /// This implementation shows all elements in the list separated by commas.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use parchment::collection::LinkedList;
+    ///
+    /// let mut list = LinkedList::new();
+    /// list.push(1);
+    /// list.push(2);
+    /// list.push(3);
+    /// println!("{}", list); // Outputs: "1, 2, 3"
+    /// ```
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.head {
             Some(node) => write!(f, "{}", unsafe { node.as_ref() }),
@@ -360,6 +910,10 @@ impl<T> Display for Node<T>
 where
     T: Display,
 {
+    /// Format a node and its successors for display.
+    ///
+    /// This implementation recursively formats the current node and all
+    /// following nodes, creating a comma-separated list.
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.next {
             Some(node) => write!(f, "{}, {}", self.val, unsafe { node.as_ref() }),

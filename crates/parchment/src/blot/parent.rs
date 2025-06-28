@@ -1,3 +1,41 @@
+//! Parent blot base implementation for container functionality
+//!
+//! ParentBlot provides the foundational implementation for all blots that can
+//! contain child blots. It handles child management, DOM synchronization, and
+//! tree navigation operations that are common to all container blots.
+//!
+//! ## Core Functionality
+//!
+//! - **Child Management**: Add, remove, and reorder child blots
+//! - **DOM Synchronization**: Keep blot tree synchronized with DOM
+//! - **Tree Navigation**: Find descendants and compute paths
+//! - **Content Operations**: Aggregate child content and operations
+//!
+//! ## Usage Pattern
+//!
+//! ParentBlot is typically used as a base for other container blots:
+//! - BlockBlot extends ParentBlot for block-level containers
+//! - InlineBlot extends ParentBlot for inline containers
+//! - ScrollBlot extends ParentBlot for the root document container
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use quillai_parchment::{ParentBlot, TextBlot};
+//! 
+//! // Create a parent container
+//! let dom_node = Dom::create_element("div")?;
+//! let mut parent = ParentBlot::new(dom_node.into())?;
+//! 
+//! // Add child content
+//! let text = TextBlot::new("Hello, world!")?;
+//! parent.append_child(Box::new(text))?;
+//! 
+//! // Access children
+//! assert_eq!(parent.children_count(), 1);
+//! assert_eq!(parent.text_content(), "Hello, world!");
+//! ```
+
 use crate::blot::traits_simple::{create_element_with_class, BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::registry::Registry;
@@ -5,28 +43,103 @@ use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{HtmlElement, Node};
 
-/// ParentBlot is the base implementation for all parent blots
-/// This mirrors the TypeScript ParentBlot class with LinkedList child management
+/// Base implementation for all parent blots that contain children
+///
+/// ParentBlot provides the common functionality needed by all container blots,
+/// including child management, DOM operations, and tree navigation. It serves
+/// as the foundation for BlockBlot, InlineBlot, and ScrollBlot implementations.
+///
+/// # Characteristics
+///
+/// - **Container**: Can hold and manage child blots
+/// - **DOM Synchronized**: Maintains consistency between blot tree and DOM
+/// - **Efficient**: Uses LinkedList for O(1) insertions and deletions
+/// - **Flexible**: Supports any DOM element as the container
+///
+/// # Child Management
+///
+/// - Automatic DOM synchronization when children are added/removed
+/// - Efficient linked list storage for large numbers of children
+/// - Support for ordered insertion and removal operations
+/// - Tree navigation and search capabilities
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::{ParentBlot, TextBlot};
+/// 
+/// // Create container
+/// let dom_element = Dom::create_element("div")?;
+/// let mut container = ParentBlot::new(dom_element.into())?;
+/// 
+/// // Add children
+/// let text1 = TextBlot::new("First ")?;
+/// let text2 = TextBlot::new("Second")?;
+/// 
+/// container.append_child(Box::new(text1))?;
+/// container.append_child(Box::new(text2))?;
+/// 
+/// assert_eq!(container.children_count(), 2);
+/// assert_eq!(container.text_content(), "First Second");
+/// ```
 pub struct ParentBlot {
+    /// The underlying DOM node that contains child elements
     pub dom_node: Node,
+    /// Child blots managed in a linked list for efficient operations
     pub children: LinkedList<Box<dyn BlotTrait>>,
 }
 
 impl ParentBlot {
     /// Create a new ParentBlot with the given DOM node
+    ///
+    /// Initializes a new parent blot that wraps the provided DOM node.
+    /// The DOM node should be a container element that can hold child elements.
+    ///
+    /// # Parameters
+    /// * `dom_node` - DOM node to wrap (should be an Element)
+    ///
+    /// # Returns
+    /// New ParentBlot instance on success, JsValue error on failure
+    ///
+    /// # Examples
+    /// ```rust
+    /// let div_element = Dom::create_element("div")?;
+    /// let parent = ParentBlot::new(div_element.into())?;
+    /// assert_eq!(parent.children_count(), 0);
+    /// ```
     pub fn new(dom_node: Node) -> Result<Self, JsValue> {
         let blot = ParentBlot {
             dom_node,
             children: LinkedList::new(),
         };
 
-        // Note: Registry registration will be handled by the caller
-        // Registry::register_blot(&blot.dom_node, &blot)?;
+        // Note: Registry registration is handled by the caller to avoid
+        // circular dependencies and allow for proper initialization
 
         Ok(blot)
     }
 
-    /// Create DOM node - mirrors TypeScript static create method
+    /// Create a DOM node for a parent blot with specified properties
+    ///
+    /// Static method that creates a properly configured DOM element for use
+    /// as a parent blot container. Handles tag name, CSS class, and initial value.
+    ///
+    /// # Parameters
+    /// * `tag_name` - HTML tag name for the element (e.g., "div", "p", "span")
+    /// * `class_name` - Optional CSS class name to apply
+    /// * `value` - Optional initial text content
+    ///
+    /// # Returns
+    /// Configured DOM node on success, JsValue error on creation failure
+    ///
+    /// # Errors
+    /// Returns error if tag_name is empty or DOM creation fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// let node = ParentBlot::create_dom_node("div", Some("container"), None)?;
+    /// let parent = ParentBlot::new(node)?;
+    /// ```
     pub fn create_dom_node(
         tag_name: &str,
         class_name: Option<&str>,
@@ -38,7 +151,7 @@ impl ParentBlot {
 
         let element = create_element_with_class(tag_name, class_name)?;
 
-        // Handle values
+        // Set initial text content if provided
         if let Some(val) = value {
             if let Some(text_value) = val.as_string() {
                 element.set_text_content(Some(&text_value));

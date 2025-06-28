@@ -1,3 +1,47 @@
+//! Scroll blot implementation for root document container
+//!
+//! ScrollBlot serves as the root container for the entire Parchment document,
+//! providing document-level operations, mutation observation, and comprehensive
+//! text manipulation capabilities. It acts as the top-level coordinator for
+//! all document content and editing operations.
+//!
+//! ## Key Responsibilities
+//!
+//! - **Root Container**: Top-level blot containing all document content
+//! - **Mutation Observation**: Tracks DOM changes for synchronization
+//! - **Document Operations**: Find/replace, selection management, statistics
+//! - **Text Operations**: Word count, character count, paragraph management
+//! - **Selection Management**: Document-wide selection and cursor operations
+//!
+//! ## Advanced Features
+//!
+//! - **Find & Replace**: Pattern-based text search and replacement
+//! - **Text Statistics**: Word count, character count, paragraph count
+//! - **Selection APIs**: Document-wide selection management
+//! - **Path-Based Navigation**: Hierarchical document navigation
+//! - **Mutation Tracking**: Automatic DOM change detection
+//!
+//! ## Usage Examples
+//!
+//! ```rust
+//! use quillai_parchment::ScrollBlot;
+//! 
+//! // Create document root
+//! let mut document = ScrollBlot::new(None)?;
+//! 
+//! // Add content
+//! document.append_text("Hello, world!")?;
+//! document.append_text("Second paragraph.")?;
+//! 
+//! // Document operations
+//! let word_count = document.word_count();
+//! let stats = document.get_statistics();
+//! 
+//! // Find and replace
+//! let matches = document.find_text("world", true)?;
+//! document.replace_all("world", "universe")?;
+//! ```
+
 use crate::blot::mutations::MutationObserverWrapper;
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
@@ -10,21 +54,81 @@ use crate::text_operations::{
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
-/// ScrollBlot is the root blot that represents the entire document
-/// It acts as the container for all other blots
+/// Root document container blot with advanced text operations
+///
+/// ScrollBlot represents the entire document and serves as the root container
+/// for all other blots. It provides comprehensive document-level functionality
+/// including mutation observation, text search/replace, selection management,
+/// and document statistics.
+///
+/// # Characteristics
+///
+/// - **Root Container**: Top-level blot in the document hierarchy
+/// - **Mutation Aware**: Automatically tracks DOM changes
+/// - **Text Operations**: Advanced find/replace and statistics
+/// - **Selection Management**: Document-wide selection APIs
+/// - **Performance Optimized**: Efficient operations on large documents
+///
+/// # Key Features
+///
+/// - Document-wide text search and replacement
+/// - Real-time text statistics (words, characters, paragraphs)
+/// - Path-based navigation for precise content addressing
+/// - Automatic DOM synchronization via mutation observers
+/// - Comprehensive selection and cursor management
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::ScrollBlot;
+/// 
+/// // Create document
+/// let mut doc = ScrollBlot::new(None)?;
+/// doc.append_text("Welcome to Parchment!")?;
+/// 
+/// // Text operations
+/// assert_eq!(doc.word_count(), 3);
+/// assert_eq!(doc.paragraph_count(), 1);
+/// 
+/// // Find and replace
+/// let matches = doc.find_text("Parchment", true)?;
+/// assert_eq!(matches.len(), 1);
+/// 
+/// doc.replace_all("Parchment", "the editor")?;
+/// assert!(doc.text_content().contains("the editor"));
+/// ```
 #[wasm_bindgen]
 pub struct ScrollBlot {
-    /// The underlying DOM element (typically a div)
+    /// The underlying DOM element (typically a div with parchment-scroll class)
     dom_node: Element,
-    /// Children collection using LinkedList
+    /// Child blots managed in a linked list for efficient operations
     children: LinkedList<Box<dyn BlotTrait>>,
-    /// MutationObserver for tracking DOM changes
+    /// Optional mutation observer for tracking DOM changes
     mutation_observer: Option<MutationObserverWrapper>,
 }
 
 #[wasm_bindgen]
 impl ScrollBlot {
-    /// Create a new ScrollBlot with an optional DOM element
+    /// Create a new ScrollBlot with optional DOM element
+    ///
+    /// Creates the root document container, either wrapping an existing DOM element
+    /// or creating a new `<div>` with the `parchment-scroll` CSS class for styling.
+    ///
+    /// # Parameters
+    /// * `element` - Optional DOM element to wrap, creates new `<div>` if None
+    ///
+    /// # Returns
+    /// New ScrollBlot instance on success, JsValue error on DOM creation failure
+    ///
+    /// # Examples
+    /// ```javascript
+    /// // From JavaScript after WASM init
+    /// const editor = new ScrollBlot();  // Creates <div class="parchment-scroll">
+    /// 
+    /// // Or wrap existing element
+    /// const existing = document.getElementById('editor');
+    /// const editor2 = new ScrollBlot(existing);
+    /// ```
     #[wasm_bindgen(constructor)]
     pub fn new(element: Option<Element>) -> Result<ScrollBlot, JsValue> {
         let dom_node = match element {
@@ -32,7 +136,7 @@ impl ScrollBlot {
             None => Dom::create_element("div")?,
         };
 
-        // Set a class for styling
+        // Set CSS class for styling and identification
         dom_node.set_class_name("parchment-scroll");
 
         Ok(ScrollBlot {
@@ -181,7 +285,21 @@ impl ScrollBlot {
         self.dom_node.text_content().unwrap_or_default()
     }
 
-    /// Start observing DOM mutations for this scroll blot
+    /// Start observing DOM mutations for automatic synchronization
+    ///
+    /// Enables automatic detection of DOM changes to keep the blot tree
+    /// synchronized with the underlying DOM structure. This is essential
+    /// for maintaining consistency when external code modifies the DOM.
+    ///
+    /// # Returns
+    /// `Ok(())` on success, `Err(JsValue)` if observer creation fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// let mut doc = ScrollBlot::new(None)?;
+    /// doc.start_mutation_observer()?;
+    /// assert!(doc.is_observing_mutations());
+    /// ```
     pub fn start_mutation_observer(&mut self) -> Result<(), JsValue> {
         if self.mutation_observer.is_none() {
             let observer = MutationObserverWrapper::new(self.as_node())?;
@@ -192,6 +310,9 @@ impl ScrollBlot {
     }
 
     /// Stop observing DOM mutations
+    ///
+    /// Disables automatic DOM change detection. Use this when you need
+    /// to make bulk DOM changes without triggering synchronization events.
     pub fn stop_mutation_observer(&mut self) {
         if let Some(observer) = &self.mutation_observer {
             observer.disconnect();
@@ -199,7 +320,10 @@ impl ScrollBlot {
         self.mutation_observer = None;
     }
 
-    /// Check if mutation observer is active
+    /// Check if mutation observer is currently active
+    ///
+    /// # Returns
+    /// `true` if DOM mutations are being observed, `false` otherwise
     pub fn is_observing_mutations(&self) -> bool {
         self.mutation_observer.is_some()
     }
@@ -332,7 +456,30 @@ impl ScrollBlot {
 
     // === Find and Replace Operations ===
 
-    /// Find all occurrences of a pattern in the document
+    /// Find all occurrences of a text pattern in the document
+    ///
+    /// Searches through all text content in the document and returns a list
+    /// of matches with their positions. Supports case-sensitive and case-insensitive
+    /// searching across the entire document tree.
+    ///
+    /// # Parameters
+    /// * `pattern` - Text pattern to search for
+    /// * `case_sensitive` - Whether to perform case-sensitive matching
+    ///
+    /// # Returns
+    /// Vector of TextMatch objects containing match positions and metadata
+    ///
+    /// # Examples
+    /// ```rust
+    /// let doc = ScrollBlot::new(None)?;
+    /// doc.append_text("Hello world! Hello universe!")?;
+    /// 
+    /// let matches = doc.find_text("Hello", true)?;
+    /// assert_eq!(matches.len(), 2);
+    /// 
+    /// let case_insensitive = doc.find_text("hello", false)?;
+    /// assert_eq!(case_insensitive.len(), 2);
+    /// ```
     #[wasm_bindgen]
     pub fn find_text(
         &self,
@@ -514,21 +661,68 @@ impl ScrollBlot {
 
     // === Text Statistics ===
 
-    /// Count total words in document
+    /// Count total words in the document
+    ///
+    /// Counts all words across the entire document, using whitespace and
+    /// punctuation as word boundaries. Handles international text correctly.
+    ///
+    /// # Returns
+    /// Total number of words in the document
+    ///
+    /// # Examples
+    /// ```rust
+    /// let doc = ScrollBlot::new(None)?;
+    /// doc.append_text("Hello world! This is a test.")?;
+    /// assert_eq!(doc.word_count(), 6);
+    /// ```
     #[wasm_bindgen]
     pub fn word_count(&self) -> u32 {
         let text = self.collect_all_text();
         TextUtils::count_words(&text)
     }
 
-    /// Count characters with option to include/exclude spaces
+    /// Count characters with option to include or exclude spaces
+    ///
+    /// Provides character count with flexibility to include or exclude
+    /// whitespace characters, useful for different counting standards.
+    ///
+    /// # Parameters
+    /// * `include_spaces` - Whether to count whitespace characters
+    ///
+    /// # Returns
+    /// Total character count based on the specified criteria
+    ///
+    /// # Examples
+    /// ```rust
+    /// let doc = ScrollBlot::new(None)?;
+    /// doc.append_text("Hello world!")?;
+    /// assert_eq!(doc.character_count(true), 12);   // With spaces
+    /// assert_eq!(doc.character_count(false), 11);  // Without spaces
+    /// ```
     #[wasm_bindgen]
     pub fn character_count(&self, include_spaces: bool) -> u32 {
         let text = self.collect_all_text();
         TextUtils::count_characters(&text, include_spaces)
     }
 
-    /// Count paragraphs (block-level elements)
+    /// Count paragraphs (block-level elements) in the document
+    ///
+    /// Counts all block-level blots as paragraphs, including headers,
+    /// list items, and other block elements. Returns at least 1 even
+    /// for empty documents.
+    ///
+    /// # Returns
+    /// Number of paragraph-level elements (minimum 1)
+    ///
+    /// # Examples
+    /// ```rust
+    /// let doc = ScrollBlot::new(None)?;
+    /// assert_eq!(doc.paragraph_count(), 1);  // Empty document
+    /// 
+    /// doc.append_text("First paragraph")?;
+    /// doc.append_text("Second paragraph")?;
+    /// assert_eq!(doc.paragraph_count(), 2);
+    /// ```
     #[wasm_bindgen]
     pub fn paragraph_count(&self) -> u32 {
         let mut count = 0;
@@ -551,7 +745,25 @@ impl ScrollBlot {
         count.max(1) // At least 1 paragraph even if empty
     }
 
-    /// Get comprehensive text statistics
+    /// Get comprehensive text statistics for the document
+    ///
+    /// Returns a complete statistical analysis of the document including
+    /// word count, character counts, paragraph count, estimated lines,
+    /// and sentence count.
+    ///
+    /// # Returns
+    /// TextStatistics object with comprehensive document metrics
+    ///
+    /// # Examples
+    /// ```rust
+    /// let doc = ScrollBlot::new(None)?;
+    /// doc.append_text("Hello world! This is a test document.")?;
+    /// 
+    /// let stats = doc.get_statistics();
+    /// assert_eq!(stats.words, 7);
+    /// assert_eq!(stats.sentences, 2);
+    /// assert!(stats.characters > 0);
+    /// ```
     #[wasm_bindgen]
     pub fn get_statistics(&self) -> TextStatistics {
         let text = self.collect_all_text();

@@ -1,3 +1,30 @@
+//! Advanced shadow blot implementation with full TypeScript compatibility
+//!
+//! This module provides the complete ShadowBlot implementation that mirrors
+//! the TypeScript version with full registry integration, optimization cycles,
+//! and advanced blot lifecycle management. It extends the simple shadow blot
+//! with production-ready features.
+//!
+//! ## Advanced Features
+//!
+//! - **Registry Integration**: Automatic registration and cleanup
+//! - **Optimization Cycles**: Performance optimization during updates
+//! - **Update Context**: Coordinated updates across blot hierarchy
+//! - **TypeScript Compatibility**: Full API compatibility with original
+//!
+//! ## Differences from Simple Shadow
+//!
+//! - Automatic registry registration on creation
+//! - Support for optimization and update contexts
+//! - Enhanced lifecycle management
+//! - Production-ready error handling
+//!
+//! ## Usage
+//!
+//! This is the production version of ShadowBlot used in real applications,
+//! while shadow_simple.rs provides a minimal implementation for testing
+//! and educational purposes.
+
 use wasm_bindgen::prelude::*;
 use web_sys::{Node, HtmlElement};
 use crate::scope::Scope;
@@ -8,9 +35,33 @@ use crate::blot::traits_simple::{
 use crate::registry::Registry;
 use std::ptr;
 
-/// ShadowBlot is the base implementation for all Blots
-/// This mirrors the TypeScript ShadowBlot class
+/// Advanced shadow blot with full TypeScript compatibility
+///
+/// This is the production-ready implementation of the base blot class,
+/// providing complete compatibility with the TypeScript Parchment library
+/// including automatic registry management and optimization features.
+///
+/// # Features
+///
+/// - **Automatic Registration**: Registers with global registry on creation
+/// - **Lifecycle Management**: Complete attach/detach/remove lifecycle
+/// - **Optimization Support**: Participates in document optimization cycles
+/// - **Error Handling**: Production-ready error handling and recovery
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::ShadowBlot;
+/// 
+/// // Create with automatic registration
+/// let dom_node = Dom::create_element("div")?;
+/// let blot = ShadowBlot::new(dom_node.into())?;
+/// 
+/// // Blot is automatically registered and ready for use
+/// assert!(Registry::find_blot(&blot.dom_node()).is_some());
+/// ```
 pub struct ShadowBlot {
+    /// The underlying DOM node managed by this blot
     pub dom_node: Node,
 }
 

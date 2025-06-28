@@ -1,3 +1,40 @@
+//! Block blot implementation for block-level content containers
+//!
+//! BlockBlot represents block-level elements that create new lines and contain
+//! inline content. These are the primary structural elements in documents,
+//! including paragraphs, headers, list items, and other block-level containers.
+//!
+//! ## Common Block Types
+//!
+//! - **Paragraphs**: `<p>` elements for regular text content
+//! - **Headers**: `<h1>` through `<h6>` for document structure
+//! - **List Items**: `<li>` elements within ordered/unordered lists
+//! - **Blockquotes**: `<blockquote>` for quoted content
+//! - **Preformatted**: `<pre>` for code blocks and preserved formatting
+//!
+//! ## Content Model
+//!
+//! BlockBlots contain inline content (text, formatting, links) but cannot
+//! directly contain other block elements. This maintains proper document
+//! structure and prevents invalid HTML nesting.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use quillai_parchment::{BlockBlot, TextBlot, InlineBlot};
+//! 
+//! // Create a paragraph
+//! let mut paragraph = BlockBlot::new(None)?;  // Creates <p>
+//! 
+//! // Add text content
+//! let text = TextBlot::new("Hello, world!")?;
+//! paragraph.append_child(Box::new(text))?;
+//! 
+//! // Add formatted text
+//! let bold = InlineBlot::with_text("Bold text")?;
+//! paragraph.append_child(Box::new(bold))?;
+//! ```
+
 use crate::blot::text::TextBlot;
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
@@ -6,13 +43,44 @@ use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
-/// BlockBlot represents a block-level element (typically a paragraph)
-/// It contains inline content like TextBlots
+/// Block blot for block-level content containers
+///
+/// BlockBlot represents block-level elements that create line breaks and contain
+/// inline content. It serves as the primary structural container for document
+/// content, implementing the standard block content model.
+///
+/// # Characteristics
+///
+/// - **Block Flow**: Creates line breaks before and after the element
+/// - **Inline Container**: Contains inline blots and text content
+/// - **Structural**: Provides document structure and organization
+/// - **Flexible**: Supports any block-level HTML element
+///
+/// # Content Rules
+///
+/// - Can contain: TextBlot, InlineBlot, and other inline elements
+/// - Cannot contain: Other BlockBlot instances (maintains proper nesting)
+/// - Automatically manages line breaks and block-level spacing
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::{BlockBlot, TextBlot};
+/// 
+/// // Create a paragraph with text
+/// let mut paragraph = BlockBlot::with_text("Hello, world!")?;
+/// assert_eq!(paragraph.text_content(), "Hello, world!");
+/// 
+/// // Create a header
+/// let header_element = Dom::create_element("h1")?;
+/// let mut header = BlockBlot::new(Some(header_element))?;
+/// header.append_text("Document Title")?;
+/// ```
 #[wasm_bindgen]
 pub struct BlockBlot {
-    /// The underlying DOM element (typically a <p> tag)
+    /// The underlying DOM element (p, h1-h6, li, blockquote, etc.)
     dom_node: Element,
-    /// Children collection using LinkedList
+    /// Child blots managed in a linked list for efficient operations
     children: LinkedList<Box<dyn BlotTrait>>,
 }
 

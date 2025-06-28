@@ -1,27 +1,126 @@
+//! Shadow blot base implementation for all blot types
+//!
+//! ShadowBlot provides the fundamental base implementation that all blots inherit from.
+//! It handles basic DOM operations, registry management, and provides default
+//! implementations for core blot functionality. This is the foundation of the
+//! entire blot hierarchy.
+//!
+//! ## Purpose
+//!
+//! - **Base Implementation**: Provides common functionality for all blots
+//! - **DOM Management**: Handles basic DOM node operations and lifecycle
+//! - **Registry Integration**: Manages registration and cleanup
+//! - **Default Behavior**: Provides sensible defaults for blot operations
+//!
+//! ## Inheritance Hierarchy
+//!
+//! ```text
+//! ShadowBlot (base)
+//! ├── ParentBlot (containers)
+//! │   ├── BlockBlot (paragraphs, headers)
+//! │   ├── InlineBlot (formatting)
+//! │   └── ScrollBlot (root container)
+//! └── LeafBlot implementations
+//!     ├── TextBlot (text content)
+//!     └── EmbedBlot (media, widgets)
+//! ```
+//!
+//! ## Usage
+//!
+//! ShadowBlot is typically not used directly but serves as the base for
+//! all other blot implementations. It provides the common interface and
+//! default behaviors that specialized blots can override.
+
 use crate::blot::traits_simple::{create_element_with_class, BlotTrait};
 use crate::registry::Registry;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::Node;
 
-/// ShadowBlot is the base implementation for all Blots
-/// This mirrors the TypeScript ShadowBlot class (simplified)
+/// Base implementation for all blots in the Parchment system
+///
+/// ShadowBlot serves as the foundational class for all blot types, providing
+/// common DOM operations, registry management, and default implementations
+/// for the BlotTrait interface. All other blots inherit from this base.
+///
+/// # Characteristics
+///
+/// - **Abstract Base**: Provides foundation for all blot implementations
+/// - **DOM Wrapper**: Wraps and manages a single DOM node
+/// - **Registry Aware**: Handles registration and cleanup automatically
+/// - **Lifecycle Management**: Provides attach/detach/remove operations
+///
+/// # Default Behavior
+///
+/// - Length of 1 (suitable for atomic blots)
+/// - Block scope (can be overridden by subclasses)
+/// - Basic text content operations
+/// - Automatic registry cleanup on drop
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::ShadowBlot;
+/// 
+/// // Create a basic blot (typically done by subclasses)
+/// let dom_node = Dom::create_element("div")?;
+/// let blot = ShadowBlot::new(dom_node.into())?;
+/// 
+/// // Basic operations
+/// assert_eq!(blot.length(), 1);
+/// assert_eq!(blot.get_blot_name(), "abstract");
+/// ```
 pub struct ShadowBlot {
+    /// The underlying DOM node that this blot represents
     pub dom_node: Node,
 }
 
 impl ShadowBlot {
-    /// Create a new ShadowBlot - mirrors TypeScript constructor
+    /// Create a new ShadowBlot wrapping the given DOM node
+    ///
+    /// Initializes a new base blot that wraps the provided DOM node.
+    /// This is the fundamental constructor used by all blot types.
+    ///
+    /// # Parameters
+    /// * `dom_node` - DOM node to wrap and manage
+    ///
+    /// # Returns
+    /// New ShadowBlot instance on success, JsValue error on failure
+    ///
+    /// # Note
+    /// Registry registration is handled by the caller to avoid circular
+    /// dependencies during blot construction.
     pub fn new(dom_node: Node) -> Result<Self, JsValue> {
         let blot = ShadowBlot { dom_node };
 
-        // Note: Registry registration handled by caller
-        // Registry::register_blot(&blot.dom_node, &blot)?;
+        // Registry registration is deferred to the caller to allow
+        // proper initialization of the blot hierarchy
 
         Ok(blot)
     }
 
-    /// Create DOM node - mirrors TypeScript static create method
+    /// Create a DOM node with specified properties for blot use
+    ///
+    /// Static factory method that creates a properly configured DOM element
+    /// for use as a blot's underlying node. Handles tag creation, CSS classes,
+    /// and initial content.
+    ///
+    /// # Parameters
+    /// * `tag_name` - HTML tag name (e.g., "div", "span", "p")
+    /// * `class_name` - Optional CSS class name to apply
+    /// * `value` - Optional initial text content
+    ///
+    /// # Returns
+    /// Configured DOM node on success, JsValue error on creation failure
+    ///
+    /// # Errors
+    /// Returns error if tag_name is empty or DOM creation fails
+    ///
+    /// # Examples
+    /// ```rust
+    /// let node = ShadowBlot::create_dom_node("div", Some("blot"), None)?;
+    /// let blot = ShadowBlot::new(node)?;
+    /// ```
     pub fn create_dom_node(
         tag_name: &str,
         class_name: Option<&str>,
@@ -33,7 +132,7 @@ impl ShadowBlot {
 
         let element = create_element_with_class(tag_name, class_name)?;
 
-        // Handle values
+        // Set initial text content if provided
         if let Some(val) = value {
             if let Some(text_value) = val.as_string() {
                 element.set_text_content(Some(&text_value));

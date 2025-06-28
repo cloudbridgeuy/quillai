@@ -1,27 +1,117 @@
+//! Text blot implementation for actual text content in documents
+//!
+//! TextBlot is the fundamental leaf node type that represents actual text content
+//! in the Parchment document model. It wraps DOM text nodes and provides rich
+//! text manipulation capabilities including splitting, merging, and cursor management.
+//!
+//! ## Key Features
+//!
+//! - **Direct DOM Integration**: Wraps native DOM Text nodes
+//! - **Unicode Support**: Proper character-based operations for international text
+//! - **Text Operations**: Insert, delete, split, and merge operations
+//! - **Selection Management**: Cursor positioning and text selection APIs
+//! - **Performance Optimized**: Efficient character-level manipulations
+//!
+//! ## Usage Examples
+//!
+//! ```rust
+//! use quillai_parchment::TextBlot;
+//! 
+//! // Create new text content
+//! let text = TextBlot::new("Hello, world!")?;
+//! 
+//! // Text manipulation
+//! text.insert_at(7, "beautiful ")?;  // "Hello, beautiful world!"
+//! text.delete_at(0, 7)?;             // "beautiful world!"
+//! 
+//! // Splitting for editing operations
+//! let second_part = text.split(9)?;  // Split at "beautiful"
+//! ```
+
 use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
 use crate::dom::Dom;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{Node, Text};
 
-/// TextBlot represents a text node in the document
-/// This is the fundamental building block for all text content
+/// Text blot representing actual text content in the document
+///
+/// TextBlot is a leaf node in the document tree that contains actual text content.
+/// It wraps a DOM Text node and provides comprehensive text manipulation capabilities
+/// including character-level operations, splitting/merging, and selection management.
+///
+/// # Characteristics
+///
+/// - **Leaf Node**: Cannot contain child blots (terminal content)
+/// - **Unicode Aware**: Handles international characters correctly
+/// - **DOM Synchronized**: Changes immediately reflect in the DOM
+/// - **Selection Support**: Full cursor and selection management
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::TextBlot;
+/// 
+/// // Create text content
+/// let mut text = TextBlot::new("Hello")?;
+/// 
+/// // Basic operations
+/// assert_eq!(text.length(), 5);
+/// assert_eq!(text.value(), "Hello");
+/// 
+/// // Text editing
+/// text.insert_at(5, ", world!")?;
+/// assert_eq!(text.value(), "Hello, world!");
+/// 
+/// // Character access
+/// assert_eq!(text.char_at(0), Some('H'));
+/// assert_eq!(text.substring(0, 5), "Hello");
+/// ```
 #[wasm_bindgen]
 pub struct TextBlot {
-    /// The underlying DOM text node
+    /// The underlying DOM text node that stores the actual content
     dom_node: Text,
 }
 
 #[wasm_bindgen]
 impl TextBlot {
     /// Create a new TextBlot with the given text content
+    ///
+    /// Creates a new DOM text node with the specified content and wraps it
+    /// in a TextBlot for use in the Parchment document model.
+    ///
+    /// # Parameters
+    /// * `content` - Initial text content for the blot
+    ///
+    /// # Returns
+    /// New TextBlot instance on success, JsValue error on DOM creation failure
+    ///
+    /// # Examples
+    /// ```javascript
+    /// // From JavaScript after WASM init
+    /// const text = new TextBlot("Hello, world!");
+    /// console.log(text.value); // "Hello, world!"
+    /// ```
     #[wasm_bindgen(constructor)]
     pub fn new(content: &str) -> Result<TextBlot, JsValue> {
         let dom_node = Dom::create_text_node(content)?;
         Ok(TextBlot { dom_node })
     }
 
-    /// Create a TextBlot from an existing DOM node
+    /// Create a TextBlot from an existing DOM text node
+    ///
+    /// Wraps an existing DOM text node in a TextBlot. This is typically used
+    /// when converting existing DOM content into the Parchment document model.
+    ///
+    /// # Parameters
+    /// * `node` - DOM node to wrap (must be a Text node)
+    /// * `_content` - Unused parameter for API compatibility
+    ///
+    /// # Returns
+    /// TextBlot wrapping the DOM node, or error if node is not a Text node
+    ///
+    /// # Errors
+    /// Returns error if the provided node is not a DOM Text node
     pub fn from_node(node: Node, _content: &str) -> Result<TextBlot, JsValue> {
         if let Some(text_node) = node.dyn_ref::<Text>() {
             Ok(TextBlot {
@@ -33,18 +123,36 @@ impl TextBlot {
     }
 
     /// Get the text content of this blot
+    ///
+    /// Returns the current text content stored in the underlying DOM text node.
+    /// This is the primary method for accessing the actual content.
+    ///
+    /// # Returns
+    /// Current text content as a String
     #[wasm_bindgen(getter)]
     pub fn value(&self) -> String {
         self.dom_node.text_content().unwrap_or_default()
     }
 
     /// Set the text content of this blot
+    ///
+    /// Updates the text content of the underlying DOM text node. Changes
+    /// are immediately reflected in the DOM and visible to users.
+    ///
+    /// # Parameters
+    /// * `content` - New text content to set
     #[wasm_bindgen(setter)]
     pub fn set_value(&self, content: &str) {
         self.dom_node.set_text_content(Some(content));
     }
 
-    /// Get the length of the text content
+    /// Get the character length of the text content
+    ///
+    /// Returns the number of Unicode characters (not bytes) in the text content.
+    /// This is important for proper cursor positioning and text operations.
+    ///
+    /// # Returns
+    /// Number of characters in the text content
     pub fn length(&self) -> usize {
         self.value().len()
     }
@@ -59,7 +167,24 @@ impl TextBlot {
         self.dom_node.clone().into()
     }
 
-    /// Insert text at a specific index
+    /// Insert text at a specific character index
+    ///
+    /// Inserts new text at the specified character position, shifting existing
+    /// content to the right. Uses Unicode-aware character indexing.
+    ///
+    /// # Parameters
+    /// * `index` - Character position to insert at (0-based)
+    /// * `text` - Text content to insert
+    ///
+    /// # Returns
+    /// `Ok(())` on success, `Err(JsValue)` on operation failure
+    ///
+    /// # Examples
+    /// ```rust
+    /// let text = TextBlot::new("Hello world")?;
+    /// text.insert_at(6, "beautiful ")?;
+    /// assert_eq!(text.value(), "Hello beautiful world");
+    /// ```
     pub fn insert_at(&self, index: usize, text: &str) -> Result<(), JsValue> {
         let current = self.value();
         let mut chars: Vec<char> = current.chars().collect();
@@ -94,7 +219,24 @@ impl TextBlot {
     }
 
     /// Split this text blot at the given index, returning the second part
-    /// This creates a proper DOM text node split that can be inserted into the parent
+    ///
+    /// Divides the text content at the specified character index, keeping the first
+    /// part in this blot and returning a new TextBlot containing the second part.
+    /// The new blot is automatically inserted into the DOM after this one.
+    ///
+    /// # Parameters
+    /// * `index` - Character position to split at
+    ///
+    /// # Returns
+    /// New TextBlot containing the second part of the split
+    ///
+    /// # Examples
+    /// ```rust
+    /// let text = TextBlot::new("Hello world")?;
+    /// let second = text.split(6)?;  // Split after "Hello "
+    /// assert_eq!(text.value(), "Hello ");
+    /// assert_eq!(second.value(), "world");
+    /// ```
     pub fn split(&self, index: usize) -> Result<TextBlot, JsValue> {
         let current = self.value();
         let chars: Vec<char> = current.chars().collect();

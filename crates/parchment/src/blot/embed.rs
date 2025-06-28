@@ -1,16 +1,86 @@
+//! Embed blot implementation for self-contained media and widgets
+//!
+//! EmbedBlot represents embedded content that is self-contained and doesn't
+//! contain other blots. These are typically media elements, widgets, or other
+//! atomic content that has a fixed length of 1 in the document model.
+//!
+//! ## Common Embed Types
+//!
+//! - **Images**: `<img>` elements with src attributes
+//! - **Videos**: `<video>` elements for media content
+//! - **Audio**: `<audio>` elements for sound content
+//! - **Iframes**: `<iframe>` for embedded external content
+//! - **Line Breaks**: `<br>` for explicit line breaks
+//! - **Horizontal Rules**: `<hr>` for section dividers
+//! - **Widgets**: Custom elements for interactive content
+//!
+//! ## Characteristics
+//!
+//! - **Atomic**: Cannot be split or contain other content
+//! - **Fixed Length**: Always has a length of 1 in document operations
+//! - **Self-Contained**: Represents complete, indivisible content units
+//! - **Media-Focused**: Optimized for multimedia and widget content
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use quillai_parchment::EmbedBlot;
+//! 
+//! // Create an image embed
+//! let img_element = Dom::create_element("img")?;
+//! img_element.set_attribute("src", "image.jpg")?;
+//! img_element.set_attribute("alt", "Description")?;
+//! let image = EmbedBlot::from_element(img_element);
+//! 
+//! // Create a line break
+//! let br = EmbedBlot::create_line_break()?;
+//! assert_eq!(br.length(), 1);  // Always length 1
+//! ```
+
 use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
 use crate::dom::Dom;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, Node};
 
-/// EmbedBlot represents an embedded element (img, video, iframe, etc.)
-/// These are typically self-closing or void elements that don't contain text content
+/// Embed blot for self-contained media and atomic content
+///
+/// EmbedBlot represents embedded elements that are atomic units in the document.
+/// Unlike text or container blots, embeds cannot be split and always have a
+/// length of 1, making them ideal for media content and widgets.
+///
+/// # Characteristics
+///
+/// - **Atomic Content**: Cannot be split or contain child blots
+/// - **Fixed Length**: Always reports length of 1 for document operations
+/// - **Media Optimized**: Designed for images, videos, and interactive content
+/// - **Self-Contained**: Represents complete, indivisible content units
+///
+/// # Content Types
+///
+/// - Media elements (img, video, audio)
+/// - Void elements (br, hr, input)
+/// - Embedded content (iframe, object)
+/// - Custom widgets and components
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_parchment::EmbedBlot;
+/// 
+/// // Create a generic embed
+/// let embed = EmbedBlot::new(None)?;
+/// assert_eq!(embed.length(), 1);
+/// 
+/// // Create from existing element
+/// let img = Dom::create_element("img")?;
+/// let image_embed = EmbedBlot::from_element(img);
+/// ```
 #[wasm_bindgen]
 pub struct EmbedBlot {
-    /// The underlying DOM element (img, video, iframe, etc.)
+    /// The underlying DOM element (img, video, iframe, br, hr, etc.)
     dom_node: Element,
-    /// The value/content of this embed (could be URL, data, etc.)
+    /// The value/content of this embed (URL, data, or metadata)
     value: String,
 }
 
