@@ -18,7 +18,7 @@
 //! ## Text Selection
 //!
 //! ```rust
-//! use parchment::text_operations::TextSelection;
+//! use quillai_parchment::text_operations::TextSelection;
 //!
 //! let selection = TextSelection::new(
 //!     vec![0, 1],  // start path
@@ -31,7 +31,7 @@
 //! ## Text Search
 //!
 //! ```rust
-//! use parchment::text_operations::TextSearcher;
+//! use quillai_parchment::text_operations::TextSearcher;
 //!
 //! let mut searcher = TextSearcher::new("hello".to_string(), false);
 //! // Use with visitor pattern to search through document
@@ -40,7 +40,7 @@
 //! ## Text Statistics
 //!
 //! ```rust
-//! use parchment::text_operations::TextUtils;
+//! use quillai_parchment::text_operations::TextUtils;
 //!
 //! let text = "Hello world! This is a test.";
 //! let word_count = TextUtils::count_words(text);
@@ -106,7 +106,7 @@ impl TextSelection {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextSelection;
+    /// use quillai_parchment::text_operations::TextSelection;
     ///
     /// // Create a selection spanning from position 5 in node [0,1] to position 10 in node [0,2]
     /// let selection = TextSelection::new(vec![0, 1], 5, vec![0, 2], 10);
@@ -205,7 +205,7 @@ impl TextMatch {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextMatch;
+    /// use quillai_parchment::text_operations::TextMatch;
     ///
     /// let text_match = TextMatch::new(
     ///     vec![0, 1],
@@ -313,7 +313,7 @@ impl Position {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::Position;
+    /// use quillai_parchment::text_operations::Position;
     ///
     /// // Create a position at character 15 in the node at path [0, 1, 2]
     /// let position = Position::new(vec![0, 1, 2], 15);
@@ -391,7 +391,7 @@ impl TextStatistics {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextStatistics;
+    /// use quillai_parchment::text_operations::TextStatistics;
     ///
     /// let stats = TextStatistics::new(150, 750, 650, 5, 12, 8);
     /// assert_eq!(stats.words, 150);
@@ -451,7 +451,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// assert!(TextUtils::is_word_boundary(' '));  // whitespace
     /// assert!(TextUtils::is_word_boundary('.'));  // punctuation
@@ -479,7 +479,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// let text = "Hello world. This is a test!";
     /// assert!(TextUtils::is_sentence_boundary(text, 11)); // after "world."
@@ -520,7 +520,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// assert_eq!(TextUtils::count_words("Hello world"), 2);
     /// assert_eq!(TextUtils::count_words(""), 0);
@@ -570,7 +570,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// let text = "Hello world";
     /// assert_eq!(TextUtils::count_characters(text, true), 11);  // with space
@@ -601,7 +601,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// let text = "Hello world. This is a test! How are you?";
     /// assert_eq!(TextUtils::count_sentences(text), 3);
@@ -640,7 +640,7 @@ impl TextUtils {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextUtils;
+    /// use quillai_parchment::text_operations::TextUtils;
     ///
     /// let text = "Short line\nAnother line";
     /// assert_eq!(TextUtils::estimate_lines(text), 2);
@@ -675,7 +675,7 @@ impl TextUtils {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::text_operations::{TextVisitor, TextCollector};
+/// use quillai_parchment::text_operations::{TextVisitor, TextCollector};
 ///
 /// let mut collector = TextCollector::new();
 /// // Use with document traversal to collect all text
@@ -699,7 +699,7 @@ pub trait TextVisitor {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::text_operations::TextCollector;
+/// use quillai_parchment::text_operations::TextCollector;
 ///
 /// let mut collector = TextCollector::new();
 /// // After traversal, collector.collected_text contains all text
@@ -720,7 +720,7 @@ impl TextCollector {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextCollector;
+    /// use quillai_parchment::text_operations::TextCollector;
     ///
     /// let collector = TextCollector::new();
     /// assert!(collector.collected_text.is_empty());
@@ -753,7 +753,7 @@ impl TextVisitor for TextCollector {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::text_operations::TextSearcher;
+/// use quillai_parchment::text_operations::TextSearcher;
 ///
 /// let mut searcher = TextSearcher::new("hello".to_string(), false);
 /// // After traversal, searcher.matches contains all found occurrences
@@ -784,7 +784,7 @@ impl TextSearcher {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::text_operations::TextSearcher;
+    /// use quillai_parchment::text_operations::TextSearcher;
     ///
     /// let searcher = TextSearcher::new("hello".to_string(), false);
     /// assert_eq!(searcher.pattern, "hello");
@@ -845,4 +845,3 @@ impl TextVisitor for TextSearcher {
         self.current_offset += text.len() as u32;
     }
 }
-

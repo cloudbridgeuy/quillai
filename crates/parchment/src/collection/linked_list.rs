@@ -15,7 +15,7 @@
 //! # Usage Examples
 //!
 //! ```rust
-//! use parchment::collection::LinkedList;
+//! use quillai_parchment::collection::LinkedList;
 //!
 //! // Create and populate a list
 //! let mut list = LinkedList::new();
@@ -112,7 +112,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let list: LinkedList<i32> = LinkedList::new();
     /// assert_eq!(list.length, 0);
@@ -137,7 +137,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.insert_at_head(1);
@@ -169,7 +169,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.insert_at_tail(1);
@@ -208,7 +208,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.insert_at_ith(0, 1);
@@ -268,7 +268,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -308,7 +308,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -351,7 +351,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -416,7 +416,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -444,7 +444,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -498,7 +498,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -542,7 +542,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -587,7 +587,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let list: LinkedList<i32> = LinkedList::new();
     /// assert_eq!(list.offset(5), 5);
@@ -614,7 +614,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -644,7 +644,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -695,7 +695,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -720,7 +720,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -746,7 +746,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.insert(0, 1);
@@ -776,7 +776,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -806,7 +806,7 @@ impl<T> LinkedList<T> {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);
@@ -890,7 +890,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::collection::LinkedList;
+    /// use quillai_parchment::collection::LinkedList;
     ///
     /// let mut list = LinkedList::new();
     /// list.push(1);

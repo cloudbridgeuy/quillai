@@ -19,7 +19,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use parchment::utils::*;
+//! use quillai_parchment::utils::*;
 //!
 //! // DOM utilities are re-exported for convenience
 //! let window = window()?;

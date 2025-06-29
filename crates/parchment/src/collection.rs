@@ -16,7 +16,7 @@
 //! # Usage
 //!
 //! ```rust
-//! use parchment::collection::LinkedList;
+//! use quillai_parchment::collection::LinkedList;
 //!
 //! let mut list = LinkedList::new();
 //! list.push("first");

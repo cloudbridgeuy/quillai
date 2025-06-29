@@ -16,7 +16,7 @@
 //! ## Creating Elements
 //!
 //! ```rust
-//! use parchment::dom::Dom;
+//! use quillai_parchment::dom::Dom;
 //!
 //! // Create a paragraph element
 //! let p = Dom::create_element("p")?;
@@ -31,7 +31,7 @@
 //! ## Manipulating Content
 //!
 //! ```rust
-//! use parchment::dom::Dom;
+//! use quillai_parchment::dom::Dom;
 //!
 //! let element = Dom::create_element("div")?;
 //! Dom::set_text_content(&element, "New content");
@@ -47,7 +47,9 @@
 //! and document management in web browsers.
 
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, Element, Node, Text, Window};
+use web_sys::{Element, Node, Text};
+
+use crate::utils::dom;
 
 /// Utility functions for DOM manipulation in WebAssembly environments.
 ///
@@ -77,13 +79,13 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let window = Dom::window()?;
     /// // Use window for further DOM operations
     /// ```
-    pub fn window() -> Result<Window, JsValue> {
-        web_sys::window().ok_or_else(|| JsValue::from_str("No global window object"))
+    pub fn window() -> Result<web_sys::Window, JsValue> {
+        dom::window()
     }
 
     /// Get the document object from the global window.
@@ -99,15 +101,13 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let document = Dom::document()?;
     /// // Use document to create elements
     /// ```
-    pub fn document() -> Result<Document, JsValue> {
-        Self::window()?
-            .document()
-            .ok_or_else(|| JsValue::from_str("No document in window"))
+    pub fn document() -> Result<web_sys::Document, JsValue> {
+        dom::document()
     }
 
     /// Create an HTML element with the specified tag name.
@@ -127,14 +127,14 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let paragraph = Dom::create_element("p")?;
     /// let span = Dom::create_element("span")?;
     /// ```
     pub fn create_element(tag_name: &str) -> Result<Element, JsValue> {
-        Self::document()?.create_element(tag_name)
+        dom::create_element(tag_name)
     }
 
     /// Create a text node with the specified content.
@@ -154,13 +154,13 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let text = Dom::create_text_node("Hello, world!")?;
     /// let empty_text = Dom::create_text_node("")?;
     /// ```
     pub fn create_text_node(content: &str) -> Result<Text, JsValue> {
-        Ok(Self::document()?.create_text_node(content))
+        dom::create_text_node(content)
     }
 
     /// Append a child node to a parent node.
@@ -182,7 +182,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let text = Dom::create_text_node("Hello")?;
@@ -206,7 +206,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// Dom::set_text_content(&div, "New content");
@@ -233,7 +233,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// Dom::set_text_content(&div, "Hello");
@@ -262,7 +262,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let text = Dom::create_text_node("Hello")?;
@@ -293,7 +293,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let first = Dom::create_text_node("First")?;
@@ -330,7 +330,7 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let old_text = Dom::create_text_node("Old")?;
@@ -365,12 +365,46 @@ impl Dom {
     /// # Examples
     ///
     /// ```rust
-    /// use parchment::dom::Dom;
+    /// use quillai_parchment::dom::Dom;
     ///
     /// let text_node = Dom::create_text("Hello, world!")?;
     /// // text_node is now a Node that can be used with other DOM methods
     /// ```
     pub fn create_text(content: &str) -> Result<Node, JsValue> {
-        Ok(Self::create_text_node(content)?.into())
+        Ok(dom::create_text_node(content)?.into())
+    }
+
+    /// Get an element by its ID attribute.
+    ///
+    /// This method searches the document for an element with the specified ID
+    /// attribute and returns it if found. This is a common operation for locating
+    /// specific elements in the DOM.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID attribute value to search for
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Some(Element))` - The element with the matching ID
+    /// * `Ok(None)` - If no element with the ID exists
+    /// * `Err(JsValue)` - If the DOM is unavailable
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_parchment::dom::Dom;
+    ///
+    /// match Dom::get_element_by_id("editor")? {
+    ///     Some(element) => {
+    ///         // Element found, use it
+    ///     }
+    ///     None => {
+    ///         // Element not found
+    ///     }
+    /// }
+    /// ```
+    pub fn get_element_by_id(id: &str) -> Result<Option<Element>, JsValue> {
+        dom::get_element_by_id(id)
     }
 }

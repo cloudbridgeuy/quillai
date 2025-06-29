@@ -17,7 +17,7 @@
 //! ## Basic DOM Operations
 //!
 //! ```rust
-//! use parchment::utils::dom::*;
+//! use quillai_parchment::utils::dom::*;
 //!
 //! // Get browser objects
 //! let window = window()?;
@@ -36,7 +36,7 @@
 //! All functions return `Result` types with appropriate error messages:
 //!
 //! ```rust
-//! use parchment::utils::dom::*;
+//! use quillai_parchment::utils::dom::*;
 //!
 //! match window() {
 //!     Ok(win) => {
@@ -70,7 +70,7 @@ use web_sys::{Document, Element, Window};
 /// # Examples
 ///
 /// ```rust
-/// use parchment::utils::dom::window;
+/// use quillai_parchment::utils::dom::window;
 ///
 /// let window = window()?;
 /// let location = window.location();
@@ -97,7 +97,7 @@ pub fn window() -> Result<Window, JsValue> {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::utils::dom::document;
+/// use quillai_parchment::utils::dom::document;
 ///
 /// let doc = document()?;
 /// let title = doc.title();
@@ -131,7 +131,7 @@ pub fn document() -> Result<Document, JsValue> {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::utils::dom::create_element;
+/// use quillai_parchment::utils::dom::create_element;
 ///
 /// let div = create_element("div")?;
 /// let paragraph = create_element("p")?;
@@ -165,7 +165,7 @@ pub fn create_element(tag_name: &str) -> Result<Element, JsValue> {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::utils::dom::create_text_node;
+/// use quillai_parchment::utils::dom::create_text_node;
 ///
 /// let text = create_text_node("Hello, world!")?;
 /// let empty_text = create_text_node("")?;
@@ -199,7 +199,7 @@ pub fn create_text_node(content: &str) -> Result<web_sys::Text, JsValue> {
 /// # Examples
 ///
 /// ```rust
-/// use parchment::utils::dom::get_element_by_id;
+/// use quillai_parchment::utils::dom::get_element_by_id;
 ///
 /// // Look for an element with id="editor"
 /// match get_element_by_id("editor")? {
