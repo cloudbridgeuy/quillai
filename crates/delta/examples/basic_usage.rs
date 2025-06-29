@@ -1,4 +1,4 @@
-use delta::{AttributeValue, Delta};
+use quillai_delta::{AttributeValue, Delta};
 use std::collections::BTreeMap;
 
 fn main() {

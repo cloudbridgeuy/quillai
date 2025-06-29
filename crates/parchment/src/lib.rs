@@ -179,7 +179,7 @@ pub use blot::inline::InlineBlot;
 pub use blot::scroll::ScrollBlot;
 pub use blot::text::TextBlot;
 pub use blot::traits_simple::*;
-pub use registry::Registry;
+pub use registry::{Registry, ParchmentError};
 pub use scope::Scope;
 pub use text_operations::*;
 pub use utils::*;

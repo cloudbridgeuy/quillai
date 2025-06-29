@@ -47,17 +47,9 @@ uuid = { version = "1.0", features = ["v4"] }
 dioxus = { version = "0.6", features = ["desktop"] }
 
 [[example]]
-name = "basic_editor"
-path = "examples/basic_editor.rs"
-
-[[example]]
 name = "minimal_setup"
 path = "examples/minimal_setup.rs"
 
 [[example]]
-name = "with_initial_content"
-path = "examples/with_initial_content.rs"
-
-[[example]]
-name = "keyboard_shortcuts"
-path = "examples/keyboard_shortcuts.rs"
+name = "delta_integration"
+path = "examples/delta_integration.rs"

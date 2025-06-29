@@ -7,6 +7,9 @@
 //! - Integration with Delta and Parchment systems
 
 pub mod component;
+pub mod delta_integration;
+pub mod input_handler;
+pub mod parchment_integration;
 // pub mod state;
 
 // Re-export main types

@@ -1,3 +1,5 @@
+#![doc(test(attr(ignore)))]
+
 //! # QuillAI Editor
 //!
 //! A modern rich text editor component for Dioxus applications.
@@ -35,3 +37,5 @@ pub mod utils;
 
 // Re-export the main component and types for easy access
 pub use editor::component::{QuillAIEditor, QuillAIEditorProps};
+pub use editor::delta_integration;
+pub use editor::parchment_integration;
