@@ -2,6 +2,7 @@
 
 use dioxus::prelude::*;
 use std::collections::HashMap;
+use quillai_delta::Delta;
 
 /// The main QuillAI Editor component.
 ///
@@ -196,14 +197,113 @@ pub fn QuillAIEditor(
     #[props(default)]
     custom_shortcuts: Option<HashMap<String, String>>,
 ) -> Element {
-    // TODO: Implement component logic in subsequent sub-tasks
-    // For now, just show a placeholder
-    let _ = (initial_content, readonly, placeholder, class, on_change, on_selection_change, custom_shortcuts);
+    // Initialize editor signals
+    let document = use_signal(|| {
+        if let Some(_content) = &initial_content {
+            // TODO: Parse content to Delta when we implement text parsing
+            Delta::new()
+        } else {
+            Delta::new()
+        }
+    });
     
+    let _history = use_signal(|| vec![Delta::new()]);
+    let _history_index = use_signal(|| 0usize);
+    let selection = use_signal(|| (0usize, 0usize));
+    let mut focus = use_signal(|| false);
+    let readonly_signal = use_signal(|| readonly);
+    let placeholder_signal = use_signal(|| placeholder.clone());
+    let css_class_signal = use_signal(|| class.clone());
+    let _custom_shortcuts_signal = use_signal(|| custom_shortcuts.clone().unwrap_or_default());
+    
+    // Get current state values for rendering
+    let document_value = document.read();
+    let is_empty = document_value.ops().is_empty();
+    let placeholder_text = placeholder_signal.read();
+    let css_class = css_class_signal.read();
+    let is_readonly = readonly_signal.read();
+    let has_focus = focus.read();
+    
+    // Build CSS classes
+    let mut classes = vec!["quillai-editor"];
+    if let Some(ref custom_class) = css_class.as_ref() {
+        classes.push(custom_class);
+    }
+    if *is_readonly {
+        classes.push("readonly");
+    }
+    if *has_focus {
+        classes.push("focused");
+    }
+    let class_string = classes.join(" ");
+    
+    // Signals can be captured directly in closures
+    
+    // Render the editor
     rsx! {
         div {
-            class: "quillai-editor",
-            "QuillAI Editor - Coming Soon"
+            class: "{class_string}",
+            tabindex: if *is_readonly { -1 } else { 0 },
+            
+            // Focus handling
+            onfocus: move |_| {
+                focus.set(true);
+            },
+            onblur: move |_| {
+                focus.set(false);
+            },
+            
+            // Content area
+            if is_empty && placeholder_text.is_some() {
+                div {
+                    class: "quillai-placeholder",
+                    "{placeholder_text.as_ref().unwrap()}"
+                }
+            }
+            
+            // Document content (simplified for now)
+            div {
+                class: "quillai-content",
+                contenteditable: if *is_readonly { "false" } else { "true" },
+                
+                // Basic input handling (will be enhanced in later sub-tasks)
+                oninput: move |event| {
+                    if let Some(ref handler) = on_change {
+                        // For now, just call with a simple JSON representation
+                        // TODO: Implement proper Delta serialization
+                        let content = event.value();
+                        handler.call(format!(r#"{{"ops":[{{"insert":"{}"}},{{"insert":"\n"}}]}}"#, content));
+                    }
+                },
+                
+                // Render current document content as plain text for now
+                // TODO: Implement proper Delta-to-HTML rendering
+                {
+                    if document_value.ops().is_empty() {
+                        String::new()
+                    } else {
+                        // Simple text extraction from Delta
+                        document_value.ops().iter()
+                            .filter_map(|op| {
+                                if let quillai_delta::Op::Insert { text, .. } = op {
+                                    Some(text.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<String>()
+                    }
+                }
+            }
+            
+            // Debug info (will be removed in later phases)
+            if cfg!(debug_assertions) {
+                div {
+                    class: "quillai-debug",
+                    style: "font-size: 10px; color: #666; margin-top: 8px;",
+                    "Debug: {document_value.ops().len()} ops, selection: {selection.read().0}-{selection.read().1}"
+                }
+            }
         }
     }
 }

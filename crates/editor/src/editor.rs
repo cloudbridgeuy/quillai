@@ -7,7 +7,7 @@
 //! - Integration with Delta and Parchment systems
 
 pub mod component;
-pub mod state;
+// pub mod state;
 
 // Re-export main types
 pub use component::{QuillAIEditor, QuillAIEditorProps};
