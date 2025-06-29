@@ -29,6 +29,8 @@ inherits = "dev"
 
 [workspace.dependencies]
 quillai_log = { version = "0.0.0", path = "./crates/log" }
+quillai_delta = { version = "0.0.0", path = "./crates/delta" }
+quillai_parchment = { version = "0.0.0", path = "./crates/parchment" }
 clap = { version = "4.5.35", features = ["derive", "env", "string"] }
 tokio = { version = "1.44.0", features = ["full"] }
 env_logger = "0.11.3"
@@ -48,3 +50,6 @@ sea-orm = { version = "1.1.0", features = [
   "runtime-tokio-rustls",
   "macros",
 ] }
+uuid = { version = "1" }
+dioxus = { version = "0.6" }
+dioxus-web = { version = "0.6" }

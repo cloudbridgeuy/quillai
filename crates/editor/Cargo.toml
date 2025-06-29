@@ -1,0 +1,63 @@
+[package]
+name = "quillai_editor"
+version = "0.1.0"
+homepage = "https://github.com/cloudbridgeuy/quillai/crates/editor/README.md"
+description = "QuillAI Editor - A modern rich text editor component for Dioxus applications"
+autobins = false
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "quillai_editor"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Core Dioxus framework
+dioxus = "0.6"
+
+# QuillAI crates
+quillai_delta = { path = "../delta" }
+quillai_parchment = { path = "../parchment" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Web APIs (for keyboard handling and DOM interaction)
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+  "KeyboardEvent",
+  "ClipboardEvent", 
+  "Selection",
+  "Range",
+  "Document",
+  "Element",
+  "HtmlElement"
+] }
+js-sys = "0.3"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4"] }
+
+[dev-dependencies]
+dioxus = { version = "0.6", features = ["desktop"] }
+
+[[example]]
+name = "basic_editor"
+path = "examples/basic_editor.rs"
+
+[[example]]
+name = "minimal_setup"
+path = "examples/minimal_setup.rs"
+
+[[example]]
+name = "with_initial_content"
+path = "examples/with_initial_content.rs"
+
+[[example]]
+name = "keyboard_shortcuts"
+path = "examples/keyboard_shortcuts.rs"
