@@ -14,33 +14,33 @@
 //! ## Common Use Cases
 //!
 //! - Link `href` attributes
-//! - Image `src` and `alt` attributes  
+//! - Image `src` and `alt` attributes
 //! - Form input attributes (`type`, `name`, `value`)
 //! - Custom data attributes (`data-*`)
 //! - Accessibility attributes (`aria-*`, `role`)
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{Attributor, AttributorOptions, Scope};
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::attributor::{Attributor, AttributorOptions};
+//! use quillai_parchment::scope::Scope;
+//!
+//!
 //! // Create a link href attributor
 //! let href_attributor = Attributor::new(
 //!     "href",
-//!     "href", 
+//!     "href",
 //!     AttributorOptions {
 //!         scope: Some(Scope::Inline),
 //!         whitelist: None,
 //!     }
 //! );
-//! 
+//!
 //! // Apply to an element
-//! let success = href_attributor.add(&link_element, &JsValue::from_str("https://example.com"));
-//! assert!(success);
-//! 
+//! //let success = href_attributor.add(&link_element, &JsValue::from_str("https://example.com"));
+//!
 //! // Retrieve the value
-//! let value = href_attributor.value(&link_element);
-//! assert_eq!(value.as_string().unwrap(), "https://example.com");
+//! //let value = href_attributor.value(&link_element);
 //! ```
 
 use crate::registry::AttributorTrait;
@@ -55,20 +55,25 @@ use web_sys::Element;
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{AttributorOptions, Scope};
-/// 
-/// // Basic options with scope
-/// let options = AttributorOptions {
-///     scope: Some(Scope::Inline),
-///     whitelist: None,
-/// };
-/// 
-/// // Options with whitelist for validation
-/// let restricted_options = AttributorOptions {
-///     scope: Some(Scope::Block),
-///     whitelist: Some(vec!["left".to_string(), "center".to_string(), "right".to_string()]),
-/// };
+/// ```rust,no_run
+/// use quillai_parchment::attributor::{Attributor, AttributorOptions};
+/// use quillai_parchment::registry::AttributorTrait;
+/// use quillai_parchment::Scope;
+/// use wasm_bindgen::JsValue;
+///
+/// // Create a link href attributor
+/// let href_attributor = Attributor::new(
+///     "href",
+///     "href",
+///     AttributorOptions {
+///         scope: Some(Scope::Inline),
+///         whitelist: None,
+///     }
+/// );
+///
+/// // Example usage (requires WASM environment):
+/// // let success = href_attributor.add(&link_element, &JsValue::from_str("https://example.com"));
+/// // let value = href_attributor.value(&link_element);
 /// ```
 #[derive(Default, Debug, Clone)]
 pub struct AttributorOptions {
@@ -98,9 +103,12 @@ pub struct AttributorOptions {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{Attributor, AttributorOptions, Scope};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::attributor::{Attributor, AttributorOptions};
+/// use quillai_parchment::registry::AttributorTrait;
+/// use quillai_parchment::Scope;
+/// use wasm_bindgen::JsValue;
+///
 /// // Create image source attributor
 /// let src_attributor = Attributor::new(
 ///     "image",           // Parchment attribute name
@@ -110,9 +118,9 @@ pub struct AttributorOptions {
 ///         whitelist: None,
 ///     }
 /// );
-/// 
-/// // Use with DOM elements
-/// src_attributor.add(&img_element, &JsValue::from_str("image.jpg"));
+///
+/// // Example usage (requires WASM environment):
+/// // src_attributor.add(&img_element, &JsValue::from_str("image.jpg"));
 /// ```
 pub struct Attributor {
     /// The logical attribute name used by Parchment
@@ -147,6 +155,9 @@ impl Attributor {
     ///
     /// # Examples
     /// ```rust
+    /// use quillai_parchment::attributor::{Attributor, AttributorOptions};
+    /// use quillai_parchment::Scope;
+    ///
     /// // Create a link attributor
     /// let link_attr = Attributor::new(
     ///     "link",
@@ -156,7 +167,7 @@ impl Attributor {
     ///         whitelist: None,
     ///     }
     /// );
-    /// 
+    ///
     /// // Create a restricted alignment attributor
     /// let align_attr = Attributor::new(
     ///     "align",
@@ -199,9 +210,12 @@ impl Attributor {
     /// Vector of attribute names present on the element
     ///
     /// # Examples
-    /// ```rust
-    /// let keys = Attributor::keys(&element);
-    /// println!("Element has attributes: {:?}", keys);
+    /// ```rust,no_run
+    /// use quillai_parchment::attributor::Attributor;
+    ///
+    /// // Example usage (requires WASM environment):
+    /// // let keys = Attributor::keys(&element);
+    /// // println!("Element has attributes: {:?}", keys);
     /// ```
     pub fn keys(node: &Element) -> Vec<String> {
         let mut keys = Vec::new();
@@ -233,7 +247,10 @@ impl Attributor {
     /// - Quotes are stripped from values before validation
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::attributor::{Attributor, AttributorOptions};
+    /// use wasm_bindgen::JsValue;
+    ///
     /// let restricted_attr = Attributor::new(
     ///     "align", "align",
     ///     AttributorOptions {
@@ -241,9 +258,10 @@ impl Attributor {
     ///         ..Default::default()
     ///     }
     /// );
-    /// 
-    /// assert!(restricted_attr.can_add(&element, &JsValue::from_str("center")));
-    /// assert!(!restricted_attr.can_add(&element, &JsValue::from_str("invalid")));
+    ///
+    /// // Example usage (requires WASM environment):
+    /// // assert!(restricted_attr.can_add(&element, &JsValue::from_str("center")));
+    /// // assert!(!restricted_attr.can_add(&element, &JsValue::from_str("invalid")));
     /// ```
     pub fn can_add(&self, _node: &Element, value: &JsValue) -> bool {
         if let Some(ref whitelist) = self.whitelist {

@@ -21,13 +21,15 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{InlineBlot, TextBlot};
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::{InlineBlot, TextBlot, ParentBlotTrait};
+//! use quillai_parchment::dom::Dom;
+//!
 //! // Create bold formatting
-//! let bold = InlineBlot::from_element(create_element("strong")?);
+//! let mut bold = InlineBlot::from_element(Dom::create_element("strong")?);
 //! let text = TextBlot::new("Bold text")?;
 //! bold.append_child(Box::new(text))?;
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
@@ -52,21 +54,22 @@ use web_sys::{Element, HtmlElement, Node};
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{InlineBlot, TextBlot};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::{InlineBlot, TextBlot, ParentBlotTrait};
+///
 /// // Create a bold span
 /// let mut bold = InlineBlot::new(None)?;  // Creates <span>
-/// bold.dom_element().set_tag_name("strong");
-/// 
+/// bold.dom_element().set_id("bold");
+///
 /// // Add text content
 /// let text = TextBlot::new("Bold text")?;
 /// bold.append_child(Box::new(text))?;
-/// 
+///
 /// // Create nested formatting
 /// let mut italic = InlineBlot::new(None)?;
-/// italic.dom_element().set_tag_name("em");
+/// italic.dom_element().set_id("italic");
 /// bold.append_child(Box::new(italic))?;
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[wasm_bindgen]
 pub struct InlineBlot {
@@ -137,9 +140,12 @@ impl InlineBlot {
     /// New InlineBlot containing the text content
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::{ParentBlotTrait, InlineBlot};
+    ///
     /// let bold_text = InlineBlot::with_text("Bold content")?;
     /// assert_eq!(bold_text.text_content(), "Bold content");
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn with_text(text: &str) -> Result<InlineBlot, JsValue> {
         let mut inline = InlineBlot::new(None)?;
@@ -186,12 +192,12 @@ impl InlineBlot {
         let strong = Dom::create_element("strong")?;
         let text_node = Dom::create_text_node(&text)?;
         strong.append_child(&text_node)?;
-        
+
         let mut inline = InlineBlot {
             dom_node: strong,
             children: LinkedList::new(),
         };
-        
+
         // Build children from the DOM structure
         inline.build_children()?;
         Ok(inline)
@@ -210,12 +216,12 @@ impl InlineBlot {
         let em = Dom::create_element("em")?;
         let text_node = Dom::create_text_node(&text)?;
         em.append_child(&text_node)?;
-        
+
         let mut inline = InlineBlot {
             dom_node: em,
             children: LinkedList::new(),
         };
-        
+
         // Build children from the DOM structure
         inline.build_children()?;
         Ok(inline)
@@ -234,12 +240,12 @@ impl InlineBlot {
         let u = Dom::create_element("u")?;
         let text_node = Dom::create_text_node(&text)?;
         u.append_child(&text_node)?;
-        
+
         let mut inline = InlineBlot {
             dom_node: u,
             children: LinkedList::new(),
         };
-        
+
         // Build children from the DOM structure
         inline.build_children()?;
         Ok(inline)
@@ -258,12 +264,12 @@ impl InlineBlot {
         let code = Dom::create_element("code")?;
         let text_node = Dom::create_text_node(&text)?;
         code.append_child(&text_node)?;
-        
+
         let mut inline = InlineBlot {
             dom_node: code,
             children: LinkedList::new(),
         };
-        
+
         // Build children from the DOM structure
         inline.build_children()?;
         Ok(inline)
@@ -282,12 +288,12 @@ impl InlineBlot {
         let s = Dom::create_element("s")?;
         let text_node = Dom::create_text_node(&text)?;
         s.append_child(&text_node)?;
-        
+
         let mut inline = InlineBlot {
             dom_node: s,
             children: LinkedList::new(),
         };
-        
+
         // Build children from the DOM structure
         inline.build_children()?;
         Ok(inline)

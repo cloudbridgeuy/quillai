@@ -59,16 +59,19 @@ use web_sys::Node;
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::ShadowBlot;
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::{BlotTrait, ShadowBlot};
+/// use quillai_parchment::dom::Dom;
+///
 /// // Create a basic blot (typically done by subclasses)
 /// let dom_node = Dom::create_element("div")?;
 /// let blot = ShadowBlot::new(dom_node.into())?;
-/// 
+///
 /// // Basic operations
 /// assert_eq!(blot.length(), 1);
 /// assert_eq!(blot.get_blot_name(), "abstract");
+///
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 pub struct ShadowBlot {
     /// The underlying DOM node that this blot represents
@@ -117,9 +120,13 @@ impl ShadowBlot {
     /// Returns error if tag_name is empty or DOM creation fails
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::blot::{BlotTrait, ShadowBlot};
+    ///
     /// let node = ShadowBlot::create_dom_node("div", Some("blot"), None)?;
     /// let blot = ShadowBlot::new(node)?;
+    ///
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn create_dom_node(
         tag_name: &str,

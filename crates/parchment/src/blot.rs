@@ -36,19 +36,24 @@
 //!
 //! ## Usage Patterns
 //!
-//! ```rust
-//! use quillai_parchment::{BlotTrait, TextBlot, BlockBlot};
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::blot::{BlotTrait, TextBlot, BlockBlot, ParentBlotTrait};
+//! use quillai_parchment::dom::Dom;
+//!
+//! let element = Dom::create_element("p")?;
+//!
 //! // Create a paragraph containing text
-//! let mut paragraph = BlockBlot::new("p", None);
-//! let text = TextBlot::new("Hello, world!");
+//! let mut paragraph = BlockBlot::new(Some(element))?;
+//! let text = TextBlot::new("Hello, world!")?;
 //! paragraph.append_child(Box::new(text))?;
-//! 
+//!
 //! // All blots implement the common interface
 //! fn process_blot(blot: &dyn BlotTrait) {
-//!     println!("Processing {} with length {}", 
+//!     println!("Processing {} with length {}",
 //!              blot.get_blot_name(), blot.length());
 //! }
+//!
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 /// Block-level blot implementations (paragraphs, headers, lists)
@@ -71,7 +76,9 @@ pub mod text;
 pub mod traits_simple;
 
 // Re-export key types for convenient access
+pub use block::BlockBlot;
 pub use mutations::{MutationObserverWrapper, OptimizeContext, UpdateContext};
 pub use parent::ParentBlot;
 pub use shadow_simple::ShadowBlot;
+pub use text::TextBlot;
 pub use traits_simple::*;

@@ -36,9 +36,21 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{StyleAttributor, AttributorOptions, Scope};
-//! 
+//! ```rust,no_run
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
+//! use quillai_parchment::attributor::{StyleAttributor, AttributorOptions};
+//! use quillai_parchment::scope::Scope;
+//! use quillai_parchment::registry::AttributorTrait;
+//! use quillai_parchment::dom::Dom;
+//! use wasm_bindgen::JsValue;
+//!
+//! let element = Dom::create_element("p")?;
+//!
+//! let options = AttributorOptions {
+//!    scope: Some(Scope::Block),
+//!    whitelist: None,
+//! };
+//!
 //! // Create text color attributor
 //! let color_attributor = StyleAttributor::new(
 //!     "color",           // Parchment attribute name
@@ -48,15 +60,17 @@
 //!         whitelist: None, // Allow any color value
 //!     }
 //! );
-//! 
+//!
 //! // Apply red color
 //! color_attributor.add(&element, &JsValue::from_str("#ff0000"));
 //! // Results in: style="color: #ff0000"
-//! 
+//!
 //! // Apply font size
 //! let size_attributor = StyleAttributor::new("fontSize", "font-size", options);
 //! size_attributor.add(&element, &JsValue::from_str("16px"));
 //! // Results in: style="color: #ff0000; font-size: 16px"
+//! # Ok(())
+//! # }
 //! ```
 
 use crate::attributor::base::AttributorOptions;
@@ -87,9 +101,16 @@ use web_sys::{Element, HtmlElement};
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{StyleAttributor, AttributorOptions, Scope};
-/// 
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
+/// use quillai_parchment::attributor::{StyleAttributor, AttributorOptions};
+/// use quillai_parchment::scope::Scope;
+/// use quillai_parchment::registry::AttributorTrait;
+/// use quillai_parchment::dom::Dom;
+/// use wasm_bindgen::JsValue;
+///
+/// let span_element = Dom::create_element("span")?;
+///
 /// // Create background color attributor
 /// let bg_attributor = StyleAttributor::new(
 ///     "background",
@@ -99,10 +120,12 @@ use web_sys::{Element, HtmlElement};
 ///         whitelist: None,
 ///     }
 /// );
-/// 
+///
 /// // Apply yellow background
 /// bg_attributor.add(&span_element, &JsValue::from_str("#ffff00"));
 /// // Results in: style="background-color: #ffff00"
+/// # Ok(())
+/// # }
 /// ```
 pub struct StyleAttributor {
     /// The logical attribute name used by Parchment
@@ -138,7 +161,10 @@ impl StyleAttributor {
     /// - `text-align`, `text-decoration`
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::attributor::{StyleAttributor, AttributorOptions};
+    /// use quillai_parchment::scope::Scope;
+    ///
     /// // Create text color attributor
     /// let color_attr = StyleAttributor::new(
     ///     "textColor",
@@ -148,7 +174,7 @@ impl StyleAttributor {
     ///         whitelist: None,
     ///     }
     /// );
-    /// 
+    ///
     /// // Create font size with restricted values
     /// let size_attr = StyleAttributor::new(
     ///     "fontSize",
@@ -198,7 +224,14 @@ impl StyleAttributor {
     /// - Useful for restricting to specific color palettes, font sizes, etc.
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # fn main() -> Result<(), wasm_bindgen::JsValue> {
+    /// use quillai_parchment::attributor::{StyleAttributor, AttributorOptions};
+    /// use quillai_parchment::dom::Dom;
+    /// use wasm_bindgen::JsValue;
+    ///
+    /// let element = Dom::create_element("p")?;
+    ///
     /// let restricted_color = StyleAttributor::new(
     ///     "color", "color",
     ///     AttributorOptions {
@@ -206,9 +239,11 @@ impl StyleAttributor {
     ///         ..Default::default()
     ///     }
     /// );
-    /// 
+    ///
     /// assert!(restricted_color.can_add(&element, &JsValue::from_str("#ff0000")));
     /// assert!(!restricted_color.can_add(&element, &JsValue::from_str("#purple")));
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn can_add(&self, _node: &Element, value: &JsValue) -> bool {
         if let Some(ref whitelist) = self.whitelist {

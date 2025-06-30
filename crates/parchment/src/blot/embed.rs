@@ -23,18 +23,20 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::EmbedBlot;
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::{EmbedBlot, BlotTrait};
+//! use quillai_parchment::dom::Dom;
+//!
 //! // Create an image embed
 //! let img_element = Dom::create_element("img")?;
 //! img_element.set_attribute("src", "image.jpg")?;
 //! img_element.set_attribute("alt", "Description")?;
 //! let image = EmbedBlot::from_element(img_element);
-//! 
+//!
 //! // Create a line break
 //! let br = EmbedBlot::create_line_break()?;
 //! assert_eq!(br.length(), 1);  // Always length 1
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
@@ -65,16 +67,18 @@ use web_sys::{Element, Node};
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::EmbedBlot;
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::{EmbedBlot, BlotTrait};
+/// use quillai_parchment::dom::Dom;
+///
 /// // Create a generic embed
 /// let embed = EmbedBlot::new(None)?;
 /// assert_eq!(embed.length(), 1);
-/// 
+///
 /// // Create from existing element
 /// let img = Dom::create_element("img")?;
 /// let image_embed = EmbedBlot::from_element(img);
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[wasm_bindgen]
 pub struct EmbedBlot {
@@ -113,6 +117,15 @@ impl EmbedBlot {
             dom_node: element,
             value,
         }
+    }
+
+    /// Create a line break.
+    pub fn create_line_break() -> Result<EmbedBlot, JsValue> {
+        let element = Dom::create_element("br")?;
+        Ok(EmbedBlot {
+            dom_node: element,
+            value: "\n".to_string(), // Line breaks represent newlines
+        })
     }
 
     /// Create an EmbedBlot with a specific tag and value

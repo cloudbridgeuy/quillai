@@ -20,20 +20,23 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{ParentBlot, TextBlot};
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::blot::{ParentBlot, TextBlot, ParentBlotTrait};
+//! use quillai_parchment::dom::Dom;
+//!
 //! // Create a parent container
 //! let dom_node = Dom::create_element("div")?;
 //! let mut parent = ParentBlot::new(dom_node.into())?;
-//! 
+//!
 //! // Add child content
 //! let text = TextBlot::new("Hello, world!")?;
 //! parent.append_child(Box::new(text))?;
-//! 
+//!
 //! // Access children
-//! assert_eq!(parent.children_count(), 1);
+//! assert_eq!(parent.children.length, 1);
 //! assert_eq!(parent.text_content(), "Hello, world!");
+//!
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::traits_simple::{create_element_with_class, BlotTrait, ParentBlotTrait};
@@ -65,22 +68,24 @@ use web_sys::{HtmlElement, Node};
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{ParentBlot, TextBlot};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::{ParentBlot, TextBlot, ParentBlotTrait};
+/// use quillai_parchment::dom::Dom;
+///
 /// // Create container
 /// let dom_element = Dom::create_element("div")?;
 /// let mut container = ParentBlot::new(dom_element.into())?;
-/// 
+///
 /// // Add children
 /// let text1 = TextBlot::new("First ")?;
 /// let text2 = TextBlot::new("Second")?;
-/// 
+///
 /// container.append_child(Box::new(text1))?;
 /// container.append_child(Box::new(text2))?;
-/// 
+///
 /// assert_eq!(container.children_count(), 2);
 /// assert_eq!(container.text_content(), "First Second");
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 pub struct ParentBlot {
     /// The underlying DOM node that contains child elements
@@ -102,10 +107,13 @@ impl ParentBlot {
     /// New ParentBlot instance on success, JsValue error on failure
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # use quillai_parchment::blot::ParentBlot;
+    /// # use quillai_parchment::dom::Dom;
     /// let div_element = Dom::create_element("div")?;
     /// let parent = ParentBlot::new(div_element.into())?;
-    /// assert_eq!(parent.children_count(), 0);
+    /// assert_eq!(parent.children.length, 0);
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn new(dom_node: Node) -> Result<Self, JsValue> {
         let blot = ParentBlot {
@@ -136,9 +144,11 @@ impl ParentBlot {
     /// Returns error if tag_name is empty or DOM creation fails
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # use quillai_parchment::blot::ParentBlot;
     /// let node = ParentBlot::create_dom_node("div", Some("container"), None)?;
     /// let parent = ParentBlot::new(node)?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn create_dom_node(
         tag_name: &str,

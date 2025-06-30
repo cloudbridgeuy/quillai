@@ -18,13 +18,16 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```rust,no_run
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
 //! use quillai_parchment::utils::*;
 //!
 //! // DOM utilities are re-exported for convenience
 //! let window = window()?;
 //! let document = document()?;
 //! let element = create_element("div")?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! # Design Principles

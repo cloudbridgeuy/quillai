@@ -15,7 +15,7 @@
 //!
 //! ## Creating Elements
 //!
-//! ```rust
+//! ```rust,no_run
 //! use quillai_parchment::dom::Dom;
 //!
 //! // Create a paragraph element
@@ -26,11 +26,12 @@
 //!
 //! // Append text to paragraph
 //! Dom::append_child(&p, &text)?;
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 //!
 //! ## Manipulating Content
 //!
-//! ```rust
+//! ```rust,no_run
 //! use quillai_parchment::dom::Dom;
 //!
 //! let element = Dom::create_element("div")?;
@@ -38,6 +39,7 @@
 //!
 //! let content = Dom::get_text_content(&element);
 //! assert_eq!(content, Some("New content".to_string()));
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 //!
 //! # WebAssembly Integration
@@ -78,11 +80,12 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let window = Dom::window()?;
     /// // Use window for further DOM operations
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn window() -> Result<web_sys::Window, JsValue> {
         dom::window()
@@ -100,11 +103,12 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let document = Dom::document()?;
     /// // Use document to create elements
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn document() -> Result<web_sys::Document, JsValue> {
         dom::document()
@@ -126,12 +130,13 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let paragraph = Dom::create_element("p")?;
     /// let span = Dom::create_element("span")?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn create_element(tag_name: &str) -> Result<Element, JsValue> {
         dom::create_element(tag_name)
@@ -153,11 +158,12 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let text = Dom::create_text_node("Hello, world!")?;
     /// let empty_text = Dom::create_text_node("")?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn create_text_node(content: &str) -> Result<Text, JsValue> {
         dom::create_text_node(content)
@@ -181,12 +187,14 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let text = Dom::create_text_node("Hello")?;
     /// Dom::append_child(&div, &text)?;
+    ///
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn append_child(parent: &Node, child: &Node) -> Result<Node, JsValue> {
         parent.append_child(child)
@@ -205,11 +213,12 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// Dom::set_text_content(&div, "New content");
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn set_text_content(node: &Node, content: &str) {
         node.set_text_content(Some(content));
@@ -232,13 +241,14 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// Dom::set_text_content(&div, "Hello");
     /// let content = Dom::get_text_content(&div);
     /// assert_eq!(content, Some("Hello".to_string()));
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn get_text_content(node: &Node) -> Option<String> {
         node.text_content()
@@ -261,13 +271,14 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
     /// let text = Dom::create_text_node("Hello")?;
     /// Dom::append_child(&div, &text)?;
     /// let removed = Dom::remove_child(&div, &text)?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn remove_child(parent: &Node, child: &Node) -> Result<Node, JsValue> {
         parent.remove_child(child)
@@ -292,7 +303,7 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
@@ -301,6 +312,7 @@ impl Dom {
     ///
     /// Dom::append_child(&div, &second)?;
     /// Dom::insert_before(&div, &first, Some(&second))?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn insert_before(
         parent: &Node,
@@ -329,7 +341,7 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let div = Dom::create_element("div")?;
@@ -338,6 +350,7 @@ impl Dom {
     ///
     /// Dom::append_child(&div, &old_text)?;
     /// let replaced = Dom::replace_child(&div, &new_text, &old_text)?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn replace_child(
         parent: &Node,
@@ -364,10 +377,11 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// let text_node = Dom::create_text("Hello, world!")?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// // text_node is now a Node that can be used with other DOM methods
     /// ```
     pub fn create_text(content: &str) -> Result<Node, JsValue> {
@@ -392,7 +406,7 @@ impl Dom {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::dom::Dom;
     ///
     /// match Dom::get_element_by_id("editor")? {
@@ -403,6 +417,7 @@ impl Dom {
     ///         // Element not found
     ///     }
     /// }
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn get_element_by_id(id: &str) -> Result<Option<Element>, JsValue> {
         dom::get_element_by_id(id)

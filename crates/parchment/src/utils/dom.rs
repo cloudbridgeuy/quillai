@@ -16,7 +16,8 @@
 //!
 //! ## Basic DOM Operations
 //!
-//! ```rust
+//! ```rust,no_run
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
 //! use quillai_parchment::utils::dom::*;
 //!
 //! // Get browser objects
@@ -29,13 +30,16 @@
 //!
 //! // Find existing elements
 //! let existing = get_element_by_id("my-element")?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! ## Error Handling
 //!
 //! All functions return `Result` types with appropriate error messages:
 //!
-//! ```rust
+//! ```rust,no_run
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
 //! use quillai_parchment::utils::dom::*;
 //!
 //! match window() {
@@ -46,6 +50,8 @@
 //!         // Handle error (e.g., not in browser environment)
 //!     }
 //! }
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! # WebAssembly Integration
@@ -69,11 +75,14 @@ use web_sys::{Document, Element, Window};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
 /// use quillai_parchment::utils::dom::window;
 ///
 /// let window = window()?;
-/// let location = window.location();
+/// let inner_width = window.inner_width()?;
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Errors
@@ -96,11 +105,14 @@ pub fn window() -> Result<Window, JsValue> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
 /// use quillai_parchment::utils::dom::document;
 ///
 /// let doc = document()?;
 /// let title = doc.title();
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Errors
@@ -130,12 +142,15 @@ pub fn document() -> Result<Document, JsValue> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
 /// use quillai_parchment::utils::dom::create_element;
 ///
 /// let div = create_element("div")?;
 /// let paragraph = create_element("p")?;
 /// let span = create_element("span")?;
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Errors
@@ -164,12 +179,15 @@ pub fn create_element(tag_name: &str) -> Result<Element, JsValue> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
 /// use quillai_parchment::utils::dom::create_text_node;
 ///
 /// let text = create_text_node("Hello, world!")?;
 /// let empty_text = create_text_node("")?;
 /// let unicode_text = create_text_node("🦀 Rust + WASM")?;
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Notes
@@ -198,8 +216,10 @@ pub fn create_text_node(content: &str) -> Result<web_sys::Text, JsValue> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
 /// use quillai_parchment::utils::dom::get_element_by_id;
+/// use web_sys::console;
 ///
 /// // Look for an element with id="editor"
 /// match get_element_by_id("editor")? {
@@ -212,6 +232,8 @@ pub fn create_text_node(content: &str) -> Result<web_sys::Text, JsValue> {
 ///         console::log_1(&"Editor element not found".into());
 ///     }
 /// }
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// # Notes

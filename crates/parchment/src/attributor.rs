@@ -25,25 +25,30 @@
 //! ## Common Use Cases
 //!
 //! ### Direct Attributes
-//! ```rust
+//! ```rust,no_run
+//! use quillai_parchment::attributor::{Attributor, AttributorOptions};
+//! use quillai_parchment::registry::AttributorTrait;
+//! use wasm_bindgen::JsValue;
+//!
 //! // Link href attribute
+//! let options = AttributorOptions::default();
 //! let link_attributor = Attributor::new("href", "href", options);
-//! link_attributor.add(&element, &JsValue::from_str("https://example.com"))?;
+//! // link_attributor.add(&element, &JsValue::from_str("https://example.com"));
 //! ```
 //!
 //! ### CSS Classes
-//! ```rust
+//! ```rust,no_run
 //! // Text alignment with CSS classes
-//! let align_attributor = ClassAttributor::new("align", "text-align", options);
-//! align_attributor.add(&element, &JsValue::from_str("center"))?;
+//! // let align_attributor = ClassAttributor::new("align", "text-align", options);
+//! // align_attributor.add(&element, &JsValue::from_str("center"));
 //! // Results in: class="text-align-center"
 //! ```
 //!
 //! ### Inline Styles
-//! ```rust
+//! ```rust,no_run
 //! // Text color with inline styles
-//! let color_attributor = StyleAttributor::new("color", "color", options);
-//! color_attributor.add(&element, &JsValue::from_str("#ff0000"))?;
+//! // let color_attributor = StyleAttributor::new("color", "color", options);
+//! // color_attributor.add(&element, &JsValue::from_str("#ff0000"));
 //! // Results in: style="color: #ff0000"
 //! ```
 //!
@@ -67,5 +72,7 @@ pub mod class;
 /// Inline style attributor for direct style property management
 pub mod style;
 
-// Re-export the base attributor for convenient access
+// Re-export attributors for convenient access
 pub use base::*;
+pub use class::*;
+pub use style::*;

@@ -29,21 +29,24 @@
 //!
 //! ## Usage Examples
 //!
-//! ```rust
-//! use quillai_parchment::MutationObserverWrapper;
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::blot::MutationObserverWrapper;
+//! use quillai_parchment::dom::Dom;
+//!
+//! let root_node = Dom::create_element("div")?;
+//!
 //! // Create observer for a document root
-//! let root_node = document.get_element_by_id("editor")?;
 //! let observer = MutationObserverWrapper::new(root_node.into())?;
-//! 
+//!
 //! // Start observing
 //! observer.observe()?;
-//! 
+//!
 //! // DOM changes are now automatically detected and processed
 //! // ...
-//! 
+//!
 //! // Stop observing when done
 //! observer.disconnect();
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::traits_simple::BlotTrait;
@@ -69,11 +72,18 @@ const MAX_OPTIMIZE_ITERATIONS: usize = 100;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// use quillai_parchment::blot::UpdateContext;
+/// use web_sys::MutationRecord;
+///
+/// let mutation_records: Vec<MutationRecord> = vec![];
+///
 /// let context = UpdateContext {
-///     mutation_records: vec![mutation_record],
+///     mutation_records,
 ///     iteration_count: 1,
 /// };
+///
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[derive(Debug, Clone)]
 pub struct UpdateContext {
@@ -91,6 +101,8 @@ pub struct UpdateContext {
 /// # Examples
 ///
 /// ```rust
+/// use quillai_parchment::blot::OptimizeContext;
+///
 /// let context = OptimizeContext {
 ///     iteration_count: 1,
 ///     has_changes: true,
@@ -126,18 +138,22 @@ pub struct OptimizeContext {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::MutationObserverWrapper;
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::MutationObserverWrapper;
+/// use quillai_parchment::dom::Dom;
+///
+/// let root_node = Dom::create_element("div")?;
+///
 /// // Create and start observer
-/// let observer = MutationObserverWrapper::new(root_node)?;
+/// let observer = MutationObserverWrapper::new(root_node.into())?;
 /// observer.observe()?;
-/// 
+///
 /// // Observer now automatically handles DOM changes
 /// // ...
-/// 
+///
 /// // Clean up when done
 /// observer.disconnect();
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 pub struct MutationObserverWrapper {
     /// The underlying DOM MutationObserver
@@ -1200,12 +1216,6 @@ impl Drop for MutationObserverWrapper {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_mutation_observer_creation() {
-        // This test would need to run in a browser context
-        // For now, just test that the structure compiles
-    }
 
     #[test]
     fn test_update_context() {

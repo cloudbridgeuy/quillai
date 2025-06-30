@@ -23,23 +23,24 @@
 //!
 //! ## Usage Examples
 //!
-//! ```rust
+//! ```rust,no_run
 //! use quillai_parchment::ScrollBlot;
-//! 
+//!
 //! // Create document root
 //! let mut document = ScrollBlot::new(None)?;
-//! 
+//!
 //! // Add content
 //! document.append_text("Hello, world!")?;
 //! document.append_text("Second paragraph.")?;
-//! 
+//!
 //! // Document operations
 //! let word_count = document.word_count();
 //! let stats = document.get_statistics();
-//! 
+//!
 //! // Find and replace
 //! let matches = document.find_text("world", true)?;
 //! document.replace_all("world", "universe")?;
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::mutations::MutationObserverWrapper;
@@ -79,23 +80,24 @@ use web_sys::{Element, HtmlElement, Node};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use quillai_parchment::ScrollBlot;
-/// 
+///
 /// // Create document
 /// let mut doc = ScrollBlot::new(None)?;
 /// doc.append_text("Welcome to Parchment!")?;
-/// 
+///
 /// // Text operations
 /// assert_eq!(doc.word_count(), 3);
 /// assert_eq!(doc.paragraph_count(), 1);
-/// 
+///
 /// // Find and replace
 /// let matches = doc.find_text("Parchment", true)?;
 /// assert_eq!(matches.len(), 1);
-/// 
+///
 /// doc.replace_all("Parchment", "the editor")?;
 /// assert!(doc.text_content().contains("the editor"));
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[wasm_bindgen]
 pub struct ScrollBlot {
@@ -124,7 +126,7 @@ impl ScrollBlot {
     /// ```javascript
     /// // From JavaScript after WASM init
     /// const editor = new ScrollBlot();  // Creates <div class="parchment-scroll">
-    /// 
+    ///
     /// // Or wrap existing element
     /// const existing = document.getElementById('editor');
     /// const editor2 = new ScrollBlot(existing);
@@ -295,10 +297,12 @@ impl ScrollBlot {
     /// `Ok(())` on success, `Err(JsValue)` if observer creation fails
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
     /// let mut doc = ScrollBlot::new(None)?;
     /// doc.start_mutation_observer()?;
     /// assert!(doc.is_observing_mutations());
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn start_mutation_observer(&mut self) -> Result<(), JsValue> {
         if self.mutation_observer.is_none() {
@@ -470,15 +474,17 @@ impl ScrollBlot {
     /// Vector of TextMatch objects containing match positions and metadata
     ///
     /// # Examples
-    /// ```rust
-    /// let doc = ScrollBlot::new(None)?;
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
+    /// let mut doc = ScrollBlot::new(None)?;
     /// doc.append_text("Hello world! Hello universe!")?;
-    /// 
+    ///
     /// let matches = doc.find_text("Hello", true)?;
     /// assert_eq!(matches.len(), 2);
-    /// 
+    ///
     /// let case_insensitive = doc.find_text("hello", false)?;
     /// assert_eq!(case_insensitive.len(), 2);
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     #[wasm_bindgen]
     pub fn find_text(
@@ -670,10 +676,12 @@ impl ScrollBlot {
     /// Total number of words in the document
     ///
     /// # Examples
-    /// ```rust
-    /// let doc = ScrollBlot::new(None)?;
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
+    /// let mut doc = ScrollBlot::new(None)?;
     /// doc.append_text("Hello world! This is a test.")?;
     /// assert_eq!(doc.word_count(), 6);
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     #[wasm_bindgen]
     pub fn word_count(&self) -> u32 {
@@ -693,11 +701,13 @@ impl ScrollBlot {
     /// Total character count based on the specified criteria
     ///
     /// # Examples
-    /// ```rust
-    /// let doc = ScrollBlot::new(None)?;
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
+    /// let mut doc = ScrollBlot::new(None)?;
     /// doc.append_text("Hello world!")?;
     /// assert_eq!(doc.character_count(true), 12);   // With spaces
     /// assert_eq!(doc.character_count(false), 11);  // Without spaces
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     #[wasm_bindgen]
     pub fn character_count(&self, include_spaces: bool) -> u32 {
@@ -715,13 +725,15 @@ impl ScrollBlot {
     /// Number of paragraph-level elements (minimum 1)
     ///
     /// # Examples
-    /// ```rust
-    /// let doc = ScrollBlot::new(None)?;
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
+    /// let mut doc = ScrollBlot::new(None)?;
     /// assert_eq!(doc.paragraph_count(), 1);  // Empty document
-    /// 
+    ///
     /// doc.append_text("First paragraph")?;
     /// doc.append_text("Second paragraph")?;
     /// assert_eq!(doc.paragraph_count(), 2);
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     #[wasm_bindgen]
     pub fn paragraph_count(&self) -> u32 {
@@ -755,14 +767,16 @@ impl ScrollBlot {
     /// TextStatistics object with comprehensive document metrics
     ///
     /// # Examples
-    /// ```rust
-    /// let doc = ScrollBlot::new(None)?;
+    /// ```rust,no_run
+    /// # use quillai_parchment::ScrollBlot;
+    /// let mut doc = ScrollBlot::new(None)?;
     /// doc.append_text("Hello world! This is a test document.")?;
-    /// 
+    ///
     /// let stats = doc.get_statistics();
     /// assert_eq!(stats.words, 7);
     /// assert_eq!(stats.sentences, 2);
     /// assert!(stats.characters > 0);
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     #[wasm_bindgen]
     pub fn get_statistics(&self) -> TextStatistics {

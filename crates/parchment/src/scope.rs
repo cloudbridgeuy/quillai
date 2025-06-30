@@ -33,7 +33,7 @@ use wasm_bindgen::prelude::*;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use quillai_parchment::Scope;
 ///
 /// // Check if a scope matches another
@@ -111,7 +111,7 @@ impl Scope {
     /// `true` if the scopes share type bits, `false` otherwise
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::Scope;
     ///
     /// assert!(Scope::BlockBlot.has_type(Scope::Block));
@@ -134,7 +134,7 @@ impl Scope {
     /// `true` if the scopes share level bits, `false` otherwise
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::Scope;
     ///
     /// assert!(Scope::BlockBlot.has_level(Scope::Blot));
@@ -158,7 +158,7 @@ impl Scope {
     /// `true` if both type and level match, `false` otherwise
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
     /// use quillai_parchment::Scope;
     ///
     /// assert!(Scope::BlockBlot.matches(Scope::Block));

@@ -34,9 +34,17 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{ClassAttributor, AttributorOptions, Scope};
-//! 
+//! ```rust,no_run
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
+//! use quillai_parchment::attributor::{ClassAttributor, AttributorOptions};
+//! use quillai_parchment::scope::Scope;
+//! use quillai_parchment::dom::Dom;
+//! use quillai_parchment::registry::AttributorTrait;
+//! use wasm_bindgen::JsValue;
+//!
+//! // Create a new block element
+//! let element = Dom::create_element("p")?;
+//!
 //! // Create text alignment attributor
 //! let align_attributor = ClassAttributor::new(
 //!     "align",           // Parchment attribute name
@@ -45,20 +53,22 @@
 //!         scope: Some(Scope::Block),
 //!         whitelist: Some(vec![
 //!             "left".to_string(),
-//!             "center".to_string(), 
+//!             "center".to_string(),
 //!             "right".to_string(),
 //!             "justify".to_string()
 //!         ]),
 //!     }
 //! );
-//! 
+//!
 //! // Apply center alignment
 //! align_attributor.add(&element, &JsValue::from_str("center"));
 //! // Results in: class="text-align-center"
-//! 
+//!
 //! // Remove alignment
 //! align_attributor.remove(&element);
 //! // Removes all "text-align-*" classes
+//! # Ok(())
+//! # }
 //! ```
 
 use crate::attributor::base::AttributorOptions;
@@ -86,9 +96,16 @@ use web_sys::Element;
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{ClassAttributor, AttributorOptions, Scope};
-/// 
+/// ```rust,no_run
+/// # fn main() -> Result<(), wasm_bindgen::JsValue> {
+/// use quillai_parchment::attributor::{ClassAttributor, AttributorOptions};
+/// use quillai_parchment::registry::AttributorTrait;
+/// use quillai_parchment::scope::Scope;
+/// use quillai_parchment::dom::Dom;
+/// use wasm_bindgen::JsValue;
+///
+/// let span_element = Dom::create_element("span")?;
+///
 /// // Create a font size attributor
 /// let size_attributor = ClassAttributor::new(
 ///     "size",
@@ -98,10 +115,12 @@ use web_sys::Element;
 ///         whitelist: Some(vec!["sm".to_string(), "md".to_string(), "lg".to_string()]),
 ///     }
 /// );
-/// 
+///
 /// // Apply large font size
 /// size_attributor.add(&span_element, &JsValue::from_str("lg"));
 /// // Results in: class="font-size-lg"
+/// # Ok(())
+/// # }
 /// ```
 pub struct ClassAttributor {
     /// The logical attribute name used by Parchment
@@ -132,7 +151,10 @@ impl ClassAttributor {
     /// CSS classes are generated as: `{key_name}-{value}`
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::attributor::{ClassAttributor, AttributorOptions};
+    /// use quillai_parchment::scope::Scope;
+    ///
     /// // Create text alignment attributor
     /// let align_attr = ClassAttributor::new(
     ///     "align",
@@ -142,7 +164,7 @@ impl ClassAttributor {
     ///         whitelist: Some(vec!["left".to_string(), "center".to_string(), "right".to_string()]),
     ///     }
     /// );
-    /// 
+    ///
     /// // Will generate classes like: "text-align-left", "text-align-center"
     /// ```
     pub fn new(attr_name: &str, key_name: &str, options: AttributorOptions) -> Self {
@@ -177,11 +199,19 @@ impl ClassAttributor {
     /// Generated CSS class name in the format `{key_name}-{value}`
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// use quillai_parchment::attributor::{ClassAttributor, AttributorOptions};
+    /// use quillai_parchment::scope::Scope;
+    /// use quillai_parchment::dom::Dom;
+    ///
+    /// // Create a new block element
+    /// let element = Dom::create_element("p");
+    /// let options = AttributorOptions { scope: Some(Scope::Block), whitelist: None };
+    ///
     /// let attributor = ClassAttributor::new("align", "text-align", options);
     /// assert_eq!(attributor.get_class_name("center"), "text-align-center");
     /// ```
-    fn get_class_name(&self, value: &str) -> String {
+    pub fn get_class_name(&self, value: &str) -> String {
         format!("{}-{}", self.key_name, value)
     }
 
@@ -199,7 +229,15 @@ impl ClassAttributor {
     /// `true` if the value is allowed, `false` otherwise
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # fn main() -> Result<(), wasm_bindgen::JsValue> {
+    /// use quillai_parchment::attributor::{ClassAttributor, AttributorOptions};
+    /// use quillai_parchment::dom::Dom;
+    /// use wasm_bindgen::JsValue;
+    ///
+    /// // Create a new block element
+    /// let element = Dom::create_element("p")?;
+    ///
     /// let restricted_attr = ClassAttributor::new(
     ///     "size", "font-size",
     ///     AttributorOptions {
@@ -207,9 +245,11 @@ impl ClassAttributor {
     ///         ..Default::default()
     ///     }
     /// );
-    /// 
+    ///
     /// assert!(restricted_attr.can_add(&element, &JsValue::from_str("sm")));
     /// assert!(!restricted_attr.can_add(&element, &JsValue::from_str("invalid")));
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn can_add(&self, _node: &Element, value: &JsValue) -> bool {
         if let Some(ref whitelist) = self.whitelist {

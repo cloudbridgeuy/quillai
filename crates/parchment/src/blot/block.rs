@@ -20,19 +20,20 @@
 //!
 //! ## Examples
 //!
-//! ```rust
-//! use quillai_parchment::{BlockBlot, TextBlot, InlineBlot};
-//! 
+//! ```rust,no_run
+//! use quillai_parchment::{ParentBlotTrait, BlockBlot, TextBlot, InlineBlot};
+//!
 //! // Create a paragraph
 //! let mut paragraph = BlockBlot::new(None)?;  // Creates <p>
-//! 
+//!
 //! // Add text content
 //! let text = TextBlot::new("Hello, world!")?;
 //! paragraph.append_child(Box::new(text))?;
-//! 
+//!
 //! // Add formatted text
 //! let bold = InlineBlot::with_text("Bold text")?;
 //! paragraph.append_child(Box::new(bold))?;
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::text::TextBlot;
@@ -64,17 +65,19 @@ use web_sys::{Element, HtmlElement, Node};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use quillai_parchment::{BlockBlot, TextBlot};
-/// 
+/// use quillai_parchment::dom::Dom;
+///
 /// // Create a paragraph with text
 /// let mut paragraph = BlockBlot::with_text("Hello, world!")?;
 /// assert_eq!(paragraph.text_content(), "Hello, world!");
-/// 
+///
 /// // Create a header
 /// let header_element = Dom::create_element("h1")?;
 /// let mut header = BlockBlot::new(Some(header_element))?;
 /// header.append_text("Document Title")?;
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[wasm_bindgen]
 pub struct BlockBlot {

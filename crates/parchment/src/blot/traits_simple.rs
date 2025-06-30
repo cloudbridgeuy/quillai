@@ -40,13 +40,14 @@ use web_sys::{HtmlElement, Node};
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{BlotTrait, Scope};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::{BlotTrait};
+/// use quillai_parchment::scope::Scope;
+///
 /// // All blots implement this trait
 /// fn process_blot(blot: &dyn BlotTrait) {
 ///     println!("Blot: {} ({})", blot.get_blot_name(), blot.length());
-///     
+///
 ///     if blot.get_scope().matches(Scope::Block) {
 ///         println!("This is a block-level blot");
 ///     }
@@ -54,49 +55,49 @@ use web_sys::{HtmlElement, Node};
 /// ```
 pub trait BlotTrait {
     // === Metadata Methods ===
-    
+
     /// Get the blot type name (e.g., "text", "paragraph", "bold")
     fn get_blot_name(&self) -> &'static str;
-    
+
     /// Get the corresponding DOM tag name (e.g., "span", "p", "strong")
     fn get_tag_name(&self) -> &'static str;
-    
+
     /// Get the scope classification for this blot type
     fn get_scope(&self) -> Scope;
-    
+
     /// Get the CSS class name for this blot type, if any
     fn get_class_name(&self) -> Option<&'static str> {
         None
     }
 
     // === Core Interface ===
-    
+
     /// Get reference to the underlying DOM node
     fn dom_node(&self) -> &Node;
-    
+
     /// Get the content length of this blot (characters for text, 1 for embeds)
     fn length(&self) -> usize;
 
     // === Lifecycle Management ===
-    
+
     /// Attach this blot to the document (called when inserted into tree)
     fn attach(&mut self);
-    
+
     /// Detach this blot from the document (called when removed from tree)
     fn detach(&mut self);
-    
+
     /// Remove this blot and clean up resources
     fn remove(&mut self);
 
     // === Content Editing ===
-    
+
     /// Delete content at the specified index and length
     ///
     /// # Parameters
     /// * `index` - Starting position for deletion
     /// * `length` - Number of characters/units to delete
     fn delete_at(&mut self, index: usize, length: usize);
-    
+
     /// Insert content at the specified index
     ///
     /// # Parameters
@@ -105,7 +106,7 @@ pub trait BlotTrait {
     fn insert_at(&mut self, index: usize, value: &str);
 
     // === Runtime Type Support ===
-    
+
     /// Support for downcasting to concrete types (needed for tree navigation)
     fn as_any(&self) -> &dyn std::any::Any;
 
@@ -136,13 +137,13 @@ pub trait BlotTrait {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::ParentBlotTrait;
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::ParentBlotTrait;
+///
 /// fn analyze_container(parent: &dyn ParentBlotTrait) {
 ///     println!("Container has {} children", parent.children_count());
 ///     println!("Text content: {}", parent.text_content());
-///     
+///
 ///     if parent.is_empty() {
 ///         println!("Container is empty");
 ///     }
@@ -206,8 +207,8 @@ pub trait ParentBlotTrait: BlotTrait {
 /// # Examples
 ///
 /// ```rust
-/// use quillai_parchment::LeafBlotTrait;
-/// 
+/// use quillai_parchment::blot::LeafBlotTrait;
+///
 /// fn update_content(leaf: &mut dyn LeafBlotTrait, new_text: &str) {
 ///     let old_value = leaf.value();
 ///     leaf.set_value(new_text);
@@ -220,7 +221,7 @@ pub trait LeafBlotTrait: BlotTrait {
     /// # Returns
     /// String representation of the blot's content
     fn value(&self) -> String;
-    
+
     /// Set the content value of this leaf blot
     ///
     /// # Parameters
@@ -255,9 +256,10 @@ pub struct UpdateContext {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{RegistryDefinition, Scope};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::RegistryDefinition;
+/// use quillai_parchment::scope::Scope;
+///
 /// let definition = RegistryDefinition {
 ///     blot_name: "paragraph".to_string(),
 ///     tag_name: "p".to_string(),
@@ -290,18 +292,20 @@ pub struct RegistryDefinition {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::{BlotConstructor, Scope};
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::BlotConstructor;
+/// use quillai_parchment::scope::Scope;
+///
 /// // Example implementation for a paragraph blot
 /// struct ParagraphBlot;
-/// 
+///
 /// impl BlotConstructor for ParagraphBlot {
-///     fn create(value: Option<&JsValue>) -> Result<Node, JsValue> {
+///     fn create(value: Option<&wasm_bindgen::JsValue>) -> Result<web_sys::Node, wasm_bindgen::JsValue> {
 ///         // Create <p> element
 ///         todo!()
 ///     }
-///     
+///
+///     fn value_from_dom(dom_node: &web_sys::Node) -> wasm_bindgen::JsValue { todo!() }
 ///     fn blot_name() -> &'static str { "paragraph" }
 ///     fn tag_name() -> &'static str { "p" }
 ///     fn scope() -> Scope { Scope::BlockBlot }
@@ -318,16 +322,16 @@ pub trait BlotConstructor {
     fn create(value: Option<&JsValue>) -> Result<Node, JsValue>;
 
     // === Static Metadata ===
-    
+
     /// Get the blot type name
     fn blot_name() -> &'static str;
-    
+
     /// Get the DOM tag name for this blot type
     fn tag_name() -> &'static str;
-    
+
     /// Get the scope classification for this blot type
     fn scope() -> Scope;
-    
+
     /// Get the CSS class name for this blot type, if any
     fn class_name() -> Option<&'static str> {
         None
@@ -358,14 +362,16 @@ pub trait BlotConstructor {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use quillai_parchment::create_element_with_class;
-/// 
+/// ```rust,no_run
+/// use quillai_parchment::blot::{create_element_with_class};
+///
 /// // Create a paragraph with a class
 /// let p_element = create_element_with_class("p", Some("parchment-paragraph"))?;
-/// 
+///
 /// // Create a span without a class
 /// let span_element = create_element_with_class("span", None)?;
+///
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 pub fn create_element_with_class(
     tag_name: &str,

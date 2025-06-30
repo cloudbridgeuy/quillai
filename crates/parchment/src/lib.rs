@@ -1,7 +1,7 @@
 //! # Parchment: High-Performance Document Model for Rich Text Editors
 //!
-//! **Parchment** is a Rust/WebAssembly implementation of Quill's document model, designed specifically 
-//! for building modern rich text editors and code editors. It provides a structured, performant foundation 
+//! **Parchment** is a Rust/WebAssembly implementation of Quill's document model, designed specifically
+//! for building modern rich text editors and code editors. It provides a structured, performant foundation
 //! for handling complex document operations while maintaining excellent developer experience.
 //!
 //! ## Why Parchment for Code Editors?
@@ -122,13 +122,13 @@
 //! async function createEditor() {
 //!   // Initialize WebAssembly module
 //!   await init();
-//!   
+//!
 //!   // Create document registry
 //!   const registry = new Registry();
-//!   
+//!
 //!   // Register standard blots
 //!   registry.register_defaults();
-//!   
+//!
 //!   console.log(`Editor powered by Parchment v${version()}`);
 //!   return registry;
 //! }
@@ -179,7 +179,7 @@ pub use blot::inline::InlineBlot;
 pub use blot::scroll::ScrollBlot;
 pub use blot::text::TextBlot;
 pub use blot::traits_simple::*;
-pub use registry::{Registry, ParchmentError};
+pub use registry::{ParchmentError, Registry};
 pub use scope::Scope;
 pub use text_operations::*;
 pub use utils::*;
@@ -207,7 +207,7 @@ extern "C" {
 ///
 /// ```javascript
 /// import init, { version } from "./pkg/quillai_parchment.js";
-/// 
+///
 /// await init();
 /// console.log(`Using Parchment v${version()}`);
 /// ```

@@ -14,18 +14,19 @@
 //!
 //! ## Usage Examples
 //!
-//! ```rust
+//! ```rust,no_run
 //! use quillai_parchment::TextBlot;
-//! 
+//!
 //! // Create new text content
 //! let text = TextBlot::new("Hello, world!")?;
-//! 
+//!
 //! // Text manipulation
 //! text.insert_at(7, "beautiful ")?;  // "Hello, beautiful world!"
 //! text.delete_at(0, 7)?;             // "beautiful world!"
-//! 
+//!
 //! // Splitting for editing operations
 //! let second_part = text.split(9)?;  // Split at "beautiful"
+//! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
 use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
@@ -49,23 +50,24 @@ use web_sys::{Node, Text};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use quillai_parchment::TextBlot;
-/// 
+///
 /// // Create text content
 /// let mut text = TextBlot::new("Hello")?;
-/// 
+///
 /// // Basic operations
 /// assert_eq!(text.length(), 5);
 /// assert_eq!(text.value(), "Hello");
-/// 
+///
 /// // Text editing
 /// text.insert_at(5, ", world!")?;
 /// assert_eq!(text.value(), "Hello, world!");
-/// 
+///
 /// // Character access
 /// assert_eq!(text.char_at(0), Some('H'));
 /// assert_eq!(text.substring(0, 5), "Hello");
+/// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 #[wasm_bindgen]
 pub struct TextBlot {
@@ -180,10 +182,12 @@ impl TextBlot {
     /// `Ok(())` on success, `Err(JsValue)` on operation failure
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # use quillai_parchment::TextBlot;
     /// let text = TextBlot::new("Hello world")?;
     /// text.insert_at(6, "beautiful ")?;
     /// assert_eq!(text.value(), "Hello beautiful world");
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn insert_at(&self, index: usize, text: &str) -> Result<(), JsValue> {
         let current = self.value();
@@ -231,11 +235,13 @@ impl TextBlot {
     /// New TextBlot containing the second part of the split
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
+    /// # use quillai_parchment::TextBlot;
     /// let text = TextBlot::new("Hello world")?;
     /// let second = text.split(6)?;  // Split after "Hello "
     /// assert_eq!(text.value(), "Hello ");
     /// assert_eq!(second.value(), "world");
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn split(&self, index: usize) -> Result<TextBlot, JsValue> {
         let current = self.value();
