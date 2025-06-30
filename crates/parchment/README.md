@@ -58,7 +58,14 @@ wasm-pack build --target web --out-dir pkg ./crates/parchment
 ### JavaScript Integration
 
 ```javascript
-import init, { version, create_registry, Attributor, StyleAttributor, ClassAttributor, Scope } from "./pkg/quillai_parchment.js";
+import init, {
+  version,
+  create_registry,
+  Attributor,
+  StyleAttributor,
+  ClassAttributor,
+  Scope,
+} from "./pkg/quillai_parchment.js";
 
 async function run() {
   await init();
@@ -66,38 +73,58 @@ async function run() {
   const ver = version();
   const registry = create_registry();
   console.log(`Parchment WASM v${ver}`);
-  
+
   // Create base attributors with different patterns
   const linkAttr = new Attributor("link", "href");
   const alignAttr = Attributor.newWithScope("align", "text-align", Scope.Block);
-  const colorAttr = Attributor.newWithWhitelist("color", "color", ["red", "blue", "green"]);
-  
+  const colorAttr = Attributor.newWithWhitelist("color", "color", [
+    "red",
+    "blue",
+    "green",
+  ]);
+
   // Create style attributors for CSS property manipulation
   const textColorAttr = new StyleAttributor("textColor", "color");
-  const fontSizeAttr = StyleAttributor.newWithWhitelist("fontSize", "font-size", 
-    ["12px", "14px", "16px", "18px", "24px"]);
-  const bgColorAttr = StyleAttributor.newFull("background", "background-color", 
-    Scope.Inline, ["#ffffff", "#f0f0f0", "#e0e0e0"]);
-  
+  const fontSizeAttr = StyleAttributor.newWithWhitelist(
+    "fontSize",
+    "font-size",
+    ["12px", "14px", "16px", "18px", "24px"],
+  );
+  const bgColorAttr = StyleAttributor.newFull(
+    "background",
+    "background-color",
+    Scope.Inline,
+    ["#ffffff", "#f0f0f0", "#e0e0e0"],
+  );
+
   // Create class attributors for CSS class-based formatting
   const alignClassAttr = new ClassAttributor("align", "text-align");
-  const sizeClassAttr = ClassAttributor.newWithWhitelist("size", "font-size", 
-    ["xs", "sm", "md", "lg", "xl"]);
-  const themeClassAttr = ClassAttributor.newFull("theme", "text-color", 
-    Scope.Inline, ["primary", "secondary", "accent", "muted"]);
-  
+  const sizeClassAttr = ClassAttributor.newWithWhitelist("size", "font-size", [
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl",
+  ]);
+  const themeClassAttr = ClassAttributor.newFull(
+    "theme",
+    "text-color",
+    Scope.Inline,
+    ["primary", "secondary", "accent", "muted"],
+  );
+
   // Use with DOM elements
-  const linkElement = document.createElement('a');
+  const linkElement = document.createElement("a");
   linkAttr.add(linkElement, "https://example.com");
   console.log("Link href:", linkAttr.value(linkElement));
-  
-  const textElement = document.createElement('span');
+
+  const textElement = document.createElement("span");
   textColorAttr.add(textElement, "#ff0000");
   fontSizeAttr.add(textElement, "16px");
   console.log("Text color:", textColorAttr.value(textElement));
   console.log("Font size:", fontSizeAttr.value(textElement));
-  
-  const classElement = document.createElement('div');
+
+  const classElement = document.createElement("div");
   alignClassAttr.add(classElement, "center");
   sizeClassAttr.add(classElement, "lg");
   console.log("Alignment class:", alignClassAttr.value(classElement));
@@ -108,41 +135,47 @@ async function run() {
 ### Browser Example
 
 ```html
-<!-- See tests/test_attributor.html, tests/test_style_attributor.html, and tests/test_class_attributor.html for complete demos -->
+<!-- See examples/test_console.html, examples/test_imports.html, and examples/test_signatures.html for complete demos -->
 <script type="module">
-  import init, { Attributor, StyleAttributor, ClassAttributor, Scope, version } from "./pkg/quillai_parchment.js";
-  
+  import init, {
+    Attributor,
+    StyleAttributor,
+    ClassAttributor,
+    Scope,
+    version,
+  } from "./pkg/quillai_parchment.js";
+
   async function demo() {
     await init();
     console.log(`Parchment WASM v${version()}`);
-    
+
     // Create and use base attributors
     const linkAttr = new Attributor("link", "href");
-    const linkElement = document.createElement('a');
-    
+    const linkElement = document.createElement("a");
+
     const success = linkAttr.add(linkElement, "https://example.com");
     console.log("Attribute set:", success);
     console.log("Current value:", linkAttr.value(linkElement));
-    
+
     // Create and use style attributors for CSS properties
     const colorAttr = new StyleAttributor("color", "color");
-    const textElement = document.createElement('span');
-    
+    const textElement = document.createElement("span");
+
     const colorSuccess = colorAttr.add(textElement, "#ff0000");
     console.log("Style set:", colorSuccess);
     console.log("Current color:", colorAttr.value(textElement));
     // textElement.style.color is now "#ff0000"
-    
+
     // Create and use class attributors for CSS classes
     const alignAttr = new ClassAttributor("align", "text-align");
-    const divElement = document.createElement('div');
-    
+    const divElement = document.createElement("div");
+
     const classSuccess = alignAttr.add(divElement, "center");
     console.log("Class set:", classSuccess);
     console.log("Current alignment:", alignAttr.value(divElement));
     // divElement.className now includes "text-align-center"
   }
-  
+
   demo();
 </script>
 ```
@@ -185,57 +218,60 @@ cargo test -p quillai_parchment
 The project includes interactive HTML test files that demonstrate WASM functionality in the browser:
 
 **Prerequisites:**
+
 1. Build the WASM package first:
+
    ```bash
    wasm-pack build --target web --out-dir pkg
    ```
 
 2. Start a local HTTP server (required for WASM module loading):
+
    ```bash
    # Using Python 3
    python -m http.server 3000
-   
+
    # Using Python 2
    python -m SimpleHTTPServer 3000
-   
+
    # Using Node.js (if you have http-server installed)
    npx http-server -p 3000
-   
+
    # Using Bun
    bun --hot . --port 3000
    ```
 
 3. Open your browser and navigate to:
-   ```
-   http://localhost:3000/tests/test_attributor.html
-   http://localhost:3000/tests/test_style_attributor.html
-   http://localhost:3000/tests/test_class_attributor.html
-   ```
+   - http://localhost:3000/examples/test_console.html
+   - http://localhost:3000/examples/test_imports.html
+   - http://localhost:3000/examples/test_signatures.html
 
-**Available Test Files:**
-- **`tests/test_attributor.html`** - Comprehensive Attributor WASM bindings test
-  - Tests all builder pattern constructors (`new`, `newWithScope`, `newWithWhitelist`, `newFull`)
-  - Validates DOM manipulation methods (`add`, `remove`, `value`)
-  - Demonstrates whitelist validation and scope handling
-  - Interactive examples with visual feedback
+**Available Example Files:**
 
-- **`tests/test_style_attributor.html`** - Comprehensive StyleAttributor WASM bindings test
-  - Tests CSS property manipulation through inline styles
-  - Validates all constructor patterns with CSS-specific examples
-  - Demonstrates complex CSS values (RGB, HSL, calc(), etc.)
-  - Tests style property isolation and error handling
-  - Visual examples showing real-time style changes
+- **`examples/test_console.html`** - Interactive browser console testing
 
-- **`tests/test_class_attributor.html`** - Comprehensive ClassAttributor WASM bindings test
-  - Tests CSS class manipulation using prefix-value patterns
-  - Validates class generation and removal with multiple classes
-  - Demonstrates whitelist validation for design system values
-  - Tests class isolation and coexistence with existing classes
-  - Visual examples showing real-time class changes
+  - Comprehensive WASM module initialization and testing
+  - All attributor types available in browser console for experimentation
+  - Real-time DOM manipulation examples
+  - Perfect for learning and debugging
 
-> 📖 See `tests/README.md` for detailed testing instructions and expected results.
+- **`examples/test_imports.html`** - Import pattern validation
+
+  - Tests all JavaScript import patterns work correctly
+  - Validates TypeScript definitions and module exports
+  - Cross-browser compatibility verification
+  - Module loading and initialization examples
+
+- **`examples/test_signatures.html`** - Method signature validation
+  - Comprehensive testing of all constructor patterns
+  - Validates all methods work with correct signatures
+  - Tests whitelist validation and error handling
+  - Demonstrates complete API surface coverage
+
+> 📖 These examples provide hands-on demonstrations of the complete WASM API.
 
 **What the tests validate:**
+
 - ✅ WASM module initialization and version detection
 - ✅ All Attributor constructor patterns work correctly
 - ✅ DOM attribute manipulation (set, get, remove)

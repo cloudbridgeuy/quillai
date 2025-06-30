@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Pattern Validation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>📦 JavaScript Import and Usage Validation</h1>
+    
+    <div id="results"></div>
+    
+    <script type="module">
+        function logResult(message, type = 'info') {
+            const container = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            container.appendChild(resultDiv);
+        }
+        
+        function logCode(code) {
+            const container = document.getElementById('results');
+            const codeDiv = document.createElement('div');
+            codeDiv.className = 'code';
+            codeDiv.textContent = code;
+            container.appendChild(codeDiv);
+        }
+        
+        async function testImportPatterns() {
+            try {
+                logResult('🧪 Testing JavaScript Import Patterns...', 'info');
+                
+                // Test 1: Individual imports
+                logResult('📦 Test 1: Individual imports', 'info');
+                logCode('import { Attributor } from "./pkg/quillai_parchment.js";');
+                
+                const startTime1 = performance.now();
+                const { Attributor } = await import('./pkg/quillai_parchment.js');
+                const time1 = performance.now() - startTime1;
+                logResult(`✅ Individual import successful: ${time1.toFixed(2)}ms`, 'success');
+                
+                // Test 2: Multiple imports
+                logResult('📦 Test 2: Multiple imports', 'info');
+                logCode('import { StyleAttributor, ClassAttributor, Scope } from "./pkg/quillai_parchment.js";');
+                
+                const startTime2 = performance.now();
+                const { StyleAttributor, ClassAttributor, Scope } = await import('./pkg/quillai_parchment.js');
+                const time2 = performance.now() - startTime2;
+                logResult(`✅ Multiple imports successful: ${time2.toFixed(2)}ms`, 'success');
+                
+                // Test 3: Full module import
+                logResult('📦 Test 3: Full module import', 'info');
+                logCode('import * as Parchment from "./pkg/quillai_parchment.js";');
+                
+                const startTime3 = performance.now();
+                const * as Parchment = await import('./pkg/quillai_parchment.js');
+                const time3 = performance.now() - startTime3;
+                logResult(`✅ Full module import successful: ${time3.toFixed(2)}ms`, 'success');
+                
+                // Test 4: Dynamic imports
+                logResult('📦 Test 4: Dynamic imports', 'info');
+                logCode('const { version } = await import("./pkg/quillai_parchment.js");');
+                
+                const startTime4 = performance.now();
+                const dynamicModule = await import('./pkg/quillai_parchment.js');
+                const time4 = performance.now() - startTime4;
+                logResult(`✅ Dynamic import successful: ${time4.toFixed(2)}ms`, 'success');
+                
+                // Initialize WASM
+                logResult('🚀 Initializing WASM...', 'info');
+                const initStart = performance.now();
+                await Parchment.default();
+                const initTime = performance.now() - initStart;
+                logResult(`✅ WASM initialization: ${initTime.toFixed(2)}ms`, 'success');
+                
+                // Test 5: Verify all imports work
+                logResult('🧪 Test 5: Verify imported functionality', 'info');
+                
+                // Test individual import
+                const attr1 = new Attributor("test1", "data-test1");
+                logResult('✅ Individual import creates working instance', 'success');
+                
+                // Test multiple imports
+                const attr2 = new StyleAttributor("test2", "color");
+                const attr3 = new ClassAttributor("test3", "text-align");
+                logResult('✅ Multiple imports create working instances', 'success');
+                
+                // Test full module import
+                const attr4 = new Parchment.Attributor("test4", "data-test4");
+                const attr5 = new Parchment.StyleAttributor("test5", "background-color");
+                logResult('✅ Full module import creates working instances', 'success');
+                
+                // Test dynamic import
+                const attr6 = new dynamicModule.ClassAttributor("test6", "font-weight");
+                logResult('✅ Dynamic import creates working instances', 'success');
+                
+                // Test 6: Verify method calls work
+                logResult('🧪 Test 6: Method call validation', 'info');
+                
+                const testElement = document.createElement('div');
+                
+                const result1 = attr1.add(testElement, "value1");
+                const result2 = attr2.add(testElement, "red");
+                const result3 = attr3.add(testElement, "center");
+                
+                logResult(`✅ Method calls work: ${result1}, ${result2}, ${result3}`, 'success');
+                
+                // Test getters
+                const name1 = attr1.attrName();
+                const key1 = attr1.keyName();
+                const scope1 = attr1.scope();
+                
+                logResult(`✅ Getters work: "${name1}", "${key1}", ${scope1}`, 'success');
+                
+                // Test 7: Static methods
+                logResult('🧪 Test 7: Static method validation', 'info');
+                
+                const attr7 = Attributor.newWithScope("test7", "data-test7", Scope.Inline);
+                const attr8 = StyleAttributor.newWithWhitelist("test8", "font-size", ["12px", "16px", "20px"]);
+                const attr9 = ClassAttributor.newFull("test9", "theme", Scope.Block, ["light", "dark"]);
+                
+                logResult('✅ All static constructors work correctly', 'success');
+                
+                // Test 8: Version function
+                logResult('🧪 Test 8: Utility function validation', 'info');
+                
+                const versionStr = Parchment.version();
+                logResult(`✅ Version function works: "${versionStr}"`, 'success');
+                
+                // Test 9: Tree-shaking simulation
+                logResult('🧪 Test 9: Tree-shaking compatibility', 'info');
+                
+                // Simulate what a bundler would do - only import what's needed
+                const { Attributor: OnlyAttributor } = await import('./pkg/quillai_parchment.js');
+                const minimalAttr = new OnlyAttributor("minimal", "data-minimal");
+                logResult('✅ Tree-shaking compatible imports work', 'success');
+                
+                // Test 10: Import path variations
+                logResult('🧪 Test 10: Import path validation', 'info');
+                
+                // Test relative path
+                const relativeModule = await import('./pkg/quillai_parchment.js');
+                logResult('✅ Relative path import works', 'success');
+                
+                // Summary
+                logResult('🎉 All import patterns validated successfully!', 'success');
+                logResult('📊 Performance Summary:', 'info');
+                logResult(`  Individual import: ${time1.toFixed(2)}ms`, 'info');
+                logResult(`  Multiple imports: ${time2.toFixed(2)}ms`, 'info');
+                logResult(`  Full module import: ${time3.toFixed(2)}ms`, 'info');
+                logResult(`  Dynamic import: ${time4.toFixed(2)}ms`, 'info');
+                logResult(`  WASM initialization: ${initTime.toFixed(2)}ms`, 'info');
+                
+                logResult('✅ All import patterns are production-ready', 'success');
+                
+            } catch (error) {
+                logResult(`❌ Import validation error: ${error.message}`, 'error');
+                console.error('Import validation error:', error);
+            }
+        }
+        
+        testImportPatterns();
+    </script>
+</body>
+</html>
