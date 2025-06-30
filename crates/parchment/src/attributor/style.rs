@@ -502,6 +502,10 @@ impl StyleAttributor {
     /// }
     /// ```
     pub fn add(&self, element: &Element, value: &JsValue) -> bool {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return false;
+        }
         AttributorTrait::add(self, element, value)
     }
 
@@ -526,6 +530,10 @@ impl StyleAttributor {
     /// // element.style.color is now empty, but other styles remain
     /// ```
     pub fn remove(&self, element: &Element) {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return;
+        }
         AttributorTrait::remove(self, element)
     }
 
@@ -553,6 +561,10 @@ impl StyleAttributor {
     /// console.log("Current color:", currentColor);
     /// ```
     pub fn value(&self, element: &Element) -> JsValue {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return JsValue::from_str("");
+        }
         AttributorTrait::value(self, element)
     }
 

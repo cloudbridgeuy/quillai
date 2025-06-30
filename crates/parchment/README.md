@@ -58,7 +58,7 @@ wasm-pack build --target web --out-dir pkg ./crates/parchment
 ### JavaScript Integration
 
 ```javascript
-import init, { version, create_registry, Attributor, StyleAttributor, Scope } from "./pkg/quillai_parchment.js";
+import init, { version, create_registry, Attributor, StyleAttributor, ClassAttributor, Scope } from "./pkg/quillai_parchment.js";
 
 async function run() {
   await init();
@@ -79,6 +79,13 @@ async function run() {
   const bgColorAttr = StyleAttributor.newFull("background", "background-color", 
     Scope.Inline, ["#ffffff", "#f0f0f0", "#e0e0e0"]);
   
+  // Create class attributors for CSS class-based formatting
+  const alignClassAttr = new ClassAttributor("align", "text-align");
+  const sizeClassAttr = ClassAttributor.newWithWhitelist("size", "font-size", 
+    ["xs", "sm", "md", "lg", "xl"]);
+  const themeClassAttr = ClassAttributor.newFull("theme", "text-color", 
+    Scope.Inline, ["primary", "secondary", "accent", "muted"]);
+  
   // Use with DOM elements
   const linkElement = document.createElement('a');
   linkAttr.add(linkElement, "https://example.com");
@@ -89,15 +96,21 @@ async function run() {
   fontSizeAttr.add(textElement, "16px");
   console.log("Text color:", textColorAttr.value(textElement));
   console.log("Font size:", fontSizeAttr.value(textElement));
+  
+  const classElement = document.createElement('div');
+  alignClassAttr.add(classElement, "center");
+  sizeClassAttr.add(classElement, "lg");
+  console.log("Alignment class:", alignClassAttr.value(classElement));
+  console.log("Generated class:", alignClassAttr.getClassName("center"));
 }
 ```
 
 ### Browser Example
 
 ```html
-<!-- See tests/test_attributor.html and tests/test_style_attributor.html for complete demos -->
+<!-- See tests/test_attributor.html, tests/test_style_attributor.html, and tests/test_class_attributor.html for complete demos -->
 <script type="module">
-  import init, { Attributor, StyleAttributor, Scope, version } from "./pkg/quillai_parchment.js";
+  import init, { Attributor, StyleAttributor, ClassAttributor, Scope, version } from "./pkg/quillai_parchment.js";
   
   async function demo() {
     await init();
@@ -119,6 +132,15 @@ async function run() {
     console.log("Style set:", colorSuccess);
     console.log("Current color:", colorAttr.value(textElement));
     // textElement.style.color is now "#ff0000"
+    
+    // Create and use class attributors for CSS classes
+    const alignAttr = new ClassAttributor("align", "text-align");
+    const divElement = document.createElement('div');
+    
+    const classSuccess = alignAttr.add(divElement, "center");
+    console.log("Class set:", classSuccess);
+    console.log("Current alignment:", alignAttr.value(divElement));
+    // divElement.className now includes "text-align-center"
   }
   
   demo();
@@ -187,6 +209,7 @@ The project includes interactive HTML test files that demonstrate WASM functiona
    ```
    http://localhost:3000/tests/test_attributor.html
    http://localhost:3000/tests/test_style_attributor.html
+   http://localhost:3000/tests/test_class_attributor.html
    ```
 
 **Available Test Files:**
@@ -203,6 +226,13 @@ The project includes interactive HTML test files that demonstrate WASM functiona
   - Tests style property isolation and error handling
   - Visual examples showing real-time style changes
 
+- **`tests/test_class_attributor.html`** - Comprehensive ClassAttributor WASM bindings test
+  - Tests CSS class manipulation using prefix-value patterns
+  - Validates class generation and removal with multiple classes
+  - Demonstrates whitelist validation for design system values
+  - Tests class isolation and coexistence with existing classes
+  - Visual examples showing real-time class changes
+
 > 📖 See `tests/README.md` for detailed testing instructions and expected results.
 
 **What the tests validate:**
@@ -210,10 +240,13 @@ The project includes interactive HTML test files that demonstrate WASM functiona
 - ✅ All Attributor constructor patterns work correctly
 - ✅ DOM attribute manipulation (set, get, remove)
 - ✅ CSS style property manipulation through StyleAttributor
+- ✅ CSS class manipulation through ClassAttributor with prefix patterns
 - ✅ Whitelist validation (accepts valid values, rejects invalid ones)
 - ✅ Scope enum integration and type safety
 - ✅ Complex CSS value handling (RGB, HSL, calc(), etc.)
 - ✅ Style property isolation and error handling
+- ✅ Class prefix pattern generation and isolation
+- ✅ Multiple attributor coexistence on same elements
 - ✅ TypeScript definition accuracy
 - ✅ Error handling and edge cases
 

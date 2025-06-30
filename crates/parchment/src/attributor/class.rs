@@ -76,6 +76,7 @@ use crate::registry::AttributorTrait;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::Element;
+use js_sys::Array;
 
 /// CSS class-based attributor for prefix-pattern class management
 ///
@@ -107,7 +108,7 @@ use web_sys::Element;
 /// let span_element = Dom::create_element("span")?;
 ///
 /// // Create a font size attributor
-/// let size_attributor = ClassAttributor::new(
+/// let size_attributor = ClassAttributor::new_with_options(
 ///     "size",
 ///     "font-size",
 ///     AttributorOptions {
@@ -122,19 +123,24 @@ use web_sys::Element;
 /// # Ok(())
 /// # }
 /// ```
+#[wasm_bindgen]
 pub struct ClassAttributor {
     /// The logical attribute name used by Parchment
+    #[wasm_bindgen(skip)]
     pub attr_name: String,
     /// The CSS class prefix used for generating class names
+    #[wasm_bindgen(skip)]
     pub key_name: String,
     /// The scope classification for this attributor
+    #[wasm_bindgen(skip)]
     pub scope: Scope,
     /// Optional whitelist of allowed values
+    #[wasm_bindgen(skip)]
     pub whitelist: Option<Vec<String>>,
 }
 
 impl ClassAttributor {
-    /// Create a new CSS class-based attributor
+    /// Create a new CSS class-based attributor with options
     ///
     /// Creates an attributor that manages CSS classes using a prefix-value pattern.
     /// The key_name serves as the prefix for all generated CSS class names.
@@ -156,7 +162,7 @@ impl ClassAttributor {
     /// use quillai_parchment::scope::Scope;
     ///
     /// // Create text alignment attributor
-    /// let align_attr = ClassAttributor::new(
+    /// let align_attr = ClassAttributor::new_with_options(
     ///     "align",
     ///     "text-align",
     ///     AttributorOptions {
@@ -167,7 +173,7 @@ impl ClassAttributor {
     ///
     /// // Will generate classes like: "text-align-left", "text-align-center"
     /// ```
-    pub fn new(attr_name: &str, key_name: &str, options: AttributorOptions) -> Self {
+    pub fn new_with_options(attr_name: &str, key_name: &str, options: AttributorOptions) -> Self {
         let scope = if let Some(opt_scope) = options.scope {
             // Convert to appropriate attribute scope
             match opt_scope {
@@ -316,5 +322,367 @@ impl AttributorTrait for ClassAttributor {
             }
         }
         JsValue::from_str("")
+    }
+}
+
+/// WebAssembly bindings for ClassAttributor with builder pattern constructors
+///
+/// This implementation provides JavaScript-friendly constructors and methods
+/// for CSS class-based formatting using prefix-value patterns while maintaining
+/// the full functionality of the Rust implementation.
+#[wasm_bindgen]
+impl ClassAttributor {
+    /// Creates a new ClassAttributor with default options
+    ///
+    /// This is the basic constructor that creates a class attributor with default scope
+    /// (Attribute) and no value restrictions. Perfect for basic CSS class management
+    /// using the prefix-value pattern.
+    ///
+    /// # Arguments
+    /// * `attr_name` - The logical attribute name used by Parchment
+    /// * `key_name` - The CSS class prefix for generating class names
+    ///
+    /// # Returns
+    /// New ClassAttributor instance with default configuration
+    ///
+    /// # Class Pattern
+    /// Generated classes follow the pattern: `{key_name}-{value}`
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// // Create a basic alignment attributor
+    /// const alignAttr = new ClassAttributor("align", "text-align");
+    ///
+    /// // Use with DOM elements
+    /// const element = document.createElement('div');
+    /// const success = alignAttr.add(element, "center");
+    /// // Results in: class="text-align-center"
+    /// const currentAlign = alignAttr.value(element);
+    /// ```
+    #[wasm_bindgen(constructor)]
+    pub fn new(attr_name: String, key_name: String) -> Self {
+        Self::new_with_options(&attr_name, &key_name, AttributorOptions::default())
+    }
+
+    /// Creates a new ClassAttributor with a specific scope
+    ///
+    /// This constructor allows you to specify the scope classification for the
+    /// class attributor, which affects how it interacts with the document model.
+    ///
+    /// # Arguments
+    /// * `attr_name` - The logical attribute name used by Parchment
+    /// * `key_name` - The CSS class prefix for generating class names
+    /// * `scope` - The scope classification for this attributor
+    ///
+    /// # Returns
+    /// New ClassAttributor instance with the specified scope
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor, Scope } from './pkg/quillai_parchment.js';
+    ///
+    /// // Create an inline-scoped size attributor
+    /// const sizeAttr = ClassAttributor.newWithScope("size", "font-size", Scope.Inline);
+    ///
+    /// // Create a block-scoped alignment attributor
+    /// const alignAttr = ClassAttributor.newWithScope("align", "text-align", Scope.Block);
+    /// ```
+    #[wasm_bindgen(js_name = "newWithScope")]
+    pub fn new_with_scope(attr_name: String, key_name: String, scope: Scope) -> Self {
+        Self::new_with_options(
+            &attr_name,
+            &key_name,
+            AttributorOptions {
+                scope: Some(scope),
+                whitelist: None,
+            },
+        )
+    }
+
+    /// Creates a new ClassAttributor with a whitelist of allowed values
+    ///
+    /// This constructor creates a class attributor that only accepts values from
+    /// the provided whitelist. Any attempt to set a value not in the whitelist
+    /// will be rejected. Perfect for restricting to specific design system values.
+    ///
+    /// # Arguments
+    /// * `attr_name` - The logical attribute name used by Parchment
+    /// * `key_name` - The CSS class prefix for generating class names
+    /// * `whitelist` - JavaScript array of allowed values
+    ///
+    /// # Returns
+    /// New ClassAttributor instance with value validation
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// // Create a restricted size attributor
+    /// const sizeAttr = ClassAttributor.newWithWhitelist(
+    ///     "size",
+    ///     "font-size",
+    ///     ["xs", "sm", "md", "lg", "xl"]
+    /// );
+    ///
+    /// // This will succeed
+    /// sizeAttr.add(element, "lg");
+    ///
+    /// // This will fail (returns false)
+    /// sizeAttr.add(element, "invalid-size");
+    /// ```
+    #[wasm_bindgen(js_name = "newWithWhitelist")]
+    pub fn new_with_whitelist(attr_name: String, key_name: String, whitelist: Array) -> Self {
+        let whitelist_vec: Vec<String> = (0..whitelist.length())
+            .filter_map(|i| whitelist.get(i).as_string())
+            .collect();
+
+        Self::new_with_options(
+            &attr_name,
+            &key_name,
+            AttributorOptions {
+                scope: None,
+                whitelist: Some(whitelist_vec),
+            },
+        )
+    }
+
+    /// Creates a new ClassAttributor with both scope and whitelist
+    ///
+    /// This is the most comprehensive constructor that allows you to specify
+    /// both the scope classification and a whitelist of allowed values.
+    ///
+    /// # Arguments
+    /// * `attr_name` - The logical attribute name used by Parchment
+    /// * `key_name` - The CSS class prefix for generating class names
+    /// * `scope` - The scope classification for this attributor
+    /// * `whitelist` - JavaScript array of allowed values
+    ///
+    /// # Returns
+    /// New ClassAttributor instance with full configuration
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor, Scope } from './pkg/quillai_parchment.js';
+    ///
+    /// // Create a fully configured color attributor
+    /// const colorAttr = ClassAttributor.newFull(
+    ///     "color",
+    ///     "text-color",
+    ///     Scope.Inline,
+    ///     ["primary", "secondary", "accent", "muted"]
+    /// );
+    ///
+    /// // Use with validation and proper scope
+    /// const success = colorAttr.add(textElement, "primary");
+    /// ```
+    #[wasm_bindgen(js_name = "newFull")]
+    pub fn new_full(attr_name: String, key_name: String, scope: Scope, whitelist: Array) -> Self {
+        let whitelist_vec: Vec<String> = (0..whitelist.length())
+            .filter_map(|i| whitelist.get(i).as_string())
+            .collect();
+
+        Self::new_with_options(
+            &attr_name,
+            &key_name,
+            AttributorOptions {
+                scope: Some(scope),
+                whitelist: Some(whitelist_vec),
+            },
+        )
+    }
+
+    /// Adds a CSS class to the specified DOM element using the prefix pattern
+    ///
+    /// Attempts to add a CSS class to the given DOM element using the prefix-value
+    /// pattern. The operation will fail if the value is not allowed by the whitelist
+    /// (if configured) or if the DOM operation fails.
+    ///
+    /// # Arguments
+    /// * `element` - The DOM element to modify
+    /// * `value` - The value to append to the prefix (will be converted to string)
+    ///
+    /// # Returns
+    /// `true` if the class was successfully added, `false` otherwise
+    ///
+    /// # Class Generation
+    /// The generated class name follows the pattern: `{key_name}-{value}`
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("align", "text-align");
+    /// const element = document.createElement('div');
+    ///
+    /// // Add alignment class
+    /// const success = alignAttr.add(element, "center");
+    /// if (success) {
+    ///     console.log("Class added successfully");
+    ///     // element.className now includes "text-align-center"
+    /// }
+    /// ```
+    pub fn add(&self, element: &Element, value: &JsValue) -> bool {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return false;
+        }
+        AttributorTrait::add(self, element, value)
+    }
+
+    /// Removes all CSS classes matching the prefix pattern from the specified DOM element
+    ///
+    /// Removes all CSS classes that match the prefix pattern from the given DOM element.
+    /// This operation always succeeds, even if no matching classes were present.
+    /// Only classes matching the prefix pattern are removed; other classes are preserved.
+    ///
+    /// # Arguments
+    /// * `element` - The DOM element to modify
+    ///
+    /// # Class Removal
+    /// Removes all classes that start with `{key_name}-`
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("align", "text-align");
+    /// const element = document.querySelector('div');
+    ///
+    /// // Remove all alignment classes
+    /// alignAttr.remove(element);
+    /// // Removes "text-align-center", "text-align-left", etc., but preserves other classes
+    /// ```
+    pub fn remove(&self, element: &Element) {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return;
+        }
+        AttributorTrait::remove(self, element)
+    }
+
+    /// Gets the current CSS class value from the specified DOM element
+    ///
+    /// Retrieves the current value from CSS classes that match the prefix pattern
+    /// on the given DOM element. Returns an empty string if no matching class is found
+    /// or if the current value is not allowed by the whitelist.
+    ///
+    /// # Arguments
+    /// * `element` - The DOM element to inspect
+    ///
+    /// # Returns
+    /// The value portion of the matching class, or empty string if not present/invalid
+    ///
+    /// # Value Extraction
+    /// Extracts the value from classes matching `{key_name}-{value}` pattern
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("align", "text-align");
+    /// const element = document.querySelector('div');
+    ///
+    /// // Get the current alignment value
+    /// const currentAlign = alignAttr.value(element);
+    /// console.log("Current alignment:", currentAlign); // e.g., "center"
+    /// ```
+    pub fn value(&self, element: &Element) -> JsValue {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return JsValue::from_str("");
+        }
+        AttributorTrait::value(self, element)
+    }
+
+    /// Generates a CSS class name from a value using the prefix pattern
+    ///
+    /// Creates a CSS class name by combining the key_name prefix with the
+    /// provided value using a hyphen separator. This is useful for understanding
+    /// what class names will be generated or for manual class manipulation.
+    ///
+    /// # Arguments
+    /// * `value` - The value to append to the prefix
+    ///
+    /// # Returns
+    /// Generated CSS class name in the format `{key_name}-{value}`
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("align", "text-align");
+    /// 
+    /// console.log(alignAttr.getClassName("center")); // "text-align-center"
+    /// console.log(alignAttr.getClassName("left"));   // "text-align-left"
+    /// console.log(alignAttr.getClassName("right"));  // "text-align-right"
+    /// ```
+    #[wasm_bindgen(js_name = "getClassName")]
+    pub fn generate_class_name(&self, value: String) -> String {
+        format!("{}-{}", self.key_name, value)
+    }
+
+    /// Gets the logical attribute name used by Parchment
+    ///
+    /// Returns the logical name that Parchment uses to identify this class attributor.
+    /// This may be different from the actual CSS class prefix.
+    ///
+    /// # Returns
+    /// The attribute name as a string
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("textAlign", "text-align");
+    /// console.log("Attribute name:", alignAttr.attrName()); // "textAlign"
+    /// ```
+    #[wasm_bindgen(js_name = "attrName")]
+    pub fn attr_name(&self) -> String {
+        AttributorTrait::attr_name(self).to_string()
+    }
+
+    /// Gets the CSS class prefix used for generating class names
+    ///
+    /// Returns the prefix that this attributor uses for generating CSS class names.
+    /// This is combined with values to create the full class names.
+    ///
+    /// # Returns
+    /// The class prefix as a string
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = new ClassAttributor("textAlign", "text-align");
+    /// console.log("Class prefix:", alignAttr.keyName()); // "text-align"
+    /// ```
+    #[wasm_bindgen(js_name = "keyName")]
+    pub fn key_name(&self) -> String {
+        AttributorTrait::key_name(self).to_string()
+    }
+
+    /// Gets the scope classification for this class attributor
+    ///
+    /// Returns the scope that determines how this attributor interacts with
+    /// the document model and other blots.
+    ///
+    /// # Returns
+    /// The Scope enum value
+    ///
+    /// # Examples
+    /// ```javascript
+    /// import { ClassAttributor, Scope } from './pkg/quillai_parchment.js';
+    ///
+    /// const alignAttr = ClassAttributor.newWithScope("align", "text-align", Scope.Block);
+    /// const scope = alignAttr.scope();
+    ///
+    /// if (scope === Scope.BlockAttribute) {
+    ///     console.log("This is a block-level class attribute");
+    /// }
+    /// ```
+    pub fn scope(&self) -> Scope {
+        AttributorTrait::scope(self)
     }
 }

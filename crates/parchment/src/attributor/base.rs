@@ -521,6 +521,10 @@ impl Attributor {
     /// }
     /// ```
     pub fn add(&self, element: &Element, value: &JsValue) -> bool {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return false;
+        }
         AttributorTrait::add(self, element, value)
     }
 
@@ -543,6 +547,10 @@ impl Attributor {
     /// linkAttr.remove(linkElement);
     /// ```
     pub fn remove(&self, element: &Element) {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return;
+        }
         AttributorTrait::remove(self, element)
     }
 
@@ -570,6 +578,10 @@ impl Attributor {
     /// console.log("Current href:", currentHref);
     /// ```
     pub fn value(&self, element: &Element) -> JsValue {
+        // Check for null element to prevent JavaScript null pointer errors
+        if element.is_null() {
+            return JsValue::from_str("");
+        }
         AttributorTrait::value(self, element)
     }
 
