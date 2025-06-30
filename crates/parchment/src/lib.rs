@@ -42,9 +42,25 @@
 //! ### **Attributor System - Flexible Formatting**
 //! Handle complex formatting scenarios common in code editors:
 //!
-//! - **Style Attributors** - CSS-based formatting for syntax highlighting
-//! - **Class Attributors** - CSS class management for themes and tokens
+//! - **[Attributor]** - Direct DOM attribute manipulation (href, data-*, etc.)
+//! - **[StyleAttributor]** - CSS inline style management (color, font-size, etc.)
+//! - **[ClassAttributor]** - CSS class management with prefix patterns
 //! - **Custom Attributors** - Build your own formatting systems
+//!
+//! #### **Three Approaches to Element Formatting**
+//! ```javascript
+//! // 1. DOM Attributes - for semantic data and links
+//! const linkAttr = new Attributor("link", "href");
+//! linkAttr.add(linkElement, "https://example.com");
+//!
+//! // 2. Inline Styles - for direct CSS property control
+//! const colorAttr = new StyleAttributor("color", "color");
+//! colorAttr.add(textElement, "rgb(255, 0, 0)");
+//!
+//! // 3. CSS Classes - for theme-based styling and design systems
+//! const alignAttr = new ClassAttributor("align", "text-align");
+//! alignAttr.add(blockElement, "center"); // → class="text-align-center"
+//! ```
 //!
 //! ### **Registry & Scope - Type Management**
 //! - **[Registry]** - Central system for registering custom blot types
@@ -76,6 +92,28 @@
 //! // Build document hierarchy
 //! paragraph.appendChild(textBlot);
 //! scrollBlot.appendChild(paragraph);
+//! ```
+//!
+//! ### **Flexible Formatting with Attributors**
+//! ```javascript
+//! import { Attributor, StyleAttributor, ClassAttributor, Scope } from "./pkg/quillai_parchment.js";
+//!
+//! // DOM attribute management
+//! const linkAttr = new Attributor("link", "href");
+//! linkAttr.add(element, "https://example.com");
+//!
+//! // CSS inline style management
+//! const colorAttr = new StyleAttributor("color", "color");
+//! colorAttr.add(element, "#ff0000");
+//!
+//! // CSS class management with prefix patterns
+//! const alignAttr = new ClassAttributor("align", "text-align");
+//! alignAttr.add(element, "center"); // Adds "text-align-center" class
+//!
+//! // Advanced configuration with scope and validation
+//! const sizeAttr = StyleAttributor.newWithWhitelist("size", "font-size", 
+//!   ["12px", "14px", "16px", "18px", "24px"]);
+//! const themeAttr = ClassAttributor.newWithScope("theme", "theme", Scope.Block);
 //! ```
 //!
 //! ### **Custom Editor Extensions**
@@ -114,10 +152,23 @@
 //! wasm-pack build --target nodejs --out-dir pkg ./crates/parchment
 //! ```
 //!
-//! ### **Basic Editor Setup**
+//! ### **Import Patterns and Setup**
 //!
 //! ```javascript
-//! import init, { Registry, version } from "./pkg/parchment.js";
+//! // Recommended: Import only what you need for optimal bundle size
+//! import init, { 
+//!   Attributor, StyleAttributor, ClassAttributor, Scope,
+//!   Registry, version 
+//! } from "./pkg/quillai_parchment.js";
+//!
+//! // For text editing features
+//! import { TextSelection, TextMatch, Position } from "./pkg/quillai_parchment.js";
+//!
+//! // For document structure
+//! import { BlockBlot, InlineBlot, TextBlot, ScrollBlot } from "./pkg/quillai_parchment.js";
+//!
+//! // Alternative: Import everything (larger bundle)
+//! import * as Parchment from "./pkg/quillai_parchment.js";
 //!
 //! async function createEditor() {
 //!   // Initialize WebAssembly module
@@ -126,11 +177,41 @@
 //!   // Create document registry
 //!   const registry = new Registry();
 //!
-//!   // Register standard blots
-//!   registry.register_defaults();
-//!
 //!   console.log(`Editor powered by Parchment v${version()}`);
 //!   return registry;
+//! }
+//! ```
+//!
+//! ### **Complete Attributor Example**
+//!
+//! ```javascript
+//! import init, { Attributor, StyleAttributor, ClassAttributor, Scope } from "./pkg/quillai_parchment.js";
+//!
+//! async function setupFormatting() {
+//!   await init();
+//!
+//!   // Create different types of attributors
+//!   const linkAttr = new Attributor("link", "href");
+//!   const colorAttr = StyleAttributor.newWithWhitelist("color", "color", 
+//!     ["red", "blue", "green", "#ff0000", "rgb(0,255,0)"]);
+//!   const alignAttr = ClassAttributor.newWithScope("align", "text-align", Scope.Block);
+//!
+//!   // Apply formatting to elements
+//!   const element = document.createElement('div');
+//!   
+//!   linkAttr.add(element, "https://example.com");
+//!   colorAttr.add(element, "red");
+//!   alignAttr.add(element, "center");
+//!
+//!   // Read current values
+//!   console.log("Link:", linkAttr.value(element));
+//!   console.log("Color:", colorAttr.value(element));
+//!   console.log("Alignment:", alignAttr.value(element));
+//!
+//!   // Remove formatting
+//!   linkAttr.remove(element);
+//!   colorAttr.remove(element);
+//!   alignAttr.remove(element);
 //! }
 //! ```
 //!

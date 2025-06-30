@@ -46,7 +46,7 @@
 //! let element = Dom::create_element("p")?;
 //!
 //! // Create text alignment attributor
-//! let align_attributor = ClassAttributor::new(
+//! let align_attributor = ClassAttributor::new_with_options(
 //!     "align",           // Parchment attribute name
 //!     "text-align",      // CSS class prefix
 //!     AttributorOptions {
@@ -74,9 +74,9 @@
 use crate::attributor::base::AttributorOptions;
 use crate::registry::AttributorTrait;
 use crate::scope::Scope;
+use js_sys::Array;
 use wasm_bindgen::prelude::*;
 use web_sys::Element;
-use js_sys::Array;
 
 /// CSS class-based attributor for prefix-pattern class management
 ///
@@ -214,7 +214,7 @@ impl ClassAttributor {
     /// let element = Dom::create_element("p");
     /// let options = AttributorOptions { scope: Some(Scope::Block), whitelist: None };
     ///
-    /// let attributor = ClassAttributor::new("align", "text-align", options);
+    /// let attributor = ClassAttributor::new_with_options("align", "text-align", options);
     /// assert_eq!(attributor.get_class_name("center"), "text-align-center");
     /// ```
     pub fn get_class_name(&self, value: &str) -> String {
@@ -244,7 +244,7 @@ impl ClassAttributor {
     /// // Create a new block element
     /// let element = Dom::create_element("p")?;
     ///
-    /// let restricted_attr = ClassAttributor::new(
+    /// let restricted_attr = ClassAttributor::new_with_options(
     ///     "size", "font-size",
     ///     AttributorOptions {
     ///         whitelist: Some(vec!["sm".to_string(), "lg".to_string()]),
@@ -613,7 +613,7 @@ impl ClassAttributor {
     /// import { ClassAttributor } from './pkg/quillai_parchment.js';
     ///
     /// const alignAttr = new ClassAttributor("align", "text-align");
-    /// 
+    ///
     /// console.log(alignAttr.getClassName("center")); // "text-align-center"
     /// console.log(alignAttr.getClassName("left"));   // "text-align-left"
     /// console.log(alignAttr.getClassName("right"));  // "text-align-right"
