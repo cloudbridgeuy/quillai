@@ -173,6 +173,7 @@ pub mod text_operations;
 pub mod utils;
 
 // Re-exports for public API
+pub use attributor::{Attributor, AttributorOptions};
 pub use blot::block::BlockBlot;
 pub use blot::embed::EmbedBlot;
 pub use blot::inline::InlineBlot;

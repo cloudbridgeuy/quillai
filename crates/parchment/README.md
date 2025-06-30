@@ -58,7 +58,7 @@ wasm-pack build --target web --out-dir pkg ./crates/parchment
 ### JavaScript Integration
 
 ```javascript
-import init, { version, create_registry } from "./pkg/quillai_parchment.js";
+import init, { version, create_registry, Attributor, Scope } from "./pkg/quillai_parchment.js";
 
 async function run() {
   await init();
@@ -66,17 +66,40 @@ async function run() {
   const ver = version();
   const registry = create_registry();
   console.log(`Parchment WASM v${ver}`);
+  
+  // Create attributors with different patterns
+  const linkAttr = new Attributor("link", "href");
+  const alignAttr = Attributor.newWithScope("align", "text-align", Scope.Block);
+  const colorAttr = Attributor.newWithWhitelist("color", "color", ["red", "blue", "green"]);
+  
+  // Use with DOM elements
+  const element = document.createElement('a');
+  linkAttr.add(element, "https://example.com");
+  console.log("Link href:", linkAttr.value(element));
 }
 ```
 
 ### Browser Example
 
 ```html
-<!-- See example.html for complete demo -->
+<!-- See tests/test_attributor.html for complete demo -->
 <script type="module">
-  import init, { test_scope_operations } from "./pkg/quillai_parchment.js";
-  await init();
-  const result = test_scope_operations(); // Returns 1 for success
+  import init, { Attributor, Scope, version } from "./pkg/quillai_parchment.js";
+  
+  async function demo() {
+    await init();
+    console.log(`Parchment WASM v${version()}`);
+    
+    // Create and use attributors
+    const linkAttr = new Attributor("link", "href");
+    const element = document.createElement('a');
+    
+    const success = linkAttr.add(element, "https://example.com");
+    console.log("Attribute set:", success);
+    console.log("Current value:", linkAttr.value(element));
+  }
+  
+  demo();
 </script>
 ```
 
@@ -112,6 +135,54 @@ The project includes a robust testing suite that validates all WASM functionalit
 # Start HTTP server
 cargo test -p quillai_parchment
 ```
+
+#### Interactive WASM Testing
+
+The project includes interactive HTML test files that demonstrate WASM functionality in the browser:
+
+**Prerequisites:**
+1. Build the WASM package first:
+   ```bash
+   wasm-pack build --target web --out-dir pkg
+   ```
+
+2. Start a local HTTP server (required for WASM module loading):
+   ```bash
+   # Using Python 3
+   python -m http.server 3000
+   
+   # Using Python 2
+   python -m SimpleHTTPServer 3000
+   
+   # Using Node.js (if you have http-server installed)
+   npx http-server -p 3000
+   
+   # Using Bun
+   bun --hot . --port 3000
+   ```
+
+3. Open your browser and navigate to:
+   ```
+   http://localhost:3000/tests/test_attributor.html
+   ```
+
+**Available Test Files:**
+- **`tests/test_attributor.html`** - Comprehensive Attributor WASM bindings test
+  - Tests all builder pattern constructors (`new`, `newWithScope`, `newWithWhitelist`, `newFull`)
+  - Validates DOM manipulation methods (`add`, `remove`, `value`)
+  - Demonstrates whitelist validation and scope handling
+  - Interactive examples with visual feedback
+
+> 📖 See `tests/README.md` for detailed testing instructions and expected results.
+
+**What the tests validate:**
+- ✅ WASM module initialization and version detection
+- ✅ All Attributor constructor patterns work correctly
+- ✅ DOM attribute manipulation (set, get, remove)
+- ✅ Whitelist validation (accepts valid values, rejects invalid ones)
+- ✅ Scope enum integration and type safety
+- ✅ TypeScript definition accuracy
+- ✅ Error handling and edge cases
 
 **Current Capabilities**:
 

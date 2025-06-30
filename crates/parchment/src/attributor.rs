@@ -32,7 +32,7 @@
 //!
 //! // Link href attribute
 //! let options = AttributorOptions::default();
-//! let link_attributor = Attributor::new("href", "href", options);
+//! let link_attributor = Attributor::new_with_options("href", "href", options);
 //! // link_attributor.add(&element, &JsValue::from_str("https://example.com"));
 //! ```
 //!
