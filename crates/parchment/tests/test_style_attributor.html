@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StyleAttributor WASM Bindings Test</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .test-section {
+        background: white;
+        margin: 20px 0;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #667eea;
+      }
+
+      .test-section h2 {
+        color: #333;
+        margin-top: 0;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+
+      .test-element {
+        padding: 15px;
+        margin: 10px 0;
+        border: 2px dashed #ddd;
+        border-radius: 5px;
+        background-color: #fafafa;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+
+      .test-element:hover {
+        border-color: #667eea;
+        background-color: #f0f2ff;
+      }
+
+      .controls {
+        margin: 15px 0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background-color: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #5a6fd8;
+      }
+
+      .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background-color: #5a6268;
+      }
+
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background-color: #c82333;
+      }
+
+      .result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+      }
+
+      .result.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .result.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .result.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .info-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+
+      .info-box h4 {
+        margin-top: 0;
+        color: #0066cc;
+      }
+
+      .code {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        margin: 10px 0;
+        overflow-x: auto;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .status-success {
+        background-color: #28a745;
+      }
+
+      .status-error {
+        background-color: #dc3545;
+      }
+
+      .status-pending {
+        background-color: #ffc107;
+      }
+
+      .visual-demo {
+        border: 2px solid #333;
+        padding: 20px;
+        margin: 15px 0;
+        border-radius: 8px;
+        background: white;
+      }
+
+      .demo-text {
+        font-size: 18px;
+        line-height: 1.6;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🎨 StyleAttributor WASM Bindings Test Suite</h1>
+      <p>
+        Comprehensive testing of CSS style property manipulation through
+        WebAssembly
+      </p>
+      <div id="version-info"></div>
+    </div>
+
+    <!-- Test Section 1: Basic Constructor -->
+    <div class="test-section">
+      <h2>1. Basic Constructor Test</h2>
+      <div class="info-box">
+        <h4>Testing: new StyleAttributor(attr_name, key_name)</h4>
+        <p>
+          Creates a basic style attributor with default options for CSS color
+          manipulation.
+        </p>
+      </div>
+
+      <div class="test-element" id="basic-test-element">
+        This text will change color using the basic constructor
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="testBasicConstructor('red')">
+          Set Red
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testBasicConstructor('#00ff00')"
+        >
+          Set Green (Hex)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testBasicConstructor('rgb(0, 0, 255)')"
+        >
+          Set Blue (RGB)
+        </button>
+        <button class="btn btn-secondary" onclick="getBasicValue()">
+          Get Value
+        </button>
+        <button class="btn btn-danger" onclick="removeBasicStyle()">
+          Remove Style
+        </button>
+      </div>
+
+      <div id="basic-results"></div>
+
+      <div class="code">
+        const colorAttr = new StyleAttributor("color", "color");
+        colorAttr.add(element, "red");
+      </div>
+    </div>
+
+    <!-- Test Section 2: Scope Constructor -->
+    <div class="test-section">
+      <h2>2. Scope Constructor Test</h2>
+      <div class="info-box">
+        <h4>
+          Testing: StyleAttributor.newWithScope(attr_name, key_name, scope)
+        </h4>
+        <p>
+          Creates a style attributor with specific scope for text alignment
+          properties.
+        </p>
+      </div>
+
+      <div class="visual-demo">
+        <div class="demo-text" id="scope-test-element">
+          This paragraph will change text alignment using the scope constructor.
+          The scope determines how the attributor interacts with the document
+          model.
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="testScopeConstructor('left')">
+          Align Left
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testScopeConstructor('center')"
+        >
+          Align Center
+        </button>
+        <button class="btn btn-primary" onclick="testScopeConstructor('right')">
+          Align Right
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testScopeConstructor('justify')"
+        >
+          Justify
+        </button>
+        <button class="btn btn-secondary" onclick="getScopeValue()">
+          Get Value
+        </button>
+        <button class="btn btn-danger" onclick="removeScopeStyle()">
+          Remove Style
+        </button>
+      </div>
+
+      <div id="scope-results"></div>
+
+      <div class="code">
+        const alignAttr = StyleAttributor.newWithScope("align", "text-align",
+        Scope.Block); alignAttr.add(element, "center");
+      </div>
+    </div>
+
+    <!-- Test Section 3: Whitelist Constructor -->
+    <div class="test-section">
+      <h2>3. Whitelist Constructor Test</h2>
+      <div class="info-box">
+        <h4>
+          Testing: StyleAttributor.newWithWhitelist(attr_name, key_name,
+          whitelist)
+        </h4>
+        <p>
+          Creates a style attributor with restricted font sizes. Only values in
+          the whitelist are allowed.
+        </p>
+      </div>
+
+      <div class="test-element" id="whitelist-test-element">
+        This text will change font size using the whitelist constructor
+      </div>
+
+      <div class="controls">
+        <button
+          class="btn btn-primary"
+          onclick="testWhitelistConstructor('12px')"
+        >
+          12px (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testWhitelistConstructor('16px')"
+        >
+          16px (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testWhitelistConstructor('24px')"
+        >
+          24px (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testWhitelistConstructor('13px')"
+        >
+          13px (Invalid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testWhitelistConstructor('20px')"
+        >
+          20px (Invalid)
+        </button>
+        <button class="btn btn-secondary" onclick="getWhitelistValue()">
+          Get Value
+        </button>
+        <button class="btn btn-danger" onclick="removeWhitelistStyle()">
+          Remove Style
+        </button>
+      </div>
+
+      <div id="whitelist-results"></div>
+
+      <div class="code">
+        const sizeAttr = StyleAttributor.newWithWhitelist("fontSize",
+        "font-size", ["12px", "14px", "16px", "18px", "24px"]);
+        sizeAttr.add(element, "16px"); // Success sizeAttr.add(element, "13px");
+        // Fails - not in whitelist
+      </div>
+    </div>
+
+    <!-- Test Section 4: Full Constructor -->
+    <div class="test-section">
+      <h2>4. Full Constructor Test</h2>
+      <div class="info-box">
+        <h4>
+          Testing: StyleAttributor.newFull(attr_name, key_name, scope,
+          whitelist)
+        </h4>
+        <p>
+          Creates a style attributor with both scope and whitelist for
+          background colors.
+        </p>
+      </div>
+
+      <div class="test-element" id="full-test-element">
+        This element will change background color using the full constructor
+      </div>
+
+      <div class="controls">
+        <button
+          class="btn btn-primary"
+          onclick="testFullConstructor('#ffffff')"
+        >
+          White (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testFullConstructor('#f0f0f0')"
+        >
+          Light Gray (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testFullConstructor('#e0e0e0')"
+        >
+          Gray (Valid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testFullConstructor('#ff0000')"
+        >
+          Red (Invalid)
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testFullConstructor('#00ff00')"
+        >
+          Green (Invalid)
+        </button>
+        <button class="btn btn-secondary" onclick="getFullValue()">
+          Get Value
+        </button>
+        <button class="btn btn-danger" onclick="removeFullStyle()">
+          Remove Style
+        </button>
+      </div>
+
+      <div id="full-results"></div>
+
+      <div class="code">
+        const bgAttr = StyleAttributor.newFull("background", "background-color",
+        Scope.Inline, ["#ffffff", "#f0f0f0", "#e0e0e0", "#d0d0d0"]);
+        bgAttr.add(element, "#f0f0f0"); // Success bgAttr.add(element,
+        "#ff0000"); // Fails - not in whitelist
+      </div>
+    </div>
+
+    <!-- Test Section 5: Complex CSS Values -->
+    <div class="test-section">
+      <h2>5. Complex CSS Values Test</h2>
+      <div class="info-box">
+        <h4>Testing: Complex CSS property values</h4>
+        <p>
+          Testing various CSS value formats including gradients, calc(), and CSS
+          variables.
+        </p>
+      </div>
+
+      <div class="test-element" id="complex-test-element">
+        This element will test complex CSS values
+      </div>
+
+      <div class="controls">
+        <button
+          class="btn btn-primary"
+          onclick="testComplexCSS('rgb(255, 100, 50)')"
+        >
+          RGB Color
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testComplexCSS('hsl(240, 100%, 50%)')"
+        >
+          HSL Color
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testComplexCSS('rgba(255, 0, 0, 0.5)')"
+        >
+          RGBA Color
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="testComplexCSS('calc(100% - 20px)')"
+        >
+          Calc Width
+        </button>
+        <button class="btn btn-secondary" onclick="getComplexValue()">
+          Get Value
+        </button>
+        <button class="btn btn-danger" onclick="removeComplexStyle()">
+          Remove Style
+        </button>
+      </div>
+
+      <div id="complex-results"></div>
+
+      <div class="code">
+        // Test various CSS value formats colorAttr.add(element, "rgb(255, 100,
+        50)"); colorAttr.add(element, "hsl(240, 100%, 50%)");
+        widthAttr.add(element, "calc(100% - 20px)");
+      </div>
+    </div>
+
+    <!-- Test Section 6: CSS Property Isolation -->
+    <div class="test-section">
+      <h2>6. CSS Property Isolation Test</h2>
+      <div class="info-box">
+        <h4>Testing: Style property isolation</h4>
+        <p>
+          Verifying that StyleAttributor only affects the specific CSS property,
+          not other styles.
+        </p>
+      </div>
+
+      <div
+        class="test-element"
+        id="isolation-test-element"
+        style="color: blue; font-weight: bold; margin: 10px"
+      >
+        This element has multiple styles. Only font-size should be affected.
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="testIsolation('14px')">
+          Set Font Size 14px
+        </button>
+        <button class="btn btn-primary" onclick="testIsolation('20px')">
+          Set Font Size 20px
+        </button>
+        <button class="btn btn-primary" onclick="testIsolation('28px')">
+          Set Font Size 28px
+        </button>
+        <button class="btn btn-secondary" onclick="getIsolationValue()">
+          Get Font Size
+        </button>
+        <button class="btn btn-danger" onclick="removeIsolationStyle()">
+          Remove Font Size
+        </button>
+      </div>
+
+      <div id="isolation-results"></div>
+
+      <div class="code">
+        // Element has: style="color: blue; font-weight: bold; margin: 10px;" //
+        Only font-size should be modified, other styles preserved
+        fontSizeAttr.add(element, "20px"); fontSizeAttr.remove(element); // Only
+        removes font-size
+      </div>
+    </div>
+
+    <!-- Test Section 7: Getter Methods -->
+    <div class="test-section">
+      <h2>7. Getter Methods Test</h2>
+      <div class="info-box">
+        <h4>Testing: attrName(), keyName(), scope() getters</h4>
+        <p>
+          Verifying that getter methods return correct values with proper
+          camelCase naming.
+        </p>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="testGetters()">
+          Test All Getters
+        </button>
+      </div>
+
+      <div id="getters-results"></div>
+
+      <div class="code">
+        const attr = new StyleAttributor("textColor", "color");
+        console.log(attr.attrName()); // "textColor"
+        console.log(attr.keyName()); // "color" console.log(attr.scope()); //
+        Scope enum value
+      </div>
+    </div>
+
+    <!-- Test Section 8: Error Handling -->
+    <div class="test-section">
+      <h2>8. Error Handling Test</h2>
+      <div class="info-box">
+        <h4>Testing: Error conditions and edge cases</h4>
+        <p>
+          Testing behavior with invalid elements, malformed CSS values, and edge
+          cases.
+        </p>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="testErrorHandling()">
+          Test Error Conditions
+        </button>
+      </div>
+
+      <div id="error-results"></div>
+
+      <div class="code">
+        // Test error conditions attr.add(null, "red"); // Should handle
+        gracefully attr.add(element, null); // Should handle gracefully
+        attr.add(element, "invalid-css"); // Should handle gracefully
+      </div>
+    </div>
+
+    <script type="module">
+      import init, {
+        StyleAttributor,
+        Scope,
+        version,
+      } from "../pkg/quillai_parchment.js";
+
+      let colorAttr, alignAttr, sizeAttr, bgAttr, complexAttr, isolationAttr;
+
+      window.colorAttr = colorAttr;
+
+      async function initializeTests() {
+        try {
+          await init();
+
+          // Display version info
+          document.getElementById("version-info").innerHTML =
+            `<div class="status-indicator status-success"></div>Parchment v${version()} loaded successfully`;
+
+          // Initialize attributors for testing
+          colorAttr = new StyleAttributor("color", "color");
+          alignAttr = StyleAttributor.newWithScope(
+            "align",
+            "text-align",
+            Scope.Block,
+          );
+          sizeAttr = StyleAttributor.newWithWhitelist("fontSize", "font-size", [
+            "12px",
+            "14px",
+            "16px",
+            "18px",
+            "24px",
+          ]);
+          bgAttr = StyleAttributor.newFull(
+            "background",
+            "background-color",
+            Scope.Inline,
+            ["#ffffff", "#f0f0f0", "#e0e0e0", "#d0d0d0"],
+          );
+          complexAttr = new StyleAttributor("complexColor", "color");
+          isolationAttr = new StyleAttributor("fontSize", "font-size");
+
+          console.log("StyleAttributor tests initialized successfully");
+        } catch (error) {
+          console.error("Failed to initialize StyleAttributor tests:", error);
+          document.getElementById("version-info").innerHTML =
+            `<div class="status-indicator status-error"></div>Failed to load: ${error.message}`;
+        }
+      }
+
+      function logResult(containerId, message, type = "info") {
+        const container = document.getElementById(containerId);
+        const timestamp = new Date().toLocaleTimeString();
+        const resultDiv = document.createElement("div");
+        resultDiv.className = `result ${type}`;
+        resultDiv.innerHTML = `[${timestamp}] ${message}`;
+        container.appendChild(resultDiv);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      // Test functions for each section
+      window.testBasicConstructor = function (color) {
+        try {
+          const element = document.getElementById("basic-test-element");
+          const success = colorAttr.add(element, color);
+
+          if (success) {
+            logResult(
+              "basic-results",
+              `✅ Successfully set color to: ${color}`,
+              "success",
+            );
+          } else {
+            logResult(
+              "basic-results",
+              `❌ Failed to set color to: ${color}`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("basic-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getBasicValue = function () {
+        try {
+          const element = document.getElementById("basic-test-element");
+          const value = colorAttr.value(element);
+          logResult(
+            "basic-results",
+            `📖 Current color value: "${value}"`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "basic-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeBasicStyle = function () {
+        try {
+          const element = document.getElementById("basic-test-element");
+          colorAttr.remove(element);
+          logResult("basic-results", `🗑️ Color style removed`, "info");
+        } catch (error) {
+          logResult(
+            "basic-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testScopeConstructor = function (alignment) {
+        try {
+          const element = document.getElementById("scope-test-element");
+          const success = alignAttr.add(element, alignment);
+
+          if (success) {
+            logResult(
+              "scope-results",
+              `✅ Successfully set text-align to: ${alignment}`,
+              "success",
+            );
+          } else {
+            logResult(
+              "scope-results",
+              `❌ Failed to set text-align to: ${alignment}`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("scope-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getScopeValue = function () {
+        try {
+          const element = document.getElementById("scope-test-element");
+          const value = alignAttr.value(element);
+          logResult(
+            "scope-results",
+            `📖 Current text-align value: "${value}"`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "scope-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeScopeStyle = function () {
+        try {
+          const element = document.getElementById("scope-test-element");
+          alignAttr.remove(element);
+          logResult("scope-results", `🗑️ Text-align style removed`, "info");
+        } catch (error) {
+          logResult(
+            "scope-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testWhitelistConstructor = function (fontSize) {
+        try {
+          const element = document.getElementById("whitelist-test-element");
+          const success = sizeAttr.add(element, fontSize);
+
+          if (success) {
+            logResult(
+              "whitelist-results",
+              `✅ Successfully set font-size to: ${fontSize} (whitelisted)`,
+              "success",
+            );
+          } else {
+            logResult(
+              "whitelist-results",
+              `❌ Failed to set font-size to: ${fontSize} (not whitelisted)`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("whitelist-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getWhitelistValue = function () {
+        try {
+          const element = document.getElementById("whitelist-test-element");
+          const value = sizeAttr.value(element);
+          logResult(
+            "whitelist-results",
+            `📖 Current font-size value: "${value}"`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "whitelist-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeWhitelistStyle = function () {
+        try {
+          const element = document.getElementById("whitelist-test-element");
+          sizeAttr.remove(element);
+          logResult("whitelist-results", `🗑️ Font-size style removed`, "info");
+        } catch (error) {
+          logResult(
+            "whitelist-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testFullConstructor = function (bgColor) {
+        try {
+          const element = document.getElementById("full-test-element");
+          const success = bgAttr.add(element, bgColor);
+
+          if (success) {
+            logResult(
+              "full-results",
+              `✅ Successfully set background-color to: ${bgColor} (whitelisted)`,
+              "success",
+            );
+          } else {
+            logResult(
+              "full-results",
+              `❌ Failed to set background-color to: ${bgColor} (not whitelisted)`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("full-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getFullValue = function () {
+        try {
+          const element = document.getElementById("full-test-element");
+          const value = bgAttr.value(element);
+          logResult(
+            "full-results",
+            `📖 Current background-color value: "${value}"`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "full-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeFullStyle = function () {
+        try {
+          const element = document.getElementById("full-test-element");
+          bgAttr.remove(element);
+          logResult(
+            "full-results",
+            `🗑️ Background-color style removed`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "full-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testComplexCSS = function (value) {
+        try {
+          const element = document.getElementById("complex-test-element");
+
+          // Use different properties for different value types
+          let attr, property;
+          if (value.includes("calc(")) {
+            attr = new StyleAttributor("width", "width");
+            property = "width";
+          } else {
+            attr = complexAttr;
+            property = "color";
+          }
+
+          const success = attr.add(element, value);
+
+          if (success) {
+            logResult(
+              "complex-results",
+              `✅ Successfully set ${property} to: ${value}`,
+              "success",
+            );
+          } else {
+            logResult(
+              "complex-results",
+              `❌ Failed to set ${property} to: ${value}`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("complex-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getComplexValue = function () {
+        try {
+          const element = document.getElementById("complex-test-element");
+          const colorValue = complexAttr.value(element);
+          logResult(
+            "complex-results",
+            `📖 Current color value: "${colorValue}"`,
+            "info",
+          );
+
+          // Also check width if it was set
+          const widthValue = element.style.width;
+          if (widthValue) {
+            logResult(
+              "complex-results",
+              `📖 Current width value: "${widthValue}"`,
+              "info",
+            );
+          }
+        } catch (error) {
+          logResult(
+            "complex-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeComplexStyle = function () {
+        try {
+          const element = document.getElementById("complex-test-element");
+          complexAttr.remove(element);
+          element.style.width = ""; // Also clear width
+          logResult("complex-results", `🗑️ Complex styles removed`, "info");
+        } catch (error) {
+          logResult(
+            "complex-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testIsolation = function (fontSize) {
+        try {
+          const element = document.getElementById("isolation-test-element");
+          const beforeStyles = element.style.cssText;
+
+          const success = isolationAttr.add(element, fontSize);
+
+          const afterStyles = element.style.cssText;
+
+          if (success) {
+            logResult(
+              "isolation-results",
+              `✅ Successfully set font-size to: ${fontSize}`,
+              "success",
+            );
+            logResult(
+              "isolation-results",
+              `📋 Before: ${beforeStyles}`,
+              "info",
+            );
+            logResult("isolation-results", `📋 After: ${afterStyles}`, "info");
+          } else {
+            logResult(
+              "isolation-results",
+              `❌ Failed to set font-size to: ${fontSize}`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult("isolation-results", `❌ Error: ${error.message}`, "error");
+        }
+      };
+
+      window.getIsolationValue = function () {
+        try {
+          const element = document.getElementById("isolation-test-element");
+          const value = isolationAttr.value(element);
+          logResult(
+            "isolation-results",
+            `📖 Current font-size value: "${value}"`,
+            "info",
+          );
+        } catch (error) {
+          logResult(
+            "isolation-results",
+            `❌ Error getting value: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.removeIsolationStyle = function () {
+        try {
+          const element = document.getElementById("isolation-test-element");
+          const beforeStyles = element.style.cssText;
+
+          isolationAttr.remove(element);
+
+          const afterStyles = element.style.cssText;
+
+          logResult("isolation-results", `🗑️ Font-size style removed`, "info");
+          logResult("isolation-results", `📋 Before: ${beforeStyles}`, "info");
+          logResult("isolation-results", `📋 After: ${afterStyles}`, "info");
+        } catch (error) {
+          logResult(
+            "isolation-results",
+            `❌ Error removing style: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testGetters = function () {
+        try {
+          // Test basic attributor getters
+          const attrName = colorAttr.attrName();
+          const keyName = colorAttr.keyName();
+          const scope = colorAttr.scope();
+
+          logResult(
+            "getters-results",
+            `✅ attrName(): "${attrName}"`,
+            "success",
+          );
+          logResult("getters-results", `✅ keyName(): "${keyName}"`, "success");
+          logResult("getters-results", `✅ scope(): ${scope}`, "success");
+
+          // Test scope attributor getters
+          const scopeAttrName = alignAttr.attrName();
+          const scopeKeyName = alignAttr.keyName();
+          const scopeScope = alignAttr.scope();
+
+          logResult(
+            "getters-results",
+            `✅ Scope attr - attrName(): "${scopeAttrName}"`,
+            "success",
+          );
+          logResult(
+            "getters-results",
+            `✅ Scope attr - keyName(): "${scopeKeyName}"`,
+            "success",
+          );
+          logResult(
+            "getters-results",
+            `✅ Scope attr - scope(): ${scopeScope}`,
+            "success",
+          );
+
+          // Test whitelist attributor getters
+          const whitelistAttrName = sizeAttr.attrName();
+          const whitelistKeyName = sizeAttr.keyName();
+
+          logResult(
+            "getters-results",
+            `✅ Whitelist attr - attrName(): "${whitelistAttrName}"`,
+            "success",
+          );
+          logResult(
+            "getters-results",
+            `✅ Whitelist attr - keyName(): "${whitelistKeyName}"`,
+            "success",
+          );
+        } catch (error) {
+          logResult(
+            "getters-results",
+            `❌ Error testing getters: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      window.testErrorHandling = function () {
+        try {
+          const element = document.getElementById("basic-test-element");
+
+          // Test with null element (should handle gracefully)
+          try {
+            const result1 = colorAttr.add(null, "red");
+            logResult(
+              "error-results",
+              `✅ Null element handled gracefully: ${result1}`,
+              "success",
+            );
+          } catch (e) {
+            logResult(
+              "error-results",
+              `❌ Null element caused error: ${e.message}`,
+              "error",
+            );
+          }
+
+          // Test with undefined value (should handle gracefully)
+          try {
+            const result2 = colorAttr.add(element, undefined);
+            logResult(
+              "error-results",
+              `✅ Undefined value handled gracefully: ${result2}`,
+              "success",
+            );
+          } catch (e) {
+            logResult(
+              "error-results",
+              `❌ Undefined value caused error: ${e.message}`,
+              "error",
+            );
+          }
+
+          // Test with non-HTML element
+          try {
+            const svgElement = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            const result3 = colorAttr.add(svgElement, "red");
+            logResult(
+              "error-results",
+              `✅ SVG element handled gracefully: ${result3}`,
+              "success",
+            );
+          } catch (e) {
+            logResult(
+              "error-results",
+              `❌ SVG element caused error: ${e.message}`,
+              "error",
+            );
+          }
+
+          // Test getting value from element without the property
+          try {
+            const emptyElement = document.createElement("div");
+            const value = colorAttr.value(emptyElement);
+            logResult(
+              "error-results",
+              `✅ Empty element value: "${value}"`,
+              "success",
+            );
+          } catch (e) {
+            logResult(
+              "error-results",
+              `❌ Empty element value caused error: ${e.message}`,
+              "error",
+            );
+          }
+        } catch (error) {
+          logResult(
+            "error-results",
+            `❌ Error in error handling test: ${error.message}`,
+            "error",
+          );
+        }
+      };
+
+      // Initialize tests when page loads
+      initializeTests();
+    </script>
+  </body>
+</html>

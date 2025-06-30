@@ -58,7 +58,7 @@ wasm-pack build --target web --out-dir pkg ./crates/parchment
 ### JavaScript Integration
 
 ```javascript
-import init, { version, create_registry, Attributor, Scope } from "./pkg/quillai_parchment.js";
+import init, { version, create_registry, Attributor, StyleAttributor, Scope } from "./pkg/quillai_parchment.js";
 
 async function run() {
   await init();
@@ -67,36 +67,58 @@ async function run() {
   const registry = create_registry();
   console.log(`Parchment WASM v${ver}`);
   
-  // Create attributors with different patterns
+  // Create base attributors with different patterns
   const linkAttr = new Attributor("link", "href");
   const alignAttr = Attributor.newWithScope("align", "text-align", Scope.Block);
   const colorAttr = Attributor.newWithWhitelist("color", "color", ["red", "blue", "green"]);
   
+  // Create style attributors for CSS property manipulation
+  const textColorAttr = new StyleAttributor("textColor", "color");
+  const fontSizeAttr = StyleAttributor.newWithWhitelist("fontSize", "font-size", 
+    ["12px", "14px", "16px", "18px", "24px"]);
+  const bgColorAttr = StyleAttributor.newFull("background", "background-color", 
+    Scope.Inline, ["#ffffff", "#f0f0f0", "#e0e0e0"]);
+  
   // Use with DOM elements
-  const element = document.createElement('a');
-  linkAttr.add(element, "https://example.com");
-  console.log("Link href:", linkAttr.value(element));
+  const linkElement = document.createElement('a');
+  linkAttr.add(linkElement, "https://example.com");
+  console.log("Link href:", linkAttr.value(linkElement));
+  
+  const textElement = document.createElement('span');
+  textColorAttr.add(textElement, "#ff0000");
+  fontSizeAttr.add(textElement, "16px");
+  console.log("Text color:", textColorAttr.value(textElement));
+  console.log("Font size:", fontSizeAttr.value(textElement));
 }
 ```
 
 ### Browser Example
 
 ```html
-<!-- See tests/test_attributor.html for complete demo -->
+<!-- See tests/test_attributor.html and tests/test_style_attributor.html for complete demos -->
 <script type="module">
-  import init, { Attributor, Scope, version } from "./pkg/quillai_parchment.js";
+  import init, { Attributor, StyleAttributor, Scope, version } from "./pkg/quillai_parchment.js";
   
   async function demo() {
     await init();
     console.log(`Parchment WASM v${version()}`);
     
-    // Create and use attributors
+    // Create and use base attributors
     const linkAttr = new Attributor("link", "href");
-    const element = document.createElement('a');
+    const linkElement = document.createElement('a');
     
-    const success = linkAttr.add(element, "https://example.com");
+    const success = linkAttr.add(linkElement, "https://example.com");
     console.log("Attribute set:", success);
-    console.log("Current value:", linkAttr.value(element));
+    console.log("Current value:", linkAttr.value(linkElement));
+    
+    // Create and use style attributors for CSS properties
+    const colorAttr = new StyleAttributor("color", "color");
+    const textElement = document.createElement('span');
+    
+    const colorSuccess = colorAttr.add(textElement, "#ff0000");
+    console.log("Style set:", colorSuccess);
+    console.log("Current color:", colorAttr.value(textElement));
+    // textElement.style.color is now "#ff0000"
   }
   
   demo();
@@ -164,6 +186,7 @@ The project includes interactive HTML test files that demonstrate WASM functiona
 3. Open your browser and navigate to:
    ```
    http://localhost:3000/tests/test_attributor.html
+   http://localhost:3000/tests/test_style_attributor.html
    ```
 
 **Available Test Files:**
@@ -173,14 +196,24 @@ The project includes interactive HTML test files that demonstrate WASM functiona
   - Demonstrates whitelist validation and scope handling
   - Interactive examples with visual feedback
 
+- **`tests/test_style_attributor.html`** - Comprehensive StyleAttributor WASM bindings test
+  - Tests CSS property manipulation through inline styles
+  - Validates all constructor patterns with CSS-specific examples
+  - Demonstrates complex CSS values (RGB, HSL, calc(), etc.)
+  - Tests style property isolation and error handling
+  - Visual examples showing real-time style changes
+
 > 📖 See `tests/README.md` for detailed testing instructions and expected results.
 
 **What the tests validate:**
 - ✅ WASM module initialization and version detection
 - ✅ All Attributor constructor patterns work correctly
 - ✅ DOM attribute manipulation (set, get, remove)
+- ✅ CSS style property manipulation through StyleAttributor
 - ✅ Whitelist validation (accepts valid values, rejects invalid ones)
 - ✅ Scope enum integration and type safety
+- ✅ Complex CSS value handling (RGB, HSL, calc(), etc.)
+- ✅ Style property isolation and error handling
 - ✅ TypeScript definition accuracy
 - ✅ Error handling and edge cases
 
