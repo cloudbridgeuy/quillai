@@ -37,6 +37,11 @@ use web_sys::{Element, Node};
 use crate::blot::traits_simple::{BlotTrait, RegistryDefinition};
 use crate::scope::Scope;
 
+/// DOM-to-Blot mapping system
+pub mod dom_map;
+
+use dom_map::DomBlotMap;
+
 /// Error type for registry operations and blot creation failures
 ///
 /// Provides structured error handling for registry operations, including
@@ -140,6 +145,8 @@ pub struct Registry {
     blot_names: HashMap<String, String>,
     /// Maps DOM tag names to their corresponding blot names
     tag_names: HashMap<String, String>,
+    /// DOM-to-Blot mapping system
+    dom_blot_map: DomBlotMap,
 }
 
 impl Registry {
@@ -154,6 +161,7 @@ impl Registry {
         Self {
             blot_names: HashMap::new(),
             tag_names: HashMap::new(),
+            dom_blot_map: DomBlotMap::new(),
         }
     }
 
@@ -176,6 +184,21 @@ impl Registry {
     /// registry.register_blot_type("bold", "strong");
     /// ```
     pub fn register_blot_type(&mut self, blot_name: &str, tag_name: &str) {
+        // If this blot name was previously registered with a different tag, clean up the old reverse mapping
+        if let Some(old_tag) = self.blot_names.get(blot_name) {
+            if old_tag != tag_name {
+                self.tag_names.remove(old_tag);
+            }
+        }
+        
+        // If this tag was previously registered with a different blot name, clean up the old forward mapping
+        if let Some(old_blot) = self.tag_names.get(tag_name) {
+            if old_blot != blot_name {
+                self.blot_names.remove(old_blot);
+            }
+        }
+        
+        // Insert new mappings
         self.blot_names
             .insert(blot_name.to_string(), tag_name.to_string());
         self.tag_names
@@ -239,22 +262,112 @@ impl Registry {
         map.get(name).cloned()
     }
 
-    /// Register a DOM node with its blot - simplified implementation
-    /// Note: In a full implementation, this would use a proper DOM-to-Blot mapping system
+    /// Register a blot for a DOM node
+    ///
+    /// Creates a bidirectional mapping between a DOM node and its blot instance.
+    /// This is the core method for associating blots with their DOM representations.
+    ///
+    /// # Parameters
+    /// * `node` - DOM node to associate with the blot
+    /// * `blot_ptr` - Raw pointer to the blot instance
+    ///
+    /// # Returns
+    /// `Ok(())` on success, `Err(JsValue)` on failure
+    ///
+    /// # Safety
+    /// The caller must ensure that the blot pointer remains valid for the lifetime
+    /// of the mapping. The blot should be unregistered before being dropped.
+    pub fn register_blot_for_node(
+        &mut self,
+        node: &Node,
+        blot_ptr: *mut dyn BlotTrait,
+    ) -> Result<(), JsValue> {
+        self.dom_blot_map.register_blot(node, blot_ptr)
+    }
+
+    /// Find blot associated with a DOM node
+    ///
+    /// Looks up the blot instance associated with the given DOM node.
+    /// Returns None if no mapping exists.
+    ///
+    /// # Parameters
+    /// * `node` - DOM node to look up
+    ///
+    /// # Returns
+    /// Blot pointer if found, None otherwise
+    pub fn find_blot_for_node(&mut self, node: &Node) -> Option<*mut dyn BlotTrait> {
+        self.dom_blot_map.find_blot_by_node(node)
+    }
+
+    /// Unregister a blot by its DOM node
+    ///
+    /// Removes the mapping between a DOM node and its blot instance.
+    /// Safe to call multiple times for the same node.
+    ///
+    /// # Parameters
+    /// * `node` - DOM node to unregister
+    ///
+    /// # Returns
+    /// `true` if a mapping existed and was removed, `false` otherwise
+    pub fn unregister_blot_for_node(&mut self, node: &Node) -> bool {
+        self.dom_blot_map.unregister_blot_by_node(node)
+    }
+
+    /// Clean up mappings for disconnected DOM nodes
+    ///
+    /// Performs automatic cleanup of mappings for DOM nodes that are no longer
+    /// connected to the document. This helps prevent memory leaks.
+    ///
+    /// # Returns
+    /// Number of mappings that were cleaned up
+    pub fn cleanup_disconnected_nodes(&mut self) -> usize {
+        self.dom_blot_map.cleanup_disconnected_nodes()
+    }
+
+    /// Get statistics about the DOM-to-Blot mapping system
+    ///
+    /// Returns information about the current state of the mapping system,
+    /// useful for debugging and performance monitoring.
+    pub fn get_mapping_stats(&self) -> dom_map::DomBlotMapStats {
+        self.dom_blot_map.get_stats()
+    }
+
+    /// Validate the consistency of the DOM-to-Blot mapping system
+    ///
+    /// Performs internal consistency checks on the mapping data structures.
+    /// Useful for debugging and ensuring data integrity.
+    ///
+    /// # Returns
+    /// `Ok(())` if consistent, `Err(String)` with error description if not
+    pub fn validate_mapping_consistency(&self) -> Result<(), String> {
+        self.dom_blot_map.validate_consistency()
+    }
+
+    // Legacy methods for backward compatibility
+    /// Register a DOM node with its blot - legacy method
     pub fn register_blot_instance(_dom_node: &Node, _blot_ptr: &JsValue) -> Result<(), JsValue> {
-        // Simplified implementation - registry functionality will be handled by browser WeakMap
+        // Legacy method - use register_blot_for_node instead
+        web_sys::console::warn_1(&JsValue::from_str(
+            "register_blot_instance is deprecated, use register_blot_for_node instead"
+        ));
         Ok(())
     }
 
-    /// Unregister a DOM node - simplified implementation
+    /// Unregister a DOM node - legacy method
     pub fn unregister_blot_instance(_dom_node: &Node) -> bool {
-        // Simplified implementation - cleanup will be handled by browser WeakMap
+        // Legacy method - use unregister_blot_for_node instead
+        web_sys::console::warn_1(&JsValue::from_str(
+            "unregister_blot_instance is deprecated, use unregister_blot_for_node instead"
+        ));
         true
     }
 
-    /// Find blot by DOM node - simplified implementation
+    /// Find blot by DOM node - legacy method
     pub fn find_blot_by_node(_dom_node: &Node) -> Option<JsValue> {
-        // Simplified implementation - lookup will be handled by browser-side registry
+        // Legacy method - use find_blot_for_node instead
+        web_sys::console::warn_1(&JsValue::from_str(
+            "find_blot_by_node is deprecated, use find_blot_for_node instead"
+        ));
         None
     }
 
@@ -418,15 +531,153 @@ impl Default for Registry {
 mod tests {
     use super::*;
 
+
     #[test]
     fn registry_creation() {
         let registry = Registry::new();
         assert_eq!(registry.blot_names.len(), 0);
+        assert_eq!(registry.tag_names.len(), 0);
+        
+        let stats = registry.get_mapping_stats();
+        assert_eq!(stats.total_mappings, 0);
     }
 
     #[test]
     fn registry_default() {
         let registry = Registry::default();
         assert_eq!(registry.blot_names.len(), 0);
+        assert_eq!(registry.tag_names.len(), 0);
+    }
+
+    #[test]
+    fn blot_type_registration() {
+        let mut registry = Registry::new();
+        
+        registry.register_blot_type("paragraph", "p");
+        registry.register_blot_type("bold", "strong");
+        
+        assert_eq!(registry.query_by_name("paragraph"), Some(&"p".to_string()));
+        assert_eq!(registry.query_by_name("bold"), Some(&"strong".to_string()));
+        assert_eq!(registry.query_by_tag("p"), Some(&"paragraph".to_string()));
+        assert_eq!(registry.query_by_tag("strong"), Some(&"bold".to_string()));
+        
+        // Test non-existent lookups
+        assert_eq!(registry.query_by_name("nonexistent"), None);
+        assert_eq!(registry.query_by_tag("nonexistent"), None);
+    }
+
+    #[test]
+    fn blot_type_overwrite() {
+        let mut registry = Registry::new();
+        
+        registry.register_blot_type("test", "div");
+        assert_eq!(registry.query_by_name("test"), Some(&"div".to_string()));
+        
+        // Overwrite with new tag
+        registry.register_blot_type("test", "span");
+        assert_eq!(registry.query_by_name("test"), Some(&"span".to_string()));
+        assert_eq!(registry.query_by_tag("span"), Some(&"test".to_string()));
+        
+        // Old tag should no longer map to "test"
+        assert_ne!(registry.query_by_tag("div"), Some(&"test".to_string()));
+    }
+
+    #[test]
+    fn mapping_consistency_validation() {
+        let registry = Registry::new();
+        
+        // Empty registry should be consistent
+        assert!(registry.validate_mapping_consistency().is_ok());
+    }
+
+    #[test]
+    fn mapping_stats() {
+        let registry = Registry::new();
+        let stats = registry.get_mapping_stats();
+        
+        assert_eq!(stats.total_mappings, 0);
+        assert_eq!(stats.node_metadata_count, 0);
+        assert_eq!(stats.blot_pointers_count, 0);
+        assert_eq!(stats.next_node_id, 1);
+        assert_eq!(stats.next_blot_id, 1);
+    }
+
+    // Note: DOM-related tests require WASM environment and are in separate test files
+    // These tests focus on the non-DOM functionality that can be tested in native Rust
+
+    #[test]
+    fn error_creation() {
+        let error = ParchmentError::new("test error");
+        assert_eq!(error.message(), "test error");
+    }
+
+    #[test]
+    fn definition_registry_operations() {
+        use crate::blot::traits_simple::RegistryDefinition;
+        use crate::scope::Scope;
+        
+        let definition = RegistryDefinition {
+            blot_name: "test_blot".to_string(),
+            tag_name: "div".to_string(),
+            scope: Scope::Block,
+            class_name: Some("test-class".to_string()),
+        };
+        
+        // Test registration
+        assert!(Registry::register_definition(definition.clone()).is_ok());
+        
+        // Test query
+        let retrieved = Registry::query_definition("test_blot");
+        assert!(retrieved.is_some());
+        let retrieved = retrieved.unwrap();
+        assert_eq!(retrieved.blot_name, "test_blot");
+        assert_eq!(retrieved.tag_name, "div");
+        
+        // Test non-existent query
+        assert!(Registry::query_definition("nonexistent").is_none());
+    }
+
+    #[test]
+    #[cfg(target_arch = "wasm32")]
+    fn legacy_method_warnings() {
+        // These methods should work but emit warnings
+        // We can't easily test the warnings in unit tests, but we can test they don't panic
+        
+        let result = Registry::register_blot_instance(
+            &wasm_bindgen::JsValue::NULL.unchecked_into(),
+            &wasm_bindgen::JsValue::NULL
+        );
+        assert!(result.is_ok());
+        
+        let result = Registry::unregister_blot_instance(
+            &wasm_bindgen::JsValue::NULL.unchecked_into()
+        );
+        assert_eq!(result, true);
+        
+        let result = Registry::find_blot_by_node(
+            &wasm_bindgen::JsValue::NULL.unchecked_into()
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    #[cfg(target_arch = "wasm32")]
+    fn static_convenience_methods() {
+        // Test the static convenience methods
+        let result = Registry::register_blot(
+            &wasm_bindgen::JsValue::NULL.unchecked_into(),
+            &wasm_bindgen::JsValue::NULL
+        );
+        assert!(result.is_ok());
+        
+        let result = Registry::unregister_blot(
+            &wasm_bindgen::JsValue::NULL.unchecked_into()
+        );
+        assert_eq!(result, true);
+        
+        let result = Registry::find_blot(
+            &wasm_bindgen::JsValue::NULL.unchecked_into()
+        );
+        assert!(result.is_none());
     }
 }
