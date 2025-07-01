@@ -26,14 +26,14 @@
 //!
 //! // Create a parent container
 //! let dom_node = Dom::create_element("div")?;
-//! let mut parent = ParentBlot::new(dom_node.into())?;
+//! let mut parent = ParentBlot::new(Some(dom_node.into()))?;
 //!
 //! // Add child content
 //! let text = TextBlot::new("Hello, world!")?;
 //! parent.append_child(Box::new(text))?;
 //!
 //! // Access children
-//! assert_eq!(parent.children.length, 1);
+//! assert_eq!(parent.children().length, 1);
 //! assert_eq!(parent.text_content(), "Hello, world!");
 //!
 //! # Ok::<(), wasm_bindgen::JsValue>(())
@@ -72,19 +72,18 @@ use web_sys::{HtmlElement, Node};
 /// use quillai_parchment::blot::{ParentBlot, TextBlot, ParentBlotTrait};
 /// use quillai_parchment::dom::Dom;
 ///
-/// // Create container
-/// let dom_element = Dom::create_element("div")?;
-/// let mut container = ParentBlot::new(dom_element.into())?;
+/// // Create a parent container
+/// let dom_node = Dom::create_element("div")?;
+/// let mut parent = ParentBlot::new(Some(dom_node.into()))?;
 ///
-/// // Add children
-/// let text1 = TextBlot::new("First ")?;
-/// let text2 = TextBlot::new("Second")?;
+/// // Add child content
+/// let text = TextBlot::new("Hello, world!")?;
+/// parent.append_child(Box::new(text))?;
 ///
-/// container.append_child(Box::new(text1))?;
-/// container.append_child(Box::new(text2))?;
+/// // Access children
+/// assert_eq!(parent.children().length, 1);
+/// assert_eq!(parent.text_content(), "Hello, world!");
 ///
-/// assert_eq!(container.children_count(), 2);
-/// assert_eq!(container.text_content(), "First Second");
 /// # Ok::<(), wasm_bindgen::JsValue>(())
 /// ```
 pub struct ParentBlot {
@@ -95,36 +94,43 @@ pub struct ParentBlot {
 }
 
 impl ParentBlot {
-    /// Create a new ParentBlot with the given DOM node
+    /// Create a new ParentBlot with optional DOM node
     ///
-    /// Initializes a new parent blot that wraps the provided DOM node.
-    /// The DOM node should be a container element that can hold child elements.
+    /// Creates a new parent blot, either wrapping the provided DOM node
+    /// or creating a new `<div>` element if none is provided.
     ///
     /// # Parameters
-    /// * `dom_node` - DOM node to wrap (should be an Element)
+    /// * `node` - Optional DOM node to wrap, creates `<div>` if None
     ///
     /// # Returns
-    /// New ParentBlot instance on success, JsValue error on failure
+    /// New ParentBlot instance on success, JsValue error on DOM creation failure
     ///
     /// # Examples
     /// ```rust,no_run
-    /// # use quillai_parchment::blot::ParentBlot;
-    /// # use quillai_parchment::dom::Dom;
-    /// let div_element = Dom::create_element("div")?;
-    /// let parent = ParentBlot::new(div_element.into())?;
-    /// assert_eq!(parent.children.length, 0);
+    /// use quillai_parchment::blot::ParentBlot;
+    /// use quillai_parchment::dom::Dom;
+    ///
+    /// // Create with default div element
+    /// let parent = ParentBlot::new(None)?;
+    ///
+    /// // Create with custom element
+    /// let custom_element = Dom::create_element("section")?;
+    /// let parent = ParentBlot::new(Some(custom_element.into()))?;
     /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
-    pub fn new(dom_node: Node) -> Result<Self, JsValue> {
-        let blot = ParentBlot {
-            dom_node,
-            children: LinkedList::new(),
+    pub fn new(node: Option<Node>) -> Result<ParentBlot, JsValue> {
+        let dom_node = match node {
+            Some(n) => n,
+            None => {
+                let element = crate::dom::Dom::create_element("div")?;
+                element.into()
+            }
         };
 
-        // Note: Registry registration is handled by the caller to avoid
-        // circular dependencies and allow for proper initialization
-
-        Ok(blot)
+        Ok(ParentBlot {
+            dom_node,
+            children: LinkedList::new(),
+        })
     }
 
     /// Create a DOM node for a parent blot with specified properties
@@ -144,12 +150,12 @@ impl ParentBlot {
     /// Returns error if tag_name is empty or DOM creation fails
     ///
     /// # Examples
-    /// ```rust,no_run
-    /// # use quillai_parchment::blot::ParentBlot;
-    /// let node = ParentBlot::create_dom_node("div", Some("container"), None)?;
-    /// let parent = ParentBlot::new(node)?;
-    /// # Ok::<(), wasm_bindgen::JsValue>(())
-    /// ```
+/// ```rust,no_run
+/// # use quillai_parchment::blot::ParentBlot;
+/// let node = ParentBlot::create_dom_node("div", Some("container"), None)?;
+/// let parent = ParentBlot::new(Some(node))?;
+/// # Ok::<(), wasm_bindgen::JsValue>(())
+/// ```
     pub fn create_dom_node(
         tag_name: &str,
         class_name: Option<&str>,
@@ -220,6 +226,184 @@ impl ParentBlot {
                 current_node = node_ref.next;
             }
         }
+    }
+
+    /// Find descendant - mirrors TypeScript descendant()
+    fn descendant(
+        &self,
+        matcher: fn(&dyn BlotTrait) -> bool,
+        index: Option<usize>,
+    ) -> Option<&dyn BlotTrait> {
+        let mut current_index = 0;
+
+        // First search direct children
+        let mut current_node = self.children.head;
+        while let Some(node_ptr) = current_node {
+            unsafe {
+                let node_ref = node_ptr.as_ref();
+                let child = node_ref.val.as_ref();
+
+                if matcher(child) {
+                    if let Some(target_index) = index {
+                        if current_index == target_index {
+                            return Some(child);
+                        }
+                        current_index += 1;
+                    } else {
+                        return Some(child);
+                    }
+                }
+
+                current_node = node_ref.next;
+            }
+        }
+
+        // Then recursively search in parent children
+        let mut current_node = self.children.head;
+        while let Some(node_ptr) = current_node {
+            unsafe {
+                let node_ref = node_ptr.as_ref();
+                let child = node_ref.val.as_ref();
+
+                // Try to downcast to ParentBlotTrait
+                if let Some(parent_child) = child.as_any().downcast_ref::<ParentBlot>() {
+                    if let Some(found) = parent_child
+                        .descendant(matcher, index.map(|i| i.saturating_sub(current_index)))
+                    {
+                        return Some(found);
+                    }
+                }
+
+                current_node = node_ref.next;
+            }
+        }
+
+        None
+    }
+
+    /// Find descendants - mirrors TypeScript descendants()
+    fn descendants(
+        &self,
+        matcher: fn(&dyn BlotTrait) -> bool,
+        index: Option<usize>,
+        length: Option<usize>,
+    ) -> Vec<&dyn BlotTrait> {
+        let mut results = Vec::new();
+        self.collect_descendants(&mut results, matcher);
+
+        // Apply index and length filtering
+        if let Some(start_index) = index {
+            if let Some(take_length) = length {
+                results
+                    .into_iter()
+                    .skip(start_index)
+                    .take(take_length)
+                    .collect()
+            } else {
+                results.into_iter().skip(start_index).collect()
+            }
+        } else {
+            results
+        }
+    }
+
+    /// Get path - mirrors TypeScript path()
+    fn path(&self, index: usize) -> Vec<(&dyn BlotTrait, usize)> {
+        let mut path = Vec::new();
+        let mut current_offset = 0;
+        let mut current_index = 0;
+
+        while let Some(child) = self.find_child(current_index) {
+            let child_length = child.length();
+
+            if current_offset + child_length > index {
+                let child_relative_index = index - current_offset;
+                path.push((child, child_relative_index));
+
+                // Recursively get path from child if it's a parent
+                if let Some(parent_child) = child.as_any().downcast_ref::<ParentBlot>() {
+                    let mut child_path = parent_child.path(child_relative_index);
+                    path.append(&mut child_path);
+                }
+
+                break;
+            }
+
+            current_offset += child_length;
+            current_index += 1;
+        }
+
+        path
+    }
+
+    /// Append text - convenience method
+    fn append_text(&mut self, text: &str) -> Result<(), JsValue> {
+        if let Ok(text_blot) = crate::blot::text::TextBlot::new(text) {
+            self.append_child(Box::new(text_blot))
+        } else {
+            Err("Failed to create text blot".into())
+        }
+    }
+
+    /// Clear all children - mirrors TypeScript clear()
+    fn clear(&mut self) {
+        // Remove all DOM children
+        while let Some(child) = self.dom_node.first_child() {
+            let _ = self.dom_node.remove_child(&child);
+        }
+
+        // Clear LinkedList (Drop will be called automatically)
+        self.children = LinkedList::new();
+    }
+
+    /// Get text content - mirrors TypeScript textContent()
+    fn text_content(&self) -> String {
+        self.dom_node.text_content().unwrap_or_default()
+    }
+
+    fn insert_child_at_position(
+        &mut self,
+        position: usize,
+        child: Box<dyn BlotTrait>,
+    ) -> Result<(), JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position > children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
+
+        // Get the child's DOM node before moving it
+        let child_dom = child.dom_node().clone();
+
+        // Update DOM to reflect the insertion
+        if position == children_count {
+            // Append at the end
+            self.dom_node.append_child(&child_dom)?;
+        } else {
+            // Insert before the node at the target position
+            let mut current_index = 0;
+            let mut current_child = self.dom_node.first_child();
+
+            while let Some(node) = current_child {
+                if current_index == position {
+                    self.dom_node.insert_before(&child_dom, Some(&node))?;
+                    break;
+                }
+                current_index += 1;
+                current_child = node.next_sibling();
+            }
+        }
+
+        // Insert into LinkedList at the specified position
+        self.children.insert_at_ith(position as u32, child);
+
+        // Note: ParentBlot's length() method already calculates length dynamically
+        // by summing all children's lengths, so no explicit recalculation needed
+
+        Ok(())
     }
 }
 
@@ -382,13 +566,11 @@ impl ParentBlotTrait for ParentBlot {
         Ok(())
     }
 
-    /// Insert before - mirrors TypeScript insertBefore()
     fn insert_before(
         &mut self,
         mut child: Box<dyn BlotTrait>,
         ref_blot: Option<&dyn BlotTrait>,
     ) -> Result<(), JsValue> {
-        // Attach the child
         child.attach();
 
         match ref_blot {
@@ -414,7 +596,29 @@ impl ParentBlotTrait for ParentBlot {
         Ok(())
     }
 
-    /// Remove child - mirrors TypeScript removeChild()
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize> {
+        self.find_child_index(child)
+    }
+
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue> {
+        // Validate position bounds
+        if position >= self.children.length as usize {
+            return Err(JsValue::from_str("Position out of bounds"));
+        }
+
+        // Remove from LinkedList
+        let removed_child = self
+            .children
+            .delete_ith(position as u32)
+            .ok_or_else(|| JsValue::from_str("Failed to remove child"))?;
+
+        // Remove from DOM
+        let child_dom = removed_child.dom_node();
+        self.dom_node.remove_child(child_dom)?;
+
+        Ok(removed_child)
+    }
+
     fn remove_child(&mut self, child: &dyn BlotTrait) -> Result<Box<dyn BlotTrait>, JsValue> {
         if let Some(child_index) = self.find_child_index(child) {
             // Remove from DOM
@@ -429,7 +633,48 @@ impl ParentBlotTrait for ParentBlot {
         Err("Child not found".into())
     }
 
-    /// Find descendant - mirrors TypeScript descendant()
+    fn insert_child_at_position(
+        &mut self,
+        position: usize,
+        child: Box<dyn BlotTrait>,
+    ) -> Result<(), JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position > children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
+
+        // Get the child's DOM node before moving it
+        let child_dom = child.dom_node().clone();
+
+        // Update DOM to reflect the insertion
+        if position == children_count {
+            // Append at the end
+            self.dom_node.append_child(&child_dom)?;
+        } else {
+            // Insert before the node at the target position
+            let mut current_index = 0;
+            let mut current_child = self.dom_node.first_child();
+
+            while let Some(node) = current_child {
+                if current_index == position {
+                    self.dom_node.insert_before(&child_dom, Some(&node))?;
+                    break;
+                }
+                current_index += 1;
+                current_child = node.next_sibling();
+            }
+        }
+
+        // Insert into LinkedList at the specified position
+        self.children.insert_at_ith(position as u32, child);
+
+        Ok(())
+    }
+
     fn descendant(
         &self,
         matcher: fn(&dyn BlotTrait) -> bool,
@@ -482,7 +727,6 @@ impl ParentBlotTrait for ParentBlot {
         None
     }
 
-    /// Find descendants - mirrors TypeScript descendants()
     fn descendants(
         &self,
         matcher: fn(&dyn BlotTrait) -> bool,
@@ -508,7 +752,6 @@ impl ParentBlotTrait for ParentBlot {
         }
     }
 
-    /// Get path - mirrors TypeScript path()
     fn path(&self, index: usize) -> Vec<(&dyn BlotTrait, usize)> {
         let mut path = Vec::new();
         let mut current_offset = 0;
@@ -537,7 +780,6 @@ impl ParentBlotTrait for ParentBlot {
         path
     }
 
-    /// Append text - convenience method
     fn append_text(&mut self, text: &str) -> Result<(), JsValue> {
         if let Ok(text_blot) = crate::blot::text::TextBlot::new(text) {
             self.append_child(Box::new(text_blot))
@@ -546,7 +788,6 @@ impl ParentBlotTrait for ParentBlot {
         }
     }
 
-    /// Clear all children - mirrors TypeScript clear()
     fn clear(&mut self) {
         // Remove all DOM children
         while let Some(child) = self.dom_node.first_child() {
@@ -557,50 +798,8 @@ impl ParentBlotTrait for ParentBlot {
         self.children = LinkedList::new();
     }
 
-    /// Get text content - mirrors TypeScript textContent()
     fn text_content(&self) -> String {
         self.dom_node.text_content().unwrap_or_default()
-    }
-
-    fn insert_child_at_position(&mut self, position: usize, child: Box<dyn BlotTrait>) -> Result<(), JsValue> {
-        // Validate position bounds
-        let children_count = self.children.length as usize;
-        if position > children_count {
-            return Err(JsValue::from_str(&format!(
-                "Position {} out of bounds for {} children",
-                position, children_count
-            )));
-        }
-
-        // Get the child's DOM node before moving it
-        let child_dom = child.dom_node().clone();
-
-        // Update DOM to reflect the insertion
-        if position == children_count {
-            // Append at the end
-            self.dom_node.append_child(&child_dom)?;
-        } else {
-            // Insert before the node at the target position
-            let mut current_index = 0;
-            let mut current_child = self.dom_node.first_child();
-            
-            while let Some(node) = current_child {
-                if current_index == position {
-                    self.dom_node.insert_before(&child_dom, Some(&node))?;
-                    break;
-                }
-                current_index += 1;
-                current_child = node.next_sibling();
-            }
-        }
-
-        // Insert into LinkedList at the specified position
-        self.children.insert_at_ith(position as u32, child);
-
-        // Note: ParentBlot's length() method already calculates length dynamically
-        // by summing all children's lengths, so no explicit recalculation needed
-
-        Ok(())
     }
 }
 

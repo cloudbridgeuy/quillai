@@ -217,6 +217,26 @@ pub trait ParentBlotTrait: BlotTrait {
         child: Box<dyn BlotTrait>,
     ) -> Result<(), JsValue>;
 
+    /// Find the position of a child blot within this parent
+    ///
+    /// # Parameters
+    /// * `child` - The child blot to find
+    ///
+    /// # Returns
+    /// * `Some(usize)` - The position of the child (0-based)
+    /// * `None` - If the child is not found
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize>;
+
+    /// Remove a child at the specified position
+    ///
+    /// # Parameters
+    /// * `position` - The position to remove from (0-based)
+    ///
+    /// # Returns
+    /// * `Ok(Box<dyn BlotTrait>)` - The removed child
+    /// * `Err(JsValue)` - If position is out of bounds
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue>;
+
     /// Tree navigation methods
     fn descendant(
         &self,

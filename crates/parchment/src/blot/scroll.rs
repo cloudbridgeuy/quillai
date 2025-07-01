@@ -250,20 +250,38 @@ impl ScrollBlot {
         Ok(())
     }
 
-    /// Insert a paragraph at a specific position in the document
-    pub fn insert_text_at(&mut self, _index: usize, text: &str) -> Result<(), JsValue> {
-        // Create a BlockBlot (paragraph) containing the text
-        let block_blot = crate::blot::block::BlockBlot::with_text(text)?;
-        let block_node = block_blot.as_node();
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize> {
+        // Iterate through children to find the matching child
+        for i in 0..self.children.length {
+            if let Some(current_child) = self.children.get(i as i32) {
+                // Use pointer comparison for identity
+                if std::ptr::eq(current_child.as_ref(), child) {
+                    return Some(i as usize);
+                }
+            }
+        }
+        None
+    }
 
-        // For now, just append - proper index insertion would require
-        // full child management implementation
-        Dom::append_child(&self.as_node(), &block_node)?;
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position >= children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
 
-        // Add to children LinkedList
-        self.children.insert_at_tail(Box::new(block_blot));
+        // Remove from LinkedList
+        let removed_child = self.children.delete_ith(position as u32)
+            .ok_or_else(|| JsValue::from_str("Failed to remove child from LinkedList"))?;
 
-        Ok(())
+        // Remove from DOM
+        let child_dom = removed_child.dom_node();
+        self.dom_node.remove_child(child_dom)?;
+
+        Ok(removed_child)
     }
 
     /// Clear all content from the scroll blot
@@ -1101,6 +1119,31 @@ impl ParentBlotTrait for ScrollBlot {
     fn dom_element(&self) -> &HtmlElement {
         // Safe to unwrap since we know ScrollBlot uses an Element
         self.dom_node.dyn_ref::<HtmlElement>().unwrap()
+    }
+
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize> {
+        self.find_child_index(child)
+    }
+
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position >= children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
+
+        // Remove from LinkedList
+        let removed_child = self.children.delete_ith(position as u32)
+            .ok_or_else(|| JsValue::from_str("Failed to remove child from LinkedList"))?;
+
+        // Remove from DOM
+        let child_dom = removed_child.dom_node();
+        self.dom_node.remove_child(child_dom)?;
+
+        Ok(removed_child)
     }
 
     fn append_child(&mut self, mut child: Box<dyn BlotTrait>) -> Result<(), JsValue> {

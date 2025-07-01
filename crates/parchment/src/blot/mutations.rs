@@ -49,7 +49,7 @@
 //! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
-use crate::blot::traits_simple::BlotTrait;
+use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::registry::Registry;
 use js_sys::Array;
 use std::cell::RefCell;
@@ -818,22 +818,28 @@ impl MutationHandler {
     /// Create a TextBlot for a new text node
     fn create_text_blot_for_node(
         &self,
-        _text_node: &web_sys::Text,
-        _content: &str,
+        text_node: &web_sys::Text,
+        content: &str,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
         web_sys::console::log_1(&JsValue::from_str(&format!(
             "Creating TextBlot for text node with content: '{}'",
-            _content
+            content
         )));
 
-        // In a full implementation, this would:
-        // 1. Create a new TextBlot instance
-        // 2. Associate it with the DOM text node
-        // 3. Set up the proper content and length tracking
-        // 4. Return the boxed blot for insertion
+        // Create TextBlot from the DOM text node
+        let text_blot = crate::blot::text::TextBlot::from_dom_node(text_node.clone());
 
-        // For now, return None since we don't have full TextBlot creation
-        Ok(None)
+        // Register with registry immediately
+        let _registration_result = self.with_registry("text blot registration", |registry| {
+            let blot_ptr = &text_blot as &dyn BlotTrait as *const dyn BlotTrait as *mut dyn BlotTrait;
+            registry.register_blot_for_node(text_node.as_ref(), blot_ptr)?;
+            Ok::<(), JsValue>(())
+        }).ok_or_else(|| JsValue::from_str("Registry not available for text blot registration"))?;
+
+        web_sys::console::log_1(&JsValue::from_str("TextBlot created and registered successfully"));
+
+        // Return boxed blot
+        Ok(Some(Box::new(text_blot)))
     }
 
     /// Create an element blot (Block, Inline, Embed) for a new element
@@ -911,34 +917,91 @@ impl MutationHandler {
     /// Create a BlockBlot for a block-level element
     fn create_block_blot_for_element(
         &self,
-        _element: &web_sys::Element,
+        element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        web_sys::console::log_1(&JsValue::from_str("Creating BlockBlot"));
+        let tag_name = element.tag_name().to_lowercase();
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "Creating BlockBlot for element: {}",
+            tag_name
+        )));
 
-        // In a full implementation, this would create a new BlockBlot instance
-        Ok(None)
+        // Create BlockBlot from the DOM element
+        let block_blot = crate::blot::block::BlockBlot::from_element(element.clone());
+
+        // Register with registry immediately
+        let _registration_result = self.with_registry("block blot registration", |registry| {
+            let blot_ptr = &block_blot as &dyn BlotTrait as *const dyn BlotTrait as *mut dyn BlotTrait;
+            registry.register_blot_for_node(element.as_ref(), blot_ptr)?;
+            Ok::<(), JsValue>(())
+        }).ok_or_else(|| JsValue::from_str("Registry not available for block blot registration"))?;
+
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "BlockBlot created and registered successfully for {}",
+            tag_name
+        )));
+
+        // Return boxed blot
+        Ok(Some(Box::new(block_blot)))
     }
 
     /// Create an InlineBlot for an inline element
     fn create_inline_blot_for_element(
         &self,
-        _element: &web_sys::Element,
+        element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        web_sys::console::log_1(&JsValue::from_str("Creating InlineBlot"));
+        let tag_name = element.tag_name().to_lowercase();
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "Creating InlineBlot for element: {}",
+            tag_name
+        )));
 
-        // In a full implementation, this would create a new InlineBlot instance
-        Ok(None)
+        // Create InlineBlot from the DOM element
+        let inline_blot = crate::blot::inline::InlineBlot::from_element(element.clone());
+
+        // Register with registry immediately
+        let _registration_result = self.with_registry("inline blot registration", |registry| {
+            let blot_ptr = &inline_blot as &dyn BlotTrait as *const dyn BlotTrait as *mut dyn BlotTrait;
+            registry.register_blot_for_node(element.as_ref(), blot_ptr)?;
+            Ok::<(), JsValue>(())
+        }).ok_or_else(|| JsValue::from_str("Registry not available for inline blot registration"))?;
+
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "InlineBlot created and registered successfully for {}",
+            tag_name
+        )));
+
+        // Return boxed blot
+        Ok(Some(Box::new(inline_blot)))
     }
 
     /// Create an EmbedBlot for an embedded element
     fn create_embed_blot_for_element(
         &self,
-        _element: &web_sys::Element,
+        element: &web_sys::Element,
     ) -> Result<Option<Box<dyn BlotTrait>>, JsValue> {
-        web_sys::console::log_1(&JsValue::from_str("Creating EmbedBlot"));
+        let tag_name = element.tag_name().to_lowercase();
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "Creating EmbedBlot for element: {}",
+            tag_name
+        )));
 
-        // In a full implementation, this would create a new EmbedBlot instance
-        Ok(None)
+        // Create EmbedBlot from the DOM element
+        let embed_blot = crate::blot::embed::EmbedBlot::from_element(element.clone());
+
+        // Register with registry immediately
+        let _registration_result = self.with_registry("embed blot registration", |registry| {
+            let blot_ptr = &embed_blot as &dyn BlotTrait as *const dyn BlotTrait as *mut dyn BlotTrait;
+            registry.register_blot_for_node(element.as_ref(), blot_ptr)?;
+            Ok::<(), JsValue>(())
+        }).ok_or_else(|| JsValue::from_str("Registry not available for embed blot registration"))?;
+
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "EmbedBlot created and registered successfully for {}",
+            tag_name
+        )));
+
+        // Return boxed blot
+        Ok(Some(Box::new(embed_blot)))
     }
 
     /// Insert a newly created blot into the appropriate parent
@@ -1004,18 +1067,74 @@ impl MutationHandler {
     /// Perform the actual blot insertion into the parent's LinkedList
     fn perform_blot_insertion(
         &self,
-        _parent_blot: *mut dyn BlotTrait,
-        _new_blot: Box<dyn BlotTrait>,
-        _position: usize,
+        parent_blot: *mut dyn BlotTrait,
+        mut new_blot: Box<dyn BlotTrait>,
+        position: usize,
     ) {
-        web_sys::console::log_1(&JsValue::from_str("Performing blot insertion"));
+        web_sys::console::log_1(&JsValue::from_str(&format!(
+            "Performing blot insertion at position {}",
+            position
+        )));
 
-        // In a full implementation, this would:
-        // 1. Get mutable access to the parent blot
-        // 2. Insert the new blot at the calculated position
-        // 3. Update the LinkedList structure
-        // 4. Call attach() on the new blot
-        // 5. Update any necessary indices or references
+        // Get parent as specific blot types and try insertion
+        unsafe {
+            let parent_any = (*parent_blot).as_any_mut();
+            
+            // Call attach() on the new blot before insertion
+            new_blot.attach();
+            
+            // Try different parent blot types
+            if let Some(scroll_parent) = parent_any.downcast_mut::<crate::blot::scroll::ScrollBlot>() {
+                match scroll_parent.insert_child_at_position(position, new_blot) {
+                    Ok(()) => {
+                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                            "Successfully inserted blot into ScrollBlot at position {}",
+                            position
+                        )));
+                    }
+                    Err(e) => {
+                        web_sys::console::error_2(
+                            &JsValue::from_str("Failed to insert blot into ScrollBlot:"),
+                            &e
+                        );
+                    }
+                }
+            } else if let Some(block_parent) = parent_any.downcast_mut::<crate::blot::block::BlockBlot>() {
+                match block_parent.insert_child_at_position(position, new_blot) {
+                    Ok(()) => {
+                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                            "Successfully inserted blot into BlockBlot at position {}",
+                            position
+                        )));
+                    }
+                    Err(e) => {
+                        web_sys::console::error_2(
+                            &JsValue::from_str("Failed to insert blot into BlockBlot:"),
+                            &e
+                        );
+                    }
+                }
+            } else if let Some(inline_parent) = parent_any.downcast_mut::<crate::blot::inline::InlineBlot>() {
+                match inline_parent.insert_child_at_position(position, new_blot) {
+                    Ok(()) => {
+                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                            "Successfully inserted blot into InlineBlot at position {}",
+                            position
+                        )));
+                    }
+                    Err(e) => {
+                        web_sys::console::error_2(
+                            &JsValue::from_str("Failed to insert blot into InlineBlot:"),
+                            &e
+                        );
+                    }
+                }
+            } else {
+                web_sys::console::error_1(&JsValue::from_str(
+                    "Parent blot type not supported for insertion"
+                ));
+            }
+        }
     }
 
     /// Handle when a DOM node is removed - internal version to avoid borrowing issues
@@ -1090,48 +1209,173 @@ impl MutationHandler {
     }
 
     /// Calculate the position of the blot that should be removed
-    fn calculate_blot_remove_position(&self, _node: &Node, _parent: &Node) -> usize {
-        // This is more complex than insertion because we need to account for
-        // the fact that the DOM node is already removed but the blot might still exist
-        let position = 0;
+    fn calculate_blot_remove_position(&self, node: &Node, parent: &Node) -> usize {
+        // Since the node is already removed from DOM, we need to find its position
+        // by looking at the remaining children and the blot registry
+        
+        let mut position = 0;
+        
+        // Get the parent blot to access its children
+        if let Some(parent_blot_ptr) = self.with_registry("parent blot lookup for removal", |registry| {
+            registry.find_blot_for_node(parent)
+        }).flatten() {
+            unsafe {
+                // Try to downcast to ParentBlotTrait to access children
+                let parent_blot_ref = &*parent_blot_ptr;
+                if let Some(parent_trait) = parent_blot_ref.as_any().downcast_ref::<crate::blot::parent::ParentBlot>() {
+                    // Find the position by comparing DOM nodes with blot DOM nodes
+                    let children = parent_trait.children();
+                    let mut current_position = 0;
+                    
+                    for i in 0..children.length {
+                        if let Some(child_blot) = children.get(i as i32) {
+                            let child_dom = child_blot.dom_node();
+                            // If this child's DOM node matches our removed node, we found the position
+                            if std::ptr::eq(child_dom, node) {
+                                position = current_position;
+                                break;
+                            }
+                            current_position += 1;
+                        }
+                    }
+                } else if let Some(scroll_trait) = parent_blot_ref.as_any().downcast_ref::<crate::blot::scroll::ScrollBlot>() {
+                    // Handle ScrollBlot parent
+                    let children = scroll_trait.children();
+                    let mut current_position = 0;
+                    
+                    for i in 0..children.length {
+                        if let Some(child_blot) = children.get(i as i32) {
+                            let child_dom = child_blot.dom_node();
+                            if std::ptr::eq(child_dom, node) {
+                                position = current_position;
+                                break;
+                            }
+                            current_position += 1;
+                        }
+                    }
+                }
+            }
+        }
 
-        // We need to look at the next sibling (if any) and count backwards
-        // This is because the removed node is no longer in the DOM tree
-
-        web_sys::console::log_1(&JsValue::from_str(
-            "Calculating removal position (simplified)",
-        ));
-
-        // In a full implementation, this would:
-        // 1. Use the previous/next sibling information from before removal
-        // 2. Count the blot position based on remaining sibling blots
-        // 3. Handle edge cases where it's the first, last, or only child
+        web_sys::console::log_2(
+            &JsValue::from_str("Calculated removal position:"),
+            &JsValue::from_f64(position as f64)
+        );
 
         position
     }
 
     /// Remove a blot from its parent's LinkedList at the specified position
-    fn perform_blot_removal_from_parent(&self, _parent_blot: *mut dyn BlotTrait, _position: usize) {
-        web_sys::console::log_1(&JsValue::from_str("Removing blot from parent LinkedList"));
+    fn perform_blot_removal_from_parent(&self, parent_blot: *mut dyn BlotTrait, position: usize) {
+        web_sys::console::log_2(
+            &JsValue::from_str("Removing blot from parent LinkedList at position:"),
+            &JsValue::from_f64(position as f64)
+        );
 
-        // In a full implementation, this would:
-        // 1. Get mutable access to the parent blot
-        // 2. Remove the child at the specified position from LinkedList
-        // 3. Update any necessary indices or references
-        // 4. Call detach() on the removed blot
+        unsafe {
+            let parent_blot_mut = &mut *parent_blot;
+            
+            // Try to downcast to ParentBlotTrait to access removal methods
+            if let Some(parent_trait) = parent_blot_mut.as_any_mut().downcast_mut::<crate::blot::parent::ParentBlot>() {
+                match parent_trait.remove_child_at_position(position) {
+                    Ok(mut removed_blot) => {
+                        web_sys::console::log_1(&JsValue::from_str("Successfully removed blot from parent"));
+                        // Call detach on the removed blot
+                        removed_blot.detach();
+                    }
+                    Err(e) => {
+                        web_sys::console::warn_2(
+                            &JsValue::from_str("Failed to remove blot from parent:"),
+                            &e
+                        );
+                    }
+                }
+            } else if let Some(scroll_trait) = parent_blot_mut.as_any_mut().downcast_mut::<crate::blot::scroll::ScrollBlot>() {
+                match scroll_trait.remove_child_at_position(position) {
+                    Ok(mut removed_blot) => {
+                        web_sys::console::log_1(&JsValue::from_str("Successfully removed blot from scroll parent"));
+                        // Call detach on the removed blot
+                        removed_blot.detach();
+                    }
+                    Err(e) => {
+                        web_sys::console::warn_2(
+                            &JsValue::from_str("Failed to remove blot from scroll parent:"),
+                            &e
+                        );
+                    }
+                }
+            } else {
+                web_sys::console::warn_1(&JsValue::from_str(
+                    "Parent blot does not support child removal operations"
+                ));
+            }
+        }
     }
 
     /// Recursively clean up any child blots
-    fn cleanup_child_blots(&self, _blot_ptr: *mut dyn BlotTrait) {
+    fn cleanup_child_blots(&self, blot_ptr: *mut dyn BlotTrait) {
         web_sys::console::log_1(&JsValue::from_str("Cleaning up child blots"));
 
-        // In a full implementation, this would:
-        // 1. Check if the blot is a parent blot (has children)
-        // 2. Recursively remove and cleanup all child blots
-        // 3. Ensure proper cleanup order (children first, then parent)
-        // 4. Handle complex nested structures properly
-
-        // This is important for preventing memory leaks and maintaining consistency
+        unsafe {
+            let blot_ref = &*blot_ptr;
+            
+            // Check if this blot has children (is a parent blot)
+            if let Some(parent_trait) = blot_ref.as_any().downcast_ref::<crate::blot::parent::ParentBlot>() {
+                let children = parent_trait.children();
+                let mut child_ptrs = Vec::new();
+                
+                // Collect child pointers first to avoid borrowing issues
+                for i in 0..children.length {
+                    if let Some(child_blot) = children.get(i as i32) {
+                        let child_ptr = child_blot.as_ref() as *const dyn BlotTrait as *mut dyn BlotTrait;
+                        child_ptrs.push(child_ptr);
+                    }
+                }
+                
+                // Recursively cleanup each child
+                for child_ptr in child_ptrs {
+                    self.cleanup_child_blots(child_ptr);
+                    
+                    // Unregister the child from registry
+                    let child_dom = (&*child_ptr).dom_node();
+                    self.unregister_blot_from_registry(child_ptr, child_dom);
+                }
+                
+                web_sys::console::log_2(
+                    &JsValue::from_str("Cleaned up children for parent blot, count:"),
+                    &JsValue::from_f64(children.length as f64)
+                );
+                
+            } else if let Some(scroll_trait) = blot_ref.as_any().downcast_ref::<crate::blot::scroll::ScrollBlot>() {
+                let children = scroll_trait.children();
+                let mut child_ptrs = Vec::new();
+                
+                // Collect child pointers first
+                for i in 0..children.length {
+                    if let Some(child_blot) = children.get(i as i32) {
+                        let child_ptr = child_blot.as_ref() as *const dyn BlotTrait as *mut dyn BlotTrait;
+                        child_ptrs.push(child_ptr);
+                    }
+                }
+                
+                // Recursively cleanup each child
+                for child_ptr in child_ptrs {
+                    self.cleanup_child_blots(child_ptr);
+                    
+                    // Unregister the child from registry
+                    let child_dom = (&*child_ptr).dom_node();
+                    self.unregister_blot_from_registry(child_ptr, child_dom);
+                }
+                
+                web_sys::console::log_2(
+                    &JsValue::from_str("Cleaned up children for scroll blot, count:"),
+                    &JsValue::from_f64(children.length as f64)
+                );
+            } else {
+                // This is a leaf blot (no children), just log
+                web_sys::console::log_1(&JsValue::from_str("Leaf blot - no children to cleanup"));
+            }
+        }
     }
 
     /// Unregister a blot from the registry

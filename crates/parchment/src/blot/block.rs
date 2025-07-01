@@ -144,31 +144,7 @@ impl BlockBlot {
         Ok(())
     }
 
-    /// Insert text at a specific position
-    pub fn insert_text_at(&mut self, _index: usize, text: &str) -> Result<(), JsValue> {
-        let text_blot = TextBlot::new(text)?;
-        let text_node = text_blot.as_node();
 
-        // For now, just append - proper index insertion would require
-        // full child management implementation
-        Dom::append_child(&self.as_node(), &text_node)?;
-
-        // Add to children LinkedList
-        self.children.insert_at_tail(Box::new(text_blot));
-
-        Ok(())
-    }
-
-    /// Clear all content from the block
-    pub fn clear(&mut self) {
-        // Clear DOM children
-        while let Some(child) = self.dom_node.first_child() {
-            let _ = self.dom_node.remove_child(&child);
-        }
-
-        // Clear children LinkedList
-        self.children = LinkedList::new();
-    }
 
     /// Get the text content of the entire block
     pub fn text_content(&self) -> String {
@@ -701,6 +677,27 @@ impl ParentBlotTrait for BlockBlot {
         // by summing all children's lengths, so no explicit recalculation needed
 
         Ok(())
+    }
+
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize> {
+        self.find_child_index(child)
+    }
+
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue> {
+        // Validate position bounds
+        if position >= self.children.length as usize {
+            return Err(JsValue::from_str("Position out of bounds"));
+        }
+        
+        // Remove from LinkedList
+        let removed_child = self.children.delete_ith(position as u32)
+            .ok_or_else(|| JsValue::from_str("Failed to remove child"))?;
+        
+        // Remove from DOM
+        let child_dom = removed_child.dom_node();
+        self.dom_node.remove_child(child_dom)?;
+        
+        Ok(removed_child)
     }
 }
 

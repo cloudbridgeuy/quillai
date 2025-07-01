@@ -453,7 +453,7 @@ impl BlotTrait for InlineBlot {
                 }
             }
         }
-
+        
         Ok(())
     }
 }
@@ -481,31 +481,16 @@ impl ParentBlotTrait for InlineBlot {
         Ok(())
     }
 
-    fn insert_before(
-        &mut self,
-        child: Box<dyn BlotTrait>,
-        ref_blot: Option<&dyn BlotTrait>,
-    ) -> Result<(), JsValue> {
-        match ref_blot {
-            Some(ref_node) => {
-                // Insert before the reference node in DOM
-                self.dom_node
-                    .insert_before(child.dom_node(), Some(ref_node.dom_node()))?;
+    fn remove_child_at_position(&mut self, position: usize) -> Result<Box<dyn BlotTrait>, JsValue> {
+        // Remove from LinkedList
+        let removed_child = self.children.delete_ith(position as u32)
+            .ok_or_else(|| JsValue::from_str("Failed to remove child from LinkedList"))?;
 
-                // Find the position in children and insert
-                if let Some(index) = self.find_child_index(ref_node) {
-                    self.children.insert(index, child);
-                } else {
-                    self.children.push(child);
-                }
-            }
-            None => {
-                // Insert at the end (same as append_child)
-                return self.append_child(child);
-            }
-        }
+        // Remove from DOM
+        let child_dom = removed_child.dom_node();
+        self.dom_node.remove_child(child_dom)?;
 
-        Ok(())
+        Ok(removed_child)
     }
 
     fn remove_child(&mut self, child: &dyn BlotTrait) -> Result<Box<dyn BlotTrait>, JsValue> {
@@ -670,6 +655,40 @@ impl ParentBlotTrait for InlineBlot {
         // by summing all children's lengths, so no explicit recalculation needed
 
         Ok(())
+    }
+
+    fn insert_before(
+        &mut self,
+        mut child: Box<dyn BlotTrait>,
+        ref_blot: Option<&dyn BlotTrait>,
+    ) -> Result<(), JsValue> {
+        child.attach();
+
+        match ref_blot {
+            Some(ref_child) => {
+                // Find the reference child index
+                if let Some(ref_index) = self.find_child_index(ref_child) {
+                    // Insert in DOM before reference node
+                    self.dom_node
+                        .insert_before(child.dom_node(), Some(ref_child.dom_node()))?;
+
+                    // Insert in LinkedList at the correct position
+                    self.children.insert_at_ith(ref_index as u32, child);
+                } else {
+                    return Err("Reference blot not found".into());
+                }
+            }
+            None => {
+                // Insert at the end
+                return self.append_child(child);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn find_child_position(&self, child: &dyn BlotTrait) -> Option<usize> {
+        self.find_child_index(child).map(|i| i as usize)
     }
 }
 
