@@ -47,11 +47,14 @@ use crate::blot::mutations::MutationObserverWrapper;
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::dom::Dom;
+use crate::registry::Registry;
 use crate::scope::Scope;
 use crate::text_operations::{
     Position, TextCollector, TextMatch, TextSearcher, TextSelection, TextStatistics, TextUtils,
     TextVisitor,
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
 
@@ -107,6 +110,8 @@ pub struct ScrollBlot {
     children: LinkedList<Box<dyn BlotTrait>>,
     /// Optional mutation observer for tracking DOM changes
     mutation_observer: Option<MutationObserverWrapper>,
+    /// Registry for DOM-to-Blot mapping
+    registry: Option<Rc<RefCell<Registry>>>,
 }
 
 #[wasm_bindgen]
@@ -145,6 +150,7 @@ impl ScrollBlot {
             dom_node,
             children: LinkedList::new(),
             mutation_observer: None,
+            registry: None,
         })
     }
 
@@ -287,26 +293,62 @@ impl ScrollBlot {
         self.dom_node.text_content().unwrap_or_default()
     }
 
+    /// Set the registry for DOM-to-Blot mapping (internal method)
+    ///
+    /// Associates a registry with this ScrollBlot for tracking DOM node to blot
+    /// relationships. This must be called before starting the mutation observer
+    /// to enable proper blot synchronization.
+    ///
+    /// # Parameters
+    /// * `registry` - Shared registry instance for DOM-to-Blot mapping
+    ///
+    /// # Note
+    /// This is an internal method not exposed to WASM due to type constraints.
+    /// Use the appropriate initialization patterns in your Rust code.
+    pub(crate) fn set_registry(&mut self, registry: Rc<RefCell<Registry>>) {
+        self.registry = Some(registry);
+    }
+
     /// Start observing DOM mutations for automatic synchronization
     ///
     /// Enables automatic detection of DOM changes to keep the blot tree
     /// synchronized with the underlying DOM structure. This is essential
     /// for maintaining consistency when external code modifies the DOM.
     ///
+    /// **Important**: The registry must be set internally before calling this method
+    /// to enable proper DOM-to-Blot synchronization. This is typically handled
+    /// during ScrollBlot initialization in the broader document setup.
+    ///
     /// # Returns
-    /// `Ok(())` on success, `Err(JsValue)` if observer creation fails
+    /// `Ok(())` on success, `Err(JsValue)` if observer creation fails or registry not set
     ///
     /// # Examples
     /// ```rust,no_run
     /// # use quillai_parchment::ScrollBlot;
     /// let mut doc = ScrollBlot::new(None)?;
-    /// doc.start_mutation_observer()?;
-    /// assert!(doc.is_observing_mutations());
+    /// // Registry setup would be handled internally during document initialization
+    /// // doc.start_mutation_observer()?; // Would fail without registry
     /// # Ok::<(), wasm_bindgen::JsValue>(())
     /// ```
     pub fn start_mutation_observer(&mut self) -> Result<(), JsValue> {
         if self.mutation_observer.is_none() {
+            // Ensure registry is available before starting mutation observer
+            if self.registry.is_none() {
+                return Err(JsValue::from_str(
+                    "Registry must be set before starting mutation observer. Call set_registry() first."
+                ));
+            }
+
             let observer = MutationObserverWrapper::new(self.as_node())?;
+            
+            // Set the registry reference in the mutation observer
+            if let Some(registry) = &self.registry {
+                observer.set_registry(registry.clone());
+            }
+            
+            // Set the scroll blot reference for document-level operations
+            observer.set_scroll_blot(self as *mut dyn BlotTrait);
+            
             observer.observe()?;
             self.mutation_observer = Some(observer);
         }
@@ -1284,6 +1326,7 @@ impl ScrollBlot {
             dom_node: element,
             children: LinkedList::new(),
             mutation_observer: None,
+            registry: None,
         }
     }
 }

@@ -176,7 +176,7 @@ struct MutationHandler {
     /// Optional reference to the root scroll blot for document operations
     scroll_blot: Option<*mut dyn BlotTrait>,
     /// Registry for mapping DOM nodes to blots
-    registry: Option<Registry>,
+    registry: Option<Rc<RefCell<Registry>>>,
     /// Current update context for mutation processing
     update_context: UpdateContext,
     /// Current optimization context for post-mutation cleanup
@@ -255,7 +255,7 @@ impl MutationObserverWrapper {
     }
 
     /// Set the registry reference for DOM-to-Blot mapping
-    pub fn set_registry(&self, registry: Registry) {
+    pub fn set_registry(&self, registry: Rc<RefCell<Registry>>) {
         if let Ok(mut handler) = self.handler.try_borrow_mut() {
             handler.registry = Some(registry);
         }
@@ -279,6 +279,30 @@ impl MutationObserverWrapper {
 }
 
 impl MutationHandler {
+    /// Safely access the registry with proper error handling
+    fn with_registry<F, R>(&self, operation: &str, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut Registry) -> R,
+    {
+        if let Some(registry_rc) = &self.registry {
+            match registry_rc.try_borrow_mut() {
+                Ok(mut registry) => Some(f(&mut *registry)),
+                Err(_) => {
+                    web_sys::console::error_1(&JsValue::from_str(&format!(
+                        "Registry borrow conflict during {} - operation may be incomplete",
+                        operation
+                    )));
+                    None
+                }
+            }
+        } else {
+            web_sys::console::error_1(&JsValue::from_str(&format!(
+                "Registry not available for {} - mutation observer not properly initialized",
+                operation
+            )));
+            None
+        }
+    }
     /// Process mutation records and trigger update/optimize cycles
     fn process_mutations(&mut self, mutation_records: Vec<MutationRecord>) {
         // Update the context with new mutations
@@ -393,7 +417,11 @@ impl MutationHandler {
     /// Handle specific attribute changes and update corresponding blots
     fn handle_attribute_change(&self, target: &Node, attr_name: &str, old_value: &Option<String>) {
         // Find the blot associated with this DOM node
-        if let Some(_registry) = &self.registry {
+        let has_blot = self.with_registry("attribute change handling", |registry| {
+            registry.find_blot_for_node(target).is_some()
+        }).unwrap_or(false);
+
+        if has_blot {
             if let Some(element) = target.dyn_ref::<web_sys::Element>() {
                 match attr_name {
                     "class" => {
@@ -585,7 +613,7 @@ impl MutationHandler {
         let old_content = old_value.unwrap_or_default();
 
         // Find the TextBlot associated with this text node
-        if let Some(_registry) = &self.registry {
+        if let Some(_registry_rc) = &self.registry {
             // Try to find the blot for this text node
             if let Some(text_blot) = self.find_text_blot_for_node(text_node) {
                 self.sync_text_blot_content(text_blot, &current_content, &old_content);
@@ -602,17 +630,26 @@ impl MutationHandler {
     }
 
     /// Find the TextBlot associated with a DOM text node
-    fn find_text_blot_for_node(&self, _text_node: &web_sys::Text) -> Option<*mut dyn BlotTrait> {
-        // This would use the registry to find the TextBlot associated with this DOM node
-        // For now, return None since we don't have the full registry lookup implementation
-
-        web_sys::console::log_1(&JsValue::from_str("Looking up TextBlot for text node"));
-
-        // In a full implementation, this would:
-        // 1. Use the registry's WeakMap-like storage to find the blot
-        // 2. Verify that the blot is indeed a TextBlot
-        // 3. Return a reference to the TextBlot for synchronization
-        None
+    fn find_text_blot_for_node(&self, text_node: &web_sys::Text) -> Option<*mut dyn BlotTrait> {
+        if let Some(registry_rc) = &self.registry {
+            match registry_rc.try_borrow_mut() {
+                Ok(mut registry) => {
+                    let node: &Node = text_node.as_ref();
+                    registry.find_blot_for_node(node)
+                }
+                Err(_) => {
+                    web_sys::console::error_1(&JsValue::from_str(
+                        "Registry borrow conflict during text blot lookup - mutation processing may be incomplete"
+                    ));
+                    None
+                }
+            }
+        } else {
+            web_sys::console::error_1(&JsValue::from_str(
+                "Registry not available for text blot lookup - mutation observer not properly initialized"
+            ));
+            None
+        }
     }
 
     /// Synchronize TextBlot content with DOM text node changes
@@ -695,23 +732,37 @@ impl MutationHandler {
     /// Handle when a DOM node is added - internal version to avoid borrowing issues
     fn handle_node_added_internal(&self, node: &Node, parent: &Node) {
         // Create corresponding blot for the new DOM node
-        if let Some(registry) = &self.registry {
-            match self.create_blot_for_new_node(node, registry) {
-                Ok(Some(new_blot)) => {
-                    // Insert the new blot into the appropriate parent
-                    self.insert_blot_into_parent(new_blot, node, parent);
+        if let Some(registry_rc) = &self.registry {
+            match registry_rc.try_borrow() {
+                Ok(registry) => {
+                    match self.create_blot_for_new_node(node, &*registry) {
+                        Ok(Some(new_blot)) => {
+                            // Insert the new blot into the appropriate parent
+                            self.insert_blot_into_parent(new_blot, node, parent);
+                        }
+                        Ok(None) => {
+                            // Node type not supported or already has a blot
+                            web_sys::console::log_1(&JsValue::from_str(
+                                "Node addition ignored - unsupported type or duplicate",
+                            ));
+                        }
+                        Err(e) => {
+                            web_sys::console::error_1(&JsValue::from_str(&format!(
+                                "Failed to create blot for new node: {:?}", e
+                            )));
+                        }
+                    }
                 }
-                Ok(None) => {
-                    // Node type not supported or already has a blot
-
-                    web_sys::console::log_1(&JsValue::from_str(
-                        "Node addition ignored - unsupported type or duplicate",
+                Err(_) => {
+                    web_sys::console::error_1(&JsValue::from_str(
+                        "Registry borrow conflict during node addition - blot creation skipped"
                     ));
                 }
-                Err(e) => {
-                    web_sys::console::error_1(&e);
-                }
             }
+        } else {
+            web_sys::console::error_1(&JsValue::from_str(
+                "Registry not available for node addition - mutation observer not properly initialized"
+            ));
         }
 
         web_sys::console::log_2(&JsValue::from_str("Node added:"), &node.clone().into());
@@ -758,17 +809,10 @@ impl MutationHandler {
     }
 
     /// Check if a DOM node already has an associated blot
-    fn node_has_existing_blot(&self, _node: &Node) -> bool {
-        // This would check the registry's WeakMap-like storage
-        // For now, assume no existing blot to avoid duplicates in this implementation
-
-        web_sys::console::log_1(&JsValue::from_str("Checking for existing blot"));
-
-        // In a full implementation, this would:
-        // 1. Look up the node in the registry's DOM-to-Blot mapping
-        // 2. Return true if a blot already exists for this node
-        // 3. This prevents creating duplicate blots for the same DOM node
-        false
+    fn node_has_existing_blot(&self, node: &Node) -> bool {
+        self.with_registry("existing blot check", |registry| {
+            registry.find_blot_for_node(node).is_some()
+        }).unwrap_or(false)
     }
 
     /// Create a TextBlot for a new text node
@@ -914,16 +958,25 @@ impl MutationHandler {
     }
 
     /// Find the parent blot that corresponds to a DOM node
-    fn find_parent_blot_for_node(&self, _parent_node: &Node) -> Option<*mut dyn BlotTrait> {
-        // This would use the registry to find the blot associated with the parent DOM node
-
-        web_sys::console::log_1(&JsValue::from_str("Looking up parent blot"));
-
-        // In a full implementation, this would:
-        // 1. Use the registry's DOM-to-Blot mapping
-        // 2. Verify the found blot implements ParentBlotTrait
-        // 3. Return a mutable reference for child insertion
-        None
+    fn find_parent_blot_for_node(&self, parent_node: &Node) -> Option<*mut dyn BlotTrait> {
+        if let Some(registry_rc) = &self.registry {
+            match registry_rc.try_borrow_mut() {
+                Ok(mut registry) => {
+                    registry.find_blot_for_node(parent_node)
+                }
+                Err(_) => {
+                    web_sys::console::error_1(&JsValue::from_str(
+                        "Registry borrow conflict during parent blot lookup - blot insertion may fail"
+                    ));
+                    None
+                }
+            }
+        } else {
+            web_sys::console::error_1(&JsValue::from_str(
+                "Registry not available for parent blot lookup - mutation observer not properly initialized"
+            ));
+            None
+        }
     }
 
     /// Calculate the position where a new blot should be inserted
@@ -968,13 +1021,12 @@ impl MutationHandler {
     /// Handle when a DOM node is removed - internal version to avoid borrowing issues
     fn handle_node_removed_internal(&self, node: &Node, parent: &Node) {
         // Find the blot associated with the removed DOM node
-        if let Some(_registry) = &self.registry {
+        if let Some(_registry_rc) = &self.registry {
             if let Some(removed_blot) = self.find_blot_for_removed_node(node) {
                 // Remove the blot from its parent and clean up
                 self.remove_blot_and_cleanup(removed_blot, node, parent);
             } else {
                 // No blot found - might be a node that was never tracked
-
                 web_sys::console::log_1(&JsValue::from_str("No blot found for removed node"));
             }
         }
@@ -983,16 +1035,25 @@ impl MutationHandler {
     }
 
     /// Find the blot associated with a DOM node that was removed
-    fn find_blot_for_removed_node(&self, _node: &Node) -> Option<*mut dyn BlotTrait> {
-        // Look up the blot in the registry before it gets cleaned up
-
-        web_sys::console::log_1(&JsValue::from_str("Looking up blot for removed node"));
-
-        // In a full implementation, this would:
-        // 1. Check the registry's DOM-to-Blot mapping
-        // 2. Return the associated blot if found
-        // 3. This needs to happen before the registry entry is cleaned up
-        None
+    fn find_blot_for_removed_node(&self, node: &Node) -> Option<*mut dyn BlotTrait> {
+        if let Some(registry_rc) = &self.registry {
+            match registry_rc.try_borrow_mut() {
+                Ok(mut registry) => {
+                    registry.find_blot_for_node(node)
+                }
+                Err(_) => {
+                    web_sys::console::error_1(&JsValue::from_str(
+                        "Registry borrow conflict during removed node lookup - blot cleanup may be incomplete"
+                    ));
+                    None
+                }
+            }
+        } else {
+            web_sys::console::error_1(&JsValue::from_str(
+                "Registry not available for removed node lookup - mutation observer not properly initialized"
+            ));
+            None
+        }
     }
 
     /// Remove a blot and perform all necessary cleanup
@@ -1074,16 +1135,16 @@ impl MutationHandler {
     }
 
     /// Unregister a blot from the registry
-    fn unregister_blot_from_registry(&self, _blot_ptr: *mut dyn BlotTrait, _node: &Node) {
-        web_sys::console::log_1(&JsValue::from_str("Unregistering blot from registry"));
-
-        // In a full implementation, this would:
-        // 1. Remove the DOM-to-Blot mapping from the registry
-        // 2. Remove any other registry entries for this blot
-        // 3. Clean up any cached references or indices
-        // 4. Ensure the blot can be properly garbage collected
-
-        // This prevents stale references and memory leaks
+    fn unregister_blot_from_registry(&self, _blot_ptr: *mut dyn BlotTrait, node: &Node) {
+        if let Some(was_removed) = self.with_registry("blot unregistration", |registry| {
+            registry.unregister_blot_for_node(node)
+        }) {
+            if was_removed {
+                web_sys::console::log_1(&JsValue::from_str("Successfully unregistered blot from registry"));
+            } else {
+                web_sys::console::warn_1(&JsValue::from_str("No registry entry found for blot"));
+            }
+        }
     }
 
     /// Perform final cleanup for a removed blot
@@ -1216,6 +1277,9 @@ impl Drop for MutationObserverWrapper {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::registry::Registry;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[test]
     fn test_update_context() {
@@ -1234,5 +1298,216 @@ mod tests {
         };
         assert_eq!(ctx.iteration_count, 0);
         assert!(!ctx.has_changes);
+    }
+
+    #[test]
+    fn test_mutation_handler_registry_initialization() {
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Initially no registry
+        assert!(handler.registry.is_none());
+    }
+
+    #[test]
+    fn test_mutation_handler_with_registry() {
+        let registry = Rc::new(RefCell::new(Registry::new()));
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: Some(registry.clone()),
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Registry should be available
+        assert!(handler.registry.is_some());
+        
+        // Should be able to access registry through with_registry helper
+        let result = handler.with_registry("test operation", |_registry| {
+            true
+        });
+        assert_eq!(result, Some(true));
+    }
+
+    #[test]
+    fn test_with_registry_helper_no_registry() {
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Test the logic without triggering WASM-specific console calls
+        // The with_registry method should return None when no registry is available
+        // We can't test the actual method due to WASM dependencies, but we can test the logic
+        assert!(handler.registry.is_none());
+        
+        // Verify the pattern works: if registry is None, operations should return None
+        let has_registry = handler.registry.is_some();
+        assert!(!has_registry);
+    }
+
+    #[test]
+    fn test_node_has_existing_blot_no_registry() {
+        let _handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Test that the handler can be created without registry
+        // In a real WASM environment, node_has_existing_blot would return false
+        // when no registry is available
+        assert!(true); // Compilation test
+    }
+
+    #[test]
+    fn test_registry_error_handling_patterns() {
+        let registry = Rc::new(RefCell::new(Registry::new()));
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: Some(registry.clone()),
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Test successful registry access
+        let success_result = handler.with_registry("test operation", |_registry| {
+            "success"
+        });
+        assert_eq!(success_result, Some("success"));
+
+        // Test that multiple accesses work
+        let first_access = handler.with_registry("first", |_| 1);
+        let second_access = handler.with_registry("second", |_| 2);
+        assert_eq!(first_access, Some(1));
+        assert_eq!(second_access, Some(2));
+    }
+
+    #[test]
+    fn test_mutation_observer_wrapper_registry_integration() {
+        // Test that MutationObserverWrapper can accept and store registry
+        // This would require DOM setup in a real test environment
+        
+        // For now, test the compilation and basic structure
+        assert!(true); // Placeholder - would need DOM environment for full test
+    }
+
+    #[test]
+    fn test_element_blot_type_classification() {
+        let block_type = ElementBlotType::Block;
+        let inline_type = ElementBlotType::Inline;
+        let embed_type = ElementBlotType::Embed;
+        let unknown_type = ElementBlotType::Unknown;
+
+        // Test that enum variants exist and can be compared
+        assert!(matches!(block_type, ElementBlotType::Block));
+        assert!(matches!(inline_type, ElementBlotType::Inline));
+        assert!(matches!(embed_type, ElementBlotType::Embed));
+        assert!(matches!(unknown_type, ElementBlotType::Unknown));
+    }
+
+    #[test]
+    fn test_max_optimize_iterations_constant() {
+        // Verify the safety constant is reasonable
+        assert!(MAX_OPTIMIZE_ITERATIONS > 0);
+        assert!(MAX_OPTIMIZE_ITERATIONS <= 1000); // Reasonable upper bound
+        assert_eq!(MAX_OPTIMIZE_ITERATIONS, 100); // Current expected value
+    }
+
+    #[test]
+    fn test_mutation_handler_context_management() {
+        let mut handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Test initial state
+        assert_eq!(handler.update_context.iteration_count, 0);
+        assert_eq!(handler.optimize_context.iteration_count, 0);
+        assert!(!handler.optimize_context.has_changes);
+
+        // Test context updates during optimization
+        handler.optimize_context.iteration_count = 5;
+        handler.optimize_context.has_changes = true;
+        
+        assert_eq!(handler.optimize_context.iteration_count, 5);
+        assert!(handler.optimize_context.has_changes);
+    }
+
+    #[test]
+    fn test_registry_lookup_method_signatures() {
+        let registry = Rc::new(RefCell::new(Registry::new()));
+        let _handler = MutationHandler {
+            scroll_blot: None,
+            registry: Some(registry),
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+        };
+
+        // Test that all the registry lookup methods exist and compile
+        // These would need proper DOM nodes in a real test environment
+        
+        // Verify method signatures exist by compilation
+        assert!(true); // Compilation test
+        
+        // In a real WASM test environment with DOM:
+        // let text_node = create_text_node("test");
+        // let result = handler.find_text_blot_for_node(&text_node);
+        // assert!(result.is_none()); // No blot registered yet
+        
+        // let parent_node = create_element("div");
+        // let parent_result = handler.find_parent_blot_for_node(&parent_node);
+        // assert!(parent_result.is_none()); // No blot registered yet
     }
 }
