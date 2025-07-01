@@ -257,6 +257,7 @@ pub mod utils;
 pub use attributor::{Attributor, AttributorOptions, StyleAttributor, ClassAttributor};
 pub use blot::block::BlockBlot;
 pub use blot::embed::EmbedBlot;
+pub use blot::factory::BlotFactory;
 pub use blot::inline::InlineBlot;
 pub use blot::scroll::ScrollBlot;
 pub use blot::text::TextBlot;

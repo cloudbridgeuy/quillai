@@ -205,6 +205,11 @@ impl BlotTrait for ShadowBlot {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
+
+    /// Support for mutable downcasting
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 impl Drop for ShadowBlot {

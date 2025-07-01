@@ -110,6 +110,9 @@ pub trait BlotTrait {
     /// Support for downcasting to concrete types (needed for tree navigation)
     fn as_any(&self) -> &dyn std::any::Any;
 
+    /// Support for mutable downcasting to concrete types
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+
     /// Build children from existing DOM structure (for parent blots)
     ///
     /// Default implementation does nothing. Parent blots override this to
@@ -171,6 +174,48 @@ pub trait ParentBlotTrait: BlotTrait {
         ref_blot: Option<&dyn BlotTrait>,
     ) -> Result<(), JsValue>;
     fn remove_child(&mut self, child: &dyn BlotTrait) -> Result<Box<dyn BlotTrait>, JsValue>;
+
+    /// Insert child at specific position in the children list
+    ///
+    /// Inserts a child blot at the specified zero-based position in the children
+    /// LinkedList. This is the core method for position-based insertion used by
+    /// the mutation detection system.
+    ///
+    /// # Parameters
+    /// * `position` - Zero-based index where to insert the child
+    /// * `child` - Blot to insert
+    ///
+    /// # Returns
+    /// * `Ok(())` - Child successfully inserted
+    /// * `Err(JsValue)` - Insertion failed (invalid position, etc.)
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// use quillai_parchment::{ScrollBlot, TextBlot, ParentBlotTrait, BlotTrait};
+    /// use quillai_parchment::blot::factory::BlotFactory;
+    /// use quillai_parchment::registry::Registry;
+    /// use quillai_parchment::dom::Dom;
+    /// use std::rc::Rc;
+    /// use std::cell::RefCell;
+    ///
+    /// let mut parent = ScrollBlot::new(None)?;
+    /// let child_0 = TextBlot::new("Hello")?;
+    /// let child_1 = TextBlot::new(", world!")?;
+    ///
+    /// parent.append_child(Box::new(child_0))?;
+    /// parent.append_child(Box::new(child_1))?;
+    ///
+    /// let child = TextBlot::new(", world!")?;
+    ///
+    /// // Insert at position 1 (between existing children)
+    /// parent.insert_child_at_position(1, Box::new(child))?;
+    /// # Ok::<(), wasm_bindgen::JsValue>(())
+    /// ```
+    fn insert_child_at_position(
+        &mut self,
+        position: usize,
+        child: Box<dyn BlotTrait>,
+    ) -> Result<(), JsValue>;
 
     /// Tree navigation methods
     fn descendant(

@@ -252,6 +252,10 @@ impl BlotTrait for EmbedBlot {
         self
     }
 
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
     fn build_children(&mut self) -> Result<(), JsValue> {
         // Embed blots don't have children - they are leaf nodes
         // This is a no-op for embed blots

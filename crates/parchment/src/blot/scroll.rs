@@ -1046,6 +1046,11 @@ impl BlotTrait for ScrollBlot {
         self
     }
 
+    /// Support for mutable downcasting
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
     /// Override build_children to implement recursive DOM traversal for scroll blot
     fn build_children(&mut self) -> Result<(), JsValue> {
         // Clear existing children
@@ -1316,6 +1321,47 @@ impl ParentBlotTrait for ScrollBlot {
 
     fn text_content(&self) -> String {
         self.dom_node.text_content().unwrap_or_default()
+    }
+
+    fn insert_child_at_position(&mut self, position: usize, child: Box<dyn BlotTrait>) -> Result<(), JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position > children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
+
+        // Get the child's DOM node before moving it
+        let child_dom = child.dom_node().clone();
+
+        // Update DOM to reflect the insertion
+        if position == children_count {
+            // Append at the end
+            self.dom_node.append_child(&child_dom)?;
+        } else {
+            // Insert before the node at the target position
+            let mut current_index = 0;
+            let mut current_child = self.dom_node.first_child();
+            
+            while let Some(node) = current_child {
+                if current_index == position {
+                    self.dom_node.insert_before(&child_dom, Some(&node))?;
+                    break;
+                }
+                current_index += 1;
+                current_child = node.next_sibling();
+            }
+        }
+
+        // Insert into LinkedList at the specified position
+        self.children.insert_at_ith(position as u32, child);
+
+        // Note: ScrollBlot's length() method already calculates length dynamically
+        // by summing all children's lengths, so no explicit recalculation needed
+
+        Ok(())
     }
 }
 

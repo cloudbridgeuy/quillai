@@ -435,6 +435,10 @@ impl BlotTrait for InlineBlot {
         self
     }
 
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
     fn build_children(&mut self) -> Result<(), JsValue> {
         // Build children from existing DOM nodes
         let child_nodes = self.dom_node.child_nodes();
@@ -625,6 +629,47 @@ impl ParentBlotTrait for InlineBlot {
         }
 
         text_parts.join("")
+    }
+
+    fn insert_child_at_position(&mut self, position: usize, child: Box<dyn BlotTrait>) -> Result<(), JsValue> {
+        // Validate position bounds
+        let children_count = self.children.length as usize;
+        if position > children_count {
+            return Err(JsValue::from_str(&format!(
+                "Position {} out of bounds for {} children",
+                position, children_count
+            )));
+        }
+
+        // Get the child's DOM node before moving it
+        let child_dom = child.dom_node().clone();
+
+        // Update DOM to reflect the insertion
+        if position == children_count {
+            // Append at the end
+            self.dom_node.append_child(&child_dom)?;
+        } else {
+            // Insert before the node at the target position
+            let mut current_index = 0;
+            let mut current_child = self.dom_node.first_child();
+            
+            while let Some(node) = current_child {
+                if current_index == position {
+                    self.dom_node.insert_before(&child_dom, Some(&node))?;
+                    break;
+                }
+                current_index += 1;
+                current_child = node.next_sibling();
+            }
+        }
+
+        // Insert into LinkedList at the specified position
+        self.children.insert_at_ith(position as u32, child);
+
+        // Note: InlineBlot's length() method already calculates length dynamically
+        // by summing all children's lengths, so no explicit recalculation needed
+
+        Ok(())
     }
 }
 
