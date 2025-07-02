@@ -62,6 +62,8 @@ pub mod block;
 pub mod embed;
 /// Blot factory for creating instances from DOM nodes
 pub mod factory;
+/// Formatting state management for blots
+pub mod formatting;
 /// Inline blot implementations (formatting, links)
 pub mod inline;
 /// Mutation detection and DOM synchronization
@@ -80,6 +82,7 @@ pub mod traits_simple;
 // Re-export key types for convenient access
 pub use block::BlockBlot;
 pub use factory::BlotFactory;
+pub use formatting::{FormattableBlot, FormattingState};
 pub use mutations::{MutationObserverWrapper, OptimizeContext, UpdateContext};
 pub use parent::ParentBlot;
 pub use shadow_simple::ShadowBlot;

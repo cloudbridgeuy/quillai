@@ -38,6 +38,7 @@ web-sys = { version = "0.3", features = [
 ] }
 js-sys = "0.3"
 
+
 # Optional dependencies for the HTTP server example
 [dependencies.tokio]
 version = "1.0"

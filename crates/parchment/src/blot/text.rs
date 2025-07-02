@@ -30,6 +30,7 @@
 //! ```
 
 use crate::blot::traits_simple::{BlotTrait, LeafBlotTrait};
+
 use crate::dom::Dom;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
@@ -382,7 +383,16 @@ impl TextBlot {
     }
 
     /// Merge this text blot with another text blot
-    /// Returns true if merge was successful
+    /// 
+    /// Combines the content of another TextBlot into this one and removes
+    /// the other blot from the DOM. This is a simple content-based merge.
+    /// 
+    /// # Parameters
+    /// * `other` - The TextBlot to merge into this one
+    /// 
+    /// # Returns
+    /// * `Ok(true)` if merge was successful
+    /// * `Err(JsValue)` if merge failed due to DOM errors
     pub fn merge(&mut self, other: &TextBlot) -> Result<bool, JsValue> {
         let current_value = self.value();
         let other_value = other.value();
@@ -396,15 +406,12 @@ impl TextBlot {
             parent.remove_child(&other.dom_node)?;
         }
 
+        // Clear cached length since content changed
+        *self.cached_length.borrow_mut() = None;
         Ok(true)
     }
 
-    /// Check if this TextBlot can merge with another TextBlot
-    /// For now, all TextBlots can merge since they have the same formatting
-    pub fn can_merge_with(&self, _other: &TextBlot) -> bool {
-        // In a more complex implementation, this would check for compatible formatting
-        true
-    }
+
 
     /// Get the cursor position management helpers
     /// Calculate character offset within the text for cursor positioning

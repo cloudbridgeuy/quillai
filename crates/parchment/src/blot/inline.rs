@@ -32,9 +32,11 @@
 //! # Ok::<(), wasm_bindgen::JsValue>(())
 //! ```
 
+use crate::blot::formatting::{FormattableBlot, FormattingState};
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
 use crate::collection::linked_list::LinkedList;
 use crate::dom::Dom;
+use crate::registry::AttributorTrait;
 use crate::scope::Scope;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, HtmlElement, Node};
@@ -77,6 +79,8 @@ pub struct InlineBlot {
     dom_node: Element,
     /// Child blots managed in a linked list for efficient operations
     children: LinkedList<Box<dyn BlotTrait>>,
+    /// Formatting state tracking applied classes, styles, and attributes
+    formatting_state: FormattingState,
 }
 
 #[wasm_bindgen]
@@ -105,10 +109,16 @@ impl InlineBlot {
             None => Dom::create_element("span")?,
         };
 
-        Ok(InlineBlot {
+        let mut blot = InlineBlot {
             dom_node,
             children: LinkedList::new(),
-        })
+            formatting_state: FormattingState::new(),
+        };
+
+        // Initialize formatting state from DOM
+        let _ = blot.sync_formatting_from_dom();
+
+        Ok(blot)
     }
 
     /// Create an InlineBlot from an existing DOM element
@@ -122,10 +132,16 @@ impl InlineBlot {
     /// # Returns
     /// New InlineBlot wrapping the provided element
     pub fn from_element(element: Element) -> InlineBlot {
-        InlineBlot {
+        let mut blot = InlineBlot {
             dom_node: element,
             children: LinkedList::new(),
-        }
+            formatting_state: FormattingState::new(),
+        };
+
+        // Initialize formatting state from DOM
+        let _ = blot.sync_formatting_from_dom();
+
+        blot
     }
 
     /// Create an InlineBlot with initial text content
@@ -196,6 +212,7 @@ impl InlineBlot {
         let mut inline = InlineBlot {
             dom_node: strong,
             children: LinkedList::new(),
+            formatting_state: FormattingState::new(),
         };
 
         // Build children from the DOM structure
@@ -220,6 +237,7 @@ impl InlineBlot {
         let mut inline = InlineBlot {
             dom_node: em,
             children: LinkedList::new(),
+            formatting_state: FormattingState::new(),
         };
 
         // Build children from the DOM structure
@@ -244,6 +262,7 @@ impl InlineBlot {
         let mut inline = InlineBlot {
             dom_node: u,
             children: LinkedList::new(),
+            formatting_state: FormattingState::new(),
         };
 
         // Build children from the DOM structure
@@ -268,6 +287,7 @@ impl InlineBlot {
         let mut inline = InlineBlot {
             dom_node: code,
             children: LinkedList::new(),
+            formatting_state: FormattingState::new(),
         };
 
         // Build children from the DOM structure
@@ -292,6 +312,7 @@ impl InlineBlot {
         let mut inline = InlineBlot {
             dom_node: s,
             children: LinkedList::new(),
+            formatting_state: FormattingState::new(),
         };
 
         // Build children from the DOM structure
@@ -742,5 +763,118 @@ impl InlineBlot {
                 }
             }
         }
+    }
+}
+
+impl FormattableBlot for InlineBlot {
+    fn formatting_state(&self) -> &FormattingState {
+        &self.formatting_state
+    }
+
+    fn formatting_state_mut(&mut self) -> &mut FormattingState {
+        &mut self.formatting_state
+    }
+
+    fn apply_format(&mut self, attributor: &dyn AttributorTrait, value: &JsValue) -> Result<(), JsValue> {
+        // Apply the format through the attributor
+        let success = attributor.add(&self.dom_node, value);
+        
+        if success {
+            // Update our internal formatting state based on the attributor type
+            match attributor.attr_name() {
+                "class" => {
+                    if let Some(class_str) = value.as_string() {
+                        self.formatting_state.parse_classes(&class_str);
+                    }
+                }
+                "style" => {
+                    if let Some(style_str) = value.as_string() {
+                        self.formatting_state.parse_styles(&style_str);
+                    }
+                }
+                attr_name => {
+                    if let Some(attr_value) = value.as_string() {
+                        self.formatting_state.set_attribute(attr_name, &attr_value);
+                    }
+                }
+            }
+            Ok(())
+        } else {
+            Err(JsValue::from_str(&format!(
+                "Failed to apply format {} to InlineBlot",
+                attributor.key_name()
+            )))
+        }
+    }
+
+    fn remove_format(&mut self, attributor: &dyn AttributorTrait) -> Result<(), JsValue> {
+        // Remove the format through the attributor
+        attributor.remove(&self.dom_node);
+        
+        // Update our internal formatting state
+        match attributor.attr_name() {
+            "class" => {
+                self.formatting_state.set_classes(std::collections::HashSet::new());
+            }
+            "style" => {
+                self.formatting_state.set_styles(std::collections::HashMap::new());
+            }
+            attr_name => {
+                self.formatting_state.remove_attribute(attr_name);
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn sync_formatting_from_dom(&mut self) -> Result<(), JsValue> {
+        // Read class attribute
+        if let Some(class_attr) = self.dom_node.get_attribute("class") {
+            self.formatting_state.parse_classes(&class_attr);
+        }
+
+        // Read style attribute
+        if let Some(style_attr) = self.dom_node.get_attribute("style") {
+            self.formatting_state.parse_styles(&style_attr);
+        }
+
+        // Read other attributes (excluding class and style)
+        let attributes = self.dom_node.attributes();
+        for i in 0..attributes.length() {
+            if let Some(attr) = attributes.item(i) {
+                let name = attr.name();
+                if name != "class" && name != "style" {
+                    let value = attr.value();
+                    self.formatting_state.set_attribute(&name, &value);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn apply_formatting_to_dom(&self) -> Result<(), JsValue> {
+        // Apply classes
+        let class_string = self.formatting_state.classes_string();
+        if class_string.is_empty() {
+            let _ = self.dom_node.remove_attribute("class");
+        } else {
+            self.dom_node.set_attribute("class", &class_string)?;
+        }
+
+        // Apply styles
+        let style_string = self.formatting_state.styles_string();
+        if style_string.is_empty() {
+            let _ = self.dom_node.remove_attribute("style");
+        } else {
+            self.dom_node.set_attribute("style", &style_string)?;
+        }
+
+        // Apply other attributes
+        for (name, value) in self.formatting_state.attributes() {
+            self.dom_node.set_attribute(name, value)?;
+        }
+
+        Ok(())
     }
 }
