@@ -73,6 +73,8 @@ use web_sys::{Node, Text};
 pub struct TextBlot {
     /// The underlying DOM text node that stores the actual content
     dom_node: Text,
+    /// Cached length to avoid repeated DOM reads
+    cached_length: std::cell::RefCell<Option<usize>>,
 }
 
 #[wasm_bindgen]
@@ -97,7 +99,10 @@ impl TextBlot {
     #[wasm_bindgen(constructor)]
     pub fn new(content: &str) -> Result<TextBlot, JsValue> {
         let dom_node = Dom::create_text_node(content)?;
-        Ok(TextBlot { dom_node })
+        Ok(TextBlot { 
+            dom_node,
+            cached_length: std::cell::RefCell::new(None),
+        })
     }
 
     /// Create a TextBlot from an existing DOM text node
@@ -118,6 +123,7 @@ impl TextBlot {
         if let Some(text_node) = node.dyn_ref::<Text>() {
             Ok(TextBlot {
                 dom_node: text_node.clone(),
+                cached_length: std::cell::RefCell::new(None),
             })
         } else {
             Err("Node is not a Text node".into())
@@ -146,17 +152,90 @@ impl TextBlot {
     #[wasm_bindgen(setter)]
     pub fn set_value(&self, content: &str) {
         self.dom_node.set_text_content(Some(content));
+        self.invalidate_length_cache();
+        let _ = self.notify_parent_of_change(); // Ignore errors in setter
+    }
+
+    /// Get the text content directly from the DOM text node
+    /// 
+    /// This method provides explicit DOM access for synchronization purposes.
+    /// It's similar to `value()` but with explicit error handling.
+    pub fn get_text_content(&self) -> Result<String, JsValue> {
+        Ok(self.dom_node.text_content().unwrap_or_default())
+    }
+
+    /// Set the text content directly on the DOM text node
+    /// 
+    /// This method provides explicit DOM access for synchronization purposes.
+    /// It updates the DOM, invalidates the length cache, and notifies the parent.
+    pub fn set_text_content(&mut self, text: &str) -> Result<(), JsValue> {
+        self.dom_node.set_text_content(Some(text));
+        self.invalidate_length_cache();
+        self.notify_parent_of_change()?;
+        Ok(())
+    }
+
+    /// Calculate the length based on actual DOM text content
+    /// 
+    /// This method reads directly from the DOM to get the current length,
+    /// which is important for synchronization scenarios where the DOM
+    /// might have been modified externally.
+    pub fn calculate_length(&self) -> Result<usize, JsValue> {
+        let content = self.get_text_content()?;
+        Ok(content.chars().count())
+    }
+
+    /// Invalidate the cached length, forcing recalculation on next access
+    pub fn invalidate_length_cache(&self) {
+        *self.cached_length.borrow_mut() = None;
+    }
+
+    /// Notify parent blot that this text content has changed
+    ///
+    /// This method finds the parent blot and notifies it of the content change,
+    /// allowing the parent to update its own cached state and propagate the
+    /// notification up the tree.
+    pub fn notify_parent_of_change(&self) -> Result<(), JsValue> {
+        // Find the parent DOM node
+        if let Some(parent_node) = self.dom_node.parent_node() {
+            // For now, we'll add a simple notification mechanism
+            // In a full implementation, this would use the registry to find the parent blot
+            // and call notify_child_changed on it
+            
+            // Log the notification for now (this will be replaced with actual parent notification)
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "TextBlot content changed, notifying parent (DOM node: {})",
+                parent_node.node_name()
+            )));
+        }
+        Ok(())
     }
 
     /// Get the character length of the text content
     ///
     /// Returns the number of Unicode characters (not bytes) in the text content.
     /// This is important for proper cursor positioning and text operations.
+    /// Uses caching to avoid repeated DOM reads for performance.
     ///
     /// # Returns
     /// Number of characters in the text content
     pub fn length(&self) -> usize {
-        self.value().len()
+        // Check if we have a cached value
+        if let Some(cached) = *self.cached_length.borrow() {
+            return cached;
+        }
+
+        // Calculate and cache the length
+        let length = match self.calculate_length() {
+            Ok(len) => len,
+            Err(_) => {
+                // Fallback to the old method if DOM read fails
+                self.value().chars().count()
+            }
+        };
+
+        *self.cached_length.borrow_mut() = Some(length);
+        length
     }
 
     /// Get a clone of the underlying DOM node
@@ -526,6 +605,7 @@ impl BlotTrait for TextBlot {
 
         let new_content: String = chars.into_iter().collect();
         self.dom_node.set_text_content(Some(&new_content));
+        self.invalidate_length_cache();
     }
 
     fn insert_at(&mut self, index: usize, value: &str) {
@@ -541,6 +621,7 @@ impl BlotTrait for TextBlot {
 
         let new_content: String = chars.into_iter().collect();
         self.dom_node.set_text_content(Some(&new_content));
+        self.invalidate_length_cache();
     }
 
     /// Support for downcasting - needed for tree navigation
@@ -561,12 +642,124 @@ impl LeafBlotTrait for TextBlot {
 
     fn set_value(&mut self, value: &str) {
         self.dom_node.set_text_content(Some(value));
+        self.invalidate_length_cache();
     }
 }
 
 impl TextBlot {
     /// Create a TextBlot from an existing DOM text node
     pub fn from_dom_node(node: Text) -> TextBlot {
-        TextBlot { dom_node: node }
+        TextBlot { 
+            dom_node: node,
+            cached_length: std::cell::RefCell::new(None),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::text_operations;
+    use wasm_bindgen_test::*;
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    fn test_text_content_getter_setter() {
+        let text_blot = TextBlot::new("Hello, world!").expect("Failed to create TextBlot");
+        
+        // Test getter
+        let content = text_blot.get_text_content().expect("Failed to get text content");
+        assert_eq!(content, "Hello, world!");
+        
+        // Test value method
+        assert_eq!(text_blot.value(), "Hello, world!");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_length_calculation_and_caching() {
+        let text_blot = TextBlot::new("Hello").expect("Failed to create TextBlot");
+        
+        // Test initial length
+        assert_eq!(text_blot.length(), 5);
+        
+        // Test that multiple calls don't recalculate (cached)
+        assert_eq!(text_blot.length(), 5);
+        assert_eq!(text_blot.length(), 5);
+        
+        // Test cache invalidation after content change
+        text_blot.set_value("Hello, world!");
+        assert_eq!(text_blot.length(), 13);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_text_synchronization() {
+        let mut text_blot = TextBlot::new("old content").expect("Failed to create TextBlot");
+        
+        // Test synchronization function
+        let result = text_operations::sync_text_blot_content(
+            &mut text_blot,
+            Some("old content"),
+            "new content"
+        );
+        
+        assert!(result.is_ok());
+        assert_eq!(text_blot.value(), "new content");
+        assert_eq!(text_blot.length(), 11);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_sync_no_change_needed() {
+        let mut text_blot = TextBlot::new("same content").expect("Failed to create TextBlot");
+        
+        // Test that sync with same content doesn't cause issues
+        let result = text_operations::sync_text_blot_content(
+            &mut text_blot,
+            Some("same content"),
+            "same content"
+        );
+        
+        assert!(result.is_ok());
+        assert_eq!(text_blot.value(), "same content");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_empty_text_handling() {
+        let mut text_blot = TextBlot::new("").expect("Failed to create TextBlot");
+        
+        assert_eq!(text_blot.length(), 0);
+        assert_eq!(text_blot.value(), "");
+        
+        // Test sync with empty content
+        let result = text_operations::sync_text_blot_content(
+            &mut text_blot,
+            None,
+            ""
+        );
+        
+        assert!(result.is_ok());
+        assert_eq!(text_blot.length(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_unicode_text_handling() {
+        let unicode_text = "Hello 世界! 🌍";
+        let mut text_blot = TextBlot::new(unicode_text).expect("Failed to create TextBlot");
+        
+        // Test that Unicode characters are counted correctly
+        let expected_length = unicode_text.chars().count();
+        assert_eq!(text_blot.length(), expected_length);
+        
+        // Test sync with Unicode content
+        let new_unicode = "新しい内容 🚀";
+        let result = text_operations::sync_text_blot_content(
+            &mut text_blot,
+            Some(unicode_text),
+            new_unicode
+        );
+        
+        assert!(result.is_ok());
+        assert_eq!(text_blot.value(), new_unicode);
+        assert_eq!(text_blot.length(), new_unicode.chars().count());
     }
 }

@@ -52,3 +52,4 @@ optional = true
 default = []
 
 [dev-dependencies]
+wasm-bindgen-test = "0.3"

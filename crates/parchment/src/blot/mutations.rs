@@ -50,7 +50,9 @@
 //! ```
 
 use crate::blot::traits_simple::{BlotTrait, ParentBlotTrait};
+use crate::blot::text::TextBlot;
 use crate::registry::Registry;
+use crate::text_operations;
 use js_sys::Array;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -655,26 +657,45 @@ impl MutationHandler {
     /// Synchronize TextBlot content with DOM text node changes
     fn sync_text_blot_content(
         &self,
-        _text_blot: *mut dyn BlotTrait,
-        _current_content: &str,
-        _old_content: &str,
+        text_blot_ptr: *mut dyn BlotTrait,
+        current_content: &str,
+        old_content: &str,
     ) {
-        // Update the TextBlot's internal state to match the new DOM content
-
-        web_sys::console::log_1(&JsValue::from_str(&format!(
-            "Syncing TextBlot content from '{}' to '{}'",
-            _old_content, _current_content
-        )));
-
-        // In a full implementation, this would:
-        // 1. Cast the blot to TextBlot using downcasting
-        // 2. Update the TextBlot's internal content tracking
-        // 3. Recalculate the blot's length
-        // 4. Notify parent blots of content changes
-        // 5. Trigger any necessary formatting updates
-
-        // For now, just mark that we have changes for the optimization cycle
-        // self.optimize_context.has_changes = true; // Would need mutable access
+        // Safety: We need to safely cast the blot pointer to TextBlot
+        unsafe {
+            if let Some(blot_trait) = text_blot_ptr.as_mut() {
+                // Try to downcast to TextBlot
+                if let Some(text_blot) = blot_trait.as_any_mut().downcast_mut::<TextBlot>() {
+                    // Use our synchronization function
+                    match text_operations::sync_text_blot_content(
+                        text_blot,
+                        Some(old_content),
+                        current_content,
+                    ) {
+                        Ok(()) => {
+                            web_sys::console::log_1(&JsValue::from_str(&format!(
+                                "Successfully synced TextBlot content from '{}' to '{}'",
+                                old_content, current_content
+                            )));
+                        }
+                        Err(err) => {
+                            web_sys::console::error_1(&JsValue::from_str(&format!(
+                                "Failed to sync TextBlot content: {:?}",
+                                err
+                            )));
+                        }
+                    }
+                } else {
+                    web_sys::console::error_1(&JsValue::from_str(
+                        "Blot is not a TextBlot - cannot sync text content"
+                    ));
+                }
+            } else {
+                web_sys::console::error_1(&JsValue::from_str(
+                    "Invalid blot pointer - cannot sync text content"
+                ));
+            }
+        }
     }
 
     /// Handle text nodes that don't have associated TextBlots

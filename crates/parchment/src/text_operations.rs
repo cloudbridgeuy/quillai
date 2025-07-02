@@ -845,3 +845,47 @@ impl TextVisitor for TextSearcher {
         self.current_offset += text.len() as u32;
     }
 }
+
+/// Synchronize a TextBlot's content with DOM changes
+///
+/// This function updates a TextBlot's internal state when the underlying DOM
+/// text node has been modified externally. It ensures that the blot's cached
+/// state remains consistent with the actual DOM content.
+///
+/// # Arguments
+///
+/// * `text_blot` - The TextBlot to synchronize
+/// * `old_value` - The previous text content (for validation/logging)
+/// * `new_value` - The new text content from the DOM
+///
+/// # Returns
+///
+/// `Ok(())` on successful synchronization, `Err(JsValue)` on failure
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use quillai_parchment::text_operations::sync_text_blot_content;
+/// use quillai_parchment::TextBlot;
+///
+/// let mut text_blot = TextBlot::new("old content")?;
+/// sync_text_blot_content(&mut text_blot, Some("old content"), "new content")?;
+/// assert_eq!(text_blot.value(), "new content");
+/// # Ok::<(), wasm_bindgen::JsValue>(())
+/// ```
+pub fn sync_text_blot_content(
+    text_blot: &mut crate::blot::text::TextBlot,
+    _old_value: Option<&str>,
+    new_value: &str,
+) -> Result<(), wasm_bindgen::JsValue> {
+    // Check if update is actually needed to avoid infinite loops
+    let current_value = text_blot.get_text_content()?;
+    if current_value == new_value {
+        return Ok(());
+    }
+
+    // Update the TextBlot's content (this will invalidate length cache)
+    text_blot.set_text_content(new_value)?;
+
+    Ok(())
+}

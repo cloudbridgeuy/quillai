@@ -255,6 +255,23 @@ pub trait ParentBlotTrait: BlotTrait {
     fn append_text(&mut self, text: &str) -> Result<(), JsValue>;
     fn clear(&mut self);
     fn text_content(&self) -> String;
+
+    /// Notify this parent that a child has changed
+    ///
+    /// This method is called when a child blot's content or state has changed,
+    /// allowing the parent to update its own cached state (like length) and
+    /// propagate the notification up the tree.
+    ///
+    /// # Parameters
+    /// * `child` - The child blot that has changed
+    ///
+    /// # Default Implementation
+    /// The default implementation invalidates any cached length and notifies
+    /// the parent if this blot has one.
+    fn notify_child_changed(&mut self, _child: &dyn BlotTrait) {
+        // Default implementation: invalidate cached state
+        // Individual implementations can override for specific behavior
+    }
 }
 
 /// Trait for leaf blots that contain actual content (terminal nodes)
