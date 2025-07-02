@@ -1,7 +1,25 @@
+//! ANSI terminal output example for the QuillAI Delta library
+//!
+//! This example demonstrates how to render Delta documents with rich formatting
+//! in terminal applications using ANSI escape codes. It shows:
+//! - Converting Delta attributes to ANSI escape sequences
+//! - Rendering formatted text in the terminal
+//! - Supporting various text styles (bold, italic, underline, etc.)
+//! - Color support including RGB hex values
+//! - Practical examples like progress bars and syntax highlighting
+//!
+//! Run with: `cargo run --example ansi_output`
+//!
+//! Note: Terminal support for ANSI codes varies. Most modern terminals support
+//! the basic formatting shown here, but RGB colors may not work everywhere.
+
 use quillai_delta::{AttributeValue, Delta};
 use std::collections::BTreeMap;
 
 /// ANSI escape codes for text formatting
+///
+/// This struct contains constants for various ANSI escape sequences
+/// used to format text in terminal applications.
 struct AnsiCodes;
 
 impl AnsiCodes {
@@ -46,7 +64,22 @@ impl AnsiCodes {
     const FG_BRIGHT_WHITE: &'static str = "\x1b[97m";
 }
 
-/// Convert Delta attributes to ANSI escape codes
+/// Converts Delta attributes to ANSI escape codes
+///
+/// This function maps common text formatting attributes to their corresponding
+/// ANSI escape sequences. It supports:
+/// - Text styles: bold, italic, underline, strikethrough, dim
+/// - Named colors: black, red, green, yellow, blue, magenta, cyan, white (and bright variants)
+/// - RGB hex colors: #RRGGBB format
+/// - Background colors: same color options as foreground
+///
+/// # Arguments
+///
+/// * `attributes` - Optional map of attribute names to values
+///
+/// # Returns
+///
+/// A string containing the concatenated ANSI escape codes
 fn attributes_to_ansi(attributes: Option<&BTreeMap<String, AttributeValue>>) -> String {
     let mut ansi_codes = Vec::new();
     let mut rgb_codes = Vec::new(); // Store owned RGB strings
@@ -134,7 +167,25 @@ fn attributes_to_ansi(attributes: Option<&BTreeMap<String, AttributeValue>>) -> 
     all_codes.join("")
 }
 
-/// Convert a Delta to an ANSI-formatted string
+/// Converts a Delta document to an ANSI-formatted string
+///
+/// This function processes each operation in the Delta and applies the
+/// appropriate ANSI formatting codes. It handles:
+/// - Insert operations: Renders text with formatting
+/// - InsertEmbed operations: Renders as [type:data] with formatting
+/// - Retain operations: Updates current formatting (would need base document for full support)
+/// - Delete operations: Ignored (would need base document to apply)
+///
+/// The function automatically resets formatting between different styled segments
+/// and at the end of the output.
+///
+/// # Arguments
+///
+/// * `delta` - The Delta document to render
+///
+/// # Returns
+///
+/// A string with embedded ANSI escape codes for terminal display
 fn delta_to_ansi_string(delta: &Delta) -> String {
     let mut result = String::new();
     let mut current_formatting = String::new();
@@ -197,6 +248,7 @@ fn main() {
     println!("🎨 Delta to ANSI Terminal Output Demo 🎨\n");
 
     // Create various styled text examples
+    // These attribute maps define different formatting combinations
     let mut red_bold = BTreeMap::new();
     red_bold.insert(
         "color".to_string(),

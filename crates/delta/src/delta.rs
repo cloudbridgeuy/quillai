@@ -1,37 +1,163 @@
+//! Delta module - Core implementation of the Quill Delta format
+//!
+//! This module provides the main [`Delta`] struct which represents either a complete
+//! document or a set of changes to apply to a document. Deltas are composed of a
+//! sequence of operations that describe how to build or modify content.
+//!
+//! # Key Concepts
+//!
+//! - **Document Delta**: A delta that represents a complete document, containing only
+//!   insert operations
+//! - **Change Delta**: A delta that represents modifications to a document, containing
+//!   any combination of insert, delete, and retain operations
+//! - **Operational Transformation**: The ability to transform concurrent edits to
+//!   maintain consistency in collaborative editing scenarios
+//!
+//! # Examples
+//!
+//! Creating a document:
+//! ```rust
+//! use quillai_delta::Delta;
+//!
+//! let doc = Delta::new()
+//!     .insert("Hello world", None)
+//!     .insert("\n", None);
+//! ```
+//!
+//! Creating a change:
+//! ```rust
+//! use quillai_delta::Delta;
+//!
+//! let change = Delta::new()
+//!     .retain(6, None)  // Keep "Hello "
+//!     .delete(5)        // Delete "world"
+//!     .insert("Rust", None);  // Insert "Rust"
+//! ```
+
 use crate::attributes::{AttributeMap, AttributeMapOps};
 use crate::diff::{diff_text, DiffType};
 use crate::op::{EmbedData, Op};
 use crate::op_iterator::OpIterator;
 use serde_json::Value as JsonValue;
 
-/// Main Delta struct representing a document or change
+/// Represents a Quill Delta - either a complete document or a change to a document
+///
+/// A Delta is fundamentally a sequence of operations that describe how to create
+/// or modify a rich text document. The operations are stored in a normalized form
+/// where consecutive operations of the same type with the same attributes are merged.
+///
+/// # Examples
+///
+/// Creating a simple document:
+/// ```rust
+/// use quillai_delta::Delta;
+///
+/// let doc = Delta::new()
+///     .insert("Hello ", None)
+///     .insert("world!", None);
+/// // Results in a single insert operation: "Hello world!"
+/// ```
+///
+/// Creating a document with formatting:
+/// ```rust
+/// use quillai_delta::{Delta, AttributeMap, AttributeValue};
+///
+/// let mut bold = AttributeMap::new();
+/// bold.insert("bold".to_string(), AttributeValue::Boolean(true));
+///
+/// let doc = Delta::new()
+///     .insert("Normal text ", None)
+///     .insert("bold text", Some(bold))
+///     .insert(" more normal", None);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Delta {
     ops: Vec<Op>,
 }
 
 impl Delta {
-    /// Create a new empty Delta
+    /// Creates a new empty Delta
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new();
+    /// assert!(delta.ops().is_empty());
+    /// ```
     pub fn new() -> Self {
         Self { ops: Vec::new() }
     }
 
-    /// Create a Delta from a vector of operations
+    /// Creates a Delta from a vector of operations
+    ///
+    /// This constructor does not perform any optimization or merging of operations.
+    /// Use the builder methods (insert, delete, retain) for automatic optimization.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::{Delta, Op};
+    ///
+    /// let ops = vec![
+    ///     Op::Insert { text: "Hello".to_string(), attributes: None },
+    ///     Op::Delete(5),
+    /// ];
+    /// let delta = Delta::from_ops(ops);
+    /// assert_eq!(delta.ops().len(), 2);
+    /// ```
     pub fn from_ops(ops: Vec<Op>) -> Self {
         Self { ops }
     }
 
-    /// Get the operations as a slice
+    /// Returns a slice of the operations in this Delta
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new().insert("Hello", None);
+    /// assert_eq!(delta.ops().len(), 1);
+    /// ```
     pub fn ops(&self) -> &[Op] {
         &self.ops
     }
 
-    /// Get the operations as a mutable slice
+    /// Returns a mutable reference to the operations vector
+    ///
+    /// # Warning
+    ///
+    /// Direct modification of operations can break Delta invariants.
+    /// Use the builder methods when possible.
     pub fn ops_mut(&mut self) -> &mut Vec<Op> {
         &mut self.ops
     }
 
-    /// Insert text with optional attributes
+    /// Inserts text with optional formatting attributes
+    ///
+    /// This method automatically merges consecutive insert operations with
+    /// identical attributes for optimal storage.
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text to insert
+    /// * `attributes` - Optional formatting attributes (bold, italic, color, etc.)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::{Delta, AttributeMap, AttributeValue};
+    ///
+    /// // Simple text insertion
+    /// let delta = Delta::new().insert("Hello world", None);
+    ///
+    /// // Text with formatting
+    /// let mut attrs = AttributeMap::new();
+    /// attrs.insert("bold".to_string(), AttributeValue::Boolean(true));
+    /// let delta = Delta::new().insert("Bold text", Some(attrs));
+    /// ```
     pub fn insert<T: Into<String>>(self, text: T, attributes: Option<AttributeMap>) -> Self {
         let text = text.into();
         if text.is_empty() {
@@ -49,7 +175,30 @@ impl Delta {
         self.push(op)
     }
 
-    /// Insert an embed with optional attributes
+    /// Inserts an embed object (image, video, etc.) with optional attributes
+    ///
+    /// Embeds are non-text content that occupy a single character position
+    /// in the document.
+    ///
+    /// # Arguments
+    ///
+    /// * `embed_type` - The type of embed (e.g., "image", "video", "formula")
+    /// * `data` - JSON data associated with the embed
+    /// * `attributes` - Optional formatting attributes
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    /// use serde_json::json;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Check out this image: ", None)
+    ///     .insert_embed("image".to_string(), json!({
+    ///         "url": "https://example.com/image.png",
+    ///         "alt": "Example image"
+    ///     }), None);
+    /// ```
     pub fn insert_embed(
         self,
         embed_type: String,
@@ -68,7 +217,24 @@ impl Delta {
         self.push(op)
     }
 
-    /// Delete a number of characters
+    /// Deletes a specified number of characters
+    ///
+    /// Consecutive delete operations are automatically merged.
+    ///
+    /// # Arguments
+    ///
+    /// * `length` - The number of characters to delete
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// // Delete 5 characters
+    /// let delta = Delta::new()
+    ///     .retain(10, None)  // Skip first 10 characters
+    ///     .delete(5);        // Delete next 5 characters
+    /// ```
     pub fn delete(self, length: usize) -> Self {
         if length == 0 {
             return self;
@@ -76,7 +242,31 @@ impl Delta {
         self.push(Op::Delete(length))
     }
 
-    /// Retain a number of characters with optional attribute changes
+    /// Retains a number of characters, optionally modifying their attributes
+    ///
+    /// Retain operations indicate that existing content should be kept,
+    /// with optional attribute changes applied.
+    ///
+    /// # Arguments
+    ///
+    /// * `length` - The number of characters to retain
+    /// * `attributes` - Optional attribute changes to apply
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::{Delta, AttributeMap, AttributeValue};
+    ///
+    /// // Retain without changes
+    /// let delta = Delta::new().retain(10, None);
+    ///
+    /// // Apply formatting to existing text
+    /// let mut attrs = AttributeMap::new();
+    /// attrs.insert("italic".to_string(), AttributeValue::Boolean(true));
+    /// let delta = Delta::new()
+    ///     .retain(5, None)           // Keep first 5 chars unchanged
+    ///     .retain(3, Some(attrs));   // Make next 3 chars italic
+    /// ```
     pub fn retain(self, length: usize, attributes: Option<AttributeMap>) -> Self {
         if length == 0 {
             return self;
@@ -93,7 +283,31 @@ impl Delta {
         self.push(op)
     }
 
-    /// Retain an embed with optional attribute changes
+    /// Retains an embed object, optionally modifying its attributes
+    ///
+    /// This is used to modify attributes of existing embeds in a document.
+    ///
+    /// # Arguments
+    ///
+    /// * `embed_type` - The type of the embed to retain
+    /// * `data` - The embed data (must match the existing embed)
+    /// * `attributes` - Optional attribute changes to apply
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::{Delta, AttributeMap, AttributeValue};
+    /// use serde_json::json;
+    ///
+    /// // Add a border to an existing image
+    /// let mut attrs = AttributeMap::new();
+    /// attrs.insert("border".to_string(), AttributeValue::String("1px solid black".to_string()));
+    /// 
+    /// let delta = Delta::new()
+    ///     .retain_embed("image".to_string(), json!({
+    ///         "url": "https://example.com/image.png"
+    ///     }), Some(attrs));
+    /// ```
     pub fn retain_embed(
         self,
         embed_type: String,
@@ -112,7 +326,28 @@ impl Delta {
         self.push(op)
     }
 
-    /// Push an operation onto the Delta, optimizing when possible
+    /// Adds an operation to the Delta with automatic optimization
+    ///
+    /// This method handles:
+    /// - Merging consecutive operations of the same type with identical attributes
+    /// - Maintaining proper operation ordering (inserts before deletes)
+    /// - Eliminating redundant operations
+    ///
+    /// # Arguments
+    ///
+    /// * `new_op` - The operation to add
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::{Delta, Op};
+    ///
+    /// // Operations are automatically optimized
+    /// let delta = Delta::new()
+    ///     .push(Op::Insert { text: "Hello".to_string(), attributes: None })
+    ///     .push(Op::Insert { text: " World".to_string(), attributes: None });
+    /// // Results in a single insert: "Hello World"
+    /// ```
     pub fn push(mut self, new_op: Op) -> Self {
         if self.ops.is_empty() {
             self.ops.push(new_op);
@@ -158,7 +393,10 @@ impl Delta {
         self
     }
 
-    /// Check if two operations can be merged
+    /// Determines if two operations can be merged together
+    ///
+    /// Operations can be merged if they are of the same type and have
+    /// identical attributes.
     fn can_merge_ops(op1: &Op, op2: &Op) -> bool {
         match (op1, op2) {
             // Merge text inserts with same attributes
@@ -189,7 +427,9 @@ impl Delta {
         }
     }
 
-    /// Merge two compatible operations
+    /// Merges two compatible operations into the first one
+    ///
+    /// This assumes `can_merge_ops` has already returned true for these operations.
     fn merge_ops(op1: &mut Op, op2: Op) {
         match (op1, op2) {
             (
@@ -223,7 +463,22 @@ impl Delta {
         }
     }
 
-    /// Remove trailing retain without attributes (chop)
+    /// Removes a trailing retain operation without attributes
+    ///
+    /// This is commonly used after compose or transform operations to ensure
+    /// the Delta doesn't end with a meaningless retain.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .retain(10, None)
+    ///     .chop();
+    /// // The trailing retain(10) is removed
+    /// ```
     pub fn chop(mut self) -> Self {
         match self.ops.last() {
             Some(Op::Retain {
@@ -238,12 +493,42 @@ impl Delta {
         self
     }
 
-    /// Calculate the length of the Delta
+    /// Calculates the total length of content affected by this Delta
+    ///
+    /// This includes the length of all operations (inserts, deletes, and retains).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)    // 5
+    ///     .retain(3, None)          // 3
+    ///     .delete(2);               // 2
+    /// assert_eq!(delta.length(), 10);
+    /// ```
     pub fn length(&self) -> usize {
         self.ops.iter().map(|op| op.length()).sum()
     }
 
-    /// Calculate the change in length this Delta would cause
+    /// Calculates the net change in document length if this Delta is applied
+    ///
+    /// - Insert operations increase length
+    /// - Delete operations decrease length
+    /// - Retain operations don't change length
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)    // +5
+    ///     .delete(3)                // -3
+    ///     .retain(10, None);        // +0
+    /// assert_eq!(delta.change_length(), 2);
+    /// ```
     pub fn change_length(&self) -> i64 {
         self.ops
             .iter()
@@ -255,7 +540,21 @@ impl Delta {
             .sum()
     }
 
-    /// Filter operations based on a predicate
+    /// Filters operations based on a predicate function
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .delete(5)
+    ///     .retain(10, None);
+    ///
+    /// let inserts = delta.filter(|op| op.is_insert());
+    /// assert_eq!(inserts.len(), 1);
+    /// ```
     pub fn filter<F>(&self, predicate: F) -> Vec<&Op>
     where
         F: Fn(&Op) -> bool,
@@ -263,7 +562,21 @@ impl Delta {
         self.ops.iter().filter(|op| predicate(op)).collect()
     }
 
-    /// Apply a function to each operation
+    /// Applies a function to each operation in the Delta
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .delete(5);
+    ///
+    /// delta.for_each(|op| {
+    ///     println!("Operation: {:?}", op);
+    /// });
+    /// ```
     pub fn for_each<F>(&self, mut f: F)
     where
         F: FnMut(&Op),
@@ -273,7 +586,21 @@ impl Delta {
         }
     }
 
-    /// Map operations to another type
+    /// Maps each operation to a value of type T
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .delete(5)
+    ///     .retain(10, None);
+    ///
+    /// let lengths: Vec<usize> = delta.map(|op| op.length());
+    /// assert_eq!(lengths, vec![5, 5, 10]);
+    /// ```
     pub fn map<T, F>(&self, f: F) -> Vec<T>
     where
         F: Fn(&Op) -> T,
@@ -281,7 +608,25 @@ impl Delta {
         self.ops.iter().map(f).collect()
     }
 
-    /// Partition operations into two groups
+    /// Partitions operations into two groups based on a predicate
+    ///
+    /// Returns a tuple where the first vector contains operations that
+    /// satisfy the predicate, and the second contains those that don't.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .delete(5)
+    ///     .retain(10, None);
+    ///
+    /// let (modifying, preserving) = delta.partition(|op| op.is_insert() || op.is_delete());
+    /// assert_eq!(modifying.len(), 2);
+    /// assert_eq!(preserving.len(), 1);
+    /// ```
     pub fn partition<F>(&self, predicate: F) -> (Vec<Op>, Vec<Op>)
     where
         F: Fn(&Op) -> bool,
@@ -300,7 +645,25 @@ impl Delta {
         (passed, failed)
     }
 
-    /// Reduce operations to a single value
+    /// Reduces operations to a single value using an accumulator function
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new()
+    ///     .insert("Hello", None)
+    ///     .insert(" World", None);
+    ///
+    /// let total_text = delta.reduce(String::new(), |mut acc, op| {
+    ///     if let quillai_delta::Op::Insert { text, .. } = op {
+    ///         acc.push_str(text);
+    ///     }
+    ///     acc
+    /// });
+    /// assert_eq!(total_text, "Hello World");
+    /// ```
     pub fn reduce<T, F>(&self, initial: T, f: F) -> T
     where
         F: Fn(T, &Op) -> T,
@@ -308,7 +671,29 @@ impl Delta {
         self.ops.iter().fold(initial, f)
     }
 
-    /// Get a slice of the Delta
+    /// Extracts a slice of operations from the Delta
+    ///
+    /// This creates a new Delta containing only the operations that affect
+    /// the specified character range.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - The starting character index (inclusive)
+    /// * `end` - The ending character index (exclusive), or None for the end
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta = Delta::new().insert("Hello World", None);
+    /// 
+    /// let slice = delta.slice(0, Some(5));
+    /// // Contains: insert("Hello")
+    ///
+    /// let slice = delta.slice(6, None);
+    /// // Contains: insert("World")
+    /// ```
     pub fn slice(&self, start: usize, end: Option<usize>) -> Delta {
         let end = end.unwrap_or(usize::MAX);
         let mut ops = Vec::new();
@@ -329,7 +714,22 @@ impl Delta {
         Delta::from_ops(ops)
     }
 
-    /// Concatenate with another Delta
+    /// Concatenates this Delta with another Delta
+    ///
+    /// The operations from the other Delta are appended, with automatic
+    /// merging of compatible operations at the boundary.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let delta1 = Delta::new().insert("Hello", None);
+    /// let delta2 = Delta::new().insert(" World", None);
+    ///
+    /// let combined = delta1.concat(&delta2);
+    /// // Results in: insert("Hello World")
+    /// ```
     pub fn concat(&self, other: &Delta) -> Delta {
         let mut result = self.clone();
         if !other.ops.is_empty() {
@@ -341,8 +741,41 @@ impl Delta {
         result
     }
 
-    /// Compose this Delta with another Delta
-    /// Returns a Delta that represents applying this Delta followed by the other Delta
+    /// Composes this Delta with another Delta
+    ///
+    /// Composition creates a new Delta that represents the result of applying
+    /// this Delta followed by the other Delta. This is the fundamental operation
+    /// for combining sequential changes.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The Delta to compose with this one
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// // Original document
+    /// let doc = Delta::new().insert("Hello World", None);
+    ///
+    /// // First change: replace "World" with "Rust"
+    /// let change1 = Delta::new()
+    ///     .retain(6, None)
+    ///     .delete(5)
+    ///     .insert("Rust", None);
+    ///
+    /// // Second change: make "Rust" bold
+    /// let mut bold = std::collections::BTreeMap::new();
+    /// bold.insert("bold".to_string(), quillai_delta::AttributeValue::Boolean(true));
+    /// let change2 = Delta::new()
+    ///     .retain(6, None)
+    ///     .retain(4, Some(bold));
+    ///
+    /// // Compose changes
+    /// let combined = change1.compose(&change2);
+    /// // Results in: retain(6), delete(5), insert("Rust", bold)
+    /// ```
     pub fn compose(&self, other: &Delta) -> Delta {
         let mut this_iter = OpIterator::new(&self.ops);
         let mut other_iter = OpIterator::new(&other.ops);
@@ -433,8 +866,34 @@ impl Delta {
         result.chop()
     }
 
-    /// Transform this Delta against another Delta for operational transformation
-    /// If priority is true, this Delta takes precedence in case of conflicts
+    /// Transforms this Delta against another Delta for operational transformation
+    ///
+    /// Transform is used to adjust a Delta so it can be applied after another
+    /// concurrent Delta. This is essential for real-time collaborative editing.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The Delta to transform against
+    /// * `priority` - If true, this Delta takes precedence in conflicts
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// // Two users editing concurrently
+    /// let user1 = Delta::new()
+    ///     .retain(5, None)
+    ///     .insert(" there", None);
+    ///
+    /// let user2 = Delta::new()
+    ///     .retain(10, None)
+    ///     .insert("!", None);
+    ///
+    /// // Transform user2's changes to apply after user1's
+    /// let user2_transformed = user2.transform(&user1, false);
+    /// // Results in: retain(11), insert("!") - adjusted for the inserted " there"
+    /// ```
     pub fn transform(&self, other: &Delta, priority: bool) -> Delta {
         let mut this_iter = OpIterator::new(&self.ops);
         let mut other_iter = OpIterator::new(&other.ops);
@@ -525,7 +984,28 @@ impl Delta {
         result.chop()
     }
 
-    /// Transform a position index against this Delta
+    /// Transforms a position index to account for this Delta's operations
+    ///
+    /// This is useful for updating cursor positions or selections after
+    /// applying a Delta to a document.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The original position index
+    /// * `priority` - If true, positions at operation boundaries favor this Delta
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// // Delta that inserts "Hello " at the beginning
+    /// let delta = Delta::new().insert("Hello ", None);
+    ///
+    /// // Transform cursor position
+    /// let new_position = delta.transform_position(5, false);
+    /// assert_eq!(new_position, 11); // 5 + 6 (length of "Hello ")
+    /// ```
     pub fn transform_position(&self, index: usize, priority: bool) -> usize {
         let mut iter = OpIterator::new(&self.ops);
         let mut offset = 0;
@@ -555,7 +1035,30 @@ impl Delta {
         transformed_index
     }
 
-    /// Create a diff between this Delta and another Delta (both must be documents)
+    /// Creates a diff Delta that transforms this document into another document
+    ///
+    /// Both Deltas must be documents (contain only insert operations).
+    /// The resulting Delta contains the operations needed to transform
+    /// this document into the other document.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The target document to diff against
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let doc1 = Delta::new().insert("Hello World", None);
+    /// let doc2 = Delta::new().insert("Hello Rust", None);
+    ///
+    /// let diff = doc1.diff(&doc2);
+    /// // Results in: retain(6), delete(5), insert("Rust")
+    ///
+    /// // Applying the diff to doc1 produces doc2
+    /// let result = doc1.compose(&diff);
+    /// ```
     pub fn diff(&self, other: &Delta) -> Delta {
         if self.ops == other.ops {
             return Delta::new();
@@ -620,7 +1123,35 @@ impl Delta {
         result.chop()
     }
 
-    /// Create an inverted Delta that undoes this Delta when applied to the given base document
+    /// Creates an inverted Delta that undoes this Delta's changes
+    ///
+    /// The inverted Delta, when applied to the result of applying this Delta
+    /// to the base document, will restore the base document.
+    ///
+    /// # Arguments
+    ///
+    /// * `base` - The document state before this Delta was applied
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use quillai_delta::Delta;
+    ///
+    /// let base = Delta::new().insert("Hello World", None);
+    /// 
+    /// let change = Delta::new()
+    ///     .retain(6, None)
+    ///     .delete(5)
+    ///     .insert("Rust", None);
+    ///
+    /// let inverted = change.invert(&base);
+    /// // Results in: retain(6), delete(4), insert("World")
+    ///
+    /// // Applying change then inverted restores the original
+    /// let modified = base.compose(&change);
+    /// let restored = modified.compose(&inverted);
+    /// // restored equals base
+    /// ```
     pub fn invert(&self, base: &Delta) -> Delta {
         let mut inverted = Delta::new();
         let mut base_index = 0;
@@ -677,7 +1208,12 @@ impl Delta {
         inverted.chop()
     }
 
-    /// Convert Delta to plain text (for documents only)
+    /// Converts a document Delta to plain text
+    ///
+    /// This method extracts only the text content from insert operations,
+    /// ignoring all formatting. Embeds are represented as null characters.
+    ///
+    /// Note: This only works correctly for document Deltas (containing only inserts).
     fn to_text(&self) -> String {
         let mut result = String::new();
         for op in &self.ops {

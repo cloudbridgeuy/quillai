@@ -1,30 +1,118 @@
-/// Represents a diff operation type
+//! Text diffing functionality for the Delta format
+//!
+//! This module provides text diffing algorithms used to generate Delta
+//! operations that transform one document into another. The diff algorithm
+//! identifies the minimal set of changes (insertions, deletions) needed
+//! to transform the source text into the target text.
+//!
+//! # Algorithm
+//!
+//! The current implementation uses a simple algorithm that:
+//! 1. Identifies common prefix between texts
+//! 2. Identifies common suffix between texts
+//! 3. Treats the middle portion as delete + insert
+//!
+//! This approach is optimized for correctness and simplicity rather than
+//! finding the absolute minimal edit distance.
+
+/// Types of operations in a text diff
+///
+/// These correspond to the fundamental ways text can differ between
+/// two versions:
+/// - **Equal**: Text that is the same in both versions
+/// - **Insert**: Text that appears in the target but not the source
+/// - **Delete**: Text that appears in the source but not the target
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiffType {
+    /// Text that is unchanged between versions
     Equal,
+    /// Text that needs to be inserted
     Insert,
+    /// Text that needs to be deleted
     Delete,
 }
 
-/// Represents a single diff operation
+/// Represents a single operation in a text diff
+///
+/// A diff operation combines a type (Equal, Insert, Delete) with the
+/// text content affected by that operation. A sequence of DiffOps
+/// describes how to transform one text into another.
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_delta::diff::{DiffOp, DiffType};
+///
+/// // Represent deleting "Hello" and inserting "Hi"
+/// let delete = DiffOp::new(DiffType::Delete, "Hello".to_string());
+/// let insert = DiffOp::new(DiffType::Insert, "Hi".to_string());
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct DiffOp {
+    /// The type of diff operation
     pub operation: DiffType,
+    /// The text content affected by this operation
     pub text: String,
 }
 
 impl DiffOp {
+    /// Creates a new diff operation
+    ///
+    /// # Arguments
+    ///
+    /// * `operation` - The type of diff operation
+    /// * `text` - The text content for this operation
     pub fn new(operation: DiffType, text: String) -> Self {
         Self { operation, text }
     }
 
+    /// Returns the length of text affected by this operation
+    ///
+    /// Length is measured in Unicode characters, not bytes.
     pub fn length(&self) -> usize {
         self.text.chars().count()
     }
 }
 
-/// Simple text diffing implementation
-/// This is a basic implementation focused on correctness over performance
+/// Computes the diff between two text strings
+///
+/// This function identifies the differences between two strings and returns
+/// a sequence of operations that would transform `text1` into `text2`.
+///
+/// The algorithm used is a simple approach that:
+/// 1. Finds the longest common prefix
+/// 2. Finds the longest common suffix (in the remaining text)
+/// 3. Treats everything in between as a delete (from text1) followed by an insert (from text2)
+///
+/// While this doesn't always produce the minimal edit sequence, it's efficient
+/// and produces reasonable results for most text editing scenarios.
+///
+/// # Arguments
+///
+/// * `text1` - The source text
+/// * `text2` - The target text
+///
+/// # Returns
+///
+/// A vector of `DiffOp` operations that transform `text1` into `text2`.
+///
+/// # Examples
+///
+/// ```rust
+/// use quillai_delta::diff::{diff_text, DiffType};
+///
+/// // Simple replacement
+/// let ops = diff_text("Hello World", "Hello Rust");
+/// // Results in: Equal("Hello "), Delete("World"), Insert("Rust")
+///
+/// // Insertion
+/// let ops = diff_text("Hello", "Hello World");
+/// // Results in: Equal("Hello"), Insert(" World")
+///
+/// // Deletion
+/// let ops = diff_text("Hello World", "Hello");
+/// // Results in: Equal("Hello"), Delete(" World")
+/// ```
 pub fn diff_text(text1: &str, text2: &str) -> Vec<DiffOp> {
     if text1 == text2 {
         if text1.is_empty() {
