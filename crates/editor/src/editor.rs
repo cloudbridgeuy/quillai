@@ -7,8 +7,12 @@
 //! - Integration with Delta and Parchment systems
 
 pub mod component;
+pub mod contenteditable;
 pub mod delta_integration;
+pub mod delta_operations;
+pub mod dom_integration;
 pub mod input_handler;
+pub mod integration_tests;
 pub mod parchment_integration;
 // pub mod state;
 

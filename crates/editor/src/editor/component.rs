@@ -6,6 +6,12 @@ use quillai_delta::Delta;
 use super::delta_integration::{text_to_delta, delta_to_text, delta_to_json};
 use super::input_handler::{InputHandler, KeyboardEventInfo};
 use super::parchment_integration::ParchmentIntegration;
+use super::dom_integration::{DomEventCapture, DeltaToDomConverter};
+use super::delta_operations::DeltaOperationConverter;
+use super::contenteditable::{ContentEditable, ContentEditableManager};
+use super::renderer::{render_delta_to_rsx, render_delta_to_text};
+use wasm_bindgen::prelude::*;
+use web_sys::HtmlElement;
 
 /// The main QuillAI Editor component.
 ///
@@ -270,19 +276,59 @@ pub fn QuillAIEditor(
     let _custom_shortcuts_signal = use_signal(|| custom_shortcuts.clone().unwrap_or_default());
     
     // Initialize Parchment integration
-    let mut parchment = use_signal(|| ParchmentIntegration::new());
+    let mut parchment = use_signal(|| {
+        let mut integration = ParchmentIntegration::new();
+        // Initialize ScrollBlot
+        if let Err(_e) = integration.initialize_scroll_blot(None) {
+            web_sys::console::warn_1(&"Failed to initialize ScrollBlot".into());
+        }
+        integration
+    });
     
     // Initialize input handler
     let mut input_handler = use_signal(|| InputHandler::new(custom_shortcuts.clone()));
+    
+    // Initialize DOM event capture and converters
+    let dom_capture = use_signal(|| None::<DomEventCapture>);
+    let dom_converter = use_signal(|| DeltaToDomConverter::new().unwrap_or_else(|_| {
+        web_sys::console::warn_1(&"Failed to create DeltaToDomConverter".into());
+        // Return a dummy converter - in a real implementation we'd handle this better
+        DeltaToDomConverter::new().unwrap()
+    }));
+    let delta_converter = use_signal(|| DeltaOperationConverter::new());
+    let contenteditable_manager = use_signal(|| {
+        let mut manager = ContentEditableManager::new();
+        manager.set_readonly(readonly);
+        manager.set_editable(!readonly);
+        manager
+    });
     
     // Synchronize Parchment with initial document state
     use_effect(move || {
         let doc = document.read();
         let mut parchment_integration = parchment.write();
-        if let Err(_e) = parchment_integration.sync_with_delta(&doc) {
+        if let Err(_e) = parchment_integration.apply_delta_to_parchment(&doc) {
             web_sys::console::warn_1(&"Parchment sync failed".into());
         }
     });
+
+    // Handle Delta changes from ContentEditable
+    let handle_delta_change = move |delta: Delta| {
+        // Update document state
+        document.set(delta.clone());
+        
+        // Apply to Parchment
+        let mut parchment_integration = parchment.write();
+        if let Err(_e) = parchment_integration.compose_delta(&delta) {
+            web_sys::console::warn_1(&"Failed to apply Delta to Parchment".into());
+        }
+        
+        // Call change handler
+        if let Some(ref handler) = on_change {
+            let delta_json = delta_to_json(&delta);
+            handler.call(delta_json);
+        }
+    };
     
     // Get current state values for rendering
     let document_value = document.read();
@@ -307,37 +353,32 @@ pub fn QuillAIEditor(
     
     // Signals can be captured directly in closures
     
-    // Render the editor
+    // Render the editor using the new ContentEditable component
     rsx! {
         div {
             class: "{class_string}",
-            tabindex: if *is_readonly { -1 } else { 0 },
             
-            // Focus handling
-            onfocus: move |_| {
-                focus.set(true);
-            },
-            onblur: move |_| {
-                focus.set(false);
-            },
-            
-            // Content area
-            if is_empty && placeholder_text.is_some() {
-                div {
-                    class: "quillai-placeholder",
-                    "{placeholder_text.as_ref().unwrap()}"
-                }
-            }
-            
-            // Document content (simplified for now)
-            div {
-                class: "quillai-content",
-                contenteditable: if *is_readonly { "false" } else { "true" },
+            // Use the new ContentEditable component
+            ContentEditable {
+                initial_content: delta_to_text(&document_value),
+                editable: !*is_readonly,
+                readonly: *is_readonly,
+                placeholder: placeholder_text.clone().unwrap_or_default(),
+                class: "quillai-content".to_string(),
                 
-                // Comprehensive keyboard event handling
-                onkeydown: move |event| {
-                    let event_data = event.data();
-                    let keyboard_event = event_data.downcast::<web_sys::KeyboardEvent>().unwrap();
+                on_change: handle_delta_change,
+                
+                on_focus: move |_| {
+                    focus.set(true);
+                    contenteditable_manager.write().set_focus(true);
+                },
+                
+                on_blur: move |_| {
+                    focus.set(false);
+                    contenteditable_manager.write().set_focus(false);
+                },
+                
+                on_key: move |keyboard_event| {
                     let event_info = KeyboardEventInfo::from_keyboard_event(&keyboard_event);
                     
                     // Get current document content
@@ -349,17 +390,11 @@ pub fn QuillAIEditor(
                         // Apply the operation to create a new Delta
                         let new_delta = operation.apply_to_delta(&current_content);
                         
-                        // Update document state
-                        document.set(new_delta.clone());
+                        // Update document state through the handle_delta_change function
+                        handle_delta_change(new_delta);
                         
                         // Update selection state
                         selection.set(handler.selection_range());
-                        
-                        // Call change handler with Delta JSON representation
-                        if let Some(ref handler) = on_change {
-                            let delta_json = delta_to_json(&new_delta);
-                            handler.call(delta_json);
-                        }
                         
                         // Call selection change handler
                         if let Some(ref handler) = on_selection_change {
@@ -372,38 +407,32 @@ pub fn QuillAIEditor(
                             keyboard_event.prevent_default();
                         }
                     }
-                },
+                }
+            }
+            
+            // Status bar with document information
+            div {
+                class: "quillai-status",
+                style: "display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: #f5f5f5; border-top: 1px solid #ddd; font-size: 12px; color: #666;",
                 
-                // Text input handling for regular typing
-                oninput: move |event| {
-                    let new_content = event.value();
-                    
-                    // For now, we still use the simple approach for regular typing
-                    // In a more advanced implementation, we would track the specific
-                    // changes and use the input handler for character insertion
-                    let new_delta = text_to_delta(&new_content);
-                    
-                    // Update document state
-                    document.set(new_delta.clone());
-                    
-                    // Update input handler cursor position based on content length
-                    let mut handler = input_handler.write();
-                    handler.update_selection(new_content.len(), new_content.len());
-                    selection.set(handler.selection_range());
-                    
-                    // Call change handler with Delta JSON representation
-                    if let Some(ref handler) = on_change {
-                        let delta_json = delta_to_json(&new_delta);
-                        handler.call(delta_json);
+                div {
+                    class: "status-left",
+                    if let Some(stats) = parchment.read().get_document_statistics() {
+                        "Words: {stats.words} | Characters: {stats.characters}"
+                    } else {
+                        "Ready"
                     }
-                },
+                }
                 
-                // For Phase 1, we'll handle paste through the regular oninput event
-                // Advanced paste handling will be implemented in later phases
-                
-                // Render current document content from Delta
-                {
-                    delta_to_text(&document_value)
+                div {
+                    class: "status-right",
+                    if *has_focus {
+                        "Editing"
+                    } else if *is_readonly {
+                        "Read-only"
+                    } else {
+                        "Click to edit"
+                    }
                 }
             }
             
@@ -411,8 +440,16 @@ pub fn QuillAIEditor(
             if cfg!(debug_assertions) {
                 div {
                     class: "quillai-debug",
-                    style: "font-size: 10px; color: #666; margin-top: 8px;",
-                    "Debug: {document_value.ops().len()} ops, selection: {selection.read().0}-{selection.read().1}"
+                    style: "font-size: 10px; color: #666; margin-top: 8px; padding: 4px; background: #f9f9f9; border: 1px solid #eee;",
+                    
+                    div { "Delta ops: {document_value.ops().len()}" }
+                    div { "Selection: {selection.read().0}-{selection.read().1}" }
+                    div { "Focus: {has_focus}" }
+                    div { "Readonly: {is_readonly}" }
+                    div { 
+                        "Parchment: " 
+                        if parchment.read().scroll_blot().is_some() { "initialized" } else { "not initialized" }
+                    }
                 }
             }
         }

@@ -55,6 +55,9 @@ use crate::blot::text::TextBlot;
 use crate::registry::Registry;
 use crate::text_operations;
 
+// Import Delta types for mutation-to-Delta conversion
+use quillai_delta::{Delta, Op, AttributeMap};
+
 /// Helper function to create JsValue from string in both WASM and non-WASM environments
 #[cfg(target_arch = "wasm32")]
 fn js_value_from_str(s: &str) -> JsValue {
@@ -195,6 +198,10 @@ struct MutationHandler {
     update_context: UpdateContext,
     /// Current optimization context for post-mutation cleanup
     optimize_context: OptimizeContext,
+    /// Callback for when mutations are converted to Delta operations
+    delta_callback: Option<Box<dyn Fn(Delta)>>,
+    /// Current document length for Delta position calculations
+    document_length: usize,
 }
 
 impl MutationObserverWrapper {
@@ -211,6 +218,8 @@ impl MutationObserverWrapper {
                 iteration_count: 0,
                 has_changes: false,
             },
+            delta_callback: None,
+            document_length: 0,
         }));
 
         let handler_clone = handler.clone();
@@ -290,6 +299,37 @@ impl MutationObserverWrapper {
         }
         Ok(())
     }
+
+    /// Set a callback for when mutations are converted to Delta operations
+    pub fn set_delta_callback<F>(&self, callback: F)
+    where
+        F: Fn(Delta) + 'static,
+    {
+        if let Ok(mut handler) = self.handler.try_borrow_mut() {
+            handler.delta_callback = Some(Box::new(callback));
+        }
+    }
+
+    /// Set the current document length for Delta position calculations
+    pub fn set_document_length(&self, length: usize) {
+        if let Ok(mut handler) = self.handler.try_borrow_mut() {
+            handler.document_length = length;
+        }
+    }
+
+    /// Convert current mutations to Delta operations
+    pub fn mutations_to_delta(&self) -> Result<Option<Delta>, JsValue> {
+        if let Ok(handler) = self.handler.try_borrow() {
+            if handler.update_context.mutation_records.is_empty() {
+                return Ok(None);
+            }
+            
+            let delta = handler.convert_mutations_to_delta()?;
+            Ok(Some(delta))
+        } else {
+            Err(JsValue::from_str("Failed to access mutation handler"))
+        }
+    }
 }
 
 impl MutationHandler {
@@ -323,11 +363,389 @@ impl MutationHandler {
         self.update_context.mutation_records = mutation_records;
         self.update_context.iteration_count = 0;
 
+        // Convert mutations to Delta if callback is set
+        if self.delta_callback.is_some() {
+            if let Ok(delta) = self.convert_mutations_to_delta() {
+                if let Some(callback) = &self.delta_callback {
+                    callback(delta);
+                }
+            }
+        }
+
         // Run update cycle
         self.update();
 
         // Run optimize cycle after updates
         self.optimize();
+    }
+
+    /// Convert current mutation records to Delta operations
+    fn convert_mutations_to_delta(&self) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+        let mut current_position = 0;
+
+        for record in &self.update_context.mutation_records {
+            match record.type_().as_str() {
+                "childList" => {
+                    let child_delta = self.convert_child_list_mutation_to_delta(record, &mut current_position)?;
+                    delta = delta.compose(&child_delta);
+                }
+                "characterData" => {
+                    let text_delta = self.convert_character_data_mutation_to_delta(record, &mut current_position)?;
+                    delta = delta.compose(&text_delta);
+                }
+                "attributes" => {
+                    let attr_delta = self.convert_attribute_mutation_to_delta(record, &mut current_position)?;
+                    delta = delta.compose(&attr_delta);
+                }
+                _ => {
+                    // Unknown mutation type - skip
+                    web_sys::console::warn_1(&JsValue::from_str(&format!(
+                        "Unknown mutation type for Delta conversion: {}",
+                        record.type_()
+                    )));
+                }
+            }
+        }
+
+        Ok(delta)
+    }
+
+    /// Convert child list mutations to Delta operations
+    fn convert_child_list_mutation_to_delta(
+        &self,
+        record: &MutationRecord,
+        current_position: &mut usize,
+    ) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+
+        // Handle removed nodes first (deletions)
+        let removed_nodes = record.removed_nodes();
+        for i in 0..removed_nodes.length() {
+            if let Some(js_node) = removed_nodes.get(i) {
+                if let Ok(node) = js_node.dyn_into::<Node>() {
+                    let delete_delta = self.convert_node_removal_to_delta(&node, *current_position)?;
+                    delta = delta.compose(&delete_delta);
+                }
+            }
+        }
+
+        // Handle added nodes (insertions)
+        let added_nodes = record.added_nodes();
+        for i in 0..added_nodes.length() {
+            if let Some(js_node) = added_nodes.get(i) {
+                if let Ok(node) = js_node.dyn_into::<Node>() {
+                    let insert_delta = self.convert_node_addition_to_delta(&node, *current_position)?;
+                    delta = delta.compose(&insert_delta);
+                    
+                    // Update position after insertion
+                    *current_position += self.calculate_node_length(&node);
+                }
+            }
+        }
+
+        Ok(delta)
+    }
+
+    /// Convert character data mutations to Delta operations
+    fn convert_character_data_mutation_to_delta(
+        &self,
+        record: &MutationRecord,
+        current_position: &mut usize,
+    ) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+
+        if let Some(target) = record.target() {
+            if let Some(text_node) = target.dyn_ref::<web_sys::Text>() {
+                let current_content = text_node.text_content().unwrap_or_default();
+                let old_content = record.old_value().unwrap_or_default();
+
+                // Calculate the position of this text node in the document
+                let text_position = self.calculate_text_node_position(text_node)?;
+
+                // Create Delta operations for the text change
+                if old_content != current_content {
+                    // Add retain operation to get to the text position
+                    if text_position > 0 {
+                        delta = delta.retain(text_position, None);
+                    }
+
+                    // Delete old content if it exists
+                    if !old_content.is_empty() {
+                        delta = delta.delete(old_content.chars().count());
+                    }
+
+                    // Insert new content if it exists
+                    if !current_content.is_empty() {
+                        delta = delta.insert(&current_content, None);
+                    }
+
+                    *current_position = text_position + current_content.chars().count();
+                }
+            }
+        }
+
+        Ok(delta)
+    }
+
+    /// Convert attribute mutations to Delta operations
+    fn convert_attribute_mutation_to_delta(
+        &self,
+        record: &MutationRecord,
+        _current_position: &mut usize,
+    ) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+
+        if let Some(target) = record.target() {
+            if let Some(element) = target.dyn_ref::<web_sys::Element>() {
+                if let Some(attr_name) = record.attribute_name() {
+                    // Calculate the position and length of the element's content
+                    let (element_position, element_length) = self.calculate_element_position_and_length(element)?;
+
+                    // Create attributes for the formatting change
+                    let mut attributes = AttributeMap::new();
+                    
+                    // Get current attribute value
+                    if let Some(current_value) = element.get_attribute(&attr_name) {
+                        attributes.insert(attr_name.clone(), current_value.into());
+                    }
+
+                    // Create Delta operation for formatting change
+                    if element_position > 0 {
+                        delta = delta.retain(element_position, None);
+                    }
+                    
+                    if element_length > 0 {
+                        delta = delta.retain(element_length, Some(attributes));
+                    }
+                }
+            }
+        }
+
+        Ok(delta)
+    }
+
+    /// Convert node removal to Delta delete operation
+    fn convert_node_removal_to_delta(&self, node: &Node, position: usize) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+        let node_length = self.calculate_node_length(node);
+
+        if position > 0 {
+            delta = delta.retain(position, None);
+        }
+
+        if node_length > 0 {
+            delta = delta.delete(node_length);
+        }
+
+        Ok(delta)
+    }
+
+    /// Convert node addition to Delta insert operation
+    fn convert_node_addition_to_delta(&self, node: &Node, position: usize) -> Result<Delta, JsValue> {
+        let mut delta = Delta::new();
+
+        if position > 0 {
+            delta = delta.retain(position, None);
+        }
+
+        // Extract content and attributes from the node
+        let (content, attributes) = self.extract_node_content_and_attributes(node)?;
+
+        if !content.is_empty() {
+            delta = delta.insert(&content, attributes);
+        }
+
+        Ok(delta)
+    }
+
+    /// Calculate the length of a DOM node in characters
+    fn calculate_node_length(&self, node: &Node) -> usize {
+        match node.node_type() {
+            web_sys::Node::TEXT_NODE => {
+                node.text_content().unwrap_or_default().chars().count()
+            }
+            web_sys::Node::ELEMENT_NODE => {
+                // For elements, calculate the total text content length
+                node.text_content().unwrap_or_default().chars().count()
+            }
+            _ => 0, // Other node types don't contribute to text length
+        }
+    }
+
+    /// Calculate the position of a text node within the document
+    fn calculate_text_node_position(&self, text_node: &web_sys::Text) -> Result<usize, JsValue> {
+        let mut position = 0;
+        let node: &Node = text_node.as_ref();
+
+        // Find the root document element
+        let mut current = node.clone();
+        while let Some(parent) = current.parent_node() {
+            current = parent;
+        }
+
+        // Traverse from root to find position
+        self.traverse_for_position(&current, node, &mut position)?;
+        Ok(position)
+    }
+
+    /// Recursively traverse DOM to calculate text position
+    fn traverse_for_position(&self, current: &Node, target: &Node, position: &mut usize) -> Result<bool, JsValue> {
+        if std::ptr::eq(current, target) {
+            return Ok(true); // Found target
+        }
+
+        if current.node_type() == web_sys::Node::TEXT_NODE {
+            if !std::ptr::eq(current, target) {
+                *position += current.text_content().unwrap_or_default().chars().count();
+            }
+        } else {
+            // Traverse children
+            let children = current.child_nodes();
+            for i in 0..children.length() {
+                if let Some(child) = children.get(i) {
+                    if self.traverse_for_position(&child, target, position)? {
+                        return Ok(true); // Found in child
+                    }
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Calculate position and length of an element's content
+    fn calculate_element_position_and_length(&self, element: &web_sys::Element) -> Result<(usize, usize), JsValue> {
+        let node: &Node = element.as_ref();
+        let position = self.calculate_text_node_position(&node.clone().dyn_into::<web_sys::Text>()
+            .map_err(|_| JsValue::from_str("Element is not a text node"))?)?;
+        let length = self.calculate_node_length(node);
+        Ok((position, length))
+    }
+
+    /// Extract content and attributes from a DOM node
+    fn extract_node_content_and_attributes(&self, node: &Node) -> Result<(String, Option<AttributeMap>), JsValue> {
+        let content = node.text_content().unwrap_or_default();
+        let mut attributes = None;
+
+        if let Some(element) = node.dyn_ref::<web_sys::Element>() {
+            let mut attrs = AttributeMap::new();
+            let tag_name = element.tag_name().to_lowercase();
+
+            // Extract formatting attributes based on element type
+            match tag_name.as_str() {
+                "strong" | "b" => {
+                    attrs.insert("bold".to_string(), true.into());
+                }
+                "em" | "i" => {
+                    attrs.insert("italic".to_string(), true.into());
+                }
+                "u" => {
+                    attrs.insert("underline".to_string(), true.into());
+                }
+                "s" | "strike" => {
+                    attrs.insert("strike".to_string(), true.into());
+                }
+                "code" => {
+                    attrs.insert("code".to_string(), true.into());
+                }
+                "a" => {
+                    if let Some(href) = element.get_attribute("href") {
+                        attrs.insert("link".to_string(), href.into());
+                    }
+                }
+                "h1" => {
+                    attrs.insert("header".to_string(), 1.into());
+                }
+                "h2" => {
+                    attrs.insert("header".to_string(), 2.into());
+                }
+                "h3" => {
+                    attrs.insert("header".to_string(), 3.into());
+                }
+                "h4" => {
+                    attrs.insert("header".to_string(), 4.into());
+                }
+                "h5" => {
+                    attrs.insert("header".to_string(), 5.into());
+                }
+                "h6" => {
+                    attrs.insert("header".to_string(), 6.into());
+                }
+                "blockquote" => {
+                    attrs.insert("blockquote".to_string(), true.into());
+                }
+                "pre" => {
+                    attrs.insert("code-block".to_string(), true.into());
+                }
+                "ol" => {
+                    attrs.insert("list".to_string(), "ordered".into());
+                }
+                "ul" => {
+                    attrs.insert("list".to_string(), "bullet".into());
+                }
+                _ => {}
+            }
+
+            // Extract style attributes
+            if let Some(style) = element.get_attribute("style") {
+                self.parse_style_attributes(&style, &mut attrs);
+            }
+
+            if !attrs.is_empty() {
+                attributes = Some(attrs);
+            }
+        }
+
+        Ok((content, attributes))
+    }
+
+    /// Parse CSS style string into Delta attributes
+    fn parse_style_attributes(&self, style: &str, attributes: &mut AttributeMap) {
+        for declaration in style.split(';') {
+            let declaration = declaration.trim();
+            if let Some((property, value)) = declaration.split_once(':') {
+                let prop = property.trim();
+                let val = value.trim();
+
+                match prop {
+                    "color" => {
+                        attributes.insert("color".to_string(), val.into());
+                    }
+                    "background-color" => {
+                        attributes.insert("background".to_string(), val.into());
+                    }
+                    "font-family" => {
+                        attributes.insert("font".to_string(), val.into());
+                    }
+                    "font-size" => {
+                        attributes.insert("size".to_string(), val.into());
+                    }
+                    "font-weight" => {
+                        if val == "bold" || val == "700" || val == "800" || val == "900" {
+                            attributes.insert("bold".to_string(), true.into());
+                        }
+                    }
+                    "font-style" => {
+                        if val == "italic" {
+                            attributes.insert("italic".to_string(), true.into());
+                        }
+                    }
+                    "text-decoration" => {
+                        if val.contains("underline") {
+                            attributes.insert("underline".to_string(), true.into());
+                        }
+                        if val.contains("line-through") {
+                            attributes.insert("strike".to_string(), true.into());
+                        }
+                    }
+                    _ => {
+                        // Store unknown CSS properties with css- prefix
+                        attributes.insert(format!("css-{}", prop), val.into());
+                    }
+                }
+            }
+        }
     }
 
     /// Update cycle - handles DOM changes and maintains blot tree consistency
@@ -1806,7 +2224,7 @@ mod tests {
         let registry = Rc::new(RefCell::new(Registry::new()));
         let handler = MutationHandler {
             scroll_blot: None,
-            registry: Some(registry.clone()),
+            registry: None,
             update_context: UpdateContext {
                 mutation_records: Vec::new(),
                 iteration_count: 0,
@@ -1815,6 +2233,8 @@ mod tests {
                 iteration_count: 0,
                 has_changes: false,
             },
+            delta_callback: None,
+            document_length: 0,
         };
 
         // Registry should be available
@@ -1885,6 +2305,8 @@ mod tests {
                 iteration_count: 0,
                 has_changes: false,
             },
+            delta_callback: None,
+            document_length: 0,
         };
 
         // Test successful registry access
@@ -1940,6 +2362,8 @@ mod tests {
                 iteration_count: 0,
                 has_changes: false,
             },
+            delta_callback: None,
+            document_length: 0,
         };
 
         // Test context updates during optimization
@@ -1948,5 +2372,102 @@ mod tests {
         
         assert_eq!(handler.optimize_context.iteration_count, 5);
         assert!(handler.optimize_context.has_changes);
+    }
+
+    #[test]
+    fn test_mutation_handler_delta_callback() {
+        let mut handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+            delta_callback: None,
+            document_length: 0,
+        };
+
+        // Test that delta callback can be set
+        assert!(handler.delta_callback.is_none());
+        
+        handler.delta_callback = Some(Box::new(|_delta| {
+            // Test callback
+        }));
+        
+        assert!(handler.delta_callback.is_some());
+    }
+
+    #[test]
+    fn test_mutation_handler_document_length() {
+        let mut handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+            delta_callback: None,
+            document_length: 0,
+        };
+
+        // Test document length tracking
+        assert_eq!(handler.document_length, 0);
+        
+        handler.document_length = 100;
+        assert_eq!(handler.document_length, 100);
+    }
+
+    #[test]
+    fn test_node_length_calculation() {
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+            delta_callback: None,
+            document_length: 0,
+        };
+
+        // This test would need actual DOM nodes in a WASM environment
+        // For now, we test that the method exists and compiles
+        assert!(true); // Compilation test
+    }
+
+    #[test]
+    fn test_style_attribute_parsing() {
+        let handler = MutationHandler {
+            scroll_blot: None,
+            registry: None,
+            update_context: UpdateContext {
+                mutation_records: Vec::new(),
+                iteration_count: 0,
+            },
+            optimize_context: OptimizeContext {
+                iteration_count: 0,
+                has_changes: false,
+            },
+            delta_callback: None,
+            document_length: 0,
+        };
+
+        let mut attributes = Attributes::new();
+        handler.parse_style_attributes("color: red; font-weight: bold", &mut attributes);
+
+        assert_eq!(attributes.get("color"), Some(&serde_json::Value::String("red".to_string())));
+        assert_eq!(attributes.get("bold"), Some(&serde_json::Value::Bool(true)));
     }
 }

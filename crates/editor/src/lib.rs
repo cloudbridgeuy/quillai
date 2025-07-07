@@ -39,3 +39,4 @@ pub mod utils;
 pub use editor::component::{QuillAIEditor, QuillAIEditorProps};
 pub use editor::delta_integration;
 pub use editor::parchment_integration;
+pub use editor::renderer;
