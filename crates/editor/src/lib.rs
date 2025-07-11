@@ -2,6 +2,15 @@
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
+pub mod events;
+
+// Re-export commonly used types for convenience
+pub use events::{
+    EditorEvent, ValidationError,
+    InputEvent, InputValidationError,
+    Modifiers, MouseButton, KeyLocation, InputEventCategory
+};
+
 /// The main QuillAI Editor component.
 ///
 /// This component provides a rich text editing interface with keyboard-driven formatting.
