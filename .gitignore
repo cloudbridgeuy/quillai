@@ -20,3 +20,5 @@ Cargo.lock
 **/*.md
 !README.md
 !**/README.md
+
+**/target/

@@ -1,0 +1,18 @@
+[package]
+name = "basic_editor_desktop"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# Dioxus with desktop features
+dioxus = { version = "0.6", features = ["desktop"] }
+dioxus-desktop = "0.6"
+
+# QuillAI editor component
+quillai_editor = { path = "../../" }
+
+# Logging
+quillai_log = { path = "../../../../crates/log" }
+
+[workspace]

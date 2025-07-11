@@ -23,6 +23,18 @@ pub enum Commands {
     Api(ApiArgs),
     /// Run the blog.
     Blog(BlogArgs),
+
+    /// Run editor examples.
+    #[command(subcommand)]
+    Editor(EditorCommands),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum EditorCommands {
+    /// Run the basic editor web example.
+    Web,
+    /// Run the basic editor desktop example.
+    Desktop,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,6 +44,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(command) => match command {
             Commands::Api(args) => api(args),
             Commands::Blog(args) => blog(args),
+            Commands::Editor(editor_cmd) => match editor_cmd {
+                EditorCommands::Web => editor_web(),
+                EditorCommands::Desktop => editor_desktop(),
+            },
         },
         None => {
             println!("No command specified.");
@@ -101,6 +117,26 @@ pub fn api(args: ApiArgs) -> Result<(), Box<dyn Error>> {
 
     bunt::println!("{$magenta}Running API on port {[bold]}...{/$}", port);
     cmd("systemfd", arguments).read()?;
+
+    Ok(())
+}
+
+pub fn editor_web() -> Result<(), Box<dyn Error>> {
+    bunt::println!("{$magenta}Running Basic Editor Web Example...{/$}");
+
+    cmd("dx", vec!["serve"])
+        .dir("./crates/editor/examples/basic_editor_web")
+        .run()?;
+
+    Ok(())
+}
+
+pub fn editor_desktop() -> Result<(), Box<dyn Error>> {
+    bunt::println!("{$magenta}Running Basic Editor Desktop Example...{/$}");
+
+    cmd("cargo", vec!["run"])
+        .dir("./crates/editor/examples/basic_editor_desktop")
+        .run()?;
 
     Ok(())
 }

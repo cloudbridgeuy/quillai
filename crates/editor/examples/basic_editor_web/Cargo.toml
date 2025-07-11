@@ -1,0 +1,36 @@
+[package]
+name = "basic_editor_web"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# Dioxus with web features
+dioxus = { version = "0.6", features = ["web"] }
+dioxus-web = "0.6"
+
+# QuillAI editor component
+quillai_editor = { path = "../../" }
+
+# Logging
+quillai_log = { path = "../../../../crates/log" }
+
+# Web-specific dependencies
+web-sys = "0.3"
+
+# Required for web builds
+wasm-bindgen = "0.2"
+
+[workspace]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

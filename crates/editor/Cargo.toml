@@ -16,11 +16,11 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# Core Dioxus framework
-dioxus = { version = "0.6", default-features = false }
-
 # QuillAI crates
-quillai_delta = { path = "../delta" }
+quillai_delta = { workspace = true }
+
+# Core Dioxus framework
+dioxus = { workspace = true }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
