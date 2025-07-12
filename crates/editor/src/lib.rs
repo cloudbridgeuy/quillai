@@ -2,14 +2,20 @@
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
+pub mod emitter;
 pub mod events;
+pub mod handlers;
 
 // Re-export commonly used types for convenience
-pub use events::{
-    EditorEvent, ValidationError,
-    InputEvent, InputValidationError,
-    Modifiers, MouseButton, KeyLocation, InputEventCategory
+pub use emitter::{
+    DefaultInputHandler, EventContext, EventEmitter, EventPipeline, EventProcessor, InputHandler,
+    ShortcutCommand, StandardEventType, Subscription,
 };
+pub use events::{
+    EditorEvent, InputEvent, InputEventCategory, InputValidationError, KeyLocation, Modifiers,
+    MouseButton, ValidationError,
+};
+pub use handlers::{EventHandlers, platform};
 
 /// The main QuillAI Editor component.
 ///
@@ -88,10 +94,10 @@ pub fn component(
 ) -> Element {
     // Determine if editor should be readonly
     let is_readonly = readonly.unwrap_or(false);
-    
+
     // Store initial content
     let initial_text = initial_content.clone().unwrap_or_default();
-    
+
     // Build the class string
     let class_str = {
         let mut classes = vec!["quillai-editor"];
@@ -100,7 +106,7 @@ pub fn component(
         }
         classes.join(" ")
     };
-    
+
     // Default styles for the editor
     let default_styles = r#"
         min-height: 200px;
@@ -116,35 +122,36 @@ pub fn component(
         overflow-wrap: break-word;
         position: relative;
     "#;
-    
+
     // Additional styles for readonly mode
     let readonly_styles = if is_readonly {
         "background-color: #f5f5f5; cursor: default;"
     } else {
         "background-color: white; cursor: text;"
     };
-    
+
     // Combine all styles
     let combined_styles = format!("{}{}", default_styles, readonly_styles);
-    
+
     rsx! {
         div {
             class: "{class_str}",
             style: "{combined_styles}",
             contenteditable: if is_readonly { "false" } else { "true" },
-            
+
             // Handle input events
             oninput: move |event| {
                 let data = event.value();
-                
+
                 // Call the on_change handler if provided
                 if let Some(handler) = on_change.as_ref() {
                     handler.call(data);
                 }
             },
-            
+
             // Set initial content
             "{initial_text}"
         }
     }
 }
+
