@@ -180,6 +180,115 @@ code {
 .response-area::placeholder {
   color: rgba(251, 240, 223, 0.4);
 }
+/* Section styling */
+.section {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+.section h2 {
+  font-size: 1.8em;
+  margin-bottom: 1.5rem;
+  color: #fbf0df;
+  text-align: center;
+}
+
+/* Markdown editor specific styles */
+.markdown-editor-container {
+  margin: 1rem 0;
+}
+
+.markdown-editor {
+  background: white;
+  color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdown-editor-loading {
+  color: #fbf0df;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Quill toolbar customization */
+.ql-toolbar {
+  border-top: 1px solid #e0e0e0;
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.ql-container {
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Syntax highlighting enhancements */
+.ql-editor .ql-syntax {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: 'SF Mono', Monaco, 'Roboto Mono', monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+  overflow-x: auto;
+}
+
+.ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor h4, .ql-editor h5, .ql-editor h6 {
+  color: #1a1a1a;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #666;
+  font-style: italic;
+}
+
+.ql-editor code {
+  background: #f1f3f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Monaco, 'Roboto Mono', monospace;
+  font-size: 0.9em;
+}
+
+.ql-editor strong {
+  font-weight: 600;
+}
+
+.ql-editor em {
+  font-style: italic;
+}
+
+.ql-editor a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.ql-editor a:hover {
+  text-decoration: underline;
+}
+
+.ql-editor ul, .ql-editor ol {
+  padding-left: 1.5rem;
+}
+
+.ql-editor li {
+  margin: 0.25rem 0;
+}
+
 @media (prefers-reduced-motion) {
   *,
   ::before,

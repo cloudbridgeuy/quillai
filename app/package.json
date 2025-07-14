@@ -13,6 +13,7 @@
   "dependencies": {
     "bun-plugin-tailwind": "latest",
     "quill": "^2.0.3",
+    "quilljs-markdown": "^1.2.0",
     "react": "^19",
     "react-dom": "^19",
     "tailwindcss": "^4"
