@@ -24,17 +24,15 @@ pub enum Commands {
     /// Run the blog.
     Blog(BlogArgs),
 
-    /// Run editor examples.
+    /// Run dev.
     #[command(subcommand)]
-    Editor(EditorCommands),
+    Dev(DevCommands),
 }
 
 #[derive(Debug, Subcommand)]
-pub enum EditorCommands {
-    /// Run the basic editor web example.
-    Web,
-    /// Run the basic editor desktop example.
-    Desktop,
+pub enum DevCommands {
+    /// Run the app in dev mode.
+    App,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,9 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(command) => match command {
             Commands::Api(args) => api(args),
             Commands::Blog(args) => blog(args),
-            Commands::Editor(editor_cmd) => match editor_cmd {
-                EditorCommands::Web => editor_web(),
-                EditorCommands::Desktop => editor_desktop(),
+            Commands::Dev(editor_cmd) => match editor_cmd {
+                DevCommands::App => app_dev(),
             },
         },
         None => {
@@ -121,22 +118,10 @@ pub fn api(args: ApiArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn editor_web() -> Result<(), Box<dyn Error>> {
-    bunt::println!("{$magenta}Running Basic Editor Web Example...{/$}");
+pub fn app_dev() -> Result<(), Box<dyn Error>> {
+    bunt::println!("{$magenta}Running App in Dev mode...{/$}");
 
-    cmd("dx", vec!["serve"])
-        .dir("./crates/editor/examples/basic_editor_web")
-        .run()?;
-
-    Ok(())
-}
-
-pub fn editor_desktop() -> Result<(), Box<dyn Error>> {
-    bunt::println!("{$magenta}Running Basic Editor Desktop Example...{/$}");
-
-    cmd("cargo", vec!["run"])
-        .dir("./crates/editor/examples/basic_editor_desktop")
-        .run()?;
+    cmd("bun", vec!["dev"]).dir("./app").run()?;
 
     Ok(())
 }
