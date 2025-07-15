@@ -35,46 +35,113 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
   const lineEnd = text.indexOf('\n', currentPos);
   const lineText = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
   
-  // Process different markdown patterns
-  const patterns = [
-    // Bold italic (***text***)
-    {
-      regex: /\*\*\*([^*]+)\*\*\*$/,
-      format: { bold: true, italic: true },
-      length: 6 // 3 asterisks on each side
-    },
-    // Bold (**text**)
-    {
-      regex: /\*\*([^*]+)\*\*$/,
-      format: { bold: true },
-      length: 4 // 2 asterisks on each side
-    },
-    // Italic (*text*)
-    {
-      regex: /\*([^*]+)\*$/,
-      format: { italic: true },
-      length: 2 // 1 asterisk on each side
+  // Analyze context around cursor to determine intended pattern
+  const analyzeMarkdownContext = (text: string, cursorPos: number) => {
+    const relativePos = cursorPos - lineStart;
+    
+    // Find the most recent complete markdown pattern ending at cursor
+    const beforeCursor = text.substring(0, relativePos);
+    
+    // Pattern analysis with precedence (longest first to avoid premature matching)
+    const patterns = [
+      {
+        regex: /\*\*\*([^*]+)\*\*\*$/,
+        format: { bold: true, italic: true },
+        type: 'bold-italic',
+        markersLength: 3
+      },
+      {
+        regex: /\*\*([^*]+)\*\*$/,
+        format: { bold: true },
+        type: 'bold',
+        markersLength: 2
+      },
+      {
+        regex: /\*([^*]+)\*$/,
+        format: { italic: true },
+        type: 'italic',
+        markersLength: 1
+      }
+    ];
+    
+    for (const pattern of patterns) {
+      const match = beforeCursor.match(pattern.regex);
+      if (match) {
+        const matchStart = match.index!;
+        const matchEnd = matchStart + match[0].length;
+        
+        return {
+          match,
+          pattern,
+          start: matchStart,
+          end: matchEnd,
+          content: match[1]
+        };
+      }
     }
-  ];
+    
+    return null;
+  };
   
-  for (const pattern of patterns) {
-    const match = lineText.match(pattern.regex);
-    if (match) {
-      const matchStart = lineStart + match.index!;
-      const matchEnd = matchStart + match[0].length;
-      const textStart = matchStart + pattern.length / 2;
-      const textEnd = matchEnd - pattern.length / 2;
-      
-      // Remove the asterisks and format the text
-      quill.deleteText(textEnd, pattern.length / 2, 'silent');
-      quill.deleteText(matchStart, pattern.length / 2, 'silent');
-      quill.formatText(matchStart, textEnd - textStart, pattern.format, 'silent');
-      
-      // Move cursor to the end of the formatted text
-      quill.setSelection(textEnd - pattern.length / 2, 0, 'silent');
-      break;
+  // Check if pattern is complete and ready for processing
+  const isPatternComplete = (text: string, cursorPos: number) => {
+    const context = analyzeMarkdownContext(text, cursorPos);
+    if (!context) return false;
+    
+    // Additional check: make sure the pattern is truly complete
+    // Look ahead to see if there might be more asterisks
+    const afterCursor = text.substring(cursorPos);
+    const nextChar = afterCursor.charAt(0);
+    
+    // If next character is an asterisk, user might be typing a longer pattern
+    if (nextChar === '*') {
+      return false;
     }
+    
+    // For single asterisk patterns, check if it might become double/triple
+    if (context.pattern.type === 'italic') {
+      // Look at the pattern start to see if there are more asterisks before
+      const beforePattern = text.substring(Math.max(0, context.start - 3), context.start);
+      if (beforePattern.endsWith('*') || beforePattern.endsWith('**')) {
+        return false;
+      }
+    }
+    
+    // For double asterisk patterns, check if it might become triple
+    if (context.pattern.type === 'bold') {
+      const beforePattern = text.substring(Math.max(0, context.start - 1), context.start);
+      if (beforePattern.endsWith('*')) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
+  // Only process if pattern is definitively complete
+  if (!isPatternComplete(lineText, currentPos)) {
+    return;
   }
+  
+  const context = analyzeMarkdownContext(lineText, currentPos);
+  if (!context) return;
+  
+  const absoluteStart = lineStart + context.start;
+  const absoluteEnd = lineStart + context.end;
+  
+  // Use Delta operations for precise text replacement
+  const Delta = window.Quill.import('delta');
+  const replacementDelta = new Delta()
+    .retain(absoluteStart)
+    .delete(context.match[0].length)
+    .insert(context.content, context.pattern.format);
+  
+  // Apply the change
+  quill.updateContents(replacementDelta, 'silent');
+  
+  // Position cursor at the end of the formatted text
+  const newCursorPos = absoluteStart + context.content.length;
+  quill.setSelection(newCursorPos, 0, 'silent');
 };
 
 export type ComponentPropsT = {
