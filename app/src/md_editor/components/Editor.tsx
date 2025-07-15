@@ -23,12 +23,12 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
   
   if (!selection) return;
   
-  // Check if user just typed an asterisk
+  // Check if user just typed an asterisk or underscore
   const lastOp = delta.ops?.[delta.ops.length - 1];
   if (!lastOp || !lastOp.insert || typeof lastOp.insert !== 'string') return;
   
   const lastChar = lastOp.insert.charAt(lastOp.insert.length - 1);
-  if (lastChar !== '*') return;
+  if (lastChar !== '*' && lastChar !== '_') return;
   
   const currentPos = selection.index;
   const lineStart = text.lastIndexOf('\n', currentPos - 1) + 1;
@@ -50,6 +50,13 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
         type: 'bold-italic',
         markersLength: 3
       },
+      // Mixed bold with underscore italic (must come before plain bold)
+      {
+        regex: /\*\*_([^_*]+)_\*\*$/,
+        format: { bold: true, italic: true },
+        type: 'bold-italic-underscore',
+        markersLength: 5
+      },
       {
         regex: /\*\*([^*]+)\*\*$/,
         format: { bold: true },
@@ -60,6 +67,13 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
         regex: /\*([^*]+)\*$/,
         format: { italic: true },
         type: 'italic',
+        markersLength: 1
+      },
+      // Underscore italic
+      {
+        regex: /_([^_]+)_$/,
+        format: { italic: true },
+        type: 'italic-underscore',
         markersLength: 1
       }
     ];
@@ -89,7 +103,7 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
     if (!context) return false;
     
     // Additional check: make sure the pattern is truly complete
-    // Look ahead to see if there might be more asterisks
+    // Look ahead to see if there might be more asterisks or underscores
     const afterCursor = text.substring(cursorPos);
     const nextChar = afterCursor.charAt(0);
     
@@ -111,6 +125,15 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
     if (context.pattern.type === 'bold') {
       const beforePattern = text.substring(Math.max(0, context.start - 1), context.start);
       if (beforePattern.endsWith('*')) {
+        return false;
+      }
+    }
+    
+    // For underscore patterns, check if it might become a mixed pattern
+    if (context.pattern.type === 'italic-underscore') {
+      // Look at the pattern start to see if there are asterisks before
+      const beforePattern = text.substring(Math.max(0, context.start - 2), context.start);
+      if (beforePattern.endsWith('*') || beforePattern.endsWith('**')) {
         return false;
       }
     }
