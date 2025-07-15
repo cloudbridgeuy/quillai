@@ -142,6 +142,9 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
   // Position cursor at the end of the formatted text
   const newCursorPos = absoluteStart + context.content.length;
   quill.setSelection(newCursorPos, 0, 'silent');
+  
+  // Reset formatting to normal for subsequent text
+  quill.removeFormat(newCursorPos, 0, 'silent');
 };
 
 export type ComponentPropsT = {
