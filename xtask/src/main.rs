@@ -121,6 +121,12 @@ pub fn api(args: ApiArgs) -> Result<(), Box<dyn Error>> {
 pub fn app_dev() -> Result<(), Box<dyn Error>> {
     bunt::println!("{$magenta}Running App in Dev mode...{/$}");
 
+    // Check if the `app/node_modules` directory exists
+    if !std::path::Path::new("./app/node_modules").exists() {
+        bunt::println!("{$yellow}Running App in Dev mode...{/$}");
+        cmd("bun", vec!["install"]).dir("./app").run()?;
+    }
+
     cmd("bun", vec!["dev"]).dir("./app").run()?;
 
     Ok(())
