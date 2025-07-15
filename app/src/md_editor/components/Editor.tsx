@@ -143,8 +143,12 @@ const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
   const newCursorPos = absoluteStart + context.content.length;
   quill.setSelection(newCursorPos, 0, 'silent');
   
-  // Reset formatting to normal for subsequent text
-  quill.removeFormat(newCursorPos, 0, 'silent');
+  // Reset formatting state for subsequent typing
+  // We need to explicitly clear the formatting attributes that were applied
+  const formatAttributes = Object.keys(context.pattern.format);
+  formatAttributes.forEach(attr => {
+    quill.format(attr, false, 'silent');
+  });
 };
 
 export type ComponentPropsT = {
