@@ -14,6 +14,69 @@ import type {
   RangeT,
 } from "../types";
 
+// Markdown syntax processor
+const processMarkdownSyntax = (quill: Quill, delta: DeltaT, source: string) => {
+  if (source !== 'user') return;
+  
+  const text = quill.getText();
+  const selection = quill.getSelection();
+  
+  if (!selection) return;
+  
+  // Check if user just typed an asterisk
+  const lastOp = delta.ops?.[delta.ops.length - 1];
+  if (!lastOp || !lastOp.insert || typeof lastOp.insert !== 'string') return;
+  
+  const lastChar = lastOp.insert.charAt(lastOp.insert.length - 1);
+  if (lastChar !== '*') return;
+  
+  const currentPos = selection.index;
+  const lineStart = text.lastIndexOf('\n', currentPos - 1) + 1;
+  const lineEnd = text.indexOf('\n', currentPos);
+  const lineText = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+  
+  // Process different markdown patterns
+  const patterns = [
+    // Bold italic (***text***)
+    {
+      regex: /\*\*\*([^*]+)\*\*\*$/,
+      format: { bold: true, italic: true },
+      length: 6 // 3 asterisks on each side
+    },
+    // Bold (**text**)
+    {
+      regex: /\*\*([^*]+)\*\*$/,
+      format: { bold: true },
+      length: 4 // 2 asterisks on each side
+    },
+    // Italic (*text*)
+    {
+      regex: /\*([^*]+)\*$/,
+      format: { italic: true },
+      length: 2 // 1 asterisk on each side
+    }
+  ];
+  
+  for (const pattern of patterns) {
+    const match = lineText.match(pattern.regex);
+    if (match) {
+      const matchStart = lineStart + match.index!;
+      const matchEnd = matchStart + match[0].length;
+      const textStart = matchStart + pattern.length / 2;
+      const textEnd = matchEnd - pattern.length / 2;
+      
+      // Remove the asterisks and format the text
+      quill.deleteText(textEnd, pattern.length / 2, 'silent');
+      quill.deleteText(matchStart, pattern.length / 2, 'silent');
+      quill.formatText(matchStart, textEnd - textStart, pattern.format, 'silent');
+      
+      // Move cursor to the end of the formatted text
+      quill.setSelection(textEnd - pattern.length / 2, 0, 'silent');
+      break;
+    }
+  }
+};
+
 export type ComponentPropsT = {
   readOnly: boolean;
   defaultValue: DeltaT;
@@ -67,6 +130,11 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
       }
 
       quill.on(window.Quill.events.TEXT_CHANGE, (...args) => {
+        const [delta, oldDelta, source] = args;
+        
+        // Process markdown syntax
+        processMarkdownSyntax(quill, delta, source);
+        
         onTextChangeRef.current?.(...args);
       });
 
