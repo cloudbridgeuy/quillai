@@ -217,6 +217,8 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
       });
 
       return () => {
+        quill.off(window.Quill.events.TEXT_CHANGE);
+        quill.off(window.Quill.events.SELECTION_CHANGE);
         ref.current = null;
         container.innerHTML = "";
       };
