@@ -1,4 +1,118 @@
----
+# QuillAI
+
+Markdown-aware rich text editor. Rust/Axum API backend + React/Bun frontend with Quill.js.
+
+## Workspace Layout
+
+Cargo workspace with three members:
+
+```
+crates/api/    — Axum HTTP server, SQLite, CLI config
+crates/log/    — Structured logging library (tracing-based)
+xtask/         — Build task runner (cargo xtask api|dev)
+app/           — React frontend (Bun runtime, Quill.js editor)
+migrations/    — SQLx migrations (SQLite)
+docs/          — QuillJS implementation guide
+```
+
+## Entry Points
+
+| What | Command | File |
+|------|---------|------|
+| API server | `cargo xtask api` or `cargo run -p quillai_api` | `crates/api/src/main.rs` |
+| Frontend dev | `bun --hot app/src/index.tsx` or `cargo xtask dev app` | `app/src/index.tsx` |
+| Full dev | Run both concurrently | — |
+
+API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
+
+## Source Index
+
+### Rust — API (`crates/api/src/`)
+
+| File | Purpose |
+|------|---------|
+| `main.rs` | Server init, Axum router, SQLite pool setup, route handlers |
+| `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
+| `error.rs` | Error enum, manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
+| `prelude.rs` | Re-exports Error and Result |
+
+### Rust — Logging (`crates/log/src/`)
+
+| File | Purpose |
+|------|---------|
+| `lib.rs` | LogLevel enum, LogConfig struct, tracing subscriber init. Formats: Pretty, Compact, Json |
+
+### Rust — Build (`xtask/src/`)
+
+| File | Purpose |
+|------|---------|
+| `main.rs` | Task runner: `api` (systemfd hot-reload), `dev app` (bun), `blog` |
+
+### Frontend (`app/src/`)
+
+| File | Purpose |
+|------|---------|
+| `index.tsx` | Bun.serve entry — routes, static assets, HMR |
+| `index.html` | HTML shell, loads frontend.tsx |
+| `App.tsx` | Root React component — renders Editor + APITester |
+| `frontend.tsx` | React root setup, CSS import |
+| `index.css` | Tailwind + custom styles, dark theme, animations |
+| `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
+| `md_editor/components/Editor.tsx` | Quill.js wrapper — markdown syntax detection and real-time formatting (bold/italic/bold-italic pattern matching, delta operations, format state reset). 320 lines, most complex frontend file |
+| `api_tester/components/APITester.tsx` | HTTP method selector + URL input + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
+
+### Static Assets (`app/assets/`)
+
+| Directory | Contents |
+|-----------|----------|
+| `quilljs/` | Quill 2.0.3 JS + Snow theme CSS |
+| `highlight/` | highlight.js — languages + themes for code blocks |
+
+### Database
+
+Single migration: `migrations/20250407204144_init.up.sql` — creates `users` table (id, name, email).
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Axum 0.8, Tokio 1.44, SQLx (SQLite), Sea-ORM |
+| Logging | tracing + tracing-subscriber |
+| CLI | clap 4.5 |
+| Frontend | React 19, TypeScript, Quill.js 2.0.3 |
+| Styling | Tailwind CSS 4 |
+| Runtime | Bun (server + bundler + test runner) |
+| Build | Cargo workspace + xtask |
+
+## API Routes
+
+**Rust backend** (`crates/api/src/main.rs`):
+- `GET /` — HTML response with SQLite query
+
+**Bun frontend** (`app/src/index.tsx`):
+- `GET /assets/*` — static file serving
+- `GET /api/hello` — JSON hello
+- `PUT /api/hello` — JSON hello (PUT)
+- `GET /api/hello/:name` — parameterized JSON hello
+- `GET /*` — SPA fallback to index.html
+
+## Coding Patterns
+
+Reference patterns at `~/.claude/patterns/`:
+
+| Pattern | File | Core Idea |
+|---------|------|-----------|
+| Functional Core - Imperative Shell | `functional-core-imperative-shell.md` | Pure logic separated from I/O at every level |
+| Type-Driven Development | `type-driven-development.md` | Design types first, let compiler guide implementation |
+| ADTs | `algebraic-data-types.md` | Sum types (enum) + product types (struct) to model domains |
+| Make Impossible States Impossible | `make-impossible-states-impossible.md` | Only valid states representable in the type system |
+| Parse Don't Validate | `parse-dont-validate.md` | Convert raw input to typed values at boundaries |
+| CQRS | `cqrs.md` | Separate write models from read models |
+| Composition over Inheritance | `composition-over-inheritance.md` | Trait-based components, factory functions |
+| Data-Oriented Design | `data-oriented-design.md` | SoA layout, batch processing for cache efficiency |
+| Relationships | `RELATIONSHIPS.md` | Visual graph of how patterns interconnect |
+
+## Conventions
 
 Default to using Bun instead of Node.js.
 
@@ -9,7 +123,7 @@ Default to using Bun instead of Node.js.
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Bun automatically loads .env, so don't use dotenv.
 
-## APIs
+### Bun APIs
 
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
@@ -17,91 +131,19 @@ Default to using Bun instead of Node.js.
 - `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+- Bun.$\`ls\` instead of execa.
 
-## Testing
+### Rust Conventions
 
-Use `bun test` to run tests.
+- Workspace crates under `crates/`. New crates go there.
+- `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
+- SQLx with compile-time checked queries (`.sqlx/` cache).
+- Errors via `thiserror` with manual `IntoResponse` for JSON responses. See [error handling context](.claude/context/error-handling.md).
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+### Frontend Conventions
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
-
-## Frontend
-
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-
-// import .css files directly and it works
-import './index.css';
-
-import { createRoot } from "react-dom/client";
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+- HTML imports with `Bun.serve()`. Don't use `vite`.
+- HTML files import .tsx/.jsx/.js directly — Bun transpiles and bundles.
+- `<link>` tags point to stylesheets — Bun's CSS bundler handles them.
+- Tailwind via `bun-plugin-tailwind`.
+- For Bun API docs: `node_modules/bun-types/docs/**.md`.
