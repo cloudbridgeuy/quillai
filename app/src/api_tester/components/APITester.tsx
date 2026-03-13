@@ -1,5 +1,23 @@
 import { useRef, type FormEvent } from "react";
 
+type ApiError = { error: string; code: string };
+
+export function formatResponseBody(
+  ok: boolean,
+  status: number,
+  statusText: string,
+  body: unknown,
+): string {
+  if (ok) return JSON.stringify(body, null, 2);
+
+  if (body && typeof body === "object" && "error" in body && "code" in body) {
+    const apiError = body as ApiError;
+    return `Error [${apiError.code}]: ${apiError.error}`;
+  }
+
+  return `${status} ${statusText}`;
+}
+
 export function APITester() {
   const responseInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -14,8 +32,18 @@ export function APITester() {
       const method = formData.get("method") as string;
       const res = await fetch(url, { method });
 
-      const data = await res.json();
-      responseInputRef.current!.value = JSON.stringify(data, null, 2);
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      responseInputRef.current!.value = formatResponseBody(
+        res.ok,
+        res.status,
+        res.statusText,
+        body,
+      );
     } catch (error) {
       responseInputRef.current!.value = String(error);
     }
