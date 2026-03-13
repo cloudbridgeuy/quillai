@@ -50,14 +50,14 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | **RUST-6** | **Zero test coverage in API crate** — no unit or integration tests for handlers, error types, or CLI parsing | High     | R4    |
 | **RUST-7** | **Zero test coverage in xtask** — no tests for build task runner | Low      | R4    |
 | **RUST-8** | **No SQLx compile-time query cache** — `.sqlx/` directory missing or empty, queries not verified at compile time | Medium   | R3    |
-| **FE-1**   | **Incorrect Content-Type for all assets (`app/src/index.tsx:11`)** — hardcoded `"text/plain"` for CSS, JS, images | High     | R6    |
+| ~~**FE-1**~~   | ~~**Incorrect Content-Type for all assets (`app/src/index.tsx:11`)** — hardcoded `"text/plain"` for CSS, JS, images~~ | ~~High~~ | ~~R6~~ | **DONE** — removed hardcoded header; `Bun.file()` infers MIME types |
 | **FE-2**   | **`any` type in route handler (`app/src/index.tsx:8`)** — `(req: any)` bypasses TypeScript type checking | Medium   | R2    |
 | **FE-3**   | **Unsafe non-null assertions in APITester (`app/src/api_tester/components/APITester.tsx:18,20`)** — `ref.current!.value` without null guard | Medium   | R2    |
 | **FE-4**   | **Unsafe type casting in APITester (`app/src/api_tester/components/APITester.tsx:12,14`)** — `formData.get(...) as string` masks null | Medium   | R2    |
 | **FE-5**   | **No Error Boundary in component tree (`app/src/App.tsx`)** — uncaught throw in Editor or APITester crashes entire app | Medium   | R3    |
-| **FE-6**   | **Memory leak: Quill instance never destroyed (`app/src/md_editor/components/Editor.tsx:219-222`)** — cleanup uses `innerHTML = ""` but no `Quill.destroy()` call | Medium   | R0    |
+| ~~**FE-6**~~   | ~~**Memory leak: Quill instance never destroyed (`app/src/md_editor/components/Editor.tsx:219-222`)** — cleanup uses `innerHTML = ""` but no `Quill.destroy()` call~~ | ~~Medium~~ | ~~R0~~ | **DONE** — added `quill.off()` for TEXT_CHANGE and SELECTION_CHANGE before cleanup |
 | **FE-7**   | **Race condition: concurrent Quill script loading (`app/src/md_editor/components/Editor.tsx:237-262`)** — multiple mounts trigger parallel loads with no dedup | Low      | R0    |
-| **FE-8**   | **Missing `res.ok` check in fetch (`app/src/api_tester/components/APITester.tsx:15`)** — 4xx/5xx silently parsed as success | Medium   | R3    |
+| ~~**FE-8**~~   | ~~**Missing `res.ok` check in fetch (`app/src/api_tester/components/APITester.tsx:15`)** — 4xx/5xx silently parsed as success~~ | ~~Medium~~ | ~~R3~~ | **DONE** — `formatResponseBody()` distinguishes ok/error; parses `{ error, code }` shape |
 | **FE-9**   | **No loading state in APITester** — user gets no feedback during fetch | Low      | R0    |
 | **FE-10**  | **Zero frontend test coverage** — no test files exist | High     | R4    |
 | **FE-11**  | **Missing form labels and ARIA attributes (`APITester.tsx`)** — `<select>`, `<input>`, `<textarea>` lack labels | Medium   | R8    |
@@ -78,21 +78,21 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | R0  | Codebase follows its own declared patterns                 | Core goal |   ❌    |
 | R1  | No compiler warnings or clippy lints                       | Must-have |   ❌    |
 | R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ❌    |
-| R3  | Error handling is explicit and informative                  | Must-have |   ❌    |
+| R3  | Error handling is explicit and informative                  | Must-have |   ⚠️    |
 | R4  | Test coverage exists for all non-trivial logic              | Must-have |   ❌    |
 | R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ❌    |
-| R6  | Frontend serves assets with correct MIME types              | Must-have |   ❌    |
+| R6  | Frontend serves assets with correct MIME types              | Must-have |   ✅    |
 | R7  | CI pipeline exists to enforce R1-R6 automatically          | Nice-to-have | ❌   |
 | R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ❌   |
 
 **Notes:**
-- R0 fails: stub handler (RUST-5), memory leak (FE-6), hardcoded values (FE-13), deprecated APIs (FE-15)
+- R0 fails: stub handler (RUST-5), hardcoded values (FE-13), deprecated APIs (FE-15). ~~memory leak (FE-6)~~ fixed.
 - R1 fails: 1 clippy warning (RUST-1)
 - R2 fails: stringly-typed CLI (RUST-2), `any` type (FE-2), unsafe casts (FE-3, FE-4)
-- R3 fails: missing `res.ok` check (FE-8), no error boundary (FE-5), no SQLx cache (RUST-8)
-- R4 fails: zero tests in API, xtask, and frontend (RUST-6, RUST-7, FE-10)
+- R3 partial: ~~missing `res.ok` check (FE-8)~~ fixed. Remaining: no error boundary (FE-5), no SQLx cache (RUST-8). API errors now return standardized JSON `{ error, code }`.
+- R4 fails: zero tests in xtask and frontend (RUST-7, FE-10). RUST-6 partially addressed (error.rs has unit tests).
 - R5 fails: unused deps (RUST-3), phantom crates (RUST-4)
-- R6 fails: all assets served as `text/plain` (FE-1)
+- R6 passes: ~~all assets served as `text/plain` (FE-1)~~ fixed.
 - R7 fails: no CI/CD (INFRA-1)
 - R8 fails: missing labels/ARIA (FE-11), `alert()` usage (FE-12)
 
@@ -102,7 +102,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Pattern                           | Status | Key Violations                                                                  |
 | --------------------------------- | :----: | ------------------------------------------------------------------------------- |
-| Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Acceptable in main.rs scaffolding. |
+| Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Error handling now follows FC/IS: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. |
 | Type-Driven Development           | ❌     | CLI args use raw primitives (RUST-2). No newtypes for host, port, db_url.       |
 | Parse Don't Validate               | ❌     | CLI values not parsed into domain types at boundary. FE uses `as string` casts. |
 | Make Impossible States Impossible  | ⚠️     | Port allows u32 but valid range is 0-65535. No impossible state prevention.     |
@@ -117,13 +117,13 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 Each item below is self-contained and can be tackled independently by an agent.
 
-### Priority 1 — Bugs & Correctness
+### Priority 1 — Bugs & Correctness ✅ COMPLETE
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 1  | FE-1   | Fix asset serving: use Bun's built-in MIME type detection instead of hardcoded `text/plain`           | `app/src/index.tsx`                |
-| 2  | FE-8   | Add `res.ok` check after fetch, distinguish HTTP errors from network errors                          | `app/src/api_tester/components/APITester.tsx` |
-| 3  | FE-6   | Properly destroy Quill instance on unmount (call destroy or equivalent cleanup)                       | `app/src/md_editor/components/Editor.tsx` |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 1  | FE-1   | ~~Fix asset serving: use Bun's built-in MIME type detection instead of hardcoded `text/plain`~~       | `app/src/index.tsx`                | **DONE** |
+| 2  | FE-8   | ~~Add `res.ok` check after fetch, distinguish HTTP errors from network errors~~                      | `app/src/api_tester/components/APITester.tsx` | **DONE** |
+| 3  | FE-6   | ~~Properly destroy Quill instance on unmount (call destroy or equivalent cleanup)~~                   | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 
 ### Priority 2 — Type Safety
 
