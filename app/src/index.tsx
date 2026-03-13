@@ -7,9 +7,7 @@ const server = serve({
     // Serve static assets from "../assets".
     "/assets/*": (req: any) => {
       const url = new URL(req.url);
-      return new Response(Bun.file("." + url.pathname), {
-        headers: { "Content-Type": "text/plain" },
-      });
+      return new Response(Bun.file("." + url.pathname));
     },
 
     // Serve index.html for all unmatched routes.
