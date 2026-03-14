@@ -76,10 +76,9 @@ async fn main() -> Result<()> {
 }
 
 async fn handler(State(pool): State<SqlitePool>) -> std::result::Result<Html<String>, Error> {
-    let value: String = sqlx::query_scalar("SELECT 'hello world from sqlite'")
+    let value: String = sqlx::query_scalar!("SELECT 'hello world from sqlite'")
         .fetch_one(&pool)
-        .await
-        .map_err(Error::Sqlx)?;
+        .await?;
 
     Ok(Html(format!("<h1>Hello, {}!</h1>", value)))
 }
