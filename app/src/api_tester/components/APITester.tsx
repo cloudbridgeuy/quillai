@@ -27,9 +27,11 @@ export function APITester() {
     try {
       const form = e.currentTarget;
       const formData = new FormData(form);
-      const endpoint = formData.get("endpoint") as string;
+      const endpoint = formData.get("endpoint");
+      if (typeof endpoint !== "string") return;
       const url = new URL(endpoint, location.href);
-      const method = formData.get("method") as string;
+      const method = formData.get("method");
+      if (typeof method !== "string") return;
       const res = await fetch(url, { method });
 
       let body: unknown;
@@ -38,14 +40,18 @@ export function APITester() {
       } catch {
         body = null;
       }
-      responseInputRef.current!.value = formatResponseBody(
-        res.ok,
-        res.status,
-        res.statusText,
-        body,
-      );
+      if (responseInputRef.current) {
+        responseInputRef.current.value = formatResponseBody(
+          res.ok,
+          res.status,
+          res.statusText,
+          body,
+        );
+      }
     } catch (error) {
-      responseInputRef.current!.value = String(error);
+      if (responseInputRef.current) {
+        responseInputRef.current.value = String(error);
+      }
     }
   };
 

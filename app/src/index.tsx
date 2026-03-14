@@ -5,7 +5,7 @@ const server = serve({
   port: 3001,
   routes: {
     // Serve static assets from "../assets".
-    "/assets/*": (req: any) => {
+    "/assets/*": (req) => {
       const url = new URL(req.url);
       return new Response(Bun.file("." + url.pathname));
     },
