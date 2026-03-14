@@ -30,11 +30,8 @@ inherits = "dev"
 
 [workspace.dependencies]
 quillai_log = { version = "0.1.0", path = "./crates/log" }
-quillai_delta = { version = "0.1.0", path = "./crates/delta" }
-quillai_parchment = { version = "0.1.0", path = "./crates/parchment" }
 clap = { version = "4.5.35", features = ["derive", "env", "string"] }
 tokio = { version = "1.44.0", features = ["full"] }
-env_logger = "0.11.3"
 log = "0.4.22"
 thiserror = "2.0.12"
 anyhow = "1.0.97"

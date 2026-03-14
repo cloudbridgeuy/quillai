@@ -236,7 +236,7 @@ export const Container = () => {
   const [lastChange, setLastChange] = useState<DeltaT | null>();
   const [readOnly, setReadOnly] = useState(false);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Check if the quill.snow.css stylesheet has been appended.
     if (
       !document.querySelector('link[href="/assets/quilljs/quill.snow.css"]')
@@ -256,7 +256,7 @@ export const Container = () => {
           setIsReady(true);
         };
         // Attach to head
-        document.getElementsByTagName("head")[0].appendChild(script);
+        document.head.appendChild(script);
       } catch (error) {
         console.error("Error loading Quill script:", error);
       }

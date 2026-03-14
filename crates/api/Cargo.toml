@@ -16,8 +16,6 @@ path = "src/main.rs"
 [dependencies]
 quillai_log = { workspace = true }
 tokio = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }

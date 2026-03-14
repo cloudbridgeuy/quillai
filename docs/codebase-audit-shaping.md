@@ -42,10 +42,10 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Part       | Finding                                                                                          | Severity | Req   |
 | ---------- | ------------------------------------------------------------------------------------------------ | -------- | ----- |
-| **RUST-1** | **Clippy warning in `crates/log/src/lib.rs:285`** — needless borrow `&tracing::field::debug(&value)` | Low      | R1    |
+| ~~**RUST-1**~~ | ~~**Clippy warning in `crates/log/src/lib.rs:285`** — needless borrow `&tracing::field::debug(&value)`~~ | ~~Low~~ | ~~R1~~ | **DONE** — removed needless `&` borrow |
 | ~~**RUST-2**~~ | ~~**Stringly-typed CLI args (`crates/api/src/cli.rs`)** — host is `String`, port is `u32` (valid range is u16), db_url is `String`, db_acquire_timeout is `u64` with no unit annotation~~ | ~~Medium~~ | ~~R0,R2~~ | **DONE** — port narrowed to `u16`; doc comment clarified "in seconds"; no newtypes for host/db_url (YAGNI) |
-| **RUST-3** | **Unused dependencies in `crates/api/Cargo.toml`** — `log` and `env_logger` declared but never imported | Low      | R5    |
-| **RUST-4** | **Phantom workspace crates in root `Cargo.toml`** — `quillai_delta` and `quillai_parchment` referenced in `[workspace.dependencies]` but crates don't exist | Low      | R5    |
+| ~~**RUST-3**~~ | ~~**Unused dependencies in `crates/api/Cargo.toml`** — `log` and `env_logger` declared but never imported~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed `log` and `env_logger` from API crate; removed `env_logger` from workspace deps (`log` kept — used by `crates/log` optionally) |
+| ~~**RUST-4**~~ | ~~**Phantom workspace crates in root `Cargo.toml`** — `quillai_delta` and `quillai_parchment` referenced in `[workspace.dependencies]` but crates don't exist~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed phantom crate entries from workspace deps |
 | **RUST-5** | **API handler is a stub** — `GET /` runs `SELECT 'hello world from sqlite'` instead of querying the `users` table defined in migrations | Medium   | R0    |
 | **RUST-6** | **Zero test coverage in API crate** — no unit or integration tests for handlers, error types, or CLI parsing | High     | R4    |
 | **RUST-7** | **Zero test coverage in xtask** — no tests for build task runner | Low      | R4    |
@@ -63,8 +63,8 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | **FE-11**  | **Missing form labels and ARIA attributes (`APITester.tsx`)** — `<select>`, `<input>`, `<textarea>` lack labels | Medium   | R8    |
 | **FE-12**  | **`alert()` used for content length output (`Editor.tsx:299-303`)** — inaccessible, blocks UI thread | Low      | R8    |
 | **FE-13**  | **Hardcoded port and asset paths** — port 3001 in `index.tsx:5`, asset URLs in `Editor.tsx:240,252` | Low      | R0    |
-| **FE-14**  | **`useLayoutEffect` blocks paint for CSS check (`Editor.tsx:237`)** — should be `useEffect` | Low      | R0    |
-| **FE-15**  | **`document.getElementsByTagName("head")[0]`** — deprecated API, should be `document.head` | Low      | R0    |
+| ~~**FE-14**~~  | ~~**`useLayoutEffect` blocks paint for CSS check (`Editor.tsx:237`)** — should be `useEffect`~~ | ~~Low~~ | ~~R0~~ | **DONE** — changed to `useEffect` for CSS/script loading; kept `useLayoutEffect` for ref sync (correct usage) |
+| ~~**FE-15**~~  | ~~**`document.getElementsByTagName("head")[0]`** — deprecated API, should be `document.head`~~ | ~~Low~~ | ~~R0~~ | **DONE** — replaced with `document.head` |
 | **INFRA-1**| **No CI/CD pipeline** — no GitHub Actions, no automated checks | High     | R7    |
 | **INFRA-2**| **README.md is empty** — only contains `# Quill Ai` (11 bytes) | Medium   | R0    |
 | **INFRA-3**| **`crates/api/README.md` is empty** — only contains `# api` (4 bytes) | Low      | R0    |
@@ -75,23 +75,23 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Req | Requirement                                                | Status    | CURRENT |
 | --- | ---------------------------------------------------------- | --------- | :-----: |
-| R0  | Codebase follows its own declared patterns                 | Core goal |   ❌    |
-| R1  | No compiler warnings or clippy lints                       | Must-have |   ❌    |
+| R0  | Codebase follows its own declared patterns                 | Core goal |   ⚠️    |
+| R1  | No compiler warnings or clippy lints                       | Must-have |   ✅    |
 | R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ✅    |
 | R3  | Error handling is explicit and informative                  | Must-have |   ⚠️    |
 | R4  | Test coverage exists for all non-trivial logic              | Must-have |   ❌    |
-| R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ❌    |
+| R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ✅    |
 | R6  | Frontend serves assets with correct MIME types              | Must-have |   ✅    |
 | R7  | CI pipeline exists to enforce R1-R6 automatically          | Nice-to-have | ❌   |
 | R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ❌   |
 
 **Notes:**
-- R0 fails: stub handler (RUST-5), hardcoded values (FE-13), deprecated APIs (FE-15). ~~memory leak (FE-6)~~ fixed.
-- R1 fails: 1 clippy warning (RUST-1)
+- R0 partial: stub handler (RUST-5), hardcoded values (FE-13). ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed.
+- R1 passes: ~~clippy warning (RUST-1)~~ fixed. Zero warnings on `cargo clippy`.
 - R2 passes: ~~stringly-typed CLI (RUST-2)~~ port narrowed to u16. ~~`any` type (FE-2)~~ removed. ~~unsafe casts (FE-3, FE-4)~~ replaced with null guards.
 - R3 partial: ~~missing `res.ok` check (FE-8)~~ fixed. Remaining: no error boundary (FE-5), no SQLx cache (RUST-8). API errors now return standardized JSON `{ error, code }`.
 - R4 fails: zero tests in xtask and frontend (RUST-7, FE-10). RUST-6 partially addressed (error.rs has unit tests).
-- R5 fails: unused deps (RUST-3), phantom crates (RUST-4)
+- R5 passes: ~~unused deps (RUST-3)~~ removed. ~~phantom crates (RUST-4)~~ removed.
 - R6 passes: ~~all assets served as `text/plain` (FE-1)~~ fixed.
 - R7 fails: no CI/CD (INFRA-1)
 - R8 fails: missing labels/ARIA (FE-11), `alert()` usage (FE-12)
@@ -133,15 +133,15 @@ Each item below is self-contained and can be tackled independently by an agent.
 | 5  | FE-2   | ~~Replace `any` in route handler with proper Bun `Request` type~~                                    | `app/src/index.tsx`                | **DONE** |
 | 6  | FE-3,4 | ~~Remove non-null assertions and type casts; add proper null checks~~                                | `app/src/api_tester/components/APITester.tsx` | **DONE** |
 
-### Priority 3 — Code Hygiene
+### Priority 3 — Code Hygiene ✅ COMPLETE
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 7  | RUST-1 | Fix clippy warning: remove needless borrow                                                           | `crates/log/src/lib.rs:285`        |
-| 8  | RUST-3 | Remove unused `log` and `env_logger` dependencies                                                    | `crates/api/Cargo.toml`            |
-| 9  | RUST-4 | Remove phantom `quillai_delta` and `quillai_parchment` from workspace deps                           | `Cargo.toml` (root)                |
-| 10 | FE-14  | Change `useLayoutEffect` to `useEffect` for CSS/script loading                                       | `app/src/md_editor/components/Editor.tsx` |
-| 11 | FE-15  | Replace `document.getElementsByTagName("head")[0]` with `document.head`                              | `app/src/md_editor/components/Editor.tsx` |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 7  | RUST-1 | ~~Fix clippy warning: remove needless borrow~~                                                       | `crates/log/src/lib.rs:285`        | **DONE** |
+| 8  | RUST-3 | ~~Remove unused `log` and `env_logger` dependencies~~                                                | `crates/api/Cargo.toml`            | **DONE** |
+| 9  | RUST-4 | ~~Remove phantom `quillai_delta` and `quillai_parchment` from workspace deps~~                       | `Cargo.toml` (root)                | **DONE** |
+| 10 | FE-14  | ~~Change `useLayoutEffect` to `useEffect` for CSS/script loading~~                                   | `app/src/md_editor/components/Editor.tsx` | **DONE** |
+| 11 | FE-15  | ~~Replace `document.getElementsByTagName("head")[0]` with `document.head`~~                          | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 
 ### Priority 4 — Error Handling & Resilience
 

@@ -282,7 +282,7 @@ pub fn create_info_span(name: &str) -> Span {
 
 /// Add fields to the current span
 pub fn add_field<T: std::fmt::Debug>(key: &str, value: T) {
-    Span::current().record(key, &tracing::field::debug(&value));
+    Span::current().record(key, tracing::field::debug(&value));
 }
 
 /// Testing utilities for applications using this logging library
