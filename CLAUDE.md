@@ -31,7 +31,7 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | Server init, Axum router, SQLite pool setup, route handlers |
+| `main.rs` | Server init, Axum router, SQLite pool setup, route handlers. Uses `query_scalar!` macro for compile-time SQL checking. See [SQLx offline context](.claude/context/sqlx-offline.md) |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum, manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
 | `prelude.rs` | Re-exports Error and Result |
@@ -54,11 +54,13 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
 |------|---------|
 | `index.tsx` | Bun.serve entry — routes, static assets, HMR |
 | `index.html` | HTML shell, loads frontend.tsx |
-| `App.tsx` | Root React component — renders Editor + APITester |
+| `App.tsx` | Root React component — renders Editor + APITester, each wrapped in ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
+| `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `frontend.tsx` | React root setup, CSS import |
 | `index.css` | Tailwind + custom styles, dark theme, animations |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
-| `md_editor/components/Editor.tsx` | Quill.js wrapper — markdown syntax detection and real-time formatting (bold/italic/bold-italic pattern matching, delta operations, format state reset). 320 lines, most complex frontend file |
+| `md_editor/markdown.ts` | Pure markdown analysis functions — `analyzeMarkdownContext`, `isPatternComplete`. See [markdown parsing context](.claude/context/markdown-parsing.md) |
+| `md_editor/components/Editor.tsx` | Quill.js wrapper — imperative shell for markdown formatting (reads Quill state, calls pure functions from `markdown.ts`, applies delta mutations). See [markdown parsing context](.claude/context/markdown-parsing.md) |
 | `api_tester/components/APITester.tsx` | HTTP method selector + URL input + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
 
 ### Static Assets (`app/assets/`)
@@ -137,7 +139,7 @@ Default to using Bun instead of Node.js.
 
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
-- SQLx with compile-time checked queries (`.sqlx/` cache).
+- SQLx with compile-time checked queries (`.sqlx/` cache). See [SQLx offline context](.claude/context/sqlx-offline.md).
 - Errors via `thiserror` with manual `IntoResponse` for JSON responses. See [error handling context](.claude/context/error-handling.md).
 
 ### Frontend Conventions
