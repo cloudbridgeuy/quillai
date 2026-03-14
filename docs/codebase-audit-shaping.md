@@ -43,7 +43,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | Part       | Finding                                                                                          | Severity | Req   |
 | ---------- | ------------------------------------------------------------------------------------------------ | -------- | ----- |
 | **RUST-1** | **Clippy warning in `crates/log/src/lib.rs:285`** — needless borrow `&tracing::field::debug(&value)` | Low      | R1    |
-| **RUST-2** | **Stringly-typed CLI args (`crates/api/src/cli.rs`)** — host is `String`, port is `u32` (valid range is u16), db_url is `String`, db_acquire_timeout is `u64` with no unit annotation | Medium   | R0,R2 |
+| ~~**RUST-2**~~ | ~~**Stringly-typed CLI args (`crates/api/src/cli.rs`)** — host is `String`, port is `u32` (valid range is u16), db_url is `String`, db_acquire_timeout is `u64` with no unit annotation~~ | ~~Medium~~ | ~~R0,R2~~ | **DONE** — port narrowed to `u16`; doc comment clarified "in seconds"; no newtypes for host/db_url (YAGNI) |
 | **RUST-3** | **Unused dependencies in `crates/api/Cargo.toml`** — `log` and `env_logger` declared but never imported | Low      | R5    |
 | **RUST-4** | **Phantom workspace crates in root `Cargo.toml`** — `quillai_delta` and `quillai_parchment` referenced in `[workspace.dependencies]` but crates don't exist | Low      | R5    |
 | **RUST-5** | **API handler is a stub** — `GET /` runs `SELECT 'hello world from sqlite'` instead of querying the `users` table defined in migrations | Medium   | R0    |
@@ -51,9 +51,9 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | **RUST-7** | **Zero test coverage in xtask** — no tests for build task runner | Low      | R4    |
 | **RUST-8** | **No SQLx compile-time query cache** — `.sqlx/` directory missing or empty, queries not verified at compile time | Medium   | R3    |
 | ~~**FE-1**~~   | ~~**Incorrect Content-Type for all assets (`app/src/index.tsx:11`)** — hardcoded `"text/plain"` for CSS, JS, images~~ | ~~High~~ | ~~R6~~ | **DONE** — removed hardcoded header; `Bun.file()` infers MIME types |
-| **FE-2**   | **`any` type in route handler (`app/src/index.tsx:8`)** — `(req: any)` bypasses TypeScript type checking | Medium   | R2    |
-| **FE-3**   | **Unsafe non-null assertions in APITester (`app/src/api_tester/components/APITester.tsx:18,20`)** — `ref.current!.value` without null guard | Medium   | R2    |
-| **FE-4**   | **Unsafe type casting in APITester (`app/src/api_tester/components/APITester.tsx:12,14`)** — `formData.get(...) as string` masks null | Medium   | R2    |
+| ~~**FE-2**~~   | ~~**`any` type in route handler (`app/src/index.tsx:8`)** — `(req: any)` bypasses TypeScript type checking~~ | ~~Medium~~ | ~~R2~~ | **DONE** — removed explicit annotation; Bun infers `BunRequest<"/assets/*">` |
+| ~~**FE-3**~~   | ~~**Unsafe non-null assertions in APITester (`app/src/api_tester/components/APITester.tsx:18,20`)** — `ref.current!.value` without null guard~~ | ~~Medium~~ | ~~R2~~ | **DONE** — replaced `!` with `if (ref.current)` guards |
+| ~~**FE-4**~~   | ~~**Unsafe type casting in APITester (`app/src/api_tester/components/APITester.tsx:12,14`)** — `formData.get(...) as string` masks null~~ | ~~Medium~~ | ~~R2~~ | **DONE** — replaced `as string` with `typeof` guards + early return |
 | **FE-5**   | **No Error Boundary in component tree (`app/src/App.tsx`)** — uncaught throw in Editor or APITester crashes entire app | Medium   | R3    |
 | ~~**FE-6**~~   | ~~**Memory leak: Quill instance never destroyed (`app/src/md_editor/components/Editor.tsx:219-222`)** — cleanup uses `innerHTML = ""` but no `Quill.destroy()` call~~ | ~~Medium~~ | ~~R0~~ | **DONE** — added `quill.off()` for TEXT_CHANGE and SELECTION_CHANGE before cleanup |
 | **FE-7**   | **Race condition: concurrent Quill script loading (`app/src/md_editor/components/Editor.tsx:237-262`)** — multiple mounts trigger parallel loads with no dedup | Low      | R0    |
@@ -77,7 +77,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | --- | ---------------------------------------------------------- | --------- | :-----: |
 | R0  | Codebase follows its own declared patterns                 | Core goal |   ❌    |
 | R1  | No compiler warnings or clippy lints                       | Must-have |   ❌    |
-| R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ❌    |
+| R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ✅    |
 | R3  | Error handling is explicit and informative                  | Must-have |   ⚠️    |
 | R4  | Test coverage exists for all non-trivial logic              | Must-have |   ❌    |
 | R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ❌    |
@@ -88,7 +88,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 **Notes:**
 - R0 fails: stub handler (RUST-5), hardcoded values (FE-13), deprecated APIs (FE-15). ~~memory leak (FE-6)~~ fixed.
 - R1 fails: 1 clippy warning (RUST-1)
-- R2 fails: stringly-typed CLI (RUST-2), `any` type (FE-2), unsafe casts (FE-3, FE-4)
+- R2 passes: ~~stringly-typed CLI (RUST-2)~~ port narrowed to u16. ~~`any` type (FE-2)~~ removed. ~~unsafe casts (FE-3, FE-4)~~ replaced with null guards.
 - R3 partial: ~~missing `res.ok` check (FE-8)~~ fixed. Remaining: no error boundary (FE-5), no SQLx cache (RUST-8). API errors now return standardized JSON `{ error, code }`.
 - R4 fails: zero tests in xtask and frontend (RUST-7, FE-10). RUST-6 partially addressed (error.rs has unit tests).
 - R5 fails: unused deps (RUST-3), phantom crates (RUST-4)
@@ -103,9 +103,9 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | Pattern                           | Status | Key Violations                                                                  |
 | --------------------------------- | :----: | ------------------------------------------------------------------------------- |
 | Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Error handling now follows FC/IS: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. |
-| Type-Driven Development           | ❌     | CLI args use raw primitives (RUST-2). No newtypes for host, port, db_url.       |
-| Parse Don't Validate               | ❌     | CLI values not parsed into domain types at boundary. FE uses `as string` casts. |
-| Make Impossible States Impossible  | ⚠️     | Port allows u32 but valid range is 0-65535. No impossible state prevention.     |
+| Type-Driven Development           | ⚠️     | ~~CLI args use raw primitives (RUST-2)~~ port narrowed to u16. host/db_url remain `String` (YAGNI — no invariants to encode). |
+| Parse Don't Validate               | ✅     | CLI port parsed to u16 at clap boundary. FE FormData values validated with typeof guards. |
+| Make Impossible States Impossible  | ✅     | ~~Port allows u32 but valid range is 0-65535~~ port is now u16. Ref access null-guarded. |
 | ADTs                               | ✅     | Error types use proper enums with thiserror. LogLevel/LogFormat are proper ADTs. |
 | Composition over Inheritance       | ✅     | No inheritance. Trait-based composition used throughout.                         |
 | CQRS                               | N/A    | Not applicable at current scale.                                                |
@@ -125,13 +125,13 @@ Each item below is self-contained and can be tackled independently by an agent.
 | 2  | FE-8   | ~~Add `res.ok` check after fetch, distinguish HTTP errors from network errors~~                      | `app/src/api_tester/components/APITester.tsx` | **DONE** |
 | 3  | FE-6   | ~~Properly destroy Quill instance on unmount (call destroy or equivalent cleanup)~~                   | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 
-### Priority 2 — Type Safety
+### Priority 2 — Type Safety ✅ COMPLETE
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 4  | RUST-2 | Introduce newtypes or validated types for CLI args (Host, Port(u16), DatabaseUrl, Duration)           | `crates/api/src/cli.rs`            |
-| 5  | FE-2   | Replace `any` in route handler with proper Bun `Request` type                                        | `app/src/index.tsx`                |
-| 6  | FE-3,4 | Remove non-null assertions and type casts; add proper null checks                                    | `app/src/api_tester/components/APITester.tsx` |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 4  | RUST-2 | ~~Introduce newtypes or validated types for CLI args (Host, Port(u16), DatabaseUrl, Duration)~~       | `crates/api/src/cli.rs`            | **DONE** |
+| 5  | FE-2   | ~~Replace `any` in route handler with proper Bun `Request` type~~                                    | `app/src/index.tsx`                | **DONE** |
+| 6  | FE-3,4 | ~~Remove non-null assertions and type casts; add proper null checks~~                                | `app/src/api_tester/components/APITester.tsx` | **DONE** |
 
 ### Priority 3 — Code Hygiene
 
