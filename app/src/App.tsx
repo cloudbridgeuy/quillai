@@ -1,4 +1,5 @@
 import { APITester } from "./api_tester/components/APITester";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Editor from "./md_editor/components/Editor";
 import "./index.css";
 
@@ -17,10 +18,12 @@ export function App() {
       <p>
         Edit <code>src/App.tsx</code> and save to test HMR
       </p>
-      <APITester />
-      <Editor />
+      <ErrorBoundary>
+        <APITester />
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Editor />
+      </ErrorBoundary>
     </div>
   );
 }
-
-export default App;
