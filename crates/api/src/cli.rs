@@ -10,7 +10,7 @@ pub struct App {
 
     /// Port the API should listen.
     #[clap(long, default_value = "2908")]
-    pub port: u32,
+    pub port: u16,
 
     /// Database host url
     #[clap(long, default_value = "sqlite://", env = "QUILLAI_API_DB_URL")]
@@ -20,7 +20,7 @@ pub struct App {
     #[clap(long, default_value = "1", env = "QUILLAI_API_DB_MAX_CONNECTIONS")]
     pub db_max_connections: u32,
 
-    /// Database acquire timeout
+    /// Database acquire timeout in seconds
     #[clap(long, default_value = "3", env = "QUILLAI_API_DB_ACQUIRE_TIMEOUT")]
     pub db_acquire_timeout: u64,
 
