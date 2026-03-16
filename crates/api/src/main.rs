@@ -7,17 +7,14 @@
 //! ```not_rust
 //! cargo run -p auto-load
 //! ```
-use axum::{extract::State, response::Html, routing::get, Router};
 use clap::Parser;
 use listenfd::ListenFd;
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::SqlitePoolOptions;
 use tokio::net::TcpListener;
 
 mod cli;
-mod error;
-mod prelude;
 
-use crate::prelude::*;
+use quillai_api::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -43,7 +40,7 @@ async fn main() -> Result<()> {
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Router                                                                      │
     // ╰─────────────────────────────────────────────────────────────────────────────╯
-    let app = Router::new().route("/", get(handler)).with_state(pool);
+    let app = quillai_api::app(pool);
 
     // ╭─────────────────────────────────────────────────────────────────────────────╮
     // │ Dev mode                                                                    │
@@ -73,12 +70,4 @@ async fn main() -> Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
-}
-
-async fn handler(State(pool): State<SqlitePool>) -> std::result::Result<Html<String>, Error> {
-    let value: String = sqlx::query_scalar!("SELECT 'hello world from sqlite'")
-        .fetch_one(&pool)
-        .await?;
-
-    Ok(Html(format!("<h1>Hello, {}!</h1>", value)))
 }
