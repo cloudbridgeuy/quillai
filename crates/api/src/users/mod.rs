@@ -1,1 +1,11 @@
+pub mod handlers;
 pub mod models;
+
+use axum::{routing::get, Router};
+use sqlx::sqlite::SqlitePool;
+
+pub fn routes(pool: SqlitePool) -> Router {
+    Router::new()
+        .route("/users", get(handlers::list_users).post(handlers::create_user))
+        .with_state(pool)
+}
