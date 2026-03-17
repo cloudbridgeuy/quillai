@@ -1,5 +1,6 @@
 pub mod error;
 pub mod prelude;
+pub mod users;
 
 use axum::{extract::State, response::Html, routing::get, Router};
 use sqlx::sqlite::SqlitePool;

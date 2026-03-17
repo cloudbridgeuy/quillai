@@ -9,6 +9,10 @@ pub enum Error {
     Sqlx(#[from] sqlx::Error),
     #[error("invalid log level")]
     InvalidLogLevel(#[from] quillai_log::Error),
+    #[error("not found")]
+    NotFound,
+    #[error("validation error: {0}")]
+    Validation(String),
 }
 
 impl Error {
@@ -16,6 +20,8 @@ impl Error {
         match self {
             Error::Sqlx(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::InvalidLogLevel(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::NotFound => StatusCode::NOT_FOUND,
+            Error::Validation(_) => StatusCode::UNPROCESSABLE_ENTITY,
         }
     }
 
@@ -23,6 +29,8 @@ impl Error {
         match self {
             Error::Sqlx(_) => "SQLX",
             Error::InvalidLogLevel(_) => "INVALID_LOG_LEVEL",
+            Error::NotFound => "NOT_FOUND",
+            Error::Validation(_) => "VALIDATION_ERROR",
         }
     }
 }
@@ -84,5 +92,25 @@ mod tests {
         let err = Error::InvalidLogLevel(quillai_log::Error::InvalidLogLevel("bad".into()));
         assert_eq!(err.status_code(), StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(err.error_code(), "INVALID_LOG_LEVEL");
+    }
+
+    #[test]
+    fn not_found_error_code_and_status() {
+        let err = Error::NotFound;
+        assert_eq!(err.status_code(), StatusCode::NOT_FOUND);
+        assert_eq!(err.error_code(), "NOT_FOUND");
+    }
+
+    #[test]
+    fn validation_error_code_and_status() {
+        let err = Error::Validation("email is required".into());
+        assert_eq!(err.status_code(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(err.error_code(), "VALIDATION_ERROR");
+    }
+
+    #[test]
+    fn validation_error_message() {
+        let err = Error::Validation("email is required".into());
+        assert_eq!(err.to_string(), "validation error: email is required");
     }
 }
