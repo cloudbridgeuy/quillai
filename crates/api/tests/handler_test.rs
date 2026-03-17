@@ -31,6 +31,21 @@ fn json_request(method: &str, uri: &str, body: serde_json::Value) -> Request<Bod
         .unwrap()
 }
 
+fn get_request(uri: &str) -> Request<Body> {
+    Request::builder()
+        .uri(uri)
+        .body(Body::empty())
+        .unwrap()
+}
+
+fn delete_request(uri: &str) -> Request<Body> {
+    Request::builder()
+        .method("DELETE")
+        .uri(uri)
+        .body(Body::empty())
+        .unwrap()
+}
+
 async fn test_pool() -> SqlitePool {
     let pool = SqlitePool::connect("sqlite::memory:")
         .await
@@ -47,12 +62,7 @@ async fn list_users_empty() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool);
 
-    let req = Request::builder()
-        .uri("/users")
-        .body(Body::empty())
-        .unwrap();
-
-    let res = app.into_service().oneshot(req).await.unwrap();
+    let res = app.into_service().oneshot(get_request("/users")).await.unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
     assert_eq!(json_body(res).await, json!([]));
@@ -116,12 +126,7 @@ async fn create_then_list() {
 
     // List users
     let app = quillai_api::app(pool);
-    let req = Request::builder()
-        .uri("/users")
-        .body(Body::empty())
-        .unwrap();
-
-    let res = app.into_service().oneshot(req).await.unwrap();
+    let res = app.into_service().oneshot(get_request("/users")).await.unwrap();
     assert_eq!(res.status(), StatusCode::OK);
 
     let parsed = json_body(res).await;
@@ -136,12 +141,92 @@ async fn unknown_route_returns_404() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool);
 
-    let req = Request::builder()
-        .uri("/nonexistent")
-        .body(Body::empty())
-        .unwrap();
+    let res = app.into_service().oneshot(get_request("/nonexistent")).await.unwrap();
 
+    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn get_user_existing() {
+    let pool = test_pool().await;
+
+    // Create a user
+    let app = quillai_api::app(pool.clone());
+    let req = json_request("POST", "/users", json!({ "name": "Alice", "email": "alice@example.com" }));
     let res = app.into_service().oneshot(req).await.unwrap();
+    let created = json_body(res).await;
+    let id = created["id"].as_i64().unwrap();
 
+    // GET the user by id
+    let app = quillai_api::app(pool);
+    let res = app.into_service().oneshot(get_request(&format!("/users/{id}"))).await.unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let parsed = json_body(res).await;
+    assert_eq!(parsed["id"], id);
+    assert_eq!(parsed["name"], "Alice");
+    assert_eq!(parsed["email"], "alice@example.com");
+}
+
+#[tokio::test]
+async fn get_user_not_found() {
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool);
+
+    let res = app.into_service().oneshot(get_request("/users/999")).await.unwrap();
+
+    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    let parsed = json_body(res).await;
+    assert_eq!(parsed["error"], "not found");
+    assert_eq!(parsed["code"], "NOT_FOUND");
+}
+
+#[tokio::test]
+async fn delete_user_existing() {
+    let pool = test_pool().await;
+
+    // Create a user
+    let app = quillai_api::app(pool.clone());
+    let req = json_request("POST", "/users", json!({ "name": "Alice", "email": "alice@example.com" }));
+    let res = app.into_service().oneshot(req).await.unwrap();
+    let created = json_body(res).await;
+    let id = created["id"].as_i64().unwrap();
+
+    // DELETE the user
+    let app = quillai_api::app(pool);
+    let res = app.into_service().oneshot(delete_request(&format!("/users/{id}"))).await.unwrap();
+
+    assert_eq!(res.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn delete_user_not_found() {
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool);
+
+    let res = app.into_service().oneshot(delete_request("/users/999")).await.unwrap();
+
+    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn delete_then_get_returns_404() {
+    let pool = test_pool().await;
+
+    // Create a user
+    let app = quillai_api::app(pool.clone());
+    let req = json_request("POST", "/users", json!({ "name": "Alice", "email": "alice@example.com" }));
+    let res = app.into_service().oneshot(req).await.unwrap();
+    let created = json_body(res).await;
+    let id = created["id"].as_i64().unwrap();
+
+    // DELETE the user
+    let app = quillai_api::app(pool.clone());
+    let res = app.into_service().oneshot(delete_request(&format!("/users/{id}"))).await.unwrap();
+    assert_eq!(res.status(), StatusCode::NO_CONTENT);
+
+    // GET should now return 404
+    let app = quillai_api::app(pool);
+    let res = app.into_service().oneshot(get_request(&format!("/users/{id}"))).await.unwrap();
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }

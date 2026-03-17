@@ -1,4 +1,8 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use sqlx::sqlite::SqlitePool;
 
 use super::models::{CreateUser, User};
@@ -30,4 +34,28 @@ pub async fn create_user(
         email: input.email,
     };
     Ok((StatusCode::CREATED, Json(user)))
+}
+
+pub async fn get_user(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+) -> Result<Json<User>, Error> {
+    let user = sqlx::query_as!(User, "SELECT id, name, email FROM users WHERE id = ?", id)
+        .fetch_optional(&pool)
+        .await?
+        .ok_or(Error::NotFound)?;
+    Ok(Json(user))
+}
+
+pub async fn delete_user(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+) -> Result<StatusCode, Error> {
+    let result = sqlx::query!("DELETE FROM users WHERE id = ?", id)
+        .execute(&pool)
+        .await?;
+    if result.rows_affected() == 0 {
+        return Err(Error::NotFound);
+    }
+    Ok(StatusCode::NO_CONTENT)
 }
