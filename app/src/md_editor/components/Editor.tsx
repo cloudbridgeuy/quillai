@@ -1,4 +1,6 @@
-import type Quill from "quill";
+import Quill from "quill";
+import { Delta } from "quill/core";
+import "quill/dist/quill.snow.css";
 import {
   forwardRef,
   useEffect,
@@ -46,24 +48,22 @@ function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
 
   const context = analyzeMarkdownContext(lineText, relativePos);
   if (!context) return;
-  
+
   const absoluteStart = lineStart + context.start;
-  const absoluteEnd = lineStart + context.end;
-  
+
   // Use Delta operations for precise text replacement
-  const Delta = window.Quill.import('delta');
   const replacementDelta = new Delta()
     .retain(absoluteStart)
     .delete(context.match[0].length)
     .insert(context.content, context.pattern.format);
-  
+
   // Apply the change
   quill.updateContents(replacementDelta, 'silent');
-  
+
   // Position cursor at the end of the formatted text
   const newCursorPos = absoluteStart + context.content.length;
   quill.setSelection(newCursorPos, 0, 'silent');
-  
+
   // Reset formatting state for subsequent typing
   const formatAttributes = Object.keys(context.pattern.format);
   for (const attr of formatAttributes) {
@@ -92,17 +92,12 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
     });
 
     useEffect(() => {
-      if (!ref || ref == null || typeof ref === "function") return;
+      if (!ref || typeof ref === "function") return;
       ref.current?.enable(!readOnly);
     }, [ref, readOnly]);
 
     useEffect(() => {
-      if (
-        containerRef === null ||
-        !ref ||
-        ref == null ||
-        typeof ref === "function"
-      )
+      if (containerRef === null || !ref || typeof ref === "function")
         return;
 
       const container = containerRef.current;
@@ -113,7 +108,7 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
         container.ownerDocument.createElement("div"),
       );
 
-      const quill = new window.Quill(editorContainer, {
+      const quill = new Quill(editorContainer, {
         theme: "snow",
       });
 
@@ -123,22 +118,18 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
         quill.setContents(defaultValueRef.current);
       }
 
-      quill.on(window.Quill.events.TEXT_CHANGE, (...args) => {
-        const [delta, oldDelta, source] = args;
-        
-        // Process markdown syntax
+      quill.on(Quill.events.TEXT_CHANGE, (delta, oldDelta, source) => {
         processMarkdownSyntax(quill, delta, source);
-        
-        onTextChangeRef.current?.(...args);
+        onTextChangeRef.current?.(delta, oldDelta, source);
       });
 
-      quill.on(window.Quill.events.SELECTION_CHANGE, (...args) => {
-        onSelectionChangeRef.current?.(...args);
+      quill.on(Quill.events.SELECTION_CHANGE, (range, oldRange, source) => {
+        onSelectionChangeRef.current?.(range, oldRange, source);
       });
 
       return () => {
-        quill.off(window.Quill.events.TEXT_CHANGE);
-        quill.off(window.Quill.events.SELECTION_CHANGE);
+        quill.off(Quill.events.TEXT_CHANGE);
+        quill.off(Quill.events.SELECTION_CHANGE);
         ref.current = null;
         container.innerHTML = "";
       };
@@ -151,44 +142,12 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 Component.displayName = "EditorComponent";
 
 export const Container = () => {
-  const [isReady, setIsReady] = useState(false);
   const [range, setRange] = useState<RangeT | null>(null);
   const [lastChange, setLastChange] = useState<DeltaT | null>();
   const [readOnly, setReadOnly] = useState(false);
 
-  useEffect(() => {
-    // Check if the quill.snow.css stylesheet has been appended.
-    if (
-      !document.querySelector('link[href="/assets/quilljs/quill.snow.css"]')
-    ) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "/assets/quilljs/quill.snow.css";
-      document.head.appendChild(link);
-    }
-
-    if (!window.Quill) {
-      try {
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = "/assets/quilljs/quill.2.0.3.js";
-        script.onload = () => {
-          setIsReady(true);
-        };
-        // Attach to head
-        document.head.appendChild(script);
-      } catch (error) {
-        console.error("Error loading Quill script:", error);
-      }
-    }
-  }, []);
-
   // Use a ref to access the quill instance directly
   const quillRef = useRef<Quill | null>(null);
-
-  if (!isReady) return null;
-
-  const Delta = window.Quill.import("delta");
 
   return (
     <div>

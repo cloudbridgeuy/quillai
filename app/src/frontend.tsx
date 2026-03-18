@@ -9,12 +9,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
-declare global {
-  interface Window {
-    Quill: typeof import("quill").default;
-  }
-}
-
 const elem = document.getElementById("root")!;
 const app = (
   <StrictMode>
