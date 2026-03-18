@@ -1,4 +1,4 @@
-import { useRef, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 type ApiError = { error: string; code: string };
 
@@ -18,11 +18,17 @@ export function formatResponseBody(
   return `${status} ${statusText}`;
 }
 
+export function buttonLabel(isLoading: boolean): string {
+  return isLoading ? "Sending..." : "Send";
+}
+
 export function APITester() {
   const responseInputRef = useRef<HTMLTextAreaElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const testEndpoint = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
       const form = e.currentTarget;
@@ -52,6 +58,8 @@ export function APITester() {
       if (responseInputRef.current) {
         responseInputRef.current.value = String(error);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,8 +71,8 @@ export function APITester() {
           <option value="PUT">PUT</option>
         </select>
         <input type="text" name="endpoint" defaultValue="/api/hello" className="url-input" placeholder="/api/hello" />
-        <button type="submit" className="send-button">
-          Send
+        <button type="submit" className="send-button" disabled={isLoading}>
+          {buttonLabel(isLoading)}
         </button>
       </form>
       <textarea ref={responseInputRef} readOnly placeholder="Response will appear here..." className="response-area" />
