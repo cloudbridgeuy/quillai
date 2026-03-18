@@ -1,5 +1,5 @@
 ---
-shaping: true
+shaping: done
 ---
 
 # RUST-5 Implementation Plan — Users CRUD API

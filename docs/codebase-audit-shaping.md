@@ -46,7 +46,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | ~~**RUST-2**~~ | ~~**Stringly-typed CLI args (`crates/api/src/cli.rs`)** — host is `String`, port is `u32` (valid range is u16), db_url is `String`, db_acquire_timeout is `u64` with no unit annotation~~ | ~~Medium~~ | ~~R0,R2~~ | **DONE** — port narrowed to `u16`; doc comment clarified "in seconds"; no newtypes for host/db_url (YAGNI) |
 | ~~**RUST-3**~~ | ~~**Unused dependencies in `crates/api/Cargo.toml`** — `log` and `env_logger` declared but never imported~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed `log` and `env_logger` from API crate; removed `env_logger` from workspace deps (`log` kept — used by `crates/log` optionally) |
 | ~~**RUST-4**~~ | ~~**Phantom workspace crates in root `Cargo.toml`** — `quillai_delta` and `quillai_parchment` referenced in `[workspace.dependencies]` but crates don't exist~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed phantom crate entries from workspace deps |
-| **RUST-5** | **API handler is a stub** — `GET /` runs `SELECT 'hello world from sqlite'` instead of querying the `users` table defined in migrations | Medium   | R0    |
+| ~~**RUST-5**~~ | ~~**API handler is a stub** — `GET /` runs `SELECT 'hello world from sqlite'` instead of querying the `users` table defined in migrations~~ | ~~Medium~~ | ~~R0~~ | **DONE** — replaced stub with full CRUD (list, get, create, update, delete) for `users` table |
 | ~~**RUST-6**~~ | ~~**Zero test coverage in API crate** — no unit or integration tests for handlers, error types, or CLI parsing~~ | ~~High~~ | ~~R4~~ | **DONE** — extracted router factory `app()` into lib.rs; added 2 integration tests (GET / → 200, unknown route → 404) + 2 error unit tests |
 | **RUST-7** | **Zero test coverage in xtask** — no tests for build task runner | Low      | R4    |
 | ~~**RUST-8**~~ | ~~**No SQLx compile-time query cache** — `.sqlx/` directory missing or empty, queries not verified at compile time~~ | ~~Medium~~ | ~~R3~~ | **DONE** — added `offline` feature, populated `.sqlx/` cache, `SQLX_OFFLINE=true cargo check` passes |
@@ -86,7 +86,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ❌   |
 
 **Notes:**
-- R0 partial: stub handler (RUST-5), hardcoded values (FE-13). ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed.
+- R0 partial: ~~stub handler (RUST-5)~~ replaced with full CRUD. Remaining: hardcoded values (FE-13). ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed.
 - R1 passes: ~~clippy warning (RUST-1)~~ fixed. Zero warnings on `cargo clippy`.
 - R2 passes: ~~stringly-typed CLI (RUST-2)~~ port narrowed to u16. ~~`any` type (FE-2)~~ removed. ~~unsafe casts (FE-3, FE-4)~~ replaced with null guards.
 - R3 passes: ~~missing `res.ok` check (FE-8)~~ fixed. ~~no error boundary (FE-5)~~ added. ~~no SQLx cache (RUST-8)~~ populated. API errors return standardized JSON `{ error, code }`.
@@ -102,7 +102,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Pattern                           | Status | Key Violations                                                                  |
 | --------------------------------- | :----: | ------------------------------------------------------------------------------- |
-| Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Router factory `app()` extracted as pure core (lib.rs), main.rs is imperative shell. Error handling follows FC/IS: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. Editor: pure markdown functions extracted to `markdown.ts`, Editor component is shell. ErrorBoundary: pure DefaultFallback + class component shell. |
+| Functional Core / Imperative Shell | ✅     | ~~API handler mixes query + response (RUST-5)~~ replaced with FC/IS CRUD: pure validation in `models.rs`, thin handlers in `handlers.rs`. Router factory `app()` composes routes (lib.rs), main.rs is imperative shell. Error handling: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. Editor: pure markdown functions in `markdown.ts`, Editor component is shell. ErrorBoundary: pure DefaultFallback + class component shell. |
 | Type-Driven Development           | ⚠️     | ~~CLI args use raw primitives (RUST-2)~~ port narrowed to u16. host/db_url remain `String` (YAGNI — no invariants to encode). |
 | Parse Don't Validate               | ✅     | CLI port parsed to u16 at clap boundary. FE FormData values validated with typeof guards. |
 | Make Impossible States Impossible  | ✅     | ~~Port allows u32 but valid range is 0-65535~~ port is now u16. Ref access null-guarded. |
