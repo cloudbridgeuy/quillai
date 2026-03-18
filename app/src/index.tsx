@@ -2,7 +2,7 @@ import { serve } from "bun";
 import index from "./index.html";
 
 const server = serve({
-  port: 3001,
+  port: Number(process.env.PORT || 3001),
   routes: {
     // Serve static assets from "../assets".
     "/assets/*": (req) => {
