@@ -31,10 +31,12 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | Server init, Axum router, SQLite pool setup, route handlers. Uses `query_scalar!` macro for compile-time SQL checking. See [SQLx offline context](.claude/context/sqlx-offline.md) |
+| `main.rs` | Server init, SQLite pool setup, calls `app()` from lib.rs |
+| `lib.rs` | Router composition — merges resource routes via `Router::merge()` |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
-| `error.rs` | Error enum, manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
+| `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
 | `prelude.rs` | Re-exports Error and Result |
+| `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 
 ### Rust — Logging (`crates/log/src/`)
 
@@ -88,8 +90,12 @@ Single migration: `migrations/20250407204144_init.up.sql` — creates `users` ta
 
 ## API Routes
 
-**Rust backend** (`crates/api/src/main.rs`):
-- `GET /` — HTML response with SQLite query
+**Rust backend** (`crates/api/src/users/`):
+- `GET /users` — List all users (JSON array)
+- `POST /users` — Create user (201 + JSON)
+- `GET /users/{id}` — Get user by ID (JSON or 404)
+- `PUT /users/{id}` — Partial update user (JSON, 404, or 422)
+- `DELETE /users/{id}` — Delete user (204 or 404)
 
 **Bun frontend** (`app/src/index.tsx`):
 - `GET /assets/*` — static file serving
