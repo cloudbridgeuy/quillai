@@ -5,7 +5,7 @@ use axum::{
 };
 use sqlx::sqlite::SqlitePool;
 
-use super::models::{CreateUser, User};
+use super::models::{CreateUser, UpdateUser, User};
 use crate::error::Error;
 
 pub async fn list_users(State(pool): State<SqlitePool>) -> Result<Json<Vec<User>>, Error> {
@@ -44,6 +44,34 @@ pub async fn get_user(
         .fetch_optional(&pool)
         .await?
         .ok_or(Error::NotFound)?;
+    Ok(Json(user))
+}
+
+pub async fn update_user(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+    Json(input): Json<UpdateUser>,
+) -> Result<Json<User>, Error> {
+    input.validate()?;
+
+    let existing = sqlx::query_as!(User, "SELECT id, name, email FROM users WHERE id = ?", id)
+        .fetch_optional(&pool)
+        .await?
+        .ok_or(Error::NotFound)?;
+
+    let name = input.name.unwrap_or(existing.name);
+    let email = input.email.unwrap_or(existing.email);
+
+    sqlx::query!(
+        "UPDATE users SET name = ?, email = ? WHERE id = ?",
+        name,
+        email,
+        id,
+    )
+    .execute(&pool)
+    .await?;
+
+    let user = User { id, name, email };
     Ok(Json(user))
 }
 
