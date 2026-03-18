@@ -1,5 +1,5 @@
 ---
-shaping: true
+shaping: done
 ---
 
 # INFRA-1: CI/CD Pipeline — Shaping
@@ -18,7 +18,7 @@ From the codebase audit (INFRA-1): "No CI/CD pipeline — no GitHub Actions, no 
 
 ### Outcome
 
-Every push to `main` and every PR targeting `main` is automatically checked against R1–R6 before merging.
+Every push to `main` and every PR targeting `main` is automatically checked against R1–R5 before merging.
 
 ---
 
@@ -26,12 +26,12 @@ Every push to `main` and every PR targeting `main` is automatically checked agai
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| R0 | Pipeline enforces R1–R6 on every push to `main` and every PR to `main` | Core goal |
-| R1 | Rust checks: `cargo fmt --check`, `cargo clippy -- -D warnings`, `SQLX_OFFLINE=true cargo check`, `cargo test` | Must-have |
-| R2 | SQLx offline verification: queries compile against `.sqlx/` cache | Must-have |
-| R3 | Frontend checks: `bun test`, `bun build` | Must-have |
-| R4 | CI must pass before PR can merge to `main` (branch protection) | Must-have |
-| R5 | Pipeline is fast enough to not block workflow | Nice-to-have |
+| R0 | Pipeline enforces R1–R5 on every push to `main` and every PR to `main` | ✅ Done |
+| R1 | Rust checks: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `SQLX_OFFLINE=true cargo check`, `cargo test` | ✅ Done |
+| R2 | SQLx offline verification: queries compile against `.sqlx/` cache | ✅ Done |
+| R3 | Frontend checks: `bun test`, `bun run build` | ✅ Done |
+| R4 | CI must pass before PR can merge to `main` (branch protection) | ✅ Documented |
+| R5 | Pipeline is fast enough to not block workflow | ✅ Done |
 
 ---
 
@@ -39,10 +39,10 @@ Every push to `main` and every PR targeting `main` is automatically checked agai
 
 | Part | Mechanism |
 |------|-----------|
-| **A1** | Single workflow file `.github/workflows/ci.yml`, triggers on `push: [main]` + `pull_request: [main]` |
-| **A2** | **Rust job**: checkout → install Rust toolchain (stable) → cache `~/.cargo` and `target/` → `cargo fmt --check` → `cargo clippy -- -D warnings` → `SQLX_OFFLINE=true cargo check` → `cargo test` |
-| **A3** | **Frontend job**: checkout → install Bun → cache `node_modules/` → `bun install` → `bun test` → `bun build app/src/index.html` |
-| **A4** | **Branch protection**: document step-by-step instructions to enable "Require status checks to pass" on `main` in GitHub repo settings |
+| **A1** ✅ | Single workflow file `.github/workflows/ci.yml`, triggers on `push: [main]` + `pull_request: [main]` |
+| **A2** ✅ | **Rust job**: checkout → install Rust toolchain (stable) → cache `~/.cargo` and `target/` → `cargo fmt --all --check` → `cargo clippy --all-targets -- -D warnings` → `SQLX_OFFLINE=true cargo check` → `cargo test` |
+| **A3** ✅ | **Frontend job**: checkout → install Bun → cache `node_modules/` → `bun install --frozen-lockfile` → `bun test` → `bun run build` |
+| **A4** ✅ | **Branch protection**: step-by-step instructions documented below |
 
 ---
 
@@ -50,7 +50,7 @@ Every push to `main` and every PR targeting `main` is automatically checked agai
 
 | Req | Requirement | Status | A |
 |-----|-------------|--------|---|
-| R0 | Pipeline enforces R1–R6 on every push/PR to `main` | Core goal | ✅ |
+| R0 | Pipeline enforces R1–R5 on every push/PR to `main` | ✅ Done | ✅ |
 | R1 | Rust checks: fmt, clippy, check, test | Must-have | ✅ |
 | R2 | SQLx offline verification | Must-have | ✅ |
 | R3 | Frontend checks: bun test, bun build | Must-have | ✅ |

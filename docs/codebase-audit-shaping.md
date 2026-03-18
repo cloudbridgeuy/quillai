@@ -47,19 +47,19 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | ~~**RUST-3**~~ | ~~**Unused dependencies in `crates/api/Cargo.toml`** — `log` and `env_logger` declared but never imported~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed `log` and `env_logger` from API crate; removed `env_logger` from workspace deps (`log` kept — used by `crates/log` optionally) |
 | ~~**RUST-4**~~ | ~~**Phantom workspace crates in root `Cargo.toml`** — `quillai_delta` and `quillai_parchment` referenced in `[workspace.dependencies]` but crates don't exist~~ | ~~Low~~ | ~~R5~~ | **DONE** — removed phantom crate entries from workspace deps |
 | **RUST-5** | **API handler is a stub** — `GET /` runs `SELECT 'hello world from sqlite'` instead of querying the `users` table defined in migrations | Medium   | R0    |
-| **RUST-6** | **Zero test coverage in API crate** — no unit or integration tests for handlers, error types, or CLI parsing | High     | R4    |
+| ~~**RUST-6**~~ | ~~**Zero test coverage in API crate** — no unit or integration tests for handlers, error types, or CLI parsing~~ | ~~High~~ | ~~R4~~ | **DONE** — extracted router factory `app()` into lib.rs; added 2 integration tests (GET / → 200, unknown route → 404) + 2 error unit tests |
 | **RUST-7** | **Zero test coverage in xtask** — no tests for build task runner | Low      | R4    |
-| **RUST-8** | **No SQLx compile-time query cache** — `.sqlx/` directory missing or empty, queries not verified at compile time | Medium   | R3    |
+| ~~**RUST-8**~~ | ~~**No SQLx compile-time query cache** — `.sqlx/` directory missing or empty, queries not verified at compile time~~ | ~~Medium~~ | ~~R3~~ | **DONE** — added `offline` feature, populated `.sqlx/` cache, `SQLX_OFFLINE=true cargo check` passes |
 | ~~**FE-1**~~   | ~~**Incorrect Content-Type for all assets (`app/src/index.tsx:11`)** — hardcoded `"text/plain"` for CSS, JS, images~~ | ~~High~~ | ~~R6~~ | **DONE** — removed hardcoded header; `Bun.file()` infers MIME types |
 | ~~**FE-2**~~   | ~~**`any` type in route handler (`app/src/index.tsx:8`)** — `(req: any)` bypasses TypeScript type checking~~ | ~~Medium~~ | ~~R2~~ | **DONE** — removed explicit annotation; Bun infers `BunRequest<"/assets/*">` |
 | ~~**FE-3**~~   | ~~**Unsafe non-null assertions in APITester (`app/src/api_tester/components/APITester.tsx:18,20`)** — `ref.current!.value` without null guard~~ | ~~Medium~~ | ~~R2~~ | **DONE** — replaced `!` with `if (ref.current)` guards |
 | ~~**FE-4**~~   | ~~**Unsafe type casting in APITester (`app/src/api_tester/components/APITester.tsx:12,14`)** — `formData.get(...) as string` masks null~~ | ~~Medium~~ | ~~R2~~ | **DONE** — replaced `as string` with `typeof` guards + early return |
-| **FE-5**   | **No Error Boundary in component tree (`app/src/App.tsx`)** — uncaught throw in Editor or APITester crashes entire app | Medium   | R3    |
+| ~~**FE-5**~~   | ~~**No Error Boundary in component tree (`app/src/App.tsx`)** — uncaught throw in Editor or APITester crashes entire app~~ | ~~Medium~~ | ~~R3~~ | **DONE** — added ErrorBoundary component with ADT state; wraps Editor and APITester independently |
 | ~~**FE-6**~~   | ~~**Memory leak: Quill instance never destroyed (`app/src/md_editor/components/Editor.tsx:219-222`)** — cleanup uses `innerHTML = ""` but no `Quill.destroy()` call~~ | ~~Medium~~ | ~~R0~~ | **DONE** — added `quill.off()` for TEXT_CHANGE and SELECTION_CHANGE before cleanup |
 | **FE-7**   | **Race condition: concurrent Quill script loading (`app/src/md_editor/components/Editor.tsx:237-262`)** — multiple mounts trigger parallel loads with no dedup | Low      | R0    |
 | ~~**FE-8**~~   | ~~**Missing `res.ok` check in fetch (`app/src/api_tester/components/APITester.tsx:15`)** — 4xx/5xx silently parsed as success~~ | ~~Medium~~ | ~~R3~~ | **DONE** — `formatResponseBody()` distinguishes ok/error; parses `{ error, code }` shape |
 | **FE-9**   | **No loading state in APITester** — user gets no feedback during fetch | Low      | R0    |
-| **FE-10**  | **Zero frontend test coverage** — no test files exist | High     | R4    |
+| **FE-10**  | **Zero frontend test coverage** — no test files exist | High     | R4    | **PARTIAL** — added 20 tests for markdown parsing pure functions + APITester; component tests deferred |
 | **FE-11**  | **Missing form labels and ARIA attributes (`APITester.tsx`)** — `<select>`, `<input>`, `<textarea>` lack labels | Medium   | R8    |
 | **FE-12**  | **`alert()` used for content length output (`Editor.tsx:299-303`)** — inaccessible, blocks UI thread | Low      | R8    |
 | **FE-13**  | **Hardcoded port and asset paths** — port 3001 in `index.tsx:5`, asset URLs in `Editor.tsx:240,252` | Low      | R0    |
@@ -78,22 +78,22 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | R0  | Codebase follows its own declared patterns                 | Core goal |   ⚠️    |
 | R1  | No compiler warnings or clippy lints                       | Must-have |   ✅    |
 | R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ✅    |
-| R3  | Error handling is explicit and informative                  | Must-have |   ⚠️    |
-| R4  | Test coverage exists for all non-trivial logic              | Must-have |   ❌    |
+| R3  | Error handling is explicit and informative                  | Must-have |   ✅    |
+| R4  | Test coverage exists for all non-trivial logic              | Must-have |   ⚠️    |
 | R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ✅    |
 | R6  | Frontend serves assets with correct MIME types              | Must-have |   ✅    |
-| R7  | CI pipeline exists to enforce R1-R6 automatically          | Nice-to-have | ❌   |
+| R7  | CI pipeline exists to enforce R1-R6 automatically          | Must-have |   ✅    |
 | R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ❌   |
 
 **Notes:**
 - R0 partial: stub handler (RUST-5), hardcoded values (FE-13). ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed.
 - R1 passes: ~~clippy warning (RUST-1)~~ fixed. Zero warnings on `cargo clippy`.
 - R2 passes: ~~stringly-typed CLI (RUST-2)~~ port narrowed to u16. ~~`any` type (FE-2)~~ removed. ~~unsafe casts (FE-3, FE-4)~~ replaced with null guards.
-- R3 partial: ~~missing `res.ok` check (FE-8)~~ fixed. Remaining: no error boundary (FE-5), no SQLx cache (RUST-8). API errors now return standardized JSON `{ error, code }`.
-- R4 fails: zero tests in xtask and frontend (RUST-7, FE-10). RUST-6 partially addressed (error.rs has unit tests).
+- R3 passes: ~~missing `res.ok` check (FE-8)~~ fixed. ~~no error boundary (FE-5)~~ added. ~~no SQLx cache (RUST-8)~~ populated. API errors return standardized JSON `{ error, code }`.
+- R4 partial: ~~zero API tests (RUST-6)~~ added integration tests. ~~zero frontend tests (FE-10)~~ added markdown + APITester tests. Remaining: xtask untested (RUST-7), component tests deferred.
 - R5 passes: ~~unused deps (RUST-3)~~ removed. ~~phantom crates (RUST-4)~~ removed.
 - R6 passes: ~~all assets served as `text/plain` (FE-1)~~ fixed.
-- R7 fails: no CI/CD (INFRA-1)
+- R7 passes: ~~no CI/CD (INFRA-1)~~ added GitHub Actions workflow with Rust + Frontend jobs. Branch protection documented.
 - R8 fails: missing labels/ARIA (FE-11), `alert()` usage (FE-12)
 
 ---
@@ -102,7 +102,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Pattern                           | Status | Key Violations                                                                  |
 | --------------------------------- | :----: | ------------------------------------------------------------------------------- |
-| Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Error handling now follows FC/IS: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. |
+| Functional Core / Imperative Shell | ⚠️     | API handler mixes query + response (RUST-5). Router factory `app()` extracted as pure core (lib.rs), main.rs is imperative shell. Error handling follows FC/IS: pure `status_code()`/`error_code()` + imperative `IntoResponse`. APITester: pure `formatResponseBody()` + imperative fetch. Editor: pure markdown functions extracted to `markdown.ts`, Editor component is shell. ErrorBoundary: pure DefaultFallback + class component shell. |
 | Type-Driven Development           | ⚠️     | ~~CLI args use raw primitives (RUST-2)~~ port narrowed to u16. host/db_url remain `String` (YAGNI — no invariants to encode). |
 | Parse Don't Validate               | ✅     | CLI port parsed to u16 at clap boundary. FE FormData values validated with typeof guards. |
 | Make Impossible States Impossible  | ✅     | ~~Port allows u32 but valid range is 0-65535~~ port is now u16. Ref access null-guarded. |
@@ -143,25 +143,25 @@ Each item below is self-contained and can be tackled independently by an agent.
 | 10 | FE-14  | ~~Change `useLayoutEffect` to `useEffect` for CSS/script loading~~                                   | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 | 11 | FE-15  | ~~Replace `document.getElementsByTagName("head")[0]` with `document.head`~~                          | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 
-### Priority 4 — Error Handling & Resilience
+### Priority 4 — Error Handling & Resilience ✅ COMPLETE
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 12 | FE-5   | Add React Error Boundary around Editor and APITester                                                 | `app/src/App.tsx`                  |
-| 13 | RUST-8 | Set up SQLx offline mode with `.sqlx/` query cache for compile-time verification                     | `crates/api/`                      |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 12 | FE-5   | ~~Add React Error Boundary around Editor and APITester~~                                             | `app/src/App.tsx`                  | **DONE** |
+| 13 | RUST-8 | ~~Set up SQLx offline mode with `.sqlx/` query cache for compile-time verification~~                 | `crates/api/`                      | **DONE** |
 
-### Priority 5 — Testing
+### Priority 5 — Testing ⚠️ PARTIAL
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 14 | RUST-6 | Add integration tests for API handlers (use axum::test helpers)                                      | `crates/api/tests/`                |
-| 15 | FE-10  | Add component tests for Editor markdown processing logic (extract pure functions, test with bun test) | `app/src/md_editor/`               |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 14 | RUST-6 | ~~Add integration tests for API handlers (use axum::test helpers)~~                                  | `crates/api/tests/`                | **DONE** |
+| 15 | FE-10  | Add component tests for Editor markdown processing logic (extract pure functions, test with bun test) | `app/src/md_editor/`               | **PARTIAL** — markdown pure function tests added (20 tests); component tests deferred |
 
 ### Priority 6 — Infrastructure
 
 | #  | Item   | Description                                                                                          | Files                              |
 | -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 16 | INFRA-1| Create GitHub Actions CI workflow: `cargo check`, `cargo clippy`, `cargo test`, `bun test`            | `.github/workflows/ci.yml`         |
+| 16 | INFRA-1| ~~Create GitHub Actions CI workflow: `cargo check`, `cargo clippy`, `cargo test`, `bun test`~~        | `.github/workflows/ci.yml`         | **DONE** |
 | 17 | INFRA-2| Expand README.md with project description, setup instructions, and quick start                        | `README.md`                        |
 
 ### Priority 7 — Accessibility
