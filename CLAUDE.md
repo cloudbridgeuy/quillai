@@ -23,7 +23,7 @@ docs/          — QuillJS implementation guide
 | Frontend dev | `bun --hot app/src/index.tsx` or `cargo xtask dev app` | `app/src/index.tsx` |
 | Full dev | Run both concurrently | — |
 
-API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
+API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
 
 ## Source Index
 
@@ -54,23 +54,17 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001`.
 
 | File | Purpose |
 |------|---------|
-| `index.tsx` | Bun.serve entry — routes, static assets, HMR |
+| `index.tsx` | Bun.serve entry — routes, static assets, HMR. Port via `PORT` env var |
 | `index.html` | HTML shell, loads frontend.tsx |
 | `App.tsx` | Root React component — renders Editor + APITester, each wrapped in ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
-| `frontend.tsx` | React root setup, CSS import |
+| `frontend.tsx` | React root setup, CSS import, StrictMode |
 | `index.css` | Tailwind + custom styles, dark theme, animations |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/markdown.ts` | Pure markdown analysis functions — `analyzeMarkdownContext`, `isPatternComplete`. See [markdown parsing context](.claude/context/markdown-parsing.md) |
-| `md_editor/components/Editor.tsx` | Quill.js wrapper — imperative shell for markdown formatting (reads Quill state, calls pure functions from `markdown.ts`, applies delta mutations). See [markdown parsing context](.claude/context/markdown-parsing.md) |
-| `api_tester/components/APITester.tsx` | HTTP method selector + URL input + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
-
-### Static Assets (`app/assets/`)
-
-| Directory | Contents |
-|-----------|----------|
-| `quilljs/` | Quill 2.0.3 JS + Snow theme CSS |
-| `highlight/` | highlight.js — languages + themes for code blocks |
+| `md_editor/components/Editor.tsx` | Quill.js wrapper — imports Quill via npm (bundled by Bun), imperative shell for markdown formatting. See [markdown parsing context](.claude/context/markdown-parsing.md) |
+| `api_tester/components/APITester.tsx` | HTTP method selector + URL input + loading state + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
+| `api_tester/components/__tests__/APITester.test.ts` | Unit tests for `buttonLabel()` pure function |
 
 ### Database
 
