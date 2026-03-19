@@ -58,14 +58,14 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | ~~**FE-7**~~   | ~~**Race condition: concurrent Quill script loading (`app/src/md_editor/components/Editor.tsx:237-262`)** — multiple mounts trigger parallel loads with no dedup~~ | ~~Low~~ | ~~R0~~ | **DONE** — eliminated by bundling Quill via import (no runtime script loading) |
 | ~~**FE-8**~~   | ~~**Missing `res.ok` check in fetch (`app/src/api_tester/components/APITester.tsx:15`)** — 4xx/5xx silently parsed as success~~ | ~~Medium~~ | ~~R3~~ | **DONE** — `formatResponseBody()` distinguishes ok/error; parses `{ error, code }` shape |
 | ~~**FE-9**~~   | ~~**No loading state in APITester** — user gets no feedback during fetch~~ | ~~Low~~ | ~~R0~~ | **DONE** — added loading state with disabled button + "Sending..." label |
-| **FE-11**  | **Missing form labels and ARIA attributes (`APITester.tsx`)** — `<select>`, `<input>`, `<textarea>` lack labels | Medium   | R8    |
-| **FE-12**  | **`alert()` used for content length output (`Editor.tsx:299-303`)** — inaccessible, blocks UI thread | Low      | R8    |
+| ~~**FE-11**~~  | ~~**Missing form labels and ARIA attributes (`APITester.tsx`)** — `<select>`, `<input>`, `<textarea>` lack labels~~ | ~~Medium~~ | ~~R8~~ | **DONE** — added `aria-label` to select, input, and textarea |
+| ~~**FE-12**~~  | ~~**`alert()` used for content length output (`Editor.tsx:299-303`)** — inaccessible, blocks UI thread~~ | ~~Low~~ | ~~R8~~ | **DONE** — replaced with inline state display using existing `div.state` pattern |
 | ~~**FE-13**~~  | ~~**Hardcoded port and asset paths** — port 3001 in `index.tsx:5`, asset URLs in `Editor.tsx:240,252`~~ | ~~Low~~ | ~~R0~~ | **DONE** — port from env; asset paths eliminated by bundling Quill via import |
 | ~~**FE-14**~~  | ~~**`useLayoutEffect` blocks paint for CSS check (`Editor.tsx:237`)** — should be `useEffect`~~ | ~~Low~~ | ~~R0~~ | **DONE** — changed to `useEffect` for CSS/script loading; kept `useLayoutEffect` for ref sync (correct usage) |
 | ~~**FE-15**~~  | ~~**`document.getElementsByTagName("head")[0]`** — deprecated API, should be `document.head`~~ | ~~Low~~ | ~~R0~~ | **DONE** — replaced with `document.head` |
 | ~~**INFRA-1**~~| ~~**No CI/CD pipeline** — no GitHub Actions, no automated checks~~ | ~~High~~ | ~~R7~~ | **DONE** — added GitHub Actions CI workflow with Rust + Frontend jobs |
-| **INFRA-2**| **README.md is empty** — only contains `# Quill Ai` (11 bytes) | Medium   | R0    |
-| **INFRA-3**| **`crates/api/README.md` is empty** — only contains `# api` (4 bytes) | Low      | R0    |
+| ~~**INFRA-2**~~| ~~**README.md is empty** — only contains `# Quill Ai` (11 bytes)~~ | ~~Medium~~ | ~~R0~~ | **DONE** — expanded with project description, prerequisites, quick start, configuration, routes, and test commands |
+| ~~**INFRA-3**~~| ~~**`crates/api/README.md` is empty** — only contains `# api` (4 bytes)~~ | ~~Low~~ | ~~R0~~ | **DONE** — expanded with purpose, CLI flags, routes, and test instructions |
 
 ---
 
@@ -73,7 +73,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 
 | Req | Requirement                                                | Status    | CURRENT |
 | --- | ---------------------------------------------------------- | --------- | :-----: |
-| R0  | Codebase follows its own declared patterns                 | Core goal |   ⚠️    |
+| R0  | Codebase follows its own declared patterns                 | Core goal |   ✅    |
 | R1  | No compiler warnings or clippy lints                       | Must-have |   ✅    |
 | R2  | Type safety: no stringly-typed, no `any`, no unsafe casts  | Must-have |   ✅    |
 | R3  | Error handling is explicit and informative                  | Must-have |   ✅    |
@@ -81,10 +81,10 @@ A prioritized, actionable list of findings — each self-contained enough for an
 | R5  | No dead code, unused deps, or phantom crate references     | Must-have |   ✅    |
 | R6  | Frontend serves assets with correct MIME types              | Must-have |   ✅    |
 | R7  | CI pipeline exists to enforce R1-R6 automatically          | Must-have |   ✅    |
-| R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ❌   |
+| R8  | Accessibility basics (labels, ARIA, keyboard nav)           | Nice-to-have | ✅   |
 
 **Notes:**
-- R0 partial: ~~stub handler (RUST-5)~~ replaced with full CRUD. ~~hardcoded values (FE-13)~~ port from env + bundled imports. ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed. ~~race condition (FE-7)~~ eliminated by bundling. ~~no loading state (FE-9)~~ added.
+- R0 passes: ~~stub handler (RUST-5)~~ replaced with full CRUD. ~~hardcoded values (FE-13)~~ port from env + bundled imports. ~~deprecated APIs (FE-15)~~ fixed. ~~memory leak (FE-6)~~ fixed. ~~`useLayoutEffect` misuse (FE-14)~~ fixed. ~~race condition (FE-7)~~ eliminated by bundling. ~~no loading state (FE-9)~~ added. ~~empty READMEs (INFRA-2, INFRA-3)~~ expanded with full content.
 - R1 passes: ~~clippy warning (RUST-1)~~ fixed. Zero warnings on `cargo clippy`.
 - R2 passes: ~~stringly-typed CLI (RUST-2)~~ port narrowed to u16. ~~`any` type (FE-2)~~ removed. ~~unsafe casts (FE-3, FE-4)~~ replaced with null guards.
 - R3 passes: ~~missing `res.ok` check (FE-8)~~ fixed. ~~no error boundary (FE-5)~~ added. ~~no SQLx cache (RUST-8)~~ populated. API errors return standardized JSON `{ error, code }`.
@@ -92,7 +92,7 @@ A prioritized, actionable list of findings — each self-contained enough for an
 - R5 passes: ~~unused deps (RUST-3)~~ removed. ~~phantom crates (RUST-4)~~ removed.
 - R6 passes: ~~all assets served as `text/plain` (FE-1)~~ fixed.
 - R7 passes: ~~no CI/CD (INFRA-1)~~ added GitHub Actions workflow with Rust + Frontend jobs. Branch protection documented.
-- R8 fails: missing labels/ARIA (FE-11), `alert()` usage (FE-12)
+- R8 passes: ~~missing labels/ARIA (FE-11)~~ added `aria-label` attributes. ~~`alert()` usage (FE-12)~~ replaced with inline display.
 
 ---
 
@@ -154,19 +154,19 @@ Each item below is self-contained and can be tackled independently by an agent.
 | -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
 | 14 | RUST-6 | ~~Add integration tests for API handlers (use axum::test helpers)~~                                  | `crates/api/tests/`                | **DONE** |
 
-### Priority 6 — Infrastructure ⚠️ PARTIAL
+### Priority 6 — Infrastructure ✅ COMPLETE
 
 | #  | Item   | Description                                                                                          | Files                              | Status |
 | -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
 | 16 | INFRA-1| ~~Create GitHub Actions CI workflow: `cargo check`, `cargo clippy`, `cargo test`, `bun test`~~        | `.github/workflows/ci.yml`         | **DONE** |
-| 17 | INFRA-2| Expand README.md with project description, setup instructions, and quick start                        | `README.md`                        |
+| 17 | INFRA-2| ~~Expand README.md with project description, setup instructions, and quick start~~                    | `README.md`                        | **DONE** |
 
-### Priority 7 — Accessibility
+### Priority 7 — Accessibility ✅ COMPLETE
 
-| #  | Item   | Description                                                                                          | Files                              |
-| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 18 | FE-11  | Add labels, `aria-label`, and proper semantics to form elements                                      | `app/src/api_tester/components/APITester.tsx` |
-| 19 | FE-12  | Replace `alert()` with inline UI display for content length                                          | `app/src/md_editor/components/Editor.tsx` |
+| #  | Item   | Description                                                                                          | Files                              | Status |
+| -- | ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| 18 | FE-11  | ~~Add labels, `aria-label`, and proper semantics to form elements~~                                  | `app/src/api_tester/components/APITester.tsx` | **DONE** |
+| 19 | FE-12  | ~~Replace `alert()` with inline UI display for content length~~                                      | `app/src/md_editor/components/Editor.tsx` | **DONE** |
 
 ---
 
