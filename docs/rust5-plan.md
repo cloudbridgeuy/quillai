@@ -41,11 +41,11 @@ Modified files:
 
 ## Phases
 
-### Phase 1 — Foundation (parallel tasks)
+### Phase 1 — Foundation (parallel tasks) ✅
 
 Two independent tasks that can run concurrently.
 
-#### Task 1A: Error Variants
+#### Task 1A: Error Variants ✅
 
 **File:** `crates/api/src/error.rs`
 
@@ -84,7 +84,7 @@ Update existing unit tests and add new ones:
 
 ---
 
-#### Task 1B: Domain Models + Validation
+#### Task 1B: Domain Models + Validation ✅
 
 **File:** `crates/api/src/users/models.rs` (new)
 
@@ -189,11 +189,11 @@ mod tests {
 
 ---
 
-### Phase 2 — V1 Handlers + Wiring (depends on Phase 1)
+### Phase 2 — V1 Handlers + Wiring (depends on Phase 1) ✅
 
 Single task. Cannot parallelize — touches `lib.rs`, `mod.rs`, `handlers.rs`, and tests that depend on all of the above.
 
-#### Task 2: Create + List handlers, route wiring, remove stub
+#### Task 2: Create + List handlers, route wiring, remove stub ✅
 
 **File:** `crates/api/src/users/mod.rs` (new)
 
@@ -315,11 +315,11 @@ Remove:
 
 ---
 
-### Phase 3 — V2 + V3 (sequential, depends on Phase 2)
+### Phase 3 — V2 + V3 (sequential, depends on Phase 2) ✅
 
 Two sequential tasks. They both modify `handlers.rs` and `mod.rs`, so they cannot run in parallel on the same worktree.
 
-#### Task 3: Get by ID + Delete (V2)
+#### Task 3: Get by ID + Delete (V2) ✅
 
 **File:** `crates/api/src/users/handlers.rs` (add)
 
@@ -369,7 +369,7 @@ Integration tests:
 
 ---
 
-#### Task 4: Update (V3)
+#### Task 4: Update (V3) ✅
 
 Note: `UpdateUser` model and `validate()` are already created in Task 1B (Phase 1).
 
@@ -424,11 +424,11 @@ Integration tests:
 
 ---
 
-### Phase 4 — Finalize (depends on Phase 3)
+### Phase 4 — Finalize (depends on Phase 3) ✅
 
 Two parallel tasks.
 
-#### Task 5: SQLx Offline Cache
+#### Task 5: SQLx Offline Cache ✅
 
 - Delete old cache file: `.sqlx/query-90507242b5452858635cbed493946aa219a886878bd28f65737091faa47a57d1.json`
 - Run `cargo sqlx prepare --workspace` to regenerate cache for new queries
@@ -441,7 +441,7 @@ DATABASE_URL="sqlite:quillai.db" sqlx migrate run
 DATABASE_URL="sqlite:quillai.db" cargo sqlx prepare --workspace
 ```
 
-#### Task 6: Verification + Doc Update
+#### Task 6: Verification + Doc Update ✅
 
 Run full verification:
 ```bash
@@ -461,16 +461,18 @@ Mark RUST-5 as DONE in the findings table:
 
 ## Execution Summary
 
+All phases complete. 30 tests passing (14 unit + 16 integration), clippy clean, SQLx offline verified.
+
 ```
-Phase 1 (parallel):   Task 1A (error variants)  ║  Task 1B (models + validation)
-                            ╲                      ╱
-Phase 2 (sequential):        Task 2 (V1: create + list + wiring + tests)
+Phase 1 (parallel):   Task 1A (error variants) ✅  ║  Task 1B (models + validation) ✅
+                            ╲                          ╱
+Phase 2 (sequential):        Task 2 (V1: create + list + wiring + tests) ✅
                                     │
-Phase 3 (sequential):        Task 3 (V2: get + delete)
+Phase 3 (sequential):        Task 3 (V2: get + delete) ✅
                                     │
-                             Task 4 (V3: update)
+                             Task 4 (V3: update) ✅
                                     │
-Phase 4 (parallel):   Task 5 (SQLx cache)  ║  Task 6 (verify + docs)
+Phase 4 (parallel):   Task 5 (SQLx cache) ✅  ║  Task 6 (verify + docs) ✅
 ```
 
 ## Dependencies
