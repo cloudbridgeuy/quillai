@@ -145,6 +145,7 @@ export const Container = () => {
   const [range, setRange] = useState<RangeT | null>(null);
   const [lastChange, setLastChange] = useState<DeltaT | null>();
   const [readOnly, setReadOnly] = useState(false);
+  const [contentLength, setContentLength] = useState<number | null>(null);
 
   // Use a ref to access the quill instance directly
   const quillRef = useRef<Quill | null>(null);
@@ -178,7 +179,7 @@ export const Container = () => {
           className="controls-right"
           type="button"
           onClick={() => {
-            alert(quillRef.current?.getLength());
+            setContentLength(quillRef.current?.getLength() ?? null);
           }}
         >
           Get Content Length
@@ -191,6 +192,10 @@ export const Container = () => {
       <div className="state">
         <div className="state-title">Last Change:</div>
         {lastChange ? JSON.stringify(lastChange.ops) : "Empty"}
+      </div>
+      <div className="state">
+        <div className="state-title">Content Length:</div>
+        {contentLength !== null ? contentLength : "Click to measure"}
       </div>
     </div>
   );
