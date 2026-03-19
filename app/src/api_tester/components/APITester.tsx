@@ -66,16 +66,16 @@ export function APITester() {
   return (
     <div className="api-tester">
       <form onSubmit={testEndpoint} className="endpoint-row">
-        <select name="method" className="method">
+        <select name="method" className="method" aria-label="HTTP method">
           <option value="GET">GET</option>
           <option value="PUT">PUT</option>
         </select>
-        <input type="text" name="endpoint" defaultValue="/api/hello" className="url-input" placeholder="/api/hello" />
+        <input type="text" name="endpoint" defaultValue="/api/hello" className="url-input" placeholder="/api/hello" aria-label="Request URL" />
         <button type="submit" className="send-button" disabled={isLoading}>
           {buttonLabel(isLoading)}
         </button>
       </form>
-      <textarea ref={responseInputRef} readOnly placeholder="Response will appear here..." className="response-area" />
+      <textarea ref={responseInputRef} readOnly placeholder="Response will appear here..." className="response-area" aria-label="Response output" />
     </div>
   );
 }
