@@ -33,6 +33,16 @@ test("hello world", () => {
 
 ## Frontend
 
+Repo-specific context, use in this order:
+
+1. `../primer.md`
+2. `../CLAUDE.md`
+3. `../.claude/context/ai-editor.md` for Continue/Edit streaming behavior and browser URL rules
+4. `../.claude/context/markdown-parsing.md` for the markdown shortcut logic that still shares `md_editor/components/Editor.tsx`
+5. `../.claude/context/ai-streaming.md` for the backend request and NDJSON stream contract
+
+Current AI browser calls assume the frontend is served on port `3001` and the Rust API is on `127.0.0.1:2908`.
+
 Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
 
 Server:

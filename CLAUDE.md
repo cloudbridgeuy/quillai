@@ -1,6 +1,8 @@
 # QuillAI
 
-Markdown-aware rich text editor. Rust/Axum API backend + React/Bun frontend with Quill.js.
+AI-assisted fiction editor. Rust/Axum API backend + React/Bun frontend with Quill.js.
+
+For agent onboarding, start with `primer.md`, then use this file as the source index.
 
 ## Workspace Layout
 
@@ -24,6 +26,7 @@ docs/          — QuillJS implementation guide
 | Full dev | Run both concurrently | — |
 
 API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
+Current AI browser calls assume the API is on `2908` and the frontend is on `3001`.
 
 ## Source Index
 
@@ -36,6 +39,7 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
 | `prelude.rs` | Re-exports Error and Result |
+| `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming, and NDJSON event output. See [AI streaming context](.claude/context/ai-streaming.md) |
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 
 ### Rust — Logging (`crates/log/src/`)
@@ -56,13 +60,19 @@ API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable
 |------|---------|
 | `index.tsx` | Bun.serve entry — routes, static assets, HMR. Port via `PORT` env var |
 | `index.html` | HTML shell, loads frontend.tsx |
-| `App.tsx` | Root React component — renders Editor + APITester, each wrapped in ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
+| `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `frontend.tsx` | React root setup, CSS import, StrictMode |
-| `index.css` | Tailwind + custom styles, dark theme, animations |
+| `index.css` | Tailwind + editor shell layout, dark theme, and responsive styling |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
+| `md_editor/ai_contract.ts` | Pure AI request contract and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/ai_stream.ts` | Pure incremental NDJSON parser for AI stream events. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/ai_state.ts` | AI run-state ADT and transition helpers. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/window.ts` | Pure context-window calculation for transmitted document slices. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/delta_bridge.ts` | Quill delta normalization at the request and stream boundaries. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/editor_ai.ts` | Pure selection-memory, rollback, and status helpers for the editor shell. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/markdown.ts` | Pure markdown analysis functions — `analyzeMarkdownContext`, `isPatternComplete`. See [markdown parsing context](.claude/context/markdown-parsing.md) |
-| `md_editor/components/Editor.tsx` | Quill.js wrapper — imports Quill via npm (bundled by Bun), imperative shell for markdown formatting. See [markdown parsing context](.claude/context/markdown-parsing.md) |
+| `md_editor/components/Editor.tsx` | Quill editor shell for Continue/Edit streaming, cancellation, rollback, and markdown formatting. See [AI editor context](.claude/context/ai-editor.md) and [markdown parsing context](.claude/context/markdown-parsing.md) |
 | `api_tester/components/APITester.tsx` | HTTP method selector + URL input + loading state + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
 | `api_tester/components/__tests__/APITester.test.ts` | Unit tests for `buttonLabel()` pure function |
 
@@ -90,6 +100,7 @@ Single migration: `migrations/20250407204144_init.up.sql` — creates `users` ta
 - `GET /users/{id}` — Get user by ID (JSON or 404)
 - `PUT /users/{id}` — Partial update user (JSON, 404, or 422)
 - `DELETE /users/{id}` — Delete user (204 or 404)
+- `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
 
 **Bun frontend** (`app/src/index.tsx`):
 - `GET /assets/*` — static file serving
@@ -149,3 +160,13 @@ Default to using Bun instead of Node.js.
 - `<link>` tags point to stylesheets — Bun's CSS bundler handles them.
 - Tailwind via `bun-plugin-tailwind`.
 - For Bun API docs: `node_modules/bun-types/docs/**.md`.
+
+## Context Docs
+
+- `.claude/context/ai-streaming.md` — AI request validation, prompt rules, provider env vars, and NDJSON stream behavior
+- `.claude/context/ai-editor.md` — Quill AI editor shell, helper modules, and the current browser URL constraint
+- `.claude/context/markdown-parsing.md` — markdown shortcut logic inside the editor shell
+- `.claude/context/error-handling.md` — JSON error contract across backend and frontend
+- `.claude/context/error-boundary.md` — React crash isolation pattern
+- `.claude/context/sqlx-offline.md` — SQLx offline workflow
+- `.claude/context/users-crud.md` — users CRUD resource template

@@ -1,21 +1,67 @@
-# bun-react-template
+# quillai_app
 
-To install dependencies:
+React and Quill frontend for QuillAI.
 
-```bash
+## Install
+
+```sh
 bun install
 ```
 
-To start a development server:
+## Run
 
-```bash
+Development server:
+
+```sh
 bun dev
 ```
 
-To run for production:
+Production server:
 
-```bash
+```sh
 bun start
 ```
 
-This project was created using `bun init` in bun v1.2.17. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Environment
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `PORT` | `3001` | Bun frontend port |
+
+## AI Editor Behavior
+
+The editor supports two AI actions:
+
+- `Continue` streams short text at the current caret position.
+- `Edit` rewrites the current selection inline.
+
+Both actions send:
+
+- a windowed document slice as Quill Delta plus plain text
+- an optional selected slice as Quill Delta plus plain text
+- story context
+- a per-request instruction prompt
+
+The frontend parses NDJSON events from `/ai/generate`, applies streamed delta fragments directly to Quill, locks typing while a run is active, and exposes cancel. Cancel keeps text that already landed. Failed edits restore the original text.
+
+At the moment, the browser-side Continue and Edit trigger path is local-only. It always calls the Rust API at `http://127.0.0.1:2908`, and the API's local CORS allowlist expects the frontend to run on port `3001`.
+
+## Verification
+
+Run the frontend tests:
+
+```sh
+bun test
+```
+
+Run a TypeScript check:
+
+```sh
+bunx tsc --noEmit
+```
+
+Build the production bundle:
+
+```sh
+bun run build
+```
