@@ -8,13 +8,13 @@
 //! cargo run --example json_output --features json
 //! ```
 
-use quillai_log::{LogLevel, LogConfig, LogFormat, init_logger, info, debug, warn, error};
+use quillai_log::{debug, error, info, init_logger, warn, LogConfig, LogFormat, LogLevel};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📄 QuillAI Log - JSON Output Example");
     println!("====================================");
     println!("JSON logs will appear below:\n");
-    
+
     // Configure JSON output
     let config = LogConfig {
         format: LogFormat::Json,
@@ -24,10 +24,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         with_line_number: true,
         env_filter: None,
     };
-    
+
     // Initialize with JSON formatting
     init_logger(LogLevel::Debug, &config)?;
-    
+
     // Application lifecycle events
     info!(
         event = "app_start",
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "Application started"
     );
-    
+
     // User session events
     info!(
         event = "user_login",
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "User logged in successfully"
     );
-    
+
     // API request tracking
     debug!(
         event = "api_request",
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         client_id = "client_web_app",
         "Processing API request"
     );
-    
+
     // Database operations
     debug!(
         event = "database_query",
@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "Database query executed"
     );
-    
+
     // Business metrics
     info!(
         event = "business_metric",
@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "New user registered"
     );
-    
+
     // Performance monitoring
     warn!(
         event = "performance_alert",
@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         error_rate_percent = 0.8,
         "API endpoint latency exceeded threshold"
     );
-    
+
     // Error tracking
     error!(
         event = "application_error",
@@ -145,7 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "Payment processing failed"
     );
-    
+
     // System health metrics
     info!(
         event = "system_health",
@@ -168,7 +168,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         "System health check completed"
     );
-    
+
     info!(
         event = "app_shutdown",
         uptime_seconds = 3661,
@@ -176,9 +176,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         errors_encountered = 23,
         "Application shutting down"
     );
-    
+
     println!("\n✅ JSON logging example completed!");
     println!("💡 These JSON logs can be easily parsed by log aggregation systems");
-    
+
     Ok(())
 }

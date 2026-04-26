@@ -469,4 +469,3 @@ fn generate_request_id() -> String {
         .hash(&mut hasher);
     format!("req_{:x}", hasher.finish())
 }
-

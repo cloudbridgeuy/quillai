@@ -1,6 +1,6 @@
-use quillai_log::{LogLevel, LogConfig, LogFormat, init_logger, init_simple_logger};
-use quillai_log::{info, debug, warn, error};
-use quillai_log::{info_span, create_span, Level};
+use quillai_log::{create_span, info_span, Level};
+use quillai_log::{debug, error, info, warn};
+use quillai_log::{init_logger, init_simple_logger, LogConfig, LogFormat, LogLevel};
 
 #[test]
 fn test_log_level_from_str() {
@@ -12,7 +12,7 @@ fn test_log_level_from_str() {
     assert_eq!("debug".parse::<LogLevel>().unwrap(), LogLevel::Debug);
     assert_eq!("trace".parse::<LogLevel>().unwrap(), LogLevel::Trace);
     assert_eq!("off".parse::<LogLevel>().unwrap(), LogLevel::Off);
-    
+
     assert!("invalid".parse::<LogLevel>().is_err());
 }
 
@@ -30,10 +30,10 @@ fn test_log_level_display() {
 fn test_log_level_conversion() {
     let level: Option<Level> = LogLevel::Info.into();
     assert_eq!(level, Some(Level::INFO));
-    
+
     let level: Option<Level> = LogLevel::Off.into();
     assert_eq!(level, None);
-    
+
     let filter: String = LogLevel::Debug.into();
     assert_eq!(filter, "debug");
 }
@@ -78,7 +78,7 @@ fn test_advanced_logger_initialization() {
         with_line_number: true,
         env_filter: Some("debug".to_string()),
     };
-    
+
     // This might fail if subscriber is already initialized, which is fine
     let _ = init_logger(LogLevel::Debug, &config);
 }
@@ -87,22 +87,22 @@ fn test_advanced_logger_initialization() {
 fn test_span_creation() {
     // Initialize logger for span tests
     let _ = init_simple_logger(LogLevel::Off);
-    
+
     let span = info_span!("test_span");
     let _enter = span.enter();
-    
+
     info!("Message within span");
-    
+
     let custom_span = create_span(Level::DEBUG, "custom_span");
     let _enter2 = custom_span.enter();
-    
+
     debug!("Message in custom span");
 }
 
 #[test]
 fn test_structured_logging() {
     let _ = init_simple_logger(LogLevel::Off);
-    
+
     // Test structured logging with various field types
     info!(
         user_id = 42,
@@ -111,14 +111,14 @@ fn test_structured_logging() {
         duration_ms = 123.45,
         "User authentication"
     );
-    
+
     warn!(
         attempt = 3,
         max_attempts = 5,
         ip_address = "192.168.1.1",
         "Login attempt warning"
     );
-    
+
     error!(
         error_code = 500,
         message = "Database connection failed",
@@ -138,10 +138,10 @@ fn test_log_format_equality() {
 #[test]
 fn test_error_types() {
     use quillai_log::Error;
-    
+
     let err = Error::InvalidLogLevel("invalid".to_string());
     assert!(format!("{}", err).contains("invalid log level"));
-    
+
     let err = Error::InitializationFailed("test".to_string());
     assert!(format!("{}", err).contains("initialization failed"));
 }
@@ -153,7 +153,7 @@ fn test_json_format_with_feature() {
         format: LogFormat::Json,
         ..Default::default()
     };
-    
+
     // This should work when json feature is enabled
     let result = init_logger(LogLevel::Off, &config);
     // Might fail if already initialized, but shouldn't fail due to missing feature
@@ -175,11 +175,11 @@ fn test_json_format_without_feature() {
         format: LogFormat::Json,
         ..Default::default()
     };
-    
+
     // This should fail when json feature is not enabled
     let result = init_logger(LogLevel::Off, &config);
     assert!(result.is_err());
-    
+
     if let Err(e) = result {
         assert!(format!("{}", e).contains("JSON format requires"));
     }

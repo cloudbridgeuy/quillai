@@ -289,12 +289,12 @@ pub fn add_field<T: std::fmt::Debug>(key: &str, value: T) {
 #[cfg(test)]
 pub mod testing {
     use super::*;
-    
+
     /// Initialize a test logger that captures output for testing
     pub fn init_test_logger() -> Result<(), Error> {
         init_simple_logger(LogLevel::Off)
     }
-    
+
     /// Initialize a test logger with specific level for testing
     pub fn init_test_logger_with_level(level: LogLevel) -> Result<(), Error> {
         init_simple_logger(level)
@@ -306,7 +306,7 @@ pub mod testing {
 #[deprecated(since = "0.1.0", note = "Use tracing::Level instead")]
 pub mod log_compat {
     use super::LogLevel;
-    
+
     impl From<LogLevel> for log::LevelFilter {
         fn from(level: LogLevel) -> Self {
             match level {
