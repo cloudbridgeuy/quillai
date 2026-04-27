@@ -162,8 +162,17 @@ function toAiStreamEvent(
       return { ok: true, event: { type: "delta", delta } };
     }
 
-    case "done":
-      return { ok: true, event: { type: "done" } };
+    case "done": {
+      const finishReason = (value as { finishReason?: unknown }).finishReason;
+      if (finishReason === undefined) {
+        return { ok: true, event: { type: "done", finishReason: "unknown" } };
+      }
+      if (finishReason !== "stop" && finishReason !== "length" && finishReason !== "unknown") {
+        return invalidEvent("done event finishReason must be stop, length, or unknown", line);
+      }
+
+      return { ok: true, event: { type: "done", finishReason } };
+    }
 
     case "error": {
       const error = (value as { error?: unknown }).error;

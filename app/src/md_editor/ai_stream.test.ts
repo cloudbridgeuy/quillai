@@ -18,7 +18,7 @@ test("parseAiStreamChunk parses one complete NDJSON line", () => {
 
   expect(result).toEqual({
     ok: true,
-    events: [{ type: "done" }],
+    events: [{ type: "done", finishReason: "unknown" }],
     remainder: "",
   });
 });
@@ -77,7 +77,7 @@ test("parseAiStreamChunk parses done error and cancelled variants", () => {
   expect(result).toEqual({
     ok: true,
     events: [
-      { type: "done" },
+      { type: "done", finishReason: "unknown" },
       { type: "error", error: "boom" },
       { type: "cancelled" },
     ],
@@ -90,7 +90,7 @@ test("parseAiStreamChunk skips blank lines", () => {
 
   expect(result).toEqual({
     ok: true,
-    events: [{ type: "done" }],
+    events: [{ type: "done", finishReason: "unknown" }],
     remainder: "",
   });
 });
@@ -180,7 +180,7 @@ test("finalizeAiStreamRemainder parses a final line without a trailing newline",
 
   expect(finalizeAiStreamRemainder(chunk.remainder)).toEqual({
     ok: true,
-    events: [{ type: "done" }],
+    events: [{ type: "done", finishReason: "unknown" }],
     remainder: "",
   });
 });

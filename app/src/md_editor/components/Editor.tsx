@@ -11,8 +11,10 @@ import {
 
 import {
   buildAiGenerateUrl,
-  buildAiRequest,
+  buildAiRequestPreview,
+  DEFAULT_MAX_OUTPUT_TOKENS,
   type AiAction,
+  type AiRequestPreview,
 } from "../ai_contract";
 import {
   getStatusPresentation,
@@ -45,6 +47,18 @@ import type {
   OnSelectionChangeFn,
   RangeT,
 } from "../types";
+import {
+  finishCancelledThread,
+  finishGenerateThread,
+  historyForResume,
+  initialAiThreadState,
+  invalidateThreadForManualEdit,
+  manualEditFromDelta,
+  resetThreadOnInstructionChange,
+  shouldUseResumeThread,
+  updateThreadSettings,
+  type AiThreadState,
+} from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
@@ -194,10 +208,15 @@ export const Container = () => {
   const [windowSize, setWindowSize] = useState("1200");
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>("window");
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
+  const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
+  const [threadState, setThreadState] = useState<AiThreadState>(() =>
+    initialAiThreadState(DEFAULT_MAX_OUTPUT_TOKENS),
+  );
 
   const quillRef = useRef<Quill | null>(null);
   const aiRunStateRef = useRef(aiRunState);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const threadStateRef = useRef(threadState);
   const isMountedRef = useRef(true);
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
@@ -207,6 +226,10 @@ export const Container = () => {
   }, [aiRunState]);
 
   useEffect(() => {
+    threadStateRef.current = threadState;
+  }, [threadState]);
+
+  useEffect(() => {
     isMountedRef.current = true;
 
     return () => {
@@ -214,6 +237,21 @@ export const Container = () => {
       abortControllerRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!requestPreview) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setRequestPreview(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [requestPreview]);
 
   const isBusy =
     aiRunState.status === "continuing" ||
@@ -272,6 +310,23 @@ export const Container = () => {
     updateAiRunState({ status: "failed", action, error });
   }
 
+  function updateThreadState(nextState: AiThreadState) {
+    threadStateRef.current = nextState;
+    if (isMountedRef.current) {
+      setThreadState(nextState);
+    }
+  }
+
+  function normalizedInstructionText(): string | null {
+    const trimmed = instruction.trim();
+    return trimmed === "" ? null : trimmed;
+  }
+
+  function setInstructionAndResetThread(nextInstruction: string) {
+    setInstruction(nextInstruction);
+    updateThreadState(resetThreadOnInstructionChange(threadStateRef.current, nextInstruction.trim() || null));
+  }
+
   function clearFailedRunState() {
     if (!shouldClearFailedRunState(aiRunStateRef.current, "user")) {
       return;
@@ -280,6 +335,94 @@ export const Container = () => {
     const reset = resetRunState(aiRunStateRef.current);
     if (reset.ok) {
       updateAiRunState(reset.state);
+    }
+  }
+
+  function closeRequestPreview() {
+    setRequestPreview(null);
+  }
+
+  function buildRequestPreview(
+    action: AiAction,
+    quill: Quill,
+    normalizedSelection: { index: number; length: number } | null,
+  ): AiRequestPreview {
+    const documentLength = Math.max(quill.getLength() - 1, 0);
+    const configuredWindowSize = Number(windowSize);
+    const documentWindow = calculateDocumentWindow({
+      documentLength,
+      selection: normalizedSelection,
+      windowSize: configuredWindowSize,
+      mode: windowMode,
+    });
+
+    const documentSlice = {
+      delta: toContractDeltaDocument(
+        quill.getContents(documentWindow.start, documentWindow.end - documentWindow.start),
+      ),
+      text: quill.getText(documentWindow.start, documentWindow.end - documentWindow.start),
+    };
+
+    const selectionSlice = normalizedSelection
+      ? {
+          delta: toContractDeltaDocument(
+            quill.getContents(normalizedSelection.index, normalizedSelection.length),
+          ),
+          text: quill.getText(normalizedSelection.index, normalizedSelection.length),
+          range: normalizedSelection,
+        }
+      : null;
+
+    return action === "edit"
+      ? buildAiRequestPreview({
+          action: "edit",
+          document: documentSlice,
+          window: documentWindow,
+          selection: selectionSlice!,
+          storyContext,
+          instruction,
+          maxOutputTokens: threadState.settings.maxOutputTokens,
+        })
+      : buildAiRequestPreview({
+          action: "generate",
+          document: documentSlice,
+          window: documentWindow,
+          selection: selectionSlice,
+          storyContext,
+          instruction,
+          messages: shouldUseResumeThread(threadStateRef.current, normalizedInstructionText())
+            ? historyForResume(threadStateRef.current)
+            : [],
+          resumePrompt: shouldUseResumeThread(threadStateRef.current, normalizedInstructionText())
+            ? threadState.settings.resumePrompt
+            : null,
+          maxOutputTokens: threadState.settings.maxOutputTokens,
+        });
+  }
+
+  function openGeneratePreview() {
+    const quill = quillRef.current;
+    if (!quill) {
+      setAiFailure(null, "Editor is not ready yet.");
+      return;
+    }
+
+    try {
+      const liveSelection = quill.getSelection() ?? range;
+      const currentSelection = liveSelection
+        ? { index: liveSelection.index, length: liveSelection.length }
+        : null;
+      const selection = resolveContinueSelection(currentSelection, lastCursorRangeRef.current);
+
+      setRequestPreview(
+        buildRequestPreview(
+          "generate",
+          quill,
+          selection ? { index: selection.index, length: selection.length } : null,
+        ),
+      );
+    } catch (error) {
+      setAiFailure("generate", getUnknownAiFailureMessage(error));
     }
   }
 
@@ -330,10 +473,10 @@ export const Container = () => {
       return;
     }
 
-    const documentLength = Math.max(quill.getLength() - 1, 0);
     const normalizedSelection = selection
       ? { index: selection.index, length: selection.length }
       : null;
+    const documentLength = Math.max(quill.getLength() - 1, 0);
     const anchor =
       action === "edit"
         ? normalizedSelection?.index ?? 0
@@ -359,55 +502,8 @@ export const Container = () => {
         }
       };
 
-      const configuredWindowSize = Number(windowSize);
-      const window = calculateDocumentWindow({
-        documentLength,
-        selection: normalizedSelection,
-        windowSize: configuredWindowSize,
-        mode: windowMode,
-      });
-
-      const documentSlice = {
-        delta: toContractDeltaDocument(
-          quill.getContents(window.start, window.end - window.start),
-        ),
-        text: quill.getText(window.start, window.end - window.start),
-      };
-
-      const selectionSlice = normalizedSelection
-        ? {
-            delta: toContractDeltaDocument(
-              quill.getContents(
-                normalizedSelection.index,
-                normalizedSelection.length,
-              ),
-            ),
-            text: quill.getText(
-              normalizedSelection.index,
-              normalizedSelection.length,
-            ),
-            range: normalizedSelection,
-          }
-        : null;
-
-      const request =
-        action === "edit"
-          ? buildAiRequest({
-              action: "edit",
-              document: documentSlice,
-              window,
-              selection: selectionSlice!,
-              storyContext,
-              instruction,
-            })
-          : buildAiRequest({
-              action: "generate",
-              document: documentSlice,
-              window,
-              selection: selectionSlice,
-              storyContext,
-              instruction,
-            });
+      const preparedRequest = buildRequestPreview(action, quill, normalizedSelection);
+      const request = preparedRequest.request;
 
       const response = await fetch(
         buildAiGenerateUrl(),
@@ -440,6 +536,8 @@ export const Container = () => {
       const decoder = new TextDecoder();
       let remainder = "";
       let terminalOutcome: "done" | "cancelled" | null = null;
+      let finishReason: "stop" | "length" | "unknown" = "unknown";
+      let generatedText = "";
 
       const applyEvents = (events: ReturnType<typeof parseAiStreamChunk>["events"]) => {
         for (const event of events) {
@@ -449,6 +547,10 @@ export const Container = () => {
             }
 
             assertEditorActive();
+            const fragmentText = event.delta.ops
+              .map((op) => (typeof op.insert === "string" ? op.insert : ""))
+              .join("");
+            generatedText += fragmentText;
             const fragment = new Delta(toQuillDeltaDocument(event.delta));
             quill.updateContents(
               new Delta().retain(nextInsertIndex).concat(fragment),
@@ -462,6 +564,9 @@ export const Container = () => {
             throw new Error(event.error);
           }
 
+          if (event.type === "done") {
+            finishReason = event.finishReason;
+          }
           terminalOutcome = event.type === "cancelled" ? "cancelled" : "done";
           return;
         }
@@ -516,6 +621,18 @@ export const Container = () => {
       }
 
       updateAiRunState(finished.state);
+      if (action === "generate") {
+        updateThreadState(
+          finishGenerateThread({
+            state: threadStateRef.current,
+            finishReason,
+            instruction: request.instruction,
+            userPrompt: request.resumePrompt ?? request.instruction,
+            generatedText,
+            generatedRange: { start: anchor, end: nextInsertIndex },
+          }),
+        );
+      }
       assertEditorActive();
 
       if (
@@ -547,6 +664,7 @@ export const Container = () => {
         const finished = finishRun(aiRunStateRef.current, "cancelled");
         if (finished.ok) {
           updateAiRunState(finished.state);
+          updateThreadState(finishCancelledThread(threadStateRef.current));
         } else {
           setAiFailure(action, "Cancellation did not complete cleanly.");
         }
@@ -650,6 +768,9 @@ export const Container = () => {
   }
 
   const statusPresentation = getStatusPresentation(aiRunState);
+  const requestPreviewPayload = requestPreview
+    ? JSON.stringify(requestPreview.request, null, 2)
+    : "";
 
   return (
     <div className="editor-shell">
@@ -683,7 +804,7 @@ export const Container = () => {
             <textarea
               className="editor-textarea editor-textarea-compact"
               value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
+              onChange={(event) => setInstructionAndResetThread(event.target.value)}
               placeholder="Continue the scene, tighten the selected paragraph, sharpen dialogue..."
               rows={2}
               disabled={isBusy}
@@ -723,7 +844,15 @@ export const Container = () => {
             onClick={() => void runAiAction("generate")}
             disabled={isBusy}
           >
-            Continue
+            {shouldUseResumeThread(threadState, normalizedInstructionText()) ? "Resume Output" : "Continue"}
+          </button>
+          <button
+            className="editor-button"
+            type="button"
+            onClick={openGeneratePreview}
+            disabled={isBusy}
+          >
+            Preview Context
           </button>
           <button
             className="editor-button"
@@ -767,7 +896,13 @@ export const Container = () => {
               nextRange ? { index: nextRange.index, length: nextRange.length } : null,
             );
           }}
-          onTextChange={(_delta, _oldDelta, source) => {
+          onTextChange={(delta, _oldDelta, source) => {
+            if (source === "user") {
+              updateThreadState(
+                invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
+              );
+            }
+
             if (!shouldClearFailedRunState(aiRunStateRef.current, source)) {
               return;
             }
@@ -776,6 +911,182 @@ export const Container = () => {
           }}
         />
       </div>
+
+      {requestPreview ? (
+        <div
+          className="editor-modal-backdrop"
+          role="presentation"
+          onClick={closeRequestPreview}
+        >
+          <div
+            className="editor-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="continuation-preview-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="editor-modal-header">
+              <div>
+                <h2 id="continuation-preview-title">Continuation Context Preview</h2>
+                <p>
+                  Snapshot of the exact request body for <code>/ai/generate</code>, plus
+                  the window metadata that explains it.
+                </p>
+              </div>
+              <button className="editor-button" type="button" onClick={closeRequestPreview}>
+                Close
+              </button>
+            </div>
+
+            <div className="editor-modal-body">
+              <div className="editor-preview-grid">
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Action</span>
+                  <strong>{requestPreview.request.action}</strong>
+                </div>
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Request URL</span>
+                  <code>{buildAiGenerateUrl()}</code>
+                </div>
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Window Mode</span>
+                  <strong>
+                    {windowMode === "document" ? "Whole document" : "Windowed slice"}
+                  </strong>
+                </div>
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Slice Range</span>
+                  <strong>
+                    {`${requestPreview.window.start}..${requestPreview.window.end} (${requestPreview.window.end - requestPreview.window.start} chars)`}
+                  </strong>
+                </div>
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Absolute Position</span>
+                  <strong>
+                    {requestPreview.absoluteSelection
+                      ? requestPreview.absoluteSelection.length === 0
+                        ? `Cursor at ${requestPreview.absoluteSelection.index}`
+                        : `${requestPreview.absoluteSelection.index}..${requestPreview.absoluteSelection.index + requestPreview.absoluteSelection.length} (${requestPreview.absoluteSelection.length} chars)`
+                      : "Append at document end"}
+                  </strong>
+                </div>
+                <div className="editor-preview-card">
+                  <span className="editor-preview-label">Relative Payload Range</span>
+                  <strong>
+                    {requestPreview.request.selection
+                      ? requestPreview.request.selection.range.length === 0
+                        ? `Cursor at ${requestPreview.request.selection.range.index}`
+                        : `${requestPreview.request.selection.range.index}..${requestPreview.request.selection.range.index + requestPreview.request.selection.range.length} (${requestPreview.request.selection.range.length} chars)`
+                      : "null"}
+                  </strong>
+                </div>
+              </div>
+
+              <section className="editor-preview-section editor-advanced-section">
+                <div className="editor-preview-section-header">
+                  <h3>Advanced Settings</h3>
+                  <span>sticky</span>
+                </div>
+                <label className="editor-field">
+                  <span>Max Output Tokens</span>
+                  <input
+                    className="editor-input"
+                    type="number"
+                    min="1"
+                    max="4096"
+                    step="1"
+                    value={threadState.settings.maxOutputTokens}
+                    onChange={(event) =>
+                      updateThreadState(
+                        updateThreadSettings(threadStateRef.current, {
+                          maxOutputTokens: Number(event.target.value),
+                        }),
+                      )
+                    }
+                    disabled={isBusy}
+                  />
+                </label>
+                <label className="editor-field">
+                  <span>Resume Prompt</span>
+                  <textarea
+                    className="editor-textarea editor-textarea-compact"
+                    value={threadState.settings.resumePrompt}
+                    onChange={(event) =>
+                      updateThreadState(
+                        updateThreadSettings(threadStateRef.current, {
+                          resumePrompt: event.target.value,
+                        }),
+                      )
+                    }
+                    rows={2}
+                    disabled={isBusy}
+                  />
+                </label>
+              </section>
+
+              <section className="editor-preview-section">
+                <div className="editor-preview-section-header">
+                  <h3>Story Context</h3>
+                  <span>
+                    {requestPreview.request.storyContext === null ? "null" : "normalized"}
+                  </span>
+                </div>
+                <pre className="editor-preview-block">
+                  {requestPreview.request.storyContext ?? "null"}
+                </pre>
+              </section>
+
+              <section className="editor-preview-section">
+                <div className="editor-preview-section-header">
+                  <h3>Instruction</h3>
+                  <span>
+                    {requestPreview.request.instruction === null ? "null" : "normalized"}
+                  </span>
+                </div>
+                <pre className="editor-preview-block">
+                  {requestPreview.request.instruction ?? "null"}
+                </pre>
+              </section>
+
+              <section className="editor-preview-section">
+                <div className="editor-preview-section-header">
+                  <h3>Document Slice</h3>
+                  <span>{`${requestPreview.request.document.text.length} chars`}</span>
+                </div>
+                <pre className="editor-preview-block editor-preview-block-large">
+                  {requestPreview.request.document.text === ""
+                    ? "(empty)"
+                    : requestPreview.request.document.text}
+                </pre>
+              </section>
+
+              <section className="editor-preview-section">
+                <div className="editor-preview-section-header">
+                  <h3>Selection Text</h3>
+                  <span>{requestPreview.request.selection ? "relative to slice" : "null"}</span>
+                </div>
+                <pre className="editor-preview-block">
+                  {requestPreview.request.selection === null
+                    ? "null"
+                    : requestPreview.request.selection.text === ""
+                      ? "(cursor only)"
+                      : requestPreview.request.selection.text}
+                </pre>
+              </section>
+
+              <section className="editor-preview-section">
+                <div className="editor-preview-section-header">
+                  <h3>Raw JSON Payload</h3>
+                  <span>POST body</span>
+                </div>
+                <pre className="editor-preview-block editor-preview-block-large editor-modal-code">
+                  {requestPreviewPayload}
+                </pre>
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

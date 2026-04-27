@@ -3,7 +3,9 @@ import { expect, test } from "bun:test";
 import {
   buildAiGenerateUrl,
   buildAiRequest,
+  buildAiRequestPreview,
   DEFAULT_API_BASE_URL,
+  DEFAULT_MAX_OUTPUT_TOKENS,
   resolveApiBaseUrl,
 } from "./ai_contract";
 
@@ -28,6 +30,9 @@ test("buildAiRequest creates a generate payload with null optional fields", () =
     selection: null,
     storyContext: null,
     instruction: null,
+    messages: [],
+    resumePrompt: null,
+    maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
   });
 });
 
@@ -55,6 +60,9 @@ test("buildAiRequest creates an edit payload with selection relative to the wind
     },
     storyContext: "fantasy",
     instruction: "tighten prose",
+    messages: [],
+    resumePrompt: null,
+    maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
   });
 });
 
@@ -119,6 +127,9 @@ test("buildAiRequest preserves UTF-16 selection ranges for emoji text", () => {
     },
     storyContext: null,
     instruction: "tighten",
+    messages: [],
+    resumePrompt: null,
+    maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
   });
 });
 
@@ -266,6 +277,113 @@ test("buildAiRequest rejects NaN selection ranges", () => {
       instruction: null,
     }),
   ).toThrow("selection length must be a finite non-negative integer");
+});
+
+test("buildAiRequestPreview returns both the payload and absolute cursor context", () => {
+  expect(
+    buildAiRequestPreview({
+      action: "generate",
+      document: documentSlice,
+      window: { start: 10, end: 23 },
+      selection: {
+        delta: { ops: [{ insert: "" }] },
+        text: "",
+        range: { index: 18, length: 0 },
+      },
+      storyContext: " fantasy  ",
+      instruction: " continue the scene ",
+    }),
+  ).toEqual({
+    request: {
+      action: "generate",
+      document: documentSlice,
+      selection: {
+        delta: { ops: [{ insert: "" }] },
+        text: "",
+        range: { index: 8, length: 0 },
+      },
+      storyContext: "fantasy",
+      instruction: "continue the scene",
+      messages: [],
+      resumePrompt: null,
+      maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
+    },
+    window: { start: 10, end: 23 },
+    absoluteSelection: { index: 18, length: 0 },
+  });
+});
+
+test("buildAiRequestPreview preserves null selection when the continuation will append", () => {
+  expect(
+    buildAiRequestPreview({
+      action: "generate",
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: null,
+      storyContext: null,
+      instruction: "",
+    }),
+  ).toEqual({
+    request: {
+      action: "generate",
+      document: documentSlice,
+      selection: null,
+      storyContext: null,
+      instruction: null,
+      messages: [],
+      resumePrompt: null,
+      maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
+    },
+    window: { start: 0, end: 13 },
+    absoluteSelection: null,
+  });
+});
+
+test("buildAiRequest normalizes generate history resume prompt and token limit", () => {
+  expect(
+    buildAiRequest({
+      action: "generate",
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: null,
+      storyContext: null,
+      instruction: " continue ",
+      messages: [{ role: "assistant", content: "  partial output  " }],
+      resumePrompt: " keep going ",
+      maxOutputTokens: "700",
+    }),
+  ).toEqual({
+    action: "generate",
+    document: documentSlice,
+    selection: null,
+    storyContext: null,
+    instruction: "continue",
+    messages: [{ role: "assistant", content: "partial output" }],
+    resumePrompt: "keep going",
+    maxOutputTokens: 700,
+  });
+});
+
+test("buildAiRequest rejects invalid token limits and blank history", () => {
+  expect(() =>
+    buildAiRequest({
+      action: "generate",
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: null,
+      maxOutputTokens: 0,
+    }),
+  ).toThrow("maxOutputTokens must be at least");
+
+  expect(() =>
+    buildAiRequest({
+      action: "generate",
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: null,
+      messages: [{ role: "user", content: "   " }],
+    }),
+  ).toThrow("messages content must not be blank");
 });
 
 test("resolveApiBaseUrl returns the local API default", () => {

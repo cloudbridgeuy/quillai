@@ -4,6 +4,10 @@ export const DEFAULT_API_BASE_URL = "http://127.0.0.1:2908";
 
 export type AiAction = "generate" | "edit";
 
+export const DEFAULT_MAX_OUTPUT_TOKENS = 512;
+export const MIN_MAX_OUTPUT_TOKENS = 1;
+export const MAX_MAX_OUTPUT_TOKENS = 4096;
+
 export type DeltaAttributes = Record<string, string | number | boolean | null>;
 
 export type DeltaInsert = string | Record<string, unknown>;
@@ -35,16 +39,26 @@ export type AiSelectionSlice = {
   range: AiSelection;
 };
 
+export type AiHistoryRole = "user" | "assistant";
+
+export type AiHistoryMessage = {
+  role: AiHistoryRole;
+  content: string;
+};
+
 type BuildAiRequestBase = {
   document: AiDocumentSlice;
   window: DocumentWindow;
   storyContext?: string | null;
   instruction?: string | null;
+  maxOutputTokens?: number | string | null;
 };
 
 export type BuildAiGenerateRequestInput = BuildAiRequestBase & {
   action: "generate";
   selection?: AiSelectionSlice | null;
+  messages?: AiHistoryMessage[];
+  resumePrompt?: string | null;
 };
 
 export type BuildAiEditRequestInput = BuildAiRequestBase & {
@@ -60,22 +74,28 @@ export type AiGenerateRequest = {
   selection: AiSelectionSlice | null;
   storyContext: string | null;
   instruction: string | null;
+  messages: AiHistoryMessage[];
+  resumePrompt: string | null;
+  maxOutputTokens: number;
 };
+
+export type AiRequestPreview = {
+  request: AiGenerateRequest;
+  window: DocumentWindow;
+  absoluteSelection: AiSelection | null;
+};
+
+export type AiFinishReason = "stop" | "length" | "unknown";
 
 export type AiStreamEvent =
   | { type: "delta"; delta: DeltaDocument }
-  | { type: "done" }
+  | { type: "done"; finishReason: AiFinishReason }
   | { type: "error"; error: string }
   | { type: "cancelled" };
 
-export function buildAiRequest({
-  action,
-  document,
-  window,
-  selection,
-  storyContext,
-  instruction,
-}: BuildAiRequestInput): AiGenerateRequest {
+export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
+  const { action, document, window, selection, storyContext, instruction, maxOutputTokens } = input;
+
   assertTextOnlySlice(document, "document");
   if (selection) {
     assertTextOnlySlice(selection, "selection");
@@ -87,6 +107,17 @@ export function buildAiRequest({
     selection: toRelativeSelection(action, selection, window, document),
     storyContext: normalizeOptionalText(storyContext),
     instruction: normalizeOptionalText(instruction),
+    messages: action === "generate" ? normalizeHistoryMessages(input.messages) : [],
+    resumePrompt: action === "generate" ? normalizeOptionalText(input.resumePrompt) : null,
+    maxOutputTokens: normalizeMaxOutputTokens(maxOutputTokens),
+  };
+}
+
+export function buildAiRequestPreview(input: BuildAiRequestInput): AiRequestPreview {
+  return {
+    request: buildAiRequest(input),
+    window: input.window,
+    absoluteSelection: input.selection ? parseSelectionRange(input.selection.range) : null,
   };
 }
 
@@ -165,4 +196,41 @@ function normalizeOptionalText(value?: string | null): string | null {
 
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
+}
+
+
+function normalizeHistoryMessages(messages: AiHistoryMessage[] | undefined): AiHistoryMessage[] {
+  return (messages ?? []).map((message) => {
+    if (message.role !== "user" && message.role !== "assistant") {
+      throw new Error("messages role must be one of: user, assistant");
+    }
+
+    const content = normalizeOptionalText(message.content);
+    if (content === null) {
+      throw new Error("messages content must not be blank");
+    }
+
+    return { role: message.role, content };
+  });
+}
+
+function normalizeMaxOutputTokens(value?: number | string | null): number {
+  if (value == null || value === "") {
+    return DEFAULT_MAX_OUTPUT_TOKENS;
+  }
+
+  const parsed = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    throw new Error("maxOutputTokens must be a finite integer");
+  }
+
+  if (parsed < MIN_MAX_OUTPUT_TOKENS) {
+    throw new Error(`maxOutputTokens must be at least ${MIN_MAX_OUTPUT_TOKENS}`);
+  }
+
+  if (parsed > MAX_MAX_OUTPUT_TOKENS) {
+    throw new Error(`maxOutputTokens must be at most ${MAX_MAX_OUTPUT_TOKENS}`);
+  }
+
+  return parsed;
 }
