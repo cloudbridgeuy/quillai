@@ -4,16 +4,22 @@ Axum HTTP server for QuillAI. Serves the users CRUD API and the AI streaming end
 
 ## Running
 
-With hot reload via systemfd:
+Together with the frontend dev server:
 
 ```sh
-cargo xtask api
+cargo xtask dev
 ```
 
-Direct:
+Use custom dev ports when needed:
 
 ```sh
-cargo run -p quillai_api
+cargo xtask dev --api-port 2908 --app-port 3001
+```
+
+Direct API-only run:
+
+```sh
+cargo run -p quillai_api --bin api
 ```
 
 ## CLI Flags

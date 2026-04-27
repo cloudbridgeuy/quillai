@@ -13,7 +13,7 @@ AI-assisted fiction editor. Rust/Axum API backend + React/Bun frontend with Quil
 ```
 crates/api/    — Axum HTTP server, SQLite, CLI config
 crates/log/    — Structured logging library (tracing-based)
-xtask/         — Build task runner (cargo xtask api|dev)
+xtask/         — Development process runner (`cargo xtask dev`)
 app/           — React frontend (Bun runtime, Quill.js editor)
 migrations/    — SQLx migrations (SQLite)
 docs/          — QuillJS implementation guide
@@ -21,23 +21,19 @@ docs/          — QuillJS implementation guide
 
 ## Quick Start
 
-Install frontend dependencies:
+Start the API server and frontend dev server together:
 
 ```sh
-bun install --cwd app
+cargo xtask dev
 ```
 
-Start the API server:
+Use custom ports when needed:
 
 ```sh
-cargo xtask api
+cargo xtask dev --api-port 2908 --app-port 3001
 ```
 
-Start the frontend dev server:
-
-```sh
-cargo xtask dev app
-```
+`xtask dev` installs frontend dependencies when `app/node_modules` is missing, runs the Rust API and Bun frontend concurrently, prefixes each log line with the current time and service name, and stops both processes on `Ctrl-C`.
 
 The frontend expects the Rust API at `http://127.0.0.1:2908`.
 The current browser-side AI trigger path is local-only: Continue and Edit always call that default API URL, and the API's local CORS allowlist expects the frontend to run on port `3001`.

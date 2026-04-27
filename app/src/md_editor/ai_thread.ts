@@ -28,6 +28,14 @@ export type ManualEdit = {
   insertedLength: number;
 };
 
+export type ThreadPresentation = {
+  mode: "completion" | "resume" | "resuming";
+  label: string;
+  detail: string;
+  messageCount: number;
+  canReset: boolean;
+};
+
 export const DEFAULT_RESUME_PROMPT = "Continue exactly where the previous output stopped.";
 
 export function initialAiThreadState(maxOutputTokens: number): AiThreadState {
@@ -66,6 +74,34 @@ export function shouldUseResumeThread(
 
 export function resetThread(state: AiThreadState): AiThreadState {
   return { ...state, thread: null };
+}
+
+export function getThreadPresentation(
+  state: AiThreadState,
+  instruction: string | null,
+  isResuming: boolean,
+): ThreadPresentation {
+  const canResume = shouldUseResumeThread(state, instruction);
+  if (!state.thread || !canResume) {
+    return {
+      mode: "completion",
+      label: "Completion mode",
+      detail: "No resumable history will be sent.",
+      messageCount: 0,
+      canReset: state.thread !== null,
+    };
+  }
+
+  const messageCount = state.thread.messages.length;
+  const range = `${state.thread.generatedRange.start}–${state.thread.generatedRange.end}`;
+
+  return {
+    mode: isResuming ? "resuming" : "resume",
+    label: isResuming ? "Resuming output…" : "Resume mode",
+    detail: `${messageCount} history messages · range ${range}`,
+    messageCount,
+    canReset: true,
+  };
 }
 
 export function finishGenerateThread(input: {

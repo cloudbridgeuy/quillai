@@ -4,6 +4,7 @@ import {
   DEFAULT_RESUME_PROMPT,
   finishCancelledThread,
   finishGenerateThread,
+  getThreadPresentation,
   historyForResume,
   initialAiThreadState,
   invalidateThreadForManualEdit,
@@ -26,6 +27,57 @@ test("initialAiThreadState keeps sticky default settings", () => {
   expect(updateThreadSettings(base, { maxOutputTokens: 900 }).settings).toEqual({
     maxOutputTokens: 900,
     resumePrompt: DEFAULT_RESUME_PROMPT,
+  });
+});
+
+test("getThreadPresentation describes completion mode without matching history", () => {
+  expect(getThreadPresentation(base, "continue", false)).toEqual({
+    mode: "completion",
+    label: "Completion mode",
+    detail: "No resumable history will be sent.",
+    messageCount: 0,
+    canReset: false,
+  });
+
+  const withThread = finishGenerateThread({
+    state: base,
+    finishReason: "length",
+    instruction: "continue",
+    userPrompt: "continue",
+    generatedText: "partial",
+    generatedRange: { start: 10, end: 17 },
+  });
+
+  expect(getThreadPresentation(withThread, "changed", false)).toEqual({
+    mode: "completion",
+    label: "Completion mode",
+    detail: "No resumable history will be sent.",
+    messageCount: 0,
+    canReset: true,
+  });
+});
+
+test("getThreadPresentation describes resume and resuming modes", () => {
+  const withThread = finishGenerateThread({
+    state: base,
+    finishReason: "length",
+    instruction: "continue",
+    userPrompt: "continue",
+    generatedText: "partial",
+    generatedRange: { start: 10, end: 17 },
+  });
+
+  expect(getThreadPresentation(withThread, "continue", false)).toEqual({
+    mode: "resume",
+    label: "Resume mode",
+    detail: "2 history messages · range 10–17",
+    messageCount: 2,
+    canReset: true,
+  });
+
+  expect(getThreadPresentation(withThread, "continue", true)).toMatchObject({
+    mode: "resuming",
+    label: "Resuming output…",
   });
 });
 

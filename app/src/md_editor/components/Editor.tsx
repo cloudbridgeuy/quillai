@@ -50,10 +50,12 @@ import type {
 import {
   finishCancelledThread,
   finishGenerateThread,
+  getThreadPresentation,
   historyForResume,
   initialAiThreadState,
   invalidateThreadForManualEdit,
   manualEditFromDelta,
+  resetThread,
   resetThreadOnInstructionChange,
   shouldUseResumeThread,
   updateThreadSettings,
@@ -340,6 +342,10 @@ export const Container = () => {
 
   function closeRequestPreview() {
     setRequestPreview(null);
+  }
+
+  function resetCurrentThread() {
+    updateThreadState(resetThread(threadStateRef.current));
   }
 
   function buildRequestPreview(
@@ -768,6 +774,21 @@ export const Container = () => {
   }
 
   const statusPresentation = getStatusPresentation(aiRunState);
+  const isResumingOutput =
+    aiRunState.status === "continuing" &&
+    shouldUseResumeThread(threadState, normalizedInstructionText());
+  const threadPresentation = getThreadPresentation(
+    threadState,
+    normalizedInstructionText(),
+    isResumingOutput,
+  );
+  const requestPreviewThreadPresentation = requestPreview
+    ? getThreadPresentation(
+        threadState,
+        requestPreview.request.instruction,
+        requestPreview.request.messages.length > 0 && aiRunState.status === "continuing",
+      )
+    : threadPresentation;
   const requestPreviewPayload = requestPreview
     ? JSON.stringify(requestPreview.request, null, 2)
     : "";
@@ -871,6 +892,22 @@ export const Container = () => {
               Cancel
             </button>
           ) : null}
+        </div>
+
+        <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
+          <div>
+            <span className="editor-thread-label">AI Thread</span>
+            <strong>{threadPresentation.label}</strong>
+            <span>{threadPresentation.detail}</span>
+          </div>
+          <button
+            className="editor-button editor-button-small"
+            type="button"
+            onClick={resetCurrentThread}
+            disabled={isBusy || !threadPresentation.canReset}
+          >
+            Reset Thread
+          </button>
         </div>
 
         <p className="editor-note">
@@ -981,6 +1018,22 @@ export const Container = () => {
                   </strong>
                 </div>
               </div>
+
+              <section className={`editor-preview-section editor-thread-card editor-thread-${requestPreviewThreadPresentation.mode}`}>
+                <div>
+                  <span className="editor-thread-label">AI Thread</span>
+                  <strong>{requestPreviewThreadPresentation.label}</strong>
+                  <span>{requestPreviewThreadPresentation.detail}</span>
+                </div>
+                <button
+                  className="editor-button editor-button-small"
+                  type="button"
+                  onClick={resetCurrentThread}
+                  disabled={isBusy || !requestPreviewThreadPresentation.canReset}
+                >
+                  Reset Thread
+                </button>
+              </section>
 
               <section className="editor-preview-section editor-advanced-section">
                 <div className="editor-preview-section-header">

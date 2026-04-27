@@ -11,7 +11,7 @@ Cargo workspace with three members:
 ```
 crates/api/    — Axum HTTP server, SQLite, CLI config
 crates/log/    — Structured logging library (tracing-based)
-xtask/         — Build task runner (cargo xtask api|dev)
+xtask/         — Development process runner (`cargo xtask dev`)
 app/           — React frontend (Bun runtime, Quill.js editor)
 migrations/    — SQLx migrations (SQLite)
 docs/          — QuillJS implementation guide
@@ -21,9 +21,9 @@ docs/          — QuillJS implementation guide
 
 | What | Command | File |
 |------|---------|------|
-| API server | `cargo xtask api` or `cargo run -p quillai_api` | `crates/api/src/main.rs` |
-| Frontend dev | `bun --hot app/src/index.tsx` or `cargo xtask dev app` | `app/src/index.tsx` |
-| Full dev | Run both concurrently | — |
+| Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
+| API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
+| Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
 API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
 Current AI browser calls assume the API is on `2908` and the frontend is on `3001`.
@@ -52,7 +52,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | Task runner: `api` (systemfd hot-reload), `dev app` (bun), `blog` |
+| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C |
 
 ### Frontend (`app/src/`)
 

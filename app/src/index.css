@@ -249,6 +249,56 @@ button {
   background: rgba(109, 34, 34, 0.7);
 }
 
+.editor-button-small {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.editor-thread-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(255, 238, 225, 0.1);
+  border-radius: 16px;
+  background: rgba(14, 11, 10, 0.58);
+}
+
+.editor-thread-card > div {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.7rem;
+}
+
+.editor-thread-card strong {
+  color: rgba(255, 248, 240, 0.96);
+}
+
+.editor-thread-card span:last-child {
+  color: rgba(255, 238, 225, 0.6);
+}
+
+.editor-thread-label {
+  color: rgba(255, 238, 225, 0.56);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.editor-thread-resume {
+  border-color: rgba(231, 186, 109, 0.24);
+  background: rgba(91, 64, 30, 0.28);
+}
+
+.editor-thread-resuming {
+  border-color: rgba(120, 160, 255, 0.28);
+  background: rgba(35, 48, 91, 0.28);
+}
+
 .editor-canvas {
   overflow: hidden;
 }
@@ -434,8 +484,14 @@ button {
     border-radius: 14px;
   }
 
-  .editor-actions {
+  .editor-actions,
+  .editor-thread-card {
     width: 100%;
+  }
+
+  .editor-thread-card {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .editor-button {
