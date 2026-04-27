@@ -6,7 +6,7 @@ use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 
-use super::models::{GenerateInput, StreamEvent};
+use super::models::{ConversationMessage, FinishReason, GenerateInput, StreamEvent};
 use super::prompt::build_prompt;
 use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
@@ -69,8 +69,7 @@ impl AiProvider for OpenAiCompatibleProvider {
         let config = self.config.clone();
 
         Box::pin(stream! {
-            let prompt = build_prompt(&input);
-            let request_body = ChatCompletionRequest::new(config.model.clone(), prompt);
+            let request_body = ChatCompletionRequest::from_input(config.model.clone(), &input);
             let response = match client
                 .post(format!("{}/chat/completions", config.base_url))
                 .bearer_auth(config.api_key)
@@ -166,32 +165,42 @@ impl AiProvider for OpenAiCompatibleProvider {
 struct ChatCompletionRequest {
     model: String,
     stream: bool,
-    messages: [ChatMessage; 2],
+    max_tokens: usize,
+    messages: Vec<ChatMessage>,
 }
 
 impl ChatCompletionRequest {
-    fn new(model: String, prompt: String) -> Self {
+    fn from_input(model: String, input: &GenerateInput) -> Self {
+        let current_turn = build_prompt(input);
         Self {
             model,
             stream: true,
-            messages: [
-                ChatMessage {
-                    role: "system",
-                    content: SYSTEM_PROMPT.into(),
-                },
-                ChatMessage {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
+            max_tokens: input.max_output_tokens,
+            messages: chat_messages(&input.messages, current_turn),
         }
     }
 }
 
 #[derive(Debug, Serialize)]
 struct ChatMessage {
-    role: &'static str,
+    role: String,
     content: String,
+}
+
+fn chat_messages(history: &[ConversationMessage], current_turn: String) -> Vec<ChatMessage> {
+    std::iter::once(ChatMessage {
+        role: "system".into(),
+        content: SYSTEM_PROMPT.into(),
+    })
+    .chain(history.iter().map(|message| ChatMessage {
+        role: message.role.as_str().into(),
+        content: message.content.clone(),
+    }))
+    .chain(std::iter::once(ChatMessage {
+        role: "user".into(),
+        content: current_turn,
+    }))
+    .collect()
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -203,7 +212,7 @@ struct ParsedSseChunk {
 #[derive(Debug, PartialEq, Eq)]
 enum StreamPayload {
     Text(String),
-    Done,
+    Done(FinishReason),
     Skip,
     Error(String),
 }
@@ -285,7 +294,7 @@ fn parse_sse_event(event: &str) -> Option<String> {
 
 fn parse_stream_payload(payload: &str) -> StreamPayload {
     if payload == "[DONE]" {
-        return StreamPayload::Done;
+        return StreamPayload::Done(FinishReason::Unknown);
     }
 
     let value: Value = match serde_json::from_str(payload) {
@@ -303,7 +312,10 @@ fn parse_stream_payload(payload: &str) -> StreamPayload {
 
     match extract_chunk_text(&value) {
         Some(text) if !text.is_empty() => StreamPayload::Text(text),
-        Some(_) | None => StreamPayload::Skip,
+        Some(_) => StreamPayload::Skip,
+        None => extract_finish_reason(&value)
+            .map(StreamPayload::Done)
+            .unwrap_or(StreamPayload::Skip),
     }
 }
 
@@ -315,7 +327,7 @@ fn stream_event_from_payload(payload: StreamPayload) -> Option<(StreamEvent, boo
             },
             false,
         )),
-        StreamPayload::Done => Some((StreamEvent::Done, true)),
+        StreamPayload::Done(finish_reason) => Some((StreamEvent::Done { finish_reason }, true)),
         StreamPayload::Skip => None,
         StreamPayload::Error(error) => Some((StreamEvent::Error { error }, true)),
     }
@@ -338,6 +350,18 @@ fn extract_chunk_text(value: &Value) -> Option<String> {
         .get("content")
         .and_then(Value::as_str)
         .map(ToString::to_string)
+}
+
+fn extract_finish_reason(value: &Value) -> Option<FinishReason> {
+    let choices = value.get("choices")?.as_array()?;
+    let choice = choices.first()?;
+    let reason = choice.get("finish_reason")?.as_str()?;
+
+    Some(match reason {
+        "stop" => FinishReason::Stop,
+        "length" => FinishReason::Length,
+        _ => FinishReason::Unknown,
+    })
 }
 
 fn provider_error_message(body: &str, fallback: &str) -> String {
@@ -430,8 +454,19 @@ mod tests {
     }
 
     #[test]
+    fn parse_stream_payload_extracts_finish_reason() {
+        assert_eq!(
+            parse_stream_payload("{\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}"),
+            StreamPayload::Done(FinishReason::Length)
+        );
+    }
+
+    #[test]
     fn parse_stream_payload_recognizes_done_marker() {
-        assert_eq!(parse_stream_payload("[DONE]"), StreamPayload::Done);
+        assert_eq!(
+            parse_stream_payload("[DONE]"),
+            StreamPayload::Done(FinishReason::Unknown)
+        );
     }
 
     #[test]
@@ -440,6 +475,58 @@ mod tests {
             parse_stream_payload("{\"error\":{\"message\":\"bad key\"}}"),
             StreamPayload::Error("bad key".into())
         );
+    }
+
+    #[test]
+    fn chat_completion_request_includes_history_and_max_tokens() {
+        use crate::ai::models::{AiAction, ConversationRole, DocumentSlice};
+        use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
+
+        let input = GenerateInput {
+            action: AiAction::Generate,
+            document: DocumentSlice {
+                delta: DeltaDocument {
+                    ops: vec![DeltaOp {
+                        insert: Some(InsertValue::Text("Doc".into())),
+                        delete: None,
+                        retain: None,
+                        attributes: None,
+                    }],
+                },
+                text: "Doc".into(),
+            },
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![
+                ConversationMessage {
+                    role: ConversationRole::User,
+                    content: "previous prompt".into(),
+                },
+                ConversationMessage {
+                    role: ConversationRole::Assistant,
+                    content: "previous output".into(),
+                },
+            ],
+            resume_prompt: Some("resume".into()),
+            max_output_tokens: 777,
+        };
+
+        let body =
+            serde_json::to_value(ChatCompletionRequest::from_input("model-a".into(), &input))
+                .unwrap();
+
+        assert_eq!(body["model"], "model-a");
+        assert_eq!(body["stream"], true);
+        assert_eq!(body["max_tokens"], 777);
+        assert_eq!(body["messages"][1]["role"], "user");
+        assert_eq!(body["messages"][1]["content"], "previous prompt");
+        assert_eq!(body["messages"][2]["role"], "assistant");
+        assert_eq!(body["messages"][3]["role"], "user");
+        assert!(body["messages"][3]["content"]
+            .as_str()
+            .unwrap()
+            .contains("resume"));
     }
 
     #[test]

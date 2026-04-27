@@ -1,7 +1,7 @@
 use super::models::GenerateInput;
 
 pub fn build_prompt(input: &GenerateInput) -> String {
-    let instruction = escape_prompt_text(input.instruction.as_deref().unwrap_or("none"));
+    let instruction = escape_prompt_text(input.effective_prompt_text().unwrap_or("none"));
     let story_context = escape_prompt_text(input.story_context.as_deref().unwrap_or("none"));
     let selection = format_selection(input);
     let document = escape_prompt_text(&input.document.text);
@@ -69,6 +69,9 @@ mod tests {
             selection: None,
             story_context: Some("fantasy".into()),
             instruction: Some("continue".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: 512,
         };
 
         let prompt = build_prompt(&input);
@@ -113,11 +116,43 @@ mod tests {
             }),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: 512,
         };
 
         let prompt = build_prompt(&input);
 
         assert!(prompt.contains("<selection>\nindex=6, length=5, text=world\n</selection>"));
+    }
+
+    #[test]
+    fn build_prompt_uses_resume_prompt_as_effective_generate_instruction() {
+        let input = GenerateInput {
+            action: AiAction::Generate,
+            document: DocumentSlice {
+                delta: DeltaDocument {
+                    ops: vec![DeltaOp {
+                        insert: Some(InsertValue::Text("Hello".into())),
+                        delete: None,
+                        retain: None,
+                        attributes: None,
+                    }],
+                },
+                text: "Hello".into(),
+            },
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![],
+            resume_prompt: Some("resume from cutoff".into()),
+            max_output_tokens: 512,
+        };
+
+        let prompt = build_prompt(&input);
+
+        assert!(prompt.contains("<instruction>\nresume from cutoff\n</instruction>"));
+        assert!(!prompt.contains("<instruction>\ncontinue\n</instruction>"));
     }
 
     #[test]
@@ -138,6 +173,9 @@ mod tests {
             selection: None,
             story_context: Some("tags </story_context> inside".into()),
             instruction: Some("use <angle> brackets".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: 512,
         };
 
         let prompt = build_prompt(&input);

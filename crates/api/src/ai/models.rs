@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use super::segments::{plain_text, DeltaDocument, InsertValue, sanitize_document};
+use super::segments::{plain_text, sanitize_document, DeltaDocument, InsertValue};
 use crate::error::Error;
+
+pub const DEFAULT_MAX_OUTPUT_TOKENS: usize = 512;
+pub const MIN_MAX_OUTPUT_TOKENS: usize = 1;
+pub const MAX_MAX_OUTPUT_TOKENS: usize = 4096;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -11,6 +15,16 @@ pub struct GenerateRequest {
     pub selection: Option<RawSelectionSlice>,
     pub story_context: Option<String>,
     pub instruction: Option<String>,
+    #[serde(default)]
+    pub messages: Vec<RawConversationMessage>,
+    pub resume_prompt: Option<String>,
+    pub max_output_tokens: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawConversationMessage {
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,6 +64,27 @@ impl AiAction {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConversationRole {
+    User,
+    Assistant,
+}
+
+impl ConversationRole {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Assistant => "assistant",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConversationMessage {
+    pub role: ConversationRole,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SelectionRange {
     pub index: usize,
     pub length: usize,
@@ -83,6 +118,9 @@ pub struct GenerateInput {
     pub selection: Option<SelectionSlice>,
     pub story_context: Option<String>,
     pub instruction: Option<String>,
+    pub messages: Vec<ConversationMessage>,
+    pub resume_prompt: Option<String>,
+    pub max_output_tokens: usize,
 }
 
 impl GenerateInput {
@@ -91,14 +129,39 @@ impl GenerateInput {
             .as_ref()
             .map(|selection| selection.text.as_str())
     }
+
+    pub fn effective_prompt_text(&self) -> Option<&str> {
+        match self.action {
+            AiAction::Generate => self
+                .resume_prompt
+                .as_deref()
+                .or(self.instruction.as_deref()),
+            AiAction::Edit => self.instruction.as_deref(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FinishReason {
+    Stop,
+    Length,
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum StreamEvent {
-    Delta { delta: DeltaDocument },
-    Done,
-    Error { error: String },
+    Delta {
+        delta: DeltaDocument,
+    },
+    Done {
+        #[serde(rename = "finishReason")]
+        finish_reason: FinishReason,
+    },
+    Error {
+        error: String,
+    },
     Cancelled,
 }
 
@@ -124,6 +187,26 @@ impl TryFrom<RawSelection> for SelectionRange {
             index: value.index,
             length: value.length,
         })
+    }
+}
+
+impl TryFrom<RawConversationMessage> for ConversationMessage {
+    type Error = Error;
+
+    fn try_from(value: RawConversationMessage) -> Result<Self, Self::Error> {
+        let role = match value.role.as_str() {
+            "user" => ConversationRole::User,
+            "assistant" => ConversationRole::Assistant,
+            _ => {
+                return Err(Error::Validation(
+                    "messages role must be one of: user, assistant".into(),
+                ));
+            }
+        };
+
+        let content = normalize_message_content(value.content)?;
+
+        Ok(Self { role, content })
     }
 }
 
@@ -173,11 +256,22 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             selection,
             story_context,
             instruction,
+            messages,
+            resume_prompt,
+            max_output_tokens,
         } = request;
 
         let action = AiAction::try_from(action)?;
         let document = DocumentSlice::try_from(document)?;
         let selection = selection.map(SelectionSlice::try_from).transpose()?;
+        let messages = if action == AiAction::Generate {
+            messages
+                .into_iter()
+                .map(ConversationMessage::try_from)
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
         validate_selection(selection.as_ref(), &document)?;
 
         if action == AiAction::Edit
@@ -196,6 +290,13 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             selection,
             story_context: normalize_optional_text(story_context),
             instruction: normalize_optional_text(instruction),
+            messages,
+            resume_prompt: if action == AiAction::Generate {
+                normalize_optional_text(resume_prompt)
+            } else {
+                None
+            },
+            max_output_tokens: normalize_max_output_tokens(max_output_tokens)?,
         })
     }
 }
@@ -216,6 +317,34 @@ fn normalize_optional_text(value: Option<String>) -> Option<String> {
             Some(trimmed.to_string())
         }
     })
+}
+
+fn normalize_max_output_tokens(value: Option<usize>) -> Result<usize, Error> {
+    let value = value.unwrap_or(DEFAULT_MAX_OUTPUT_TOKENS);
+    if value < MIN_MAX_OUTPUT_TOKENS {
+        return Err(Error::Validation(format!(
+            "maxOutputTokens must be at least {MIN_MAX_OUTPUT_TOKENS}"
+        )));
+    }
+
+    if value > MAX_MAX_OUTPUT_TOKENS {
+        return Err(Error::Validation(format!(
+            "maxOutputTokens must be at most {MAX_MAX_OUTPUT_TOKENS}"
+        )));
+    }
+
+    Ok(value)
+}
+
+fn normalize_message_content(content: String) -> Result<String, Error> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return Err(Error::Validation(
+            "messages content must not be blank".into(),
+        ));
+    }
+
+    Ok(trimmed.to_string())
 }
 
 fn validate_selection(
@@ -253,7 +382,11 @@ fn validate_selection(
 }
 
 fn validate_text_only_delta(delta: &DeltaDocument, kind: &str) -> Result<(), Error> {
-    if delta.ops.iter().any(|op| matches!(op.insert, Some(InsertValue::Embed(_)))) {
+    if delta
+        .ops
+        .iter()
+        .any(|op| matches!(op.insert, Some(InsertValue::Embed(_))))
+    {
         return Err(Error::Validation(format!(
             "AI {kind} slices currently support text inserts only"
         )));
@@ -355,6 +488,12 @@ mod tests {
             selection: Some(text_selection("", 5, 0)),
             story_context: Some("  scene notes  ".into()),
             instruction: Some("   ".into()),
+            messages: vec![RawConversationMessage {
+                role: "user".into(),
+                content: "  Add the text of the letter.  ".into(),
+            }],
+            resume_prompt: Some("  Continue from the cutoff.  ".into()),
+            max_output_tokens: None,
         })
         .unwrap();
 
@@ -363,6 +502,18 @@ mod tests {
         assert_eq!(input.document.text, "Hello");
         assert_eq!(input.story_context.as_deref(), Some("scene notes"));
         assert_eq!(input.instruction, None);
+        assert_eq!(
+            input.resume_prompt.as_deref(),
+            Some("Continue from the cutoff.")
+        );
+        assert_eq!(input.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
+        assert_eq!(
+            input.messages,
+            vec![ConversationMessage {
+                role: ConversationRole::User,
+                content: "Add the text of the letter.".into(),
+            }]
+        );
         assert_eq!(input.selection.unwrap().range.length, 0);
     }
 
@@ -374,6 +525,9 @@ mod tests {
             selection: Some(text_selection("", 0, 0)),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -398,6 +552,9 @@ mod tests {
             selection: None,
             story_context: None,
             instruction: None,
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -414,6 +571,9 @@ mod tests {
             selection: Some(text_selection("o!", 4, 2)),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -430,6 +590,9 @@ mod tests {
             selection: Some(text_selection("there", 6, 5)),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -446,6 +609,9 @@ mod tests {
             selection: Some(text_selection("world", 6, 5)),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap();
 
@@ -474,6 +640,9 @@ mod tests {
             }),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -500,6 +669,9 @@ mod tests {
             selection: None,
             story_context: None,
             instruction: None,
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -526,6 +698,9 @@ mod tests {
             selection: None,
             story_context: None,
             instruction: None,
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -546,10 +721,16 @@ mod tests {
                     }],
                 },
                 text: "".into(),
-                range: RawSelection { index: 0, length: 1 },
+                range: RawSelection {
+                    index: 0,
+                    length: 1,
+                },
             }),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap_err();
 
@@ -566,6 +747,9 @@ mod tests {
             selection: Some(text_selection("💡", 3, 2)),
             story_context: None,
             instruction: Some("tighten".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
         })
         .unwrap();
 
@@ -590,5 +774,131 @@ mod tests {
             value,
             json!({ "type": "delta", "delta": { "ops": [{ "insert": "Hello" }] } })
         );
+    }
+
+    #[test]
+    fn blank_message_content_is_rejected() {
+        let err = GenerateInput::try_from(GenerateRequest {
+            action: "generate".into(),
+            document: text_document("Hello"),
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![RawConversationMessage {
+                role: "assistant".into(),
+                content: "   ".into(),
+            }],
+            resume_prompt: None,
+            max_output_tokens: None,
+        })
+        .unwrap_err();
+
+        assert!(err
+            .to_string()
+            .contains("messages content must not be blank"));
+    }
+
+    #[test]
+    fn invalid_message_role_is_rejected() {
+        let err = GenerateInput::try_from(GenerateRequest {
+            action: "generate".into(),
+            document: text_document("Hello"),
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![RawConversationMessage {
+                role: "system".into(),
+                content: "Nope".into(),
+            }],
+            resume_prompt: None,
+            max_output_tokens: None,
+        })
+        .unwrap_err();
+
+        assert!(err
+            .to_string()
+            .contains("messages role must be one of: user, assistant"));
+    }
+
+    #[test]
+    fn token_limit_defaults_and_bounds_are_enforced() {
+        let defaulted = GenerateInput::try_from(GenerateRequest {
+            action: "generate".into(),
+            document: text_document("Hello"),
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: None,
+        })
+        .unwrap();
+
+        assert_eq!(defaulted.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
+
+        let too_large = GenerateInput::try_from(GenerateRequest {
+            action: "generate".into(),
+            document: text_document("Hello"),
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: Some(MAX_MAX_OUTPUT_TOKENS + 1),
+        })
+        .unwrap_err();
+
+        assert!(too_large
+            .to_string()
+            .contains("maxOutputTokens must be at most"));
+
+        let too_small = GenerateInput::try_from(GenerateRequest {
+            action: "generate".into(),
+            document: text_document("Hello"),
+            selection: None,
+            story_context: None,
+            instruction: Some("continue".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: Some(MIN_MAX_OUTPUT_TOKENS - 1),
+        })
+        .unwrap_err();
+
+        assert!(too_small
+            .to_string()
+            .contains("maxOutputTokens must be at least"));
+    }
+
+    #[test]
+    fn edit_requests_drop_generate_only_thread_fields() {
+        let input = GenerateInput::try_from(GenerateRequest {
+            action: "edit".into(),
+            document: text_document("Hello world"),
+            selection: Some(text_selection("world", 6, 5)),
+            story_context: None,
+            instruction: Some("tighten".into()),
+            messages: vec![RawConversationMessage {
+                role: "assistant".into(),
+                content: "previous output".into(),
+            }],
+            resume_prompt: Some("resume".into()),
+            max_output_tokens: Some(600),
+        })
+        .unwrap();
+
+        assert!(input.messages.is_empty());
+        assert_eq!(input.resume_prompt, None);
+        assert_eq!(input.max_output_tokens, 600);
+        assert_eq!(input.effective_prompt_text(), Some("tighten"));
+    }
+
+    #[test]
+    fn ndjson_line_serializes_done_finish_reason_in_camel_case() {
+        let line = event_to_ndjson_line(&StreamEvent::Done {
+            finish_reason: FinishReason::Length,
+        });
+
+        let value: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
+        assert_eq!(value, json!({ "type": "done", "finishReason": "length" }));
     }
 }
