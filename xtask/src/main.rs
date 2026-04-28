@@ -4,6 +4,8 @@
 //! with just `cargo`.
 use chrono::Local;
 use clap::Parser;
+use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGTERM};
+use signal_hook::flag;
 use std::error::Error;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, Command, Stdio};
@@ -101,7 +103,7 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
     ensure_app_dependencies()?;
 
     let shutdown = Arc::new(AtomicBool::new(false));
-    install_ctrlc_handler(Arc::clone(&shutdown))?;
+    install_shutdown_signal_handlers(Arc::clone(&shutdown))?;
 
     let (tx, rx) = mpsc::channel();
     let mut children = vec![
@@ -228,10 +230,10 @@ fn spawn_pipe_reader(
     });
 }
 
-fn install_ctrlc_handler(shutdown: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
-    ctrlc::set_handler(move || {
-        shutdown.store(true, Ordering::SeqCst);
-    })?;
+fn install_shutdown_signal_handlers(shutdown: Arc<AtomicBool>) -> Result<(), Box<dyn Error>> {
+    flag::register(SIGINT, Arc::clone(&shutdown))?;
+    flag::register(SIGTERM, Arc::clone(&shutdown))?;
+    flag::register(SIGHUP, shutdown)?;
 
     Ok(())
 }
@@ -243,7 +245,7 @@ fn supervise(
 ) -> i32 {
     loop {
         if shutdown.load(Ordering::SeqCst) {
-            log_supervisor_line("received Ctrl-C; stopping dev services".into());
+            log_supervisor_line("received shutdown signal; stopping dev services".into());
             return 130;
         }
         while let Ok(event) = rx.try_recv() {
