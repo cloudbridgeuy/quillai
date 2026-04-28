@@ -82,6 +82,39 @@ struct ManagedChild {
     child: Child,
 }
 
+struct ManagedChildren {
+    children: Vec<ManagedChild>,
+    terminated: bool,
+}
+
+impl ManagedChildren {
+    fn new(children: Vec<ManagedChild>) -> Self {
+        Self {
+            children,
+            terminated: false,
+        }
+    }
+
+    fn as_mut_slice(&mut self) -> &mut [ManagedChild] {
+        &mut self.children
+    }
+
+    fn terminate(&mut self) {
+        if self.terminated {
+            return;
+        }
+
+        terminate_children(&mut self.children);
+        self.terminated = true;
+    }
+}
+
+impl Drop for ManagedChildren {
+    fn drop(&mut self) {
+        self.terminate();
+    }
+}
+
 #[derive(Debug)]
 enum SupervisorEvent {
     Output {
@@ -106,18 +139,18 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
     install_shutdown_signal_handlers(Arc::clone(&shutdown))?;
 
     let (tx, rx) = mpsc::channel();
-    let mut children = vec![
+    let mut children = ManagedChildren::new(vec![
         spawn_api(args.api_port, tx.clone())?,
         spawn_app(args.app_port, tx)?,
-    ];
+    ]);
 
     log_supervisor_line(format!(
         "dev started: api=http://127.0.0.1:{} app=http://127.0.0.1:{}",
         args.api_port, args.app_port
     ));
 
-    let exit_status = supervise(&mut children, rx, shutdown);
-    terminate_children(&mut children);
+    let exit_status = supervise(children.as_mut_slice(), rx, shutdown);
+    children.terminate();
 
     if exit_status != 0 {
         std::process::exit(exit_status);
