@@ -10,3 +10,4 @@ chrono = "0.4.24"
 clap = { workspace = true }
 ctrlc = "3.4.5"
 libc = "0.2"
+signal-hook = "0.3.17"
