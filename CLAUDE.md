@@ -165,6 +165,8 @@ Default to using Bun instead of Node.js.
 
 ## Context Docs
 
+`.claude` is gitignored; the docs below stay tracked, but a new context doc must be added with `git add -f`.
+
 - `.claude/context/ai-streaming.md` — AI request validation, prompt rules, provider env vars, and NDJSON stream behavior
 - `.claude/context/ai-editor.md` — Quill AI editor shell, helper modules, and the current browser URL constraint
 - `.claude/context/markdown-parsing.md` — markdown shortcut logic inside the editor shell
