@@ -71,6 +71,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 | `md_editor/window.ts` | Pure context-window calculation for transmitted document slices. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/delta_bridge.ts` | Quill delta normalization at the request and stream boundaries. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/editor_ai.ts` | Pure selection-memory, rollback, and status helpers for the editor shell. See [AI editor context](.claude/context/ai-editor.md) |
+| `md_editor/editor_persistence.ts` | Pure parse/serialize of editor state (document, AI settings, thread) stored in `localStorage` under `quillai.editor.state.v1`. Falls back to defaults on invalid data. |
 | `md_editor/markdown.ts` | Pure markdown analysis functions — `analyzeMarkdownContext`, `isPatternComplete`. See [markdown parsing context](.claude/context/markdown-parsing.md) |
 | `md_editor/components/Editor.tsx` | Quill editor shell for Continue/Edit streaming, cancellation, rollback, and markdown formatting. See [AI editor context](.claude/context/ai-editor.md) and [markdown parsing context](.claude/context/markdown-parsing.md) |
 | `api_tester/components/APITester.tsx` | HTTP method selector + URL input + loading state + structured error parsing. See [error handling context](.claude/context/error-handling.md) |

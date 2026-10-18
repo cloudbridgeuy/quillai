@@ -15,6 +15,7 @@ The frontend split is deliberate.
 - `window.ts` — context-window calculation.
 - `delta_bridge.ts` — Quill delta normalization at the contract boundary.
 - `editor_ai.ts` — pure selection-memory, rollback, and status-presentation helpers.
+- `editor_persistence.ts` — pure parse/serialize of the localStorage editor snapshot (document, story context, instruction, window settings, thread state); invalid data falls back to defaults.
 
 **Imperative Shell**:
 - `components/Editor.tsx` — owns Quill, DOM refs, browser `fetch`, `AbortController`, streamed delta application, and UI state wiring.

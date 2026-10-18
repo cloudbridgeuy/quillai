@@ -41,6 +41,13 @@ import {
   type AiRunState,
 } from "../ai_state";
 import { analyzeMarkdownContext, isPatternComplete } from "../markdown";
+import {
+  PERSISTED_EDITOR_STATE_KEY,
+  parsePersistedEditorState,
+  serializePersistedEditorState,
+  type PersistedDeltaDocument,
+  type PersistedEditorState,
+} from "../editor_persistence";
 import type {
   DeltaT,
   OnTextChangeFn,
@@ -119,6 +126,24 @@ const INITIAL_DOCUMENT = new Delta()
   .insert(
     "The rain had started before dusk, and Mara still had not decided whether the letter in her coat pocket was a warning or an invitation.\n\n",
   );
+
+function getStoredEditorState(): PersistedEditorState {
+  if (typeof window === "undefined") {
+    return parsePersistedEditorState(null);
+  }
+
+  try {
+    return parsePersistedEditorState(
+      window.localStorage.getItem(PERSISTED_EDITOR_STATE_KEY),
+    );
+  } catch {
+    return parsePersistedEditorState(null);
+  }
+}
+
+function getInitialDocument(document: PersistedDeltaDocument): Delta {
+  return document.ops.length > 0 ? new Delta(document.ops) : INITIAL_DOCUMENT;
+}
 
 function getAiErrorMessage(responseText: string, status: number): string {
   const trimmed = responseText.trim();
@@ -204,16 +229,20 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 Component.displayName = "EditorComponent";
 
 export const Container = () => {
+  const initialEditorStateRef = useRef<PersistedEditorState | null>(null);
+  if (initialEditorStateRef.current === null) {
+    initialEditorStateRef.current = getStoredEditorState();
+  }
+  const initialEditorState = initialEditorStateRef.current;
+
   const [range, setRange] = useState<RangeT | null>(null);
-  const [storyContext, setStoryContext] = useState("");
-  const [instruction, setInstruction] = useState("");
-  const [windowSize, setWindowSize] = useState("1200");
-  const [windowMode, setWindowMode] = useState<DocumentWindowMode>("window");
+  const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
+  const [instruction, setInstruction] = useState(initialEditorState.instruction);
+  const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
+  const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
-  const [threadState, setThreadState] = useState<AiThreadState>(() =>
-    initialAiThreadState(DEFAULT_MAX_OUTPUT_TOKENS),
-  );
+  const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
 
   const quillRef = useRef<Quill | null>(null);
   const aiRunStateRef = useRef(aiRunState);
@@ -223,6 +252,32 @@ export const Container = () => {
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
 
+  function persistEditorState(document: PersistedDeltaDocument | null = null) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const currentDocument = document ?? {
+      ops: quillRef.current?.getContents().ops ?? initialEditorState.document.ops,
+    };
+
+    try {
+      window.localStorage.setItem(
+        PERSISTED_EDITOR_STATE_KEY,
+        serializePersistedEditorState({
+          document: currentDocument,
+          storyContext,
+          instruction,
+          windowSize,
+          windowMode,
+          threadState: threadStateRef.current,
+        }),
+      );
+    } catch {
+      // Keep editing available if storage is unavailable or full.
+    }
+  }
+
   useEffect(() => {
     aiRunStateRef.current = aiRunState;
   }, [aiRunState]);
@@ -230,6 +285,10 @@ export const Container = () => {
   useEffect(() => {
     threadStateRef.current = threadState;
   }, [threadState]);
+
+  useEffect(() => {
+    persistEditorState();
+  }, [storyContext, instruction, windowSize, windowMode, threadState]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -921,7 +980,7 @@ export const Container = () => {
         <Component
           ref={quillRef}
           readOnly={isBusy}
-          defaultValue={INITIAL_DOCUMENT}
+          defaultValue={getInitialDocument(initialEditorState.document)}
           onSelectionChange={(nextRange) => {
             setRange(nextRange);
             lastCursorRangeRef.current = rememberCursorRange(
@@ -934,6 +993,11 @@ export const Container = () => {
             );
           }}
           onTextChange={(delta, _oldDelta, source) => {
+            const quill = quillRef.current;
+            if (quill) {
+              persistEditorState({ ops: quill.getContents().ops });
+            }
+
             if (source === "user") {
               updateThreadState(
                 invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
