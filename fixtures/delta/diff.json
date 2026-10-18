@@ -1,0 +1,7561 @@
+[
+  {
+    "name": "diff empty to empty",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff empty to hello",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to helloBold",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to helloWorld",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to helloMixed",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to helloEmbed",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to embedA",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to embedB",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to emoji",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to emoji2",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to cjk",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to cjk2",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to header",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to lines",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff empty to linesEdit",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff hello to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " World\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff hello to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff helloBold to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        },
+        {
+          "insert": " World\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloBold to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff helloWorld to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 6
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc"
+        },
+        {
+          "delete": 11
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloWorld to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\n"
+        },
+        {
+          "delete": 10
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff helloMixed to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 12
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 6
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc"
+        },
+        {
+          "delete": 11
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloMixed to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\n"
+        },
+        {
+          "delete": 10
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "bold": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " World\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff helloEmbed to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff helloEmbed to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff embedA to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedA to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff embedB to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff embedB to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff emoji to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😁"
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "\nb\nc\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "\nB\nc\nd\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😀"
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff emoji2 to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "\nb\nc\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff emoji2 to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "\nB\nc\nd\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff cjk to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "人"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff cjk2 to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff cjk2 to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd\n"
+        },
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5,
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " World"
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": " "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😁b"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff header to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nb\nc"
+        },
+        {
+          "delete": 5
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff header to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\nB\nc\nd"
+        },
+        {
+          "delete": 5
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello World"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😀b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😁b"
+        },
+        {
+          "delete": 5
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 5
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff lines to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff lines to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "B"
+        },
+        {
+          "delete": 1
+        },
+        {
+          "retain": 3
+        },
+        {
+          "insert": "d\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to empty",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to hello",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to helloBold",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to helloWorld",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello Worl"
+        },
+        {
+          "delete": 6
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to helloMixed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Worl"
+        },
+        {
+          "delete": 6
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "bold": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to helloEmbed",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to embedA",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to embedB",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to emoji",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😀b"
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to emoji2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😁b"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😁b"
+        },
+        {
+          "delete": 7
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to cjk",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to cjk2",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本人"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本人"
+        },
+        {
+          "delete": 8
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to header",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        },
+        {
+          "delete": 7
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to lines",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nb\nc\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "b"
+        },
+        {
+          "delete": 1
+        },
+        {
+          "retain": 3
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff linesEdit to linesEdit",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\nB\nc\nd\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "diff abcabc to abcabcabc cursor=0",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "abcabc"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "abcabcabc"
+          }
+        ]
+      },
+      "cursor": 0
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "abc"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff abcabc to abcabcabc cursor=3",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "abcabc"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "abcabcabc"
+          }
+        ]
+      },
+      "cursor": 3
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3
+        },
+        {
+          "insert": "abc"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diff abcabc to abcabcabc cursor=6",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "abcabc"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "abcabcabc"
+          }
+        ]
+      },
+      "cursor": 6
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": "abc"
+        }
+      ]
+    }
+  }
+]

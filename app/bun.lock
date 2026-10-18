@@ -15,6 +15,7 @@
         "@types/bun": "latest",
         "@types/react": "^19",
         "@types/react-dom": "^19",
+        "quill-delta": "5.1.0",
       },
     },
   },

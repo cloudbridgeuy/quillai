@@ -1,0 +1,3043 @@
+[
+  {
+    "name": "transformPosition text index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition text index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition text index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition text index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition text index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition text index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition text index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 10
+  },
+  {
+    "name": "transformPosition text index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 13
+  },
+  {
+    "name": "transformPosition textBold index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition textBold index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition textBold index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition textBold index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition textBold index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition mixed index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition mixed index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 12
+  },
+  {
+    "name": "transformPosition mixed index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 13
+  },
+  {
+    "name": "transformPosition mixed index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 15
+  },
+  {
+    "name": "transformPosition mixed index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 15
+  },
+  {
+    "name": "transformPosition retain3 index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retain3 index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retain3 index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition retain3 index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retain3 index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retain3 index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retain3 index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition retain3 index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition retainBold index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainBold index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainBold index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition retainBold index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainBold index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainBold index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainBold index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition retainBold index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition retainUnbold index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainUnbold index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainUnbold index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainUnbold index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainUnbold index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainUnbold index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition retainUnbold index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition retainMulti index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainMulti index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainMulti index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition retainMulti index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainMulti index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition delete2 index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition delete2 index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition delete2 index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition delete2 index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition delete2 index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition delete2 index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition delete2 index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition delete2 index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition deleteStart index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteStart index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition deleteStart index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition deleteStart index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition deleteStart index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainDelete index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainDelete index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainDelete index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainDelete index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainDelete index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainDelete index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainDelete index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition insMid index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition insMid index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition insMid index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition insMid index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition insMid index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition insMid index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition insMid index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 10
+  },
+  {
+    "name": "transformPosition insEmbed index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition insEmbed index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition insEmbed index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition insEmbed index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition insEmbed index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition embedOnly index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition embedOnly index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition embedOnly index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition embedOnly index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition embedOnly index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition embedOnly index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition embedOnly index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition embedAttr index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition embedAttr index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition embedAttr index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition embedAttr index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition embedAttr index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition embedAttr index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition embedAttr index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition video index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition video index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition video index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition video index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition video index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition emoji index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition emoji index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition emoji index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition emoji index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition emoji index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition emojiRetain index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition emojiRetain index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition emojiRetain index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition emojiRetain index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 11
+  },
+  {
+    "name": "transformPosition emojiRetain index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 11
+  },
+  {
+    "name": "transformPosition cjk index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition cjk index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition cjk index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition cjk index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition cjk index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition cjk index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition cjk index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 10
+  },
+  {
+    "name": "transformPosition combining index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition combining index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition combining index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition combining index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition combining index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition combining index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition combining index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 11
+  },
+  {
+    "name": "transformPosition lineAttr index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition lineAttr index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition lineAttr index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition lineAttr index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition lineAttr index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition retainLine index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainLine index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainLine index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition retainLine index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 2
+  },
+  {
+    "name": "transformPosition retainLine index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainLine index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainLine index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition retainLine index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition newlines index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition newlines index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition newlines index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition newlines index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition newlines index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 8
+  },
+  {
+    "name": "transformPosition deleteLong index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition deleteLong index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition attrNested index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition attrNested index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition attrNested index=1 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "priority": true
+    },
+    "expected": 5
+  },
+  {
+    "name": "transformPosition attrNested index=2 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 2,
+      "priority": false
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition attrNested index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition attrNested index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 7
+  },
+  {
+    "name": "transformPosition attrNested index=5 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 5,
+      "priority": false
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition attrNested index=8 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "index": 8,
+      "priority": false
+    },
+    "expected": 12
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=2 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 2,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 4
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=5 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 5,
+      "priority": true
+    },
+    "expected": 6
+  },
+  {
+    "name": "transformPosition retainEmbedAttr index=8 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "index": 8,
+      "priority": true
+    },
+    "expected": 9
+  },
+  {
+    "name": "transformPosition zeroAttr index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition zeroAttr index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition zeroAttr index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition zeroAttr index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition zeroAttr index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition empty index=0 priority=true",
+    "input": {
+      "delta": {
+        "ops": []
+      },
+      "index": 0,
+      "priority": true
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition empty index=0 priority=false",
+    "input": {
+      "delta": {
+        "ops": []
+      },
+      "index": 0,
+      "priority": false
+    },
+    "expected": 0
+  },
+  {
+    "name": "transformPosition empty index=1 priority=false",
+    "input": {
+      "delta": {
+        "ops": []
+      },
+      "index": 1,
+      "priority": false
+    },
+    "expected": 1
+  },
+  {
+    "name": "transformPosition empty index=3 priority=true",
+    "input": {
+      "delta": {
+        "ops": []
+      },
+      "index": 3,
+      "priority": true
+    },
+    "expected": 3
+  },
+  {
+    "name": "transformPosition empty index=3 priority=false",
+    "input": {
+      "delta": {
+        "ops": []
+      },
+      "index": 3,
+      "priority": false
+    },
+    "expected": 3
+  }
+]
