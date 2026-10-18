@@ -33,7 +33,21 @@ Use custom ports when needed:
 cargo xtask dev --api-port 2908 --app-port 3001
 ```
 
-`xtask dev` installs frontend dependencies when `app/node_modules` is missing, runs the Rust API and Bun frontend concurrently, prefixes each log line with the current time and service name, and stops both processes on `Ctrl-C`.
+Choose a stronger AI model for local testing:
+
+```sh
+QUILLAI_AI_API_KEY=your-key cargo xtask dev --ai-model gpt-4.1
+```
+
+Use another OpenAI-compatible provider when needed:
+
+```sh
+QUILLAI_AI_API_KEY=your-key cargo xtask dev \
+  --ai-model provider-model-name \
+  --ai-base-url https://provider.example/v1
+```
+
+`xtask dev` installs frontend dependencies when `app/node_modules` is missing, runs the Rust API and Bun frontend concurrently, prefixes each log line with the current time and service name, and stops both processes on `Ctrl-C`. `QUILLAI_AI_API_KEY` stays an environment variable so secrets are not added to `xtask` flags.
 
 The frontend expects the Rust API at `http://127.0.0.1:2908`.
 The current browser-side AI trigger path is local-only: Continue and Edit always call that default API URL, and the API's local CORS allowlist expects the frontend to run on port `3001`.
@@ -51,13 +65,13 @@ The current browser-side AI trigger path is local-only: Continue and Edit always
 | `--db-acquire-timeout` | `QUILLAI_API_DB_ACQUIRE_TIMEOUT` | `3` |
 | `--log-level` | `QUILLAI_API_LOG_LEVEL` | `warn` |
 
-AI provider env vars:
+AI provider env vars and `xtask dev` overrides:
 
-| Env Variable | Required | Description |
-|-------------|----------|-------------|
-| `QUILLAI_AI_API_KEY` | Yes | OpenAI-compatible API key used by the Rust API |
-| `QUILLAI_AI_MODEL` | Yes | Model name passed to `chat/completions` |
-| `QUILLAI_AI_BASE_URL` | No | Override base URL for OpenAI-compatible hosts; defaults to `https://api.openai.com/v1` |
+| Setting | Env Variable | `xtask dev` Flag | Required | Description |
+|---------|--------------|------------------|----------|-------------|
+| API key | `QUILLAI_AI_API_KEY` | — | Yes | OpenAI-compatible API key used by the Rust API |
+| Model | `QUILLAI_AI_MODEL` | `--ai-model` | Yes | Model name passed to `chat/completions` |
+| Base URL | `QUILLAI_AI_BASE_URL` | `--ai-base-url` | No | Override base URL for OpenAI-compatible hosts; defaults to `https://api.openai.com/v1` |
 
 ### Frontend
 

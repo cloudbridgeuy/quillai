@@ -47,6 +47,14 @@ pub struct DevArgs {
     /// Frontend app port.
     #[clap(long, default_value_t = 3001)]
     app_port: u16,
+
+    /// AI model name passed to the API provider.
+    #[clap(long)]
+    ai_model: Option<String>,
+
+    /// OpenAI-compatible AI provider base URL.
+    #[clap(long)]
+    ai_base_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -140,13 +148,19 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
 
     let (tx, rx) = mpsc::channel();
     let mut children = ManagedChildren::new(vec![
-        spawn_api(args.api_port, tx.clone())?,
+        spawn_api(
+            args.api_port,
+            args.ai_model.as_deref(),
+            args.ai_base_url.as_deref(),
+            tx.clone(),
+        )?,
         spawn_app(args.app_port, tx)?,
     ]);
 
+    let ai_model = args.ai_model.as_deref().unwrap_or("env:QUILLAI_AI_MODEL");
     log_supervisor_line(format!(
-        "dev started: api=http://127.0.0.1:{} app=http://127.0.0.1:{}",
-        args.api_port, args.app_port
+        "dev started: api=http://127.0.0.1:{} app=http://127.0.0.1:{} ai_model={}",
+        args.api_port, args.app_port, ai_model
     ));
 
     let exit_status = supervise(children.as_mut_slice(), rx, shutdown);
@@ -176,7 +190,12 @@ fn ensure_app_dependencies() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn spawn_api(port: u16, tx: Sender<SupervisorEvent>) -> Result<ManagedChild, Box<dyn Error>> {
+fn spawn_api(
+    port: u16,
+    ai_model: Option<&str>,
+    ai_base_url: Option<&str>,
+    tx: Sender<SupervisorEvent>,
+) -> Result<ManagedChild, Box<dyn Error>> {
     let mut command = Command::new("cargo");
     command.args([
         "run",
@@ -188,6 +207,14 @@ fn spawn_api(port: u16, tx: Sender<SupervisorEvent>) -> Result<ManagedChild, Box
         "--port",
         &port.to_string(),
     ]);
+
+    if let Some(model) = ai_model {
+        command.env("QUILLAI_AI_MODEL", model);
+    }
+
+    if let Some(base_url) = ai_base_url {
+        command.env("QUILLAI_AI_BASE_URL", base_url);
+    }
 
     spawn_managed(Service::Api, command, tx)
 }
