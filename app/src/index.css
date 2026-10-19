@@ -349,6 +349,14 @@ button {
   overflow: hidden;
 }
 
+.editor-chapter-title {
+  font: 600 13px var(--sans);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-align: center;
+}
+
 .editor-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);

@@ -39,8 +39,21 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     });
     await tab.goto(`/?${query}`);
     await expect(tab.locator(".ql-editor")).toHaveText("Opening line");
+    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
     await expect(tab.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
   }
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const title = page.getByRole("heading", { name: "E2E chapter", exact: true });
+  await expect(title).toHaveCSS("font-size", "13px");
+  await expect(title).toHaveCSS("font-weight", "600");
+  await expect(title).toHaveCSS("letter-spacing", "2.86px");
+  await expect(title).toHaveCSS("text-transform", "uppercase");
+  await expect(title).toHaveCSS("text-align", "center");
+  expect(await title.evaluate((element) => (element as HTMLElement).isContentEditable)).toBe(false);
+  await expect(title).toHaveCSS("color", "rgb(78, 98, 114)");
+  await expect(page.getByRole("heading", { name: "Live Prompt Context" })).toBeVisible();
+  await page.screenshot({ path: "../target/guz-750/editor-desktop.png", fullPage: true });
 
   await page.locator(".ql-editor").fill("Page one writes");
   await expect(second.locator(".ql-editor")).toHaveText("Page one writes");
@@ -62,6 +75,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   for (const tab of [page, second]) {
     await tab.reload();
     await expect(tab.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
+    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
     await expect(tab.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
   }
   expect(failures).toEqual([]);

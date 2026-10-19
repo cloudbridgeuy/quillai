@@ -1059,6 +1059,7 @@ export const Container = () => {
 
       <div className="editor-workspace">
         <div className="editor-canvas">
+          {chapterSync.title !== null && <h2 className="editor-chapter-title">{chapterSync.title}</h2>}
           <Component
             ref={quillRef}
             readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}

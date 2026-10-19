@@ -13,6 +13,7 @@ export function useChapterSync(
   onRemoteChange: () => void,
 ) {
   const [status, setStatus] = useState("Loading chapter…");
+  const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [recovery, setRecovery] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export function useChapterSync(
       });
       let latestRecovery: string | null = null;
       sessionRef.current = session;
+      setTitle(chapter.title);
       setStatus(`${chapter.title} · Saved${storageFailed ? " · Recovery storage unavailable" : ""}`);
       setReady(true);
       session.edit(quill.getContents());
@@ -122,6 +124,7 @@ export function useChapterSync(
     ready,
     blocked,
     status,
+    title,
     recovery,
     needsChapter,
     async bootstrap() {
