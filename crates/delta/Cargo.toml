@@ -6,6 +6,7 @@ description = "QuillAi Delta: Quill-compatible Delta core types and JSON serde"
 
 authors.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
