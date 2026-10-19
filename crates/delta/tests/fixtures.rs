@@ -182,6 +182,54 @@ fn to_value(d: &Delta) -> Value {
 }
 
 #[test]
+fn fixtures_replay_invert_diff() {
+    for (file, want_half, want_cuts) in [("invert", 0, 3), ("diff", 0, 0)] {
+        let raw = fs::read_to_string(dir().join(format!("{file}.json"))).unwrap();
+        let cases: Vec<Value> = serde_json::from_str(&mask(&raw)).unwrap();
+        let (mut ran, mut half, mut cuts, mut mismatches) = (0, Vec::new(), Vec::new(), Vec::new());
+        for case in &cases {
+            let ctx = format!("{file}/{}", case["name"].as_str().unwrap());
+            let input = &case["input"];
+            if has_masked(&input.to_string()) {
+                half.push(ctx);
+                continue;
+            }
+            let got = if file == "invert" {
+                delta(&input["change"], &ctx).invert(&delta(&input["base"], &ctx))
+            } else {
+                delta(&input["a"], &ctx).diff_with_cursor(
+                    &delta(&input["b"], &ctx),
+                    input["cursor"].as_u64().map(|n| n as usize),
+                )
+            };
+            match got {
+                Ok(got) => {
+                    if to_value(&got) != case["expected"] {
+                        mismatches.push(format!(
+                            "{ctx}: got {}, expected {}",
+                            got.to_json(),
+                            case["expected"]
+                        ));
+                    }
+                    ran += 1;
+                }
+                Err(DeltaError::SplitSurrogate(_)) => cuts.push(ctx),
+                Err(e) => panic!("{ctx}: {e}"),
+            }
+        }
+        println!("{file}: replayed {ran}, half inputs {half:?}, cuts {cuts:?}");
+        assert!(
+            mismatches.is_empty(),
+            "{} mismatches: {mismatches:#?}",
+            mismatches.len()
+        );
+        assert_eq!(half.len(), want_half, "{file}: {half:?}");
+        assert_eq!(cuts.len(), want_cuts, "{file}: {cuts:?}");
+        assert_eq!(ran + half.len() + cuts.len(), cases.len());
+    }
+}
+
+#[test]
 fn fixtures_replay_compose_transform_position() {
     for (file, want_half, want_cuts) in EXPECTED_DIFFS {
         let raw = fs::read_to_string(dir().join(format!("{file}.json"))).unwrap();

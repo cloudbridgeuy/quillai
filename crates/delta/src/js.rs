@@ -33,8 +33,7 @@ fn is_js_object(v: Option<&Value>) -> bool {
     matches!(v, Some(Value::Object(_) | Value::Array(_)))
 }
 
-/// JS truthiness of a JSON value (`undefined`/absent is falsy).
-fn truthy(v: Option<&Value>) -> bool {
+pub(crate) fn truthy(v: Option<&Value>) -> bool {
     match v {
         None | Some(Value::Null) => false,
         Some(Value::Bool(b)) => *b,
@@ -67,8 +66,7 @@ fn attrs(op: &JOp) -> Option<&Value> {
     op.get("attributes")
 }
 
-/// `Object.keys(v)` for a JS object or array (array indices as strings).
-fn keys(v: &Value) -> Vec<String> {
+pub(crate) fn keys(v: &Value) -> Vec<String> {
     match v {
         Value::Object(m) => m.keys().cloned().collect(),
         Value::Array(a) => (0..a.len()).map(|i| i.to_string()).collect(),
@@ -91,8 +89,7 @@ fn has(v: &Value, k: &str) -> bool {
     }
 }
 
-/// `v[k]` for a key from `keys(v)`.
-fn get<'a>(v: &'a Value, k: &str) -> Option<&'a Value> {
+pub(crate) fn get<'a>(v: &'a Value, k: &str) -> Option<&'a Value> {
     match v {
         Value::Object(m) => m.get(k),
         Value::Array(a) => array_index(k).and_then(|i| a.get(i)),
@@ -294,9 +291,7 @@ pub(crate) fn chop(ops: &mut Vec<JOp>) {
     }
 }
 
-/// `Delta.retain(length, attributes)`: a non-positive number is dropped; attributes
-/// are kept if they are an object or array with at least one key.
-fn push_retain(ops: &mut Vec<JOp>, length: Value, attributes: Option<Value>) {
+pub(crate) fn push_retain(ops: &mut Vec<JOp>, length: Value, attributes: Option<Value>) {
     if let Value::Number(n) = &length {
         if js_f64(n) <= 0.0 {
             return;
