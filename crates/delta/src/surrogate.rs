@@ -6,10 +6,12 @@ thread_local! {
     static SOURCE: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
+#[cfg(test)]
 struct SourceGuard {
     prev: Option<String>,
 }
 
+#[cfg(test)]
 impl Drop for SourceGuard {
     fn drop(&mut self) {
         let prev = self.prev.take();
@@ -17,6 +19,7 @@ impl Drop for SourceGuard {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn with_source<T>(text: &str, f: impl FnOnce() -> T) -> T {
     let prev = SOURCE.with(|slot| slot.borrow_mut().replace(text.to_string()));
     let _guard = SourceGuard { prev };
