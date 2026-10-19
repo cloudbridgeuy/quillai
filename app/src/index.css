@@ -303,6 +303,23 @@ button {
   overflow: hidden;
 }
 
+.editor-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.editor-context-inspector {
+  max-height: 75vh;
+  overflow: auto;
+}
+
+.editor-context-inspector h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
 .editor-host .ql-toolbar.ql-snow {
   border: 0;
   border-bottom: 1px solid rgba(255, 238, 225, 0.08);
@@ -465,6 +482,14 @@ button {
 }
 
 @media (max-width: 800px) {
+  .editor-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-context-inspector {
+    display: none;
+  }
+
   .editor-shell {
     padding: 1rem 0.75rem 1.5rem;
   }

@@ -67,6 +67,7 @@ import {
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
+import { buildContextInspector } from "../context_inspector";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -232,6 +233,7 @@ export const Container = () => {
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
+  const [, setContextRevision] = useState(0);
 
   const quillRef = useRef<Quill | null>(null);
   const aiRunStateRef = useRef(aiRunState);
@@ -275,6 +277,16 @@ export const Container = () => {
   useEffect(() => {
     threadStateRef.current = threadState;
   }, [threadState]);
+
+  useEffect(() => {
+    const quill = quillRef.current;
+    if (!quill) return;
+    const refreshContext = () => setContextRevision((revision) => revision + 1);
+    quill.on(Quill.events.EDITOR_CHANGE, refreshContext);
+    return () => {
+      quill.off(Quill.events.EDITOR_CHANGE, refreshContext);
+    };
+  }, []);
 
   useEffect(() => {
     persistEditorState();
@@ -845,6 +857,19 @@ export const Container = () => {
   const requestPreviewPayload = requestPreview
     ? JSON.stringify(requestPreview.request, null, 2)
     : "";
+  const contextInspector = (() => {
+    const quill = quillRef.current;
+    if (!quill || !chapterSync.ready) return "Editor is not ready yet.";
+    try {
+      const selection = resolveContinueSelection(
+        quill.getSelection() ?? range,
+        lastCursorRangeRef.current,
+      );
+      return buildContextInspector(buildRequestPreview("generate", quill, selection).request);
+    } catch (error) {
+      return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
+    }
+  })();
 
   return (
     <div className="editor-shell">
@@ -985,42 +1010,67 @@ export const Container = () => {
         </p>
       </div>
 
-      <div className="editor-canvas">
-        <Component
-          ref={quillRef}
-          readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
-          defaultValue={new Delta()}
-          onSelectionChange={(nextRange) => {
-            setRange(nextRange);
-            lastCursorRangeRef.current = rememberCursorRange(
-              lastCursorRangeRef.current,
-              nextRange ? { index: nextRange.index, length: nextRange.length } : null,
-            );
-            lastEditSelectionRef.current = rememberEditSelection(
-              lastEditSelectionRef.current,
-              nextRange ? { index: nextRange.index, length: nextRange.length } : null,
-            );
-          }}
-          onTextChange={(delta, _oldDelta, source) => {
-            chapterSync.documentChanged();
-            const quill = quillRef.current;
-            if (quill) {
-              persistEditorState();
-            }
-
-            if (source === "user") {
-              updateThreadState(
-                invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
+      <div className="editor-workspace">
+        <div className="editor-canvas">
+          <Component
+            ref={quillRef}
+            readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
+            defaultValue={new Delta()}
+            onSelectionChange={(nextRange) => {
+              setRange(nextRange);
+              lastCursorRangeRef.current = rememberCursorRange(
+                lastCursorRangeRef.current,
+                nextRange ? { index: nextRange.index, length: nextRange.length } : null,
               );
-            }
+              lastEditSelectionRef.current = rememberEditSelection(
+                lastEditSelectionRef.current,
+                nextRange ? { index: nextRange.index, length: nextRange.length } : null,
+              );
+            }}
+            onTextChange={(delta, _oldDelta, source) => {
+              chapterSync.documentChanged();
+              const quill = quillRef.current;
+              if (quill) {
+                persistEditorState();
+              }
 
-            if (!shouldClearFailedRunState(aiRunStateRef.current, source)) {
-              return;
-            }
+              if (source === "user") {
+                updateThreadState(
+                  invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
+                );
+              }
 
-            clearFailedRunState();
-          }}
-        />
+              if (!shouldClearFailedRunState(aiRunStateRef.current, source)) {
+                return;
+              }
+
+              clearFailedRunState();
+            }}
+          />
+        </div>
+        <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
+          <h2 id="context-inspector-title">Live Continue/Resume Context</h2>
+          <p className="editor-note">
+            Next {shouldUseResumeThread(threadState, normalizedInstructionText()) ? "Resume Output" : "Continue"} request. Read-only; no AI request is sent.
+          </p>
+          {typeof contextInspector === "string" ? (
+            <p className="editor-note">{contextInspector}</p>
+          ) : (
+            <>
+              <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
+              <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
+              {contextInspector.sections.map((section) => (
+                <section className="editor-preview-section" key={section.id}>
+                  <div className="editor-preview-section-header">
+                    <h3>{section.label}</h3>
+                    <span>{section.tokens} estimated tokens</span>
+                  </div>
+                  <pre className="editor-preview-block editor-preview-block-large">{section.text || "(empty)"}</pre>
+                </section>
+              ))}
+            </>
+          )}
+        </aside>
       </div>
 
       {requestPreview ? (

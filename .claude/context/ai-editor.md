@@ -10,6 +10,7 @@ The frontend split is deliberate.
 
 **Functional Core**:
 - `ai_contract.ts` — request types, stream-event types, URL helper, selection rebasing.
+- `context_inspector.ts` — pure prompt-section view-model with summed estimated tokens; the read-only live Continue/Resume panel uses the same request builder as Preview Context, refreshes for all Quill editor changes and settings/thread changes, handles unavailable/invalid previews, sends no AI requests, and hides at 800px.
 - `prompt_sections.ts` — pure assembly from accepted `AiGenerateRequest` values, matching server normalization, escaping, system text, history order, and current-turn framing; history concatenates message content without added separators (roles and message boundaries remain in the request), current-turn sections join without separators; token estimates are `ceil(UTF-8 bytes / 4)` per section, summed for totals, labeled estimates excluding chat framing, not tokenizer counts.
 - `ai_stream.ts` — incremental NDJSON parser plus final remainder handling.
 - `ai_state.ts` — AI run-state ADT and transition helpers.
