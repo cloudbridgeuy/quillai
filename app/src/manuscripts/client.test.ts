@@ -51,7 +51,7 @@ describe("manuscript request contracts", () => {
             Accept: "application/json",
             ...(entry.body === undefined ? {} : { "Content-Type": "application/json" }),
           });
-          expect(init?.body).toBe(entry.body === undefined ? undefined : JSON.stringify(entry.body));
+          expect(init?.body ?? null).toBe(entry.body === undefined ? null : JSON.stringify(entry.body));
           return entry.status === 204 ? new Response(null, { status: 204 })
             : Response.json(entry.response, { status: entry.status });
         },

@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_OUTPUT_TOKENS } from "./ai_contract";
-import type { DeltaOperation } from "./ai_contract";
+import type { AiHistoryMessage, DeltaOperation } from "./ai_contract";
 import {
   initialAiThreadState,
   type AiThreadState,
@@ -128,9 +128,11 @@ function parseThread(value: unknown): ResumableGenerateThread | null | undefined
     return undefined;
   }
 
-  const messages = value.messages.map(parseHistoryMessage);
-  if (messages.some((message) => message === null)) {
-    return undefined;
+  const messages: AiHistoryMessage[] = [];
+  for (const valueMessage of value.messages) {
+    const message = parseHistoryMessage(valueMessage);
+    if (message === null) return undefined;
+    messages.push(message);
   }
 
   return {
@@ -141,7 +143,7 @@ function parseThread(value: unknown): ResumableGenerateThread | null | undefined
   };
 }
 
-function parseHistoryMessage(value: unknown) {
+function parseHistoryMessage(value: unknown): AiHistoryMessage | null {
   if (!isRecord(value)) {
     return null;
   }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI editor lives under `app/src/md_editor/`. The browser UI uses Quill as the document source of truth, pure helper modules for request and stream logic, and `components/Editor.tsx` as the imperative shell that coordinates selection capture, `fetch`, stream application, cancellation, and rollback.
+The AI editor lives under `app/src/md_editor/`. Quill holds the visible document; the manuscript API holds the saved chapter. Pure helpers handle revision transforms and AI request/stream logic. `components/Editor.tsx` coordinates selection capture, AI streaming, cancellation, and rollback.
 
 ## Architecture
 
@@ -15,10 +15,26 @@ The frontend split is deliberate.
 - `window.ts` — context-window calculation.
 - `delta_bridge.ts` — Quill delta normalization at the contract boundary.
 - `editor_ai.ts` — pure selection-memory, rollback, and status-presentation helpers.
-- `editor_persistence.ts` — pure parse/serialize of the localStorage editor snapshot (document, story context, instruction, window settings, thread state); invalid data falls back to defaults.
+- `chapter_sync.ts` — server document/revision, one in-flight Delta, composed pending Delta, server-priority remote transforms, and acknowledgement reconciliation.
+- `editor_persistence.ts` — pure parse/serialize of localStorage AI controls and thread settings; the editor writes an empty document placeholder, never restores chapter content from this key, and resets the AI thread when a chapter loads or remote content changes.
 
 **Imperative Shell**:
 - `components/Editor.tsx` — owns Quill, DOM refs, browser `fetch`, `AbortController`, streamed delta application, and UI state wiring.
+- `chapter_session.ts` — hierarchy selection/bootstrap and serialized POST/GET orchestration.
+- `use_chapter_sync.ts` — Quill synchronization, one-second polling, save status, unload warning, and per-tab sessionStorage recovery/export.
+
+## Chapter Loading And Saving
+
+- A URL with `seriesId`, `bookId`, and `chapterId` opens that scoped server chapter. All three IDs must be positive integers.
+- Without IDs, selection walks the ordered series/books hierarchy and opens its first chapter. The selected scope is written to the URL, so reload opens the same server chapter with its current content and `head_rev`.
+- An empty hierarchy offers **Create chapter**. Only this explicit action creates missing default series/book/chapter resources through the manuscript API. Concurrent bootstrap actions can create separate defaults; no backend uniqueness is assumed.
+- All local document changes enter the same sync path: typing, formatting, undo/redo, markdown conversion, AI selection deletion, streamed fragments, and cancellation/failure restoration. Markdown's silent replacement is captured by comparing the final Quill document with the sync core's visible document.
+- Quill's document normalization, including the required terminal newline, enters that same local path after chapter load or a remote update.
+- Each one-second cycle permits at most one POST `{baseRev, delta}`, then GETs revisions since the last acknowledged server revision. Polling never overlaps a submission or another poll. New edits compose into pending work while network I/O is active.
+- The POST response identifies the client's revision in the returned history. Earlier remote revisions transform both in-flight and pending work with server collision priority. The own revision acknowledges rather than reapplies the local edit. Later remote revisions transform remaining pending work.
+- AI starts only when local work is saved and no network cycle is active. Polling/sending pauses during the AI run to keep stream anchors and rollback ranges stable. The complete resulting edit enters the next save cycle.
+- An uncertain POST failure stops saving without resubmission: the API has no idempotency key. Protocol/history/HTTP errors also stop saving and make the editor read-only. GET network failures retain the acknowledgement and retry history only. Local work remains available through **Export local chapter**.
+- Unsaved visible documents and chapter scope are copied to per-tab sessionStorage. Reload archives any previous unsaved copy and loads the server chapter, never silently replays uncertain local changes. **Export recovery** downloads archived copies. An unload warning protects unsaved work; unavailable/full recovery storage is shown in save status. Closing the tab ends sessionStorage retention, so export before closing.
 
 ## Browser URL Constraint
 
@@ -72,5 +88,7 @@ Pure helper coverage currently lives in:
 - `window.test.ts`
 - `delta_bridge.test.ts`
 - `editor_ai.test.ts`
+- `chapter_sync.test.ts`
+- `chapter_session.test.ts`
 
 There is still no direct component-level test for the full Quill streaming shell, so browser QA remains important for Continue/Edit trigger regressions.

@@ -12,7 +12,6 @@ import {
 import {
   buildAiGenerateUrl,
   buildAiRequestPreview,
-  DEFAULT_MAX_OUTPUT_TOKENS,
   type AiAction,
   type AiRequestPreview,
 } from "../ai_contract";
@@ -45,7 +44,6 @@ import {
   PERSISTED_EDITOR_STATE_KEY,
   parsePersistedEditorState,
   serializePersistedEditorState,
-  type PersistedDeltaDocument,
   type PersistedEditorState,
 } from "../editor_persistence";
 import type {
@@ -59,7 +57,6 @@ import {
   finishGenerateThread,
   getThreadPresentation,
   historyForResume,
-  initialAiThreadState,
   invalidateThreadForManualEdit,
   manualEditFromDelta,
   resetThread,
@@ -69,6 +66,7 @@ import {
   type AiThreadState,
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
+import { useChapterSync } from "../use_chapter_sync";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -121,12 +119,6 @@ export type ComponentPropsT = {
   onSelectionChange: OnSelectionChangeFn;
 };
 
-const INITIAL_DOCUMENT = new Delta()
-  .insert("Chapter One\n", { header: 1 })
-  .insert(
-    "The rain had started before dusk, and Mara still had not decided whether the letter in her coat pocket was a warning or an invitation.\n\n",
-  );
-
 function getStoredEditorState(): PersistedEditorState {
   if (typeof window === "undefined") {
     return parsePersistedEditorState(null);
@@ -139,10 +131,6 @@ function getStoredEditorState(): PersistedEditorState {
   } catch {
     return parsePersistedEditorState(null);
   }
-}
-
-function getInitialDocument(document: PersistedDeltaDocument): Delta {
-  return document.ops.length > 0 ? new Delta(document.ops) : INITIAL_DOCUMENT;
 }
 
 function getAiErrorMessage(responseText: string, status: number): string {
@@ -195,6 +183,7 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 
       const quill = new Quill(editorContainer, {
         theme: "snow",
+        modules: { history: { userOnly: true } },
       });
 
       ref.current = quill;
@@ -251,21 +240,24 @@ export const Container = () => {
   const isMountedRef = useRef(true);
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
+  const chapterSync = useChapterSync(quillRef, () =>
+    ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status), () => {
+      lastCursorRangeRef.current = null;
+      lastEditSelectionRef.current = null;
+      setRange(quillRef.current?.getSelection() ?? null);
+      updateThreadState(resetThread(threadStateRef.current));
+    });
 
-  function persistEditorState(document: PersistedDeltaDocument | null = null) {
+  function persistEditorState() {
     if (typeof window === "undefined") {
       return;
     }
-
-    const currentDocument = document ?? {
-      ops: quillRef.current?.getContents().ops ?? initialEditorState.document.ops,
-    };
 
     try {
       window.localStorage.setItem(
         PERSISTED_EDITOR_STATE_KEY,
         serializePersistedEditorState({
-          document: currentDocument,
+          document: { ops: [] },
           storyContext,
           instruction,
           windowSize,
@@ -273,9 +265,7 @@ export const Container = () => {
           threadState: threadStateRef.current,
         }),
       );
-    } catch {
-      // Keep editing available if storage is unavailable or full.
-    }
+    } catch {}
   }
 
   useEffect(() => {
@@ -492,6 +482,10 @@ export const Container = () => {
   }
 
   async function runAiAction(action: AiAction) {
+    if (!chapterSync.canStartAi()) {
+      setAiFailure(action, "Wait for chapter saving and polling to finish before starting AI.");
+      return;
+    }
     const quill = quillRef.current;
     if (!quill) {
       setAiFailure(null, "Editor is not ready yet.");
@@ -857,7 +851,22 @@ export const Container = () => {
       <div className="editor-topbar">
         <div>
           <h1>QuillAI</h1>
-          <p>Draft fiction, then steer the stub AI inline.</p>
+          <p role="status">{chapterSync.status}</p>
+          {chapterSync.needsChapter ? <button className="editor-button" type="button"
+            onClick={() => void chapterSync.bootstrap()}>Create chapter</button> : null}
+          <a className="editor-button" download="chapter-local.json"
+            href="#" onClick={(event) => {
+              event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
+            }}>
+            Export local chapter
+          </a>
+          {chapterSync.recovery ? <div role="alert">
+            Previous unsaved work is available. Export it before closing this tab.
+            <a download="chapter-recovery.json"
+              href={`data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.recovery)}`}>
+              Export recovery
+            </a>
+          </div> : null}
         </div>
         <div className={`editor-status editor-status-${statusPresentation.tone}`}>
           <span className="editor-status-label">Status</span>
@@ -874,7 +883,7 @@ export const Container = () => {
             onChange={(event) => setStoryContext(event.target.value)}
             placeholder="Series premise, tone, point of view, or scene notes"
             rows={4}
-            disabled={isBusy}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           />
         </label>
 
@@ -922,7 +931,7 @@ export const Container = () => {
             className="editor-button editor-button-primary"
             type="button"
             onClick={() => void runAiAction("generate")}
-            disabled={isBusy}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           >
             {shouldUseResumeThread(threadState, normalizedInstructionText()) ? "Resume Output" : "Continue"}
           </button>
@@ -930,7 +939,7 @@ export const Container = () => {
             className="editor-button"
             type="button"
             onClick={openGeneratePreview}
-            disabled={isBusy}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           >
             Preview Context
           </button>
@@ -938,7 +947,7 @@ export const Container = () => {
             className="editor-button"
             type="button"
             onClick={() => void runAiAction("edit")}
-            disabled={isBusy || !hasSelection}
+            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           >
             Edit
           </button>
@@ -979,8 +988,8 @@ export const Container = () => {
       <div className="editor-canvas">
         <Component
           ref={quillRef}
-          readOnly={isBusy}
-          defaultValue={getInitialDocument(initialEditorState.document)}
+          readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
+          defaultValue={new Delta()}
           onSelectionChange={(nextRange) => {
             setRange(nextRange);
             lastCursorRangeRef.current = rememberCursorRange(
@@ -993,9 +1002,10 @@ export const Container = () => {
             );
           }}
           onTextChange={(delta, _oldDelta, source) => {
+            chapterSync.documentChanged();
             const quill = quillRef.current;
             if (quill) {
-              persistEditorState({ ops: quill.getContents().ops });
+              persistEditorState();
             }
 
             if (source === "user") {
