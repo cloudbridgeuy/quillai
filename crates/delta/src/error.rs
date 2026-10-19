@@ -1,0 +1,30 @@
+use thiserror::Error;
+
+/// Errors produced while parsing a Delta.
+#[derive(Debug, Error)]
+pub enum DeltaError {
+    /// An op's text splits a UTF-16 surrogate pair (for example half of an emoji).
+    #[error("{0}")]
+    SplitSurrogate(String),
+    /// Any other JSON or shape error.
+    #[error("invalid delta: {0}")]
+    Json(serde_json::Error),
+}
+
+impl From<serde_json::Error> for DeltaError {
+    fn from(e: serde_json::Error) -> Self {
+        DeltaError::Json(e)
+    }
+}
+
+/// Wording for a Delta whose text splits a UTF-16 surrogate pair.
+pub(crate) const SPLIT_SURROGATE_MSG: &str = "invalid delta: text splits a UTF-16 surrogate pair \
+    (lone surrogate); ops must not cut an emoji in half";
+
+/// True if a serde_json error message reports a lone surrogate `\u` escape (serde_json reports a lone
+/// leading surrogate not followed by `\u` as an unexpected end of hex escape).
+pub(crate) fn is_split_surrogate_message(msg: &str) -> bool {
+    msg.contains("surrogate")
+        || msg.contains("invalid unicode code point")
+        || msg.contains("unexpected end of hex escape")
+}

@@ -1,0 +1,14 @@
+[package]
+name = "quillai_delta"
+version = "0.1.0"
+homepage = "https://github.com/cloudbridgeuy/quillai/crates/delta"
+description = "QuillAi Delta: Quill-compatible Delta core types and JSON serde"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
