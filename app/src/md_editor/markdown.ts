@@ -5,7 +5,7 @@ export type MarkdownFormat = { bold?: true; italic?: true };
 export type MarkdownPattern = {
   regex: RegExp;
   format: MarkdownFormat;
-  type: 'bold-italic' | 'bold' | 'italic';
+  type: 'bold-italic' | 'bold-italic-underscore' | 'bold' | 'italic' | 'italic-underscore';
   markersLength: number;
 };
 
@@ -25,6 +25,13 @@ const patterns: MarkdownPattern[] = [
     type: 'bold-italic',
     markersLength: 3
   },
+  // Mixed bold with underscore italic (must come before plain bold)
+  {
+    regex: /\*\*_([^_*]+)_\*\*$/,
+    format: { bold: true, italic: true },
+    type: 'bold-italic-underscore',
+    markersLength: 5
+  },
   {
     regex: /\*\*([^*]+)\*\*$/,
     format: { bold: true },
@@ -35,6 +42,13 @@ const patterns: MarkdownPattern[] = [
     regex: /\*([^*]+)\*$/,
     format: { italic: true },
     type: 'italic',
+    markersLength: 1
+  },
+  // Underscore italic
+  {
+    regex: /_([^_]+)_$/,
+    format: { italic: true },
+    type: 'italic-underscore',
     markersLength: 1
   }
 ];
@@ -87,6 +101,14 @@ export function isPatternComplete(text: string, cursorPos: number): boolean {
   if (context.pattern.type === 'bold') {
     const beforePattern = text.substring(Math.max(0, context.start - 1), context.start);
     if (beforePattern.endsWith('*')) {
+      return false;
+    }
+  }
+
+  // Underscore italic might become a mixed pattern
+  if (context.pattern.type === 'italic-underscore') {
+    const beforePattern = text.substring(Math.max(0, context.start - 2), context.start);
+    if (beforePattern.endsWith('*') || beforePattern.endsWith('**')) {
       return false;
     }
   }

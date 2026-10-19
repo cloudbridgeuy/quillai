@@ -82,7 +82,7 @@ function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (!lastOp || !lastOp.insert || typeof lastOp.insert !== "string") return;
 
   const lastChar = lastOp.insert.charAt(lastOp.insert.length - 1);
-  if (lastChar !== "*") return;
+  if (lastChar !== "*" && lastChar !== "_") return;
 
   const currentPos = selection.index;
   const lineStart = text.lastIndexOf("\n", currentPos - 1) + 1;
