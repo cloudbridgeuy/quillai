@@ -3,15 +3,19 @@ use serde::{Deserialize, Serialize};
 
 use serde_json::Value;
 
-use crate::error::{is_split_surrogate_message, DeltaError, SPLIT_SURROGATE_MSG};
+use crate::error::{DeltaError, SPLIT_SURROGATE_MSG};
 use crate::number::{normalize, prescan, JsFormatter};
 use crate::op::{Insert, Op, Retain};
+use crate::surrogate::{failure_is_split_surrogate, source_is_split_surrogate};
 
-fn classify(e: serde_json::Error) -> DeltaError {
-    if e.to_string().contains(SPLIT_SURROGATE_MSG) {
-        DeltaError::SplitSurrogate(e.to_string())
+fn original_failure(json: &str, prescan_err: serde_json::Error) -> DeltaError {
+    let Err(err) = serde_json::from_str::<Value>(json) else {
+        return DeltaError::Json(prescan_err);
+    };
+    if failure_is_split_surrogate(json, &err) {
+        DeltaError::SplitSurrogate(SPLIT_SURROGATE_MSG.to_string())
     } else {
-        DeltaError::Json(e)
+        DeltaError::Json(err)
     }
 }
 
@@ -30,7 +34,7 @@ pub struct Delta {
 impl<'de> Deserialize<'de> for Delta {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Delta, D::Error> {
         let v = Value::deserialize(d).map_err(|e| {
-            if is_split_surrogate_message(&e.to_string()) {
+            if source_is_split_surrogate() {
                 de::Error::custom(SPLIT_SURROGATE_MSG)
             } else {
                 e
@@ -46,15 +50,11 @@ impl Delta {
     }
 
     pub fn from_json(json: &str) -> Result<Delta, DeltaError> {
-        let v = match serde_json::from_str::<Value>(&prescan(json)) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(classify(
-                    serde_json::from_str::<Delta>(json).err().unwrap_or(e),
-                ))
-            }
-        };
-        Ok(Delta::from_value(v, true))
+        let text = prescan(json);
+        match serde_json::from_str::<Value>(&text) {
+            Ok(v) => Ok(Delta::from_value(v, true)),
+            Err(prescan_err) => Err(original_failure(json, prescan_err)),
+        }
     }
 
     /// `JSON.stringify(delta)` (up to object key order): floats print like JS and
@@ -332,6 +332,29 @@ mod tests {
     }
 
     #[test]
+    fn lone_surrogate_is_split_and_short_escape_is_not() {
+        let high = Delta::from_json(r#"{"ops":[{"insert":"\uD800"}]}"#).unwrap_err();
+        assert!(matches!(high, DeltaError::SplitSurrogate(_)), "{high}");
+        let low = Delta::from_json(r#"{"ops":[{"insert":"\uDFFF"}]}"#).unwrap_err();
+        assert!(matches!(low, DeltaError::SplitSurrogate(_)), "{low}");
+        let broken = Delta::from_json(r#"{"ops":[{"insert":"\u12"}]}"#).unwrap_err();
+        assert!(matches!(broken, DeltaError::Json(_)), "{broken:?}");
+        assert!(
+            !broken
+                .to_string()
+                .contains("splits a UTF-16 surrogate pair"),
+            "{broken}"
+        );
+        let broken_after = Delta::from_json(r#"{"ops":[{"insert":"\uD800\u12"}]}"#).unwrap_err();
+        assert!(
+            matches!(broken_after, DeltaError::Json(_)),
+            "{broken_after:?}"
+        );
+        let pair = Delta::from_json(r#"{"ops":[{"insert":"\uD83D\uDE00"}]}"#).unwrap();
+        assert_eq!(pair.len(), 2.0);
+    }
+
+    #[test]
     fn both_parse_paths_give_same_split_surrogate_error() {
         for wire in [
             r#"{"ops":[{"insert":"a\ud83d"},{"insert":"\ude00b"}]}"#,
@@ -340,7 +363,9 @@ mod tests {
         ] {
             let a = Delta::from_json(wire).unwrap_err();
             assert!(matches!(a, DeltaError::SplitSurrogate(_)), "{wire}");
-            let b = serde_json::from_str::<Delta>(wire).unwrap_err();
+            let b = crate::surrogate::with_source(wire, || {
+                serde_json::from_str::<Delta>(wire).unwrap_err()
+            });
             assert_eq!(a.to_string(), b.to_string(), "{wire}");
             assert!(a.to_string().contains("splits a UTF-16 surrogate pair"));
         }

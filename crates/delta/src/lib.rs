@@ -6,6 +6,7 @@ mod invert;
 mod js;
 mod number;
 mod op;
+mod surrogate;
 mod text_diff;
 
 pub use delta::Delta;
