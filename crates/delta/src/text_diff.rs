@@ -19,6 +19,8 @@ limitations under the License.
 Modified: Rust UTF-16 port of fast-diff for quillai_delta, 2026.
 */
 
+use crate::{CursorHint, CursorRange};
+
 type Edit = (i8, Vec<u16>);
 
 fn high(c: u16) -> bool {
@@ -524,33 +526,82 @@ fn splice(before: &[u16], old: &[u16], new: &[u16], after: &[u16]) -> Option<Vec
     )
 }
 
-fn cursor_diff(a: &[u16], b: &[u16], cursor: usize) -> Option<Vec<Edit>> {
-    if cursor > a.len() {
-        return None;
-    }
-    let new_cursor = cursor as i128 + b.len() as i128 - a.len() as i128;
-    if new_cursor >= 0 && new_cursor <= b.len() as i128 {
-        let nc = new_cursor as usize;
-        let p = cursor.min(nc);
-        if a[cursor..] == b[nc..] && a[..p] == b[..p] {
-            return splice(&a[..p], &a[p..cursor], &b[p..nc], &a[cursor..]);
+fn slice(text: &[u16], start: f64, end: f64) -> &[u16] {
+    let index = |n: f64| {
+        let n = if n.is_nan() { 0.0 } else { n.trunc() };
+        let size = text.len() as f64;
+        if n < 0.0 {
+            (size + n).max(0.0) as usize
+        } else {
+            n.min(size) as usize
+        }
+    };
+    let start = index(start);
+    &text[start..index(end).max(start)]
+}
+
+fn cursor_diff(a: &[u16], b: &[u16], cursor: CursorHint) -> Option<Vec<Edit>> {
+    let (old, new) = match cursor {
+        CursorHint::Position(index) => (CursorRange { index, length: 0.0 }, None),
+        CursorHint::Selection {
+            old_range,
+            new_range,
+        } => (old_range, new_range),
+    };
+    if old.length == 0.0 && new.is_none_or(|r| r.length == 0.0) {
+        let old_before = slice(a, 0.0, old.index);
+        let old_after = slice(a, old.index, f64::INFINITY);
+        let new_cursor = old.index + b.len() as f64 - a.len() as f64;
+        if new.is_none_or(|r| r.index == new_cursor)
+            && !(new_cursor < 0.0 || new_cursor > b.len() as f64)
+        {
+            let new_before = slice(b, 0.0, new_cursor);
+            let new_after = slice(b, new_cursor, f64::INFINITY);
+            let p = old.index.min(new_cursor);
+            let old_prefix = slice(old_before, 0.0, p);
+            if new_after == old_after && old_prefix == slice(new_before, 0.0, p) {
+                return splice(
+                    old_prefix,
+                    slice(old_before, p, f64::INFINITY),
+                    slice(new_before, p, f64::INFINITY),
+                    old_after,
+                );
+            }
+        }
+        if new.is_none_or(|r| r.index == old.index) {
+            let new_before = slice(b, 0.0, old.index);
+            let new_after = slice(b, old.index, f64::INFINITY);
+            let s = (a.len() as f64 - old.index).min(b.len() as f64 - old.index);
+            let old_suffix = slice(old_after, old_after.len() as f64 - s, f64::INFINITY);
+            let new_suffix = slice(new_after, new_after.len() as f64 - s, f64::INFINITY);
+            if new_before == old_before && old_suffix == new_suffix {
+                return splice(
+                    old_before,
+                    slice(old_after, 0.0, old_after.len() as f64 - s),
+                    slice(new_after, 0.0, new_after.len() as f64 - s),
+                    old_suffix,
+                );
+            }
         }
     }
-    if cursor <= b.len() && a[..cursor] == b[..cursor] {
-        let s = (a.len() - cursor).min(b.len() - cursor);
-        if a[a.len() - s..] == b[b.len() - s..] {
+    if old.length > 0.0 && new.is_some_and(|r| r.length == 0.0) {
+        let before = slice(a, 0.0, old.index);
+        let after = slice(a, old.index + old.length, f64::INFINITY);
+        let p = before.len();
+        let s = after.len();
+        if b.len() >= p + s && before == &b[..p] && after == &b[b.len() - s..] {
             return splice(
-                &a[..cursor],
-                &a[cursor..a.len() - s],
-                &b[cursor..b.len() - s],
-                &a[a.len() - s..],
+                before,
+                slice(a, p as f64, a.len() as f64 - s as f64),
+                &b[p..b.len() - s],
+                after,
             );
         }
     }
     None
 }
 
-pub(crate) fn diff(a: &[u16], b: &[u16], cursor: Option<usize>) -> Vec<Edit> {
+pub(crate) fn diff(a: &[u16], b: &[u16], cursor: Option<CursorHint>) -> Vec<Edit> {
     if a != b {
         if let Some(out) = cursor.and_then(|c| cursor_diff(a, b, c)) {
             return out;

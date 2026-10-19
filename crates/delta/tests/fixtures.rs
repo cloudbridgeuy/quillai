@@ -8,7 +8,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use quillai_delta::{Delta, DeltaError};
+use quillai_delta::{CursorHint, Delta, DeltaError};
 use serde_json::Value;
 
 fn dir() -> PathBuf {
@@ -183,9 +183,10 @@ fn to_value(d: &Delta) -> Value {
 
 #[test]
 fn fixtures_replay_invert_diff() {
-    for (file, want_half, want_cuts) in [("invert", 0, 3), ("diff", 0, 0)] {
+    for (file, want_half, want_cuts, want_cases) in [("invert", 0, 3, 178), ("diff", 0, 0, 602)] {
         let raw = fs::read_to_string(dir().join(format!("{file}.json"))).unwrap();
         let cases: Vec<Value> = serde_json::from_str(&mask(&raw)).unwrap();
+        assert_eq!(cases.len(), want_cases, "{file}: fixture count changed");
         let (mut ran, mut half, mut cuts, mut mismatches) = (0, Vec::new(), Vec::new(), Vec::new());
         for case in &cases {
             let ctx = format!("{file}/{}", case["name"].as_str().unwrap());
@@ -199,7 +200,7 @@ fn fixtures_replay_invert_diff() {
             } else {
                 delta(&input["a"], &ctx).diff_with_cursor(
                     &delta(&input["b"], &ctx),
-                    input["cursor"].as_u64().map(|n| n as usize),
+                    serde_json::from_value::<Option<CursorHint>>(input["cursor"].clone()).unwrap(),
                 )
             };
             match got {

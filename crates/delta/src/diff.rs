@@ -1,8 +1,27 @@
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::invert::push_delete;
 use crate::js::{chop, get, keys, num_value, push, push_retain, It};
 use crate::{Delta, DeltaError, Op};
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CursorRange {
+    pub index: f64,
+    pub length: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CursorHint {
+    Position(f64),
+    Selection {
+        #[serde(rename = "oldRange")]
+        old_range: CursorRange,
+        #[serde(rename = "newRange")]
+        new_range: Option<CursorRange>,
+    },
+}
 
 fn attributes(a: Option<&Value>, b: Option<&Value>) -> Option<Value> {
     let empty = Value::Object(Map::new());
@@ -41,7 +60,7 @@ impl Delta {
     pub fn diff_with_cursor(
         &self,
         other: &Delta,
-        cursor: Option<usize>,
+        cursor: Option<CursorHint>,
     ) -> Result<Delta, DeltaError> {
         if std::ptr::eq(self, other) {
             return Ok(Delta::new());

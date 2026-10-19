@@ -304,7 +304,6 @@ for (const a of dn) for (const b of dn) {
     expected: wire(A.diff(B)),
   });
 }
-// diff with cursor hint
 {
   const A = d([{ insert: "abcabc" }]), B = d([{ insert: "abcabcabc" }]);
   for (const cursor of [0, 3, 6]) {
@@ -312,6 +311,57 @@ for (const a of dn) for (const b of dn) {
       name: `diff abcabc to abcabcabc cursor=${cursor}`,
       input: { a: wire(A), b: wire(B), cursor },
       expected: wire(A.diff(B, cursor)),
+    });
+  }
+}
+
+type CursorRange = { index: number; length: number };
+type CursorHint = number | { oldRange: CursorRange; newRange: CursorRange | null };
+const cursorHints: (CursorHint | null)[] = [
+  null, -10, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 6, 100,
+  { oldRange: { index: 1, length: 0 }, newRange: null },
+  { oldRange: { index: 1, length: 0 }, newRange: { index: 1, length: 0 } },
+  { oldRange: { index: 1, length: 0 }, newRange: { index: 2, length: 0 } },
+  { oldRange: { index: 2, length: 0 }, newRange: { index: 1, length: 0 } },
+  { oldRange: { index: 1, length: 2 }, newRange: { index: 2, length: 0 } },
+  { oldRange: { index: 1, length: 2 }, newRange: { index: 99, length: 0 } },
+  { oldRange: { index: 1, length: 2 }, newRange: null },
+  { oldRange: { index: 1, length: 2 }, newRange: { index: 1, length: 2 } },
+  { oldRange: { index: -1, length: 0 }, newRange: null },
+  { oldRange: { index: -1, length: 2 }, newRange: { index: 0, length: 0 } },
+  { oldRange: { index: 1.5, length: 0 }, newRange: { index: 2.5, length: 0 } },
+  { oldRange: { index: 0.5, length: 1.5 }, newRange: { index: 1, length: 0 } },
+  { oldRange: { index: 100, length: 1 }, newRange: { index: 100, length: 0 } },
+  { oldRange: { index: 1, length: -1 }, newRange: { index: 1, length: 0 } },
+  { oldRange: { index: 1, length: 0 }, newRange: { index: 1, length: -1 } },
+  { oldRange: { index: 3, length: 3 }, newRange: { index: 4, length: 0 } },
+  { oldRange: { index: 0, length: 0 }, newRange: { index: 1, length: 0 } },
+  { oldRange: { index: 3, length: 0 }, newRange: { index: 4, length: 0 } },
+  { oldRange: { index: 3, length: 0 }, newRange: { index: 2, length: 0 } },
+  { oldRange: { index: 0, length: 1 }, newRange: { index: 0, length: 0 } },
+  { oldRange: { index: 0, length: 3 }, newRange: { index: 0, length: 0 } },
+  { oldRange: { index: 1, length: 1 }, newRange: { index: 1, length: 0 } },
+];
+const cursorPairs: [string, Ops, Ops][] = [
+  ["repeat insert", [{ insert: "xxx" }], [{ insert: "xxxx" }]],
+  ["repeat delete", [{ insert: "xxx" }], [{ insert: "xx" }]],
+  ["replace", [{ insert: "abcDEFghi" }], [{ insert: "abcXghi" }]],
+  ["fallback", [{ insert: "ab" }], [{ insert: "cd" }]],
+  ["empty insert", [], [{ insert: "x" }]],
+  ["empty delete", [{ insert: "x" }], []],
+  ["unchanged", [{ insert: "xxx" }], [{ insert: "xxx" }]],
+  ["emoji insert", [{ insert: "a😀b" }], [{ insert: "a😀xb" }]],
+  ["emoji replace", [{ insert: "a😀b" }], [{ insert: "a😇b" }]],
+  ["attributes", [{ insert: "xxx", attributes: { bold: true } }], [{ insert: "xx", attributes: { italic: true } }]],
+  ["embeds", [{ insert: "x" }, { insert: IMG }, { insert: "x" }], [{ insert: "x" }, { insert: IMG2 }, { insert: "xx" }]],
+];
+for (const [name, a, b] of cursorPairs) {
+  for (const cursor of cursorHints) {
+    const A = d(a), B = d(b);
+    out.diff!.push({
+      name: `diff cursor ${name} ${JSON.stringify(cursor)}`,
+      input: { a: wire(A), b: wire(B), cursor },
+      expected: wire(A.diff(B, cursor as Parameters<Delta["diff"]>[1])),
     });
   }
 }

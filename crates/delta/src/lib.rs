@@ -9,5 +9,6 @@ mod op;
 mod text_diff;
 
 pub use delta::Delta;
+pub use diff::{CursorHint, CursorRange};
 pub use error::DeltaError;
 pub use op::{Attributes, Embed, Insert, Op, Retain};
