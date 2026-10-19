@@ -47,7 +47,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
-| `manuscripts/chapters/` | Book-scoped chapter CRUD, Delta snapshots, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
+| `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
 
 ### Rust — Logging (`crates/log/src/`)
 
@@ -91,7 +91,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 
 Startup applies embedded migrations before serving and explicitly enables SQLite foreign keys. Integration tests share `crates/api/tests/common/mod.rs`, which creates isolated, single-connection in-memory pools and runs the same migrations. `crates/api/tests/book_schema_test.rs` covers cascades, orphan rejection, kinds, position ordering, Delta storage, and rollback/reapply.
 
-`migrations/20261019000001_chapter_revisions.up.sql` adds retained `chapter_revisions` (chapter FK cascade, unique chapter/revision, Delta JSON, creation timestamp) and chapter `head_rev`/`snapshot_rev` markers. `chapters.content` is the snapshot Delta at `snapshot_rev` (existing content starts at revision zero). `RevisionStore` takes a nonzero snapshot interval, replays revisions strictly above the snapshot in revision order, and atomically appends against an expected head. `crates/api/tests/chapter_revisions_test.rs` covers rebuild, snapshots, stale heads, rollback, and constraints. No HTTP routes are added.
+`migrations/20261019000001_chapter_revisions.up.sql` adds retained `chapter_revisions` (chapter FK cascade, unique chapter/revision, Delta JSON, creation timestamp) and chapter `head_rev`/`snapshot_rev` markers. `chapters.content` is the snapshot Delta at `snapshot_rev` (existing content starts at revision zero). `RevisionStore` takes a nonzero snapshot interval, replays revisions strictly above the snapshot in revision order, and atomically appends against an expected head. HTTP sync snapshots every 100 revisions, retains all revisions, transforms concurrent submissions with server priority, and retries optimistic head conflicts. GET list/detail and PUT responses rebuild snapshot plus revisions within the same transaction as the chapter metadata read/write. Sync accepts a base/since only when every subsequent revision through the head is retained; the earliest retained revision minus one is the floor for contiguous history, independent of snapshot_rev. Missing required revisions, negative bases, and bases above the head return 409. `crates/api/tests/chapter_revisions_test.rs` covers rebuild, snapshots, stale heads, rollback, and constraints; `chapters_test.rs` covers HTTP sync, concurrency, convergence, input rejection, and parent scoping.
 
 ## Tech Stack
 
@@ -123,11 +123,13 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `GET /series/{id}/books/{book_id}` — Get book scoped to series (JSON or 404)
 - `PUT /series/{id}/books/{book_id}` — Partial update title and/or position, scoped to series (JSON, 404, or 422); omitted/null fields stay unchanged
 - `DELETE /series/{id}/books/{book_id}` — Delete book scoped to series and cascade chapters (204 or 404)
-- `GET /series/{id}/books/{book_id}/chapters` — List chapters ordered by position, then ID; includes snapshot content and head_rev (JSON array or 404)
-- `POST /series/{id}/books/{book_id}/chapters` — Create chapter with title, position, kind (chapter/prologue/epilogue), and optional Delta content; snapshot at revision zero (201 + JSON, 404, or 422)
-- `GET /series/{id}/books/{book_id}/chapters/{chapter_id}` — Get chapter snapshot content and head_rev, scoped to book and series (JSON or 404)
+- `GET /series/{id}/books/{book_id}/chapters` — List chapters ordered by position, then ID; includes rebuilt head content and head_rev (JSON array or 404)
+- `POST /series/{id}/books/{book_id}/chapters` — Create chapter with title, position, kind (chapter/prologue/epilogue), and optional Delta content; snapshot at revision zero (201 + JSON, 404, or 422). Delta input requires an object with an ops array and valid operations; omitted content defaults to an empty Delta
+- `GET /series/{id}/books/{book_id}/chapters/{chapter_id}` — Get chapter rebuilt head content and head_rev, scoped to book and series (JSON or 404)
 - `PUT /series/{id}/books/{book_id}/chapters/{chapter_id}` — Partial update title, kind, and/or position; omitted/null fields unchanged; any content key rejected (JSON, 404, or 422)
 - `DELETE /series/{id}/books/{book_id}/chapters/{chapter_id}` — Delete chapter scoped to book and series (204 or 404)
+- `POST /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas` — Submit `{baseRev, delta}`; transform against later retained revisions with server priority, append atomically, return `{rev, delta}` (200, 404, 409 unavailable/future history, or 422 malformed JSON/Delta or compose failure)
+- `GET /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas?since=rev` — Return missed revisions ordered ascending as `[{rev, delta}]`; current head returns `[]` (200, 404, 409 unavailable/future history, or 422 invalid query)
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
 
 **Bun frontend** (`app/src/index.tsx`):

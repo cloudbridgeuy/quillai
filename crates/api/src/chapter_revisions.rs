@@ -1,6 +1,7 @@
 use std::num::NonZeroU64;
 
 use quillai_delta::{Delta, DeltaError};
+use serde::Serialize;
 use sqlx::{SqliteConnection, SqlitePool};
 use thiserror::Error;
 
@@ -25,6 +26,12 @@ pub enum RevisionError {
 #[derive(Debug, PartialEq)]
 pub struct ChapterHead {
     pub head_rev: i64,
+    pub delta: Delta,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Revision {
+    pub rev: i64,
     pub delta: Delta,
 }
 
@@ -122,7 +129,7 @@ impl RevisionStore {
     }
 }
 
-async fn load(
+pub(crate) async fn load(
     connection: &mut SqliteConnection,
     chapter_id: i64,
 ) -> Result<ChapterHead, RevisionError> {
@@ -156,4 +163,38 @@ async fn load(
         head_rev: chapter.head_rev,
         delta: rebuild(&Delta::from_json(&chapter.content)?, &revisions)?,
     })
+}
+
+pub(crate) async fn missed(
+    connection: &mut SqliteConnection,
+    chapter_id: i64,
+    since: i64,
+    head: i64,
+) -> Result<Vec<Revision>, RevisionError> {
+    if since < 0 || since > head {
+        return Err(RevisionError::StaleHead);
+    }
+    let rows = sqlx::query!(
+        "SELECT rev, delta FROM chapter_revisions WHERE chapter_id = ? AND rev > ? ORDER BY rev",
+        chapter_id,
+        since
+    )
+    .fetch_all(connection)
+    .await?;
+    let mut last_rev = since;
+    let mut revisions = Vec::with_capacity(rows.len());
+    for row in rows {
+        if last_rev.checked_add(1) != Some(row.rev) {
+            return Err(RevisionError::IncompleteHistory);
+        }
+        last_rev = row.rev;
+        revisions.push(Revision {
+            rev: row.rev,
+            delta: Delta::from_json(&row.delta)?,
+        });
+    }
+    if last_rev != head {
+        return Err(RevisionError::IncompleteHistory);
+    }
+    Ok(revisions)
 }

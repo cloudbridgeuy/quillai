@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT head_rev FROM chapters WHERE id = ? AND book_id = ? AND EXISTS (SELECT 1 FROM books WHERE id = ? AND series_id = ?)",
+  "describe": {
+    "columns": [
+      {
+        "name": "head_rev",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "884a825793c705ece67cc1093e00a1285f84c9c8b3344766bb199c33c0b143f8"
+}

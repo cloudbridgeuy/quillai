@@ -1,5 +1,6 @@
 use quillai_delta::Delta;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
 use crate::error::Error;
 
@@ -47,8 +48,71 @@ pub struct CreateChapter {
     pub title: String,
     pub position: i64,
     pub kind: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_delta")]
     pub content: Delta,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitDelta {
+    pub base_rev: i64,
+    #[serde(deserialize_with = "deserialize_delta")]
+    pub delta: Delta,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MissedDeltas {
+    pub since: i64,
+}
+
+fn deserialize_delta<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Delta, D::Error> {
+    let value = Value::deserialize(deserializer)?;
+    let ops = value
+        .as_object()
+        .and_then(|object| object.get("ops"))
+        .and_then(Value::as_array)
+        .ok_or_else(|| de::Error::custom("delta must be an object with an ops array"))?;
+    let mut length = 0_u64;
+    for op in ops {
+        let object = op
+            .as_object()
+            .ok_or_else(|| de::Error::custom("delta operation must be an object"))?;
+        let actions = ["insert", "retain", "delete"];
+        if actions
+            .iter()
+            .filter(|key| object.contains_key(**key))
+            .count()
+            != 1
+            || object
+                .keys()
+                .any(|key| !actions.contains(&key.as_str()) && key != "attributes")
+            || object
+                .get("attributes")
+                .is_some_and(|value| !value.is_object() && !value.is_null())
+        {
+            return Err(de::Error::custom("invalid delta operation"));
+        }
+        let count = if let Some(insert) = object.get("insert") {
+            match insert {
+                Value::String(text) => text.encode_utf16().count() as u64,
+                Value::Object(_) => 1,
+                _ => return Err(de::Error::custom("insert must be text or an embed object")),
+            }
+        } else if object.get("retain").is_some_and(Value::is_object) {
+            1
+        } else {
+            object
+                .get("retain")
+                .or_else(|| object.get("delete"))
+                .and_then(Value::as_u64)
+                .ok_or_else(|| de::Error::custom("retain/delete must be a nonnegative integer"))?
+        };
+        length = length
+            .checked_add(count)
+            .filter(|length| *length <= 9_007_199_254_740_991)
+            .ok_or_else(|| de::Error::custom("delta length exceeds safe integer range"))?;
+    }
+    serde_json::from_value(value).map_err(de::Error::custom)
 }
 
 #[derive(Debug, Deserialize)]

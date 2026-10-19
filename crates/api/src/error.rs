@@ -12,6 +12,8 @@ pub enum Error {
     InvalidLogLevel(#[from] quillai_log::Error),
     #[error("not found")]
     NotFound,
+    #[error("chapter revision conflict")]
+    Conflict,
     #[error("validation error: {0}")]
     Validation(String),
     #[error("invalid json: {0}")]
@@ -28,6 +30,7 @@ impl Error {
             Error::Sqlx(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::InvalidLogLevel(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::NotFound => StatusCode::NOT_FOUND,
+            Error::Conflict => StatusCode::CONFLICT,
             Error::Validation(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Error::InvalidJson(_) => StatusCode::BAD_REQUEST,
             Error::AiProviderConfig(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -40,6 +43,7 @@ impl Error {
             Error::Sqlx(_) => "SQLX",
             Error::InvalidLogLevel(_) => "INVALID_LOG_LEVEL",
             Error::NotFound => "NOT_FOUND",
+            Error::Conflict => "CONFLICT",
             Error::Validation(_) => "VALIDATION_ERROR",
             Error::InvalidJson(_) => "INVALID_JSON",
             Error::AiProviderConfig(_) => "AI_PROVIDER_CONFIG_ERROR",
@@ -65,7 +69,6 @@ impl IntoResponse for Error {
     }
 }
 
-/// Format error messages for display
 pub(crate) fn format_error(
     e: &impl std::error::Error,
     f: &mut std::fmt::Formatter,
@@ -85,6 +88,20 @@ pub(crate) fn format_error(
     }
 
     Ok(())
+}
+
+impl From<crate::chapter_revisions::RevisionError> for Error {
+    fn from(error: crate::chapter_revisions::RevisionError) -> Self {
+        use crate::chapter_revisions::RevisionError;
+
+        match error {
+            RevisionError::MissingChapter => Self::NotFound,
+            RevisionError::StaleHead | RevisionError::IncompleteHistory => Self::Conflict,
+            RevisionError::Delta(error) => Self::Validation(error.to_string()),
+            RevisionError::Database(error) => Self::Sqlx(error),
+            error => Self::Internal(error.to_string()),
+        }
+    }
 }
 
 impl std::fmt::Debug for Error {
