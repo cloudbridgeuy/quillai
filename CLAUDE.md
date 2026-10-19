@@ -47,6 +47,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
+| `manuscripts/chapters/` | Book-scoped chapter CRUD, Delta snapshots, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
 
 ### Rust — Logging (`crates/log/src/`)
 
@@ -122,6 +123,11 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `GET /series/{id}/books/{book_id}` — Get book scoped to series (JSON or 404)
 - `PUT /series/{id}/books/{book_id}` — Partial update title and/or position, scoped to series (JSON, 404, or 422); omitted/null fields stay unchanged
 - `DELETE /series/{id}/books/{book_id}` — Delete book scoped to series and cascade chapters (204 or 404)
+- `GET /series/{id}/books/{book_id}/chapters` — List chapters ordered by position, then ID; includes snapshot content and head_rev (JSON array or 404)
+- `POST /series/{id}/books/{book_id}/chapters` — Create chapter with title, position, kind (chapter/prologue/epilogue), and optional Delta content; snapshot at revision zero (201 + JSON, 404, or 422)
+- `GET /series/{id}/books/{book_id}/chapters/{chapter_id}` — Get chapter snapshot content and head_rev, scoped to book and series (JSON or 404)
+- `PUT /series/{id}/books/{book_id}/chapters/{chapter_id}` — Partial update title, kind, and/or position; omitted/null fields unchanged; any content key rejected (JSON, 404, or 422)
+- `DELETE /series/{id}/books/{book_id}/chapters/{chapter_id}` — Delete chapter scoped to book and series (204 or 404)
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
 
 **Bun frontend** (`app/src/index.tsx`):
