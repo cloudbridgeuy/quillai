@@ -41,7 +41,7 @@ Repo-specific context, use in this order:
 4. `../.claude/context/markdown-parsing.md` for the markdown shortcut logic that still shares `md_editor/components/Editor.tsx`
 5. `../.claude/context/ai-streaming.md` for the backend request and NDJSON stream contract
 
-Current AI browser calls assume the frontend is served on port `3001` and the Rust API is on `127.0.0.1:2908`.
+AI and manuscript browser calls default to the Rust API at `http://127.0.0.1:2908`. Override it with the `apiBaseUrl` query parameter on the frontend URL (e.g. `http://localhost:3001/?apiBaseUrl=http%3A%2F%2F127.0.0.1%3A49152`); only loopback hosts (`127.0.0.1`, `localhost`, `[::1]`) over HTTP(S) on any port are accepted, and anything else falls back to the default. Backend CORS still requires the frontend on port `3001`.
 
 Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
 
