@@ -1,7 +1,3 @@
-//! See <https://github.com/matklad/cargo-xtask/>
-//!
-//! This binary defines auxiliary development commands that are not expressible
-//! with just `cargo`.
 use chrono::Local;
 use clap::Parser;
 use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGTERM};
@@ -34,8 +30,18 @@ pub struct App {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Commands {
-    /// Run the API and frontend in development mode.
+    #[command(about = "Run the API and frontend in development mode")]
     Dev(DevArgs),
+    #[command(
+        about = "Run read-only quality checks with short output; full logs in target/xtask-lint"
+    )]
+    Lint(LintArgs),
+}
+
+#[derive(Debug, Parser)]
+pub struct LintArgs {
+    #[arg(long, help = "Print full output for each check")]
+    verbose: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -137,7 +143,143 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli.command {
         Commands::Dev(args) => dev(args),
+        Commands::Lint(args) => {
+            if !lint(args)? {
+                std::process::exit(1);
+            }
+            Ok(())
+        }
     }
+}
+
+fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("xtask has no workspace directory")?;
+    let logs = root.join("target/xtask-lint");
+    std::fs::create_dir_all(&logs)?;
+    let checks: &[(&str, &str, &[&str], &str)] = &[
+        ("fmt", "cargo", &["fmt", "--all", "--check"], "."),
+        (
+            "check",
+            "cargo",
+            &["check", "--workspace", "--all-targets", "--quiet"],
+            ".",
+        ),
+        (
+            "clippy",
+            "cargo",
+            &[
+                "clippy",
+                "--workspace",
+                "--all-targets",
+                "--quiet",
+                "--",
+                "-D",
+                "warnings",
+            ],
+            ".",
+        ),
+        (
+            "test",
+            "cargo",
+            &["test", "--workspace", "--all-targets", "--quiet"],
+            ".",
+        ),
+        (
+            "doctest",
+            "cargo",
+            &["test", "--workspace", "--doc", "--quiet"],
+            ".",
+        ),
+        ("dependencies", "cargo", &["rail", "unify", "--check"], "."),
+        ("bun-test", "bun", &["test"], "app"),
+    ];
+    let mut failed = 0;
+    for (name, program, command_args, directory) in checks {
+        let path = logs.join(format!("{name}.log"));
+        let mut log = std::fs::File::create(&path)?;
+        let result = Command::new(program)
+            .args(*command_args)
+            .current_dir(root.join(directory))
+            .env("CARGO_TERM_COLOR", "never")
+            .env("NO_COLOR", "1")
+            .env("SQLX_OFFLINE", "true")
+            .stdout(log.try_clone()?)
+            .stderr(log.try_clone()?)
+            .status();
+        let passed = match result {
+            Ok(status) => status.success(),
+            Err(error) => {
+                writeln!(log, "Could not run {program}: {error}")?;
+                false
+            }
+        };
+        report_lint_check(name, passed, &path, args.verbose)?;
+        failed += usize::from(!passed);
+    }
+    let path = logs.join("file-length.log");
+    let passed = check_file_lengths(root, &path)?;
+    report_lint_check("file-length", passed, &path, args.verbose)?;
+    failed += usize::from(!passed);
+    if failed == 0 {
+        println!("All {} checks passed.", checks.len() + 1);
+    } else {
+        println!("{failed}/{} checks failed.", checks.len() + 1);
+    }
+    Ok(failed == 0)
+}
+
+fn report_lint_check(
+    name: &str,
+    passed: bool,
+    path: &std::path::Path,
+    verbose: bool,
+) -> std::io::Result<()> {
+    if passed {
+        println!("PASS {name}");
+    } else {
+        println!("FAIL {name}: target/xtask-lint/{name}.log");
+    }
+    if verbose {
+        std::io::copy(&mut std::fs::File::open(path)?, &mut std::io::stdout())?;
+    }
+    Ok(())
+}
+
+fn check_file_lengths(root: &std::path::Path, path: &std::path::Path) -> std::io::Result<bool> {
+    let mut log = std::fs::File::create(path)?;
+    let output = Command::new("git")
+        .args(["ls-files", "-z", "--", "crates/**/*.rs", "xtask/**/*.rs"])
+        .current_dir(root)
+        .output()?;
+    if !output.status.success() {
+        log.write_all(&output.stderr)?;
+        return Ok(false);
+    }
+    let mut passed = true;
+    for file in output
+        .stdout
+        .split(|byte| *byte == 0)
+        .filter(|s| !s.is_empty())
+    {
+        let file = std::str::from_utf8(file)
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+        match std::fs::read_to_string(root.join(file)) {
+            Ok(contents) => {
+                let lines = contents.lines().count();
+                if lines > 1000 {
+                    writeln!(log, "{file}: {lines} lines (maximum 1000)")?;
+                    passed = false;
+                }
+            }
+            Err(error) => {
+                writeln!(log, "{file}: {error}")?;
+                passed = false;
+            }
+        }
+    }
+    Ok(passed)
 }
 
 fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
@@ -369,7 +511,6 @@ fn terminate_process_group_or_child(child: &mut Child) {
                 libc::kill(-pid, libc::SIGKILL);
             }
         }
-        return;
     }
 
     #[cfg(not(unix))]
