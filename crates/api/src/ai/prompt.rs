@@ -79,6 +79,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_core_fields_and_sentence_limit() {
         let input = GenerateInput {
+            author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
@@ -113,6 +114,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_selection_details() {
         let input = GenerateInput {
+            author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Edit,
             document: DocumentSlice {
@@ -156,6 +158,7 @@ mod tests {
     #[test]
     fn build_prompt_uses_resume_prompt_as_effective_generate_instruction() {
         let input = GenerateInput {
+            author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
@@ -186,6 +189,7 @@ mod tests {
     #[test]
     fn build_prompt_escapes_user_controlled_text() {
         let input = GenerateInput {
+            author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {

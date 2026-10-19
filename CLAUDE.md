@@ -47,6 +47,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `prelude.rs` | Re-exports Error and Result |
 | `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming, and NDJSON event output. See [AI streaming context](.claude/context/ai-streaming.md) |
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
+| `settings/` | Singleton author guidance models, UTF-8 byte validation, GET/PUT handlers, and shared server-side AI loading. |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
 | `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
@@ -66,7 +67,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 
 ### Browser Smoke (`e2e/`)
 
-`playwright.config.ts` loads the app's `@playwright/test` dependency and runs `chapter-sync.spec.ts` and `chapter-emoji-sync.spec.ts` with Chromium. Install the browser once with `cd app && bun --bun x playwright install chromium`. The smoke seeds one chapter through the API, opens two pages with the sandbox `apiBaseUrl` and chapter IDs, edits from each page, checks remote convergence and server revisions/content, then reloads both pages. Artifacts go to `target/xtask-e2e/results/`. The directory is outside `app/`, so `cargo xtask lint`'s `bun test` does not discover browser tests. See [browser sandbox context](.claude/context/ai-editor.md#browser-smoke-sandbox).
+`playwright.config.ts` loads the app's `@playwright/test` dependency and runs `chapter-sync.spec.ts`, `chapter-emoji-sync.spec.ts`, and `author-guidance.spec.ts` with Chromium. Install the browser once with `cd app && bun --bun x playwright install chromium`. The chapter smoke seeds one chapter through the API, opens two pages with the sandbox `apiBaseUrl` and chapter IDs, edits from each page, checks remote convergence and server revisions/content, then reloads both pages. The guidance smoke verifies locked System, explicit save, escaped preview, reload, and clearing. Artifacts go to `target/xtask-e2e/results/`. The directory is outside `app/`, so `cargo xtask lint`'s `bun test` does not discover browser tests. See [browser sandbox context](.claude/context/ai-editor.md#browser-smoke-sandbox).
 
 ### Frontend (`app/src/`)
 
@@ -81,7 +82,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/ai_contract.ts` | Pure AI request contract and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/prompt_sections.ts` | Pure server-parity prompt sections from accepted AI requests; labeled UTF-8 byte token estimates and summed totals. See [AI editor context](.claude/context/ai-editor.md) |
-| `md_editor/context_inspector.ts` | Pure live Continue/Resume and Edit context view-model; Editor reuses request previews, refreshes on Quill/settings/thread changes, edits section content and structured speaker turns with per-section reset, and hides the panel at 800px. |
+| `md_editor/context_inspector.ts` | Pure live Continue/Resume and Edit context view-model; System is read-only, saved author guidance follows System, other content and speaker turns support edits/reset. Editor hides the panel at 800px. |
 | `fixtures/prompt/parity.json` | Shared prompt section ids, tags, text, and history fixtures replayed by `crates/api/tests/prompt_parity_test.rs` and `app/src/md_editor/prompt_parity.test.ts`; provider model names pass through unchanged. |
 | `md_editor/ai_stream.ts` | Pure incremental NDJSON parser for AI stream events. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/ai_state.ts` | AI run-state ADT and transition helpers. See [AI editor context](.claude/context/ai-editor.md) |
@@ -89,6 +90,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `md_editor/delta_bridge.ts` | Quill delta normalization at the request and stream boundaries. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/editor_ai.ts` | Pure selection-memory, rollback, and status helpers for the editor shell. See [AI editor context](.claude/context/ai-editor.md) |
 | `manuscripts/contract.ts`, `manuscripts/client.ts` | Typed manuscript hierarchy and revision API client with response parsing and structured errors. |
+| `settings/client.ts` | Typed author guidance GET/PUT client with response parsing and structured errors; inspector loads saved server text on mount and saves explicitly. |
 | `md_editor/chapter_sync.ts` | Pure revision sync core: one in-flight Delta, composed pending edits, server-priority transforms, and acknowledgement reconciliation. |
 | `md_editor/chapter_session.ts`, `md_editor/use_chapter_sync.ts` | Chapter selection/bootstrap, serialized save/poll shell, and per-tab unsaved recovery. Server chapter content/head_rev is authoritative on reload. |
 | `md_editor/editor_persistence.ts` | Pure parse/serialize of local AI settings and thread under `quillai.editor.state.v1`; the editor writes an empty document placeholder and never restores chapter content from this key. Invalid data falls back to defaults. |
@@ -105,6 +107,8 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 Startup applies embedded migrations before serving and explicitly enables SQLite foreign keys. Integration tests share `crates/api/tests/common/mod.rs`, which creates isolated, single-connection in-memory pools and runs the same migrations. `crates/api/tests/book_schema_test.rs` covers cascades, orphan rejection, kinds, position ordering, Delta storage, and rollback/reapply.
 
 `migrations/20261019000001_chapter_revisions.up.sql` adds retained `chapter_revisions` (chapter FK cascade, unique chapter/revision, Delta JSON, creation timestamp) and chapter `head_rev`/`snapshot_rev` markers. `chapters.content` is the snapshot Delta at `snapshot_rev` (existing content starts at revision zero). `RevisionStore` takes a nonzero snapshot interval, replays revisions strictly above the snapshot in revision order, and atomically appends against an expected head. HTTP sync snapshots every 100 revisions, retains all revisions, transforms concurrent submissions with server priority, and retries optimistic head conflicts. GET list/detail and PUT responses rebuild snapshot plus revisions within the same transaction as the chapter metadata read/write. Sync accepts a base/since only when every subsequent revision through the head is retained; the earliest retained revision minus one is the floor for contiguous history, independent of snapshot_rev. Missing required revisions, negative bases, and bases above the head return 409. `crates/api/tests/chapter_revisions_test.rs` covers rebuild, snapshots, stale heads, rollback, and constraints; `chapters_test.rs` covers HTTP sync, concurrency, convergence, input rejection, and parent scoping.
+
+`migrations/20261019000002_author_guidance.up.sql` adds a singleton `author_guidance` table (id constrained to 1, text capped at 65,536 UTF-8 bytes). Missing row and empty text both mean no guidance. PUT upserts the one row; the down migration drops only this table.
 
 ## Tech Stack
 
@@ -144,6 +148,8 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `POST /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas` — Submit `{baseRev, delta}`; transform against later retained revisions with server priority, append atomically, return `{rev, delta}` (200, 404, 409 unavailable/future history, or 422 malformed JSON/Delta or compose failure)
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas?since=rev` — Return missed revisions ordered ascending as `[{rev, delta}]`; current head returns `[]` (200, 404, 409 unavailable/future history, or 422 invalid query)
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
+- `GET /settings/author-guidance` — Return `{text: string}`; missing row returns empty text (200).
+- `PUT /settings/author-guidance` — Save `{text: string}` and return saved text (200); empty clears guidance, more than 65,536 UTF-8 bytes returns 422. Invalid JSON/types return the standard 400 JSON error.
 
 **Bun frontend** (`app/src/index.tsx`):
 - `GET /assets/*` — static file serving

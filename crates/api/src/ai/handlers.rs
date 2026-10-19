@@ -12,10 +12,12 @@ use super::provider::{AiProvider, OpenAiCompatibleProvider};
 use crate::error::Error;
 
 pub async fn generate(
+    axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,
     payload: Result<Json<GenerateRequest>, JsonRejection>,
 ) -> Result<Response, Error> {
     let Json(request) = payload.map_err(Error::from_json_rejection)?;
-    let input = GenerateInput::try_from(request)?;
+    let mut input = GenerateInput::try_from(request)?;
+    input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
     let provider = OpenAiCompatibleProvider::from_env()?;
     let body_stream = provider
         .stream(input)

@@ -55,6 +55,14 @@ The runner waits for HTTP 200 from API `/series` and frontend `/`, then runs `bu
 
 Services, build/install commands, and Playwright run in managed process groups. Normal exit, startup/test failure, and Ctrl-C terminate those groups before removing the database directory and SQLite sidecars. The random API port is released before API bind; a competing bind fails startup rather than silently reusing another service. Port 3001 is reserved during setup and released immediately before frontend startup.
 
+## Author Guidance And Locked System
+
+The inspector shows System as a read-only textarea with no reset control. System is excluded from typed section overrides; the server rejects raw `sectionOverrides.system` with 422. Other section edits and history resets remain request-local.
+
+`settings/client.ts` uses the shared API base URL, parses `{text: string}` responses, and exposes structured HTTP/protocol errors. The inspector loads saved author guidance from `GET /settings/author-guidance` on mount/reload, never localStorage. The separate Author guidance editor saves explicitly with PUT; empty text clears guidance, and failures keep the draft and display an error. Controls stay disabled until loading succeeds (reload to retry) and while saving or generating. Only saved text enters the live prompt preview. When nonempty, `prompt_sections.ts` adds `author_guidance` directly after System, with the same escaped tag/text as the server and its own token count. Unset guidance adds no section. Other tabs' saves become visible on reload; the server always reads its latest saved text for generation.
+
+`cargo xtask e2e author-guidance.spec.ts` verifies System read-only/no reset, guidance save, escaped preview, server round-trip, reload, and clearing. Shared Rust/Bun fixtures cover guidance with and without replay and unchanged empty guidance.
+
 ## Continue And Edit Flow
 
 `Continue`:

@@ -2,6 +2,7 @@ import type { AiGenerateRequest, AiHistoryMessage, PromptHistoryMessage } from "
 
 export type PromptSectionId =
   | "system"
+  | "author_guidance"
   | "history"
   | "instruction"
   | "story_context"
@@ -26,7 +27,7 @@ export function totalEstimatedTokens(sections: readonly PromptSection[]): number
   return sections.reduce((total, section) => total + section.tokens, 0);
 }
 
-export function assemblePromptSections(input: AiGenerateRequest): PromptSection[] {
+export function assemblePromptSections(input: AiGenerateRequest, authorGuidance = ""): PromptSection[] {
   const overrides = input.sectionOverrides ?? {};
   const defaultInstruction = input.action === "generate"
     ? optionalText(input.resumePrompt) ?? optionalText(input.instruction)
@@ -38,10 +39,11 @@ export function assemblePromptSections(input: AiGenerateRequest): PromptSection[
     ? `index=${input.selection.range.index}, length=${input.selection.range.length}, text=${escapePromptText(selectionText)}`
     : escapePromptText(selectionText);
   const document = overrides.document ?? input.document.text;
-  const system = overrides.system ?? "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.";
+  const system = "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.";
 
   return [
     section("system", "System", escapePromptText(system), system),
+    ...(authorGuidance === "" ? [] : [section("author_guidance", "Author guidance", `<author_guidance>\n${escapePromptText(authorGuidance)}\n</author_guidance>`, authorGuidance)]),
     section("history", "History", assemblePromptHistory(input).map(({ content }) => content).join(""),
       promptHistory(input).map(({ text }) => text).join("")),
     section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),

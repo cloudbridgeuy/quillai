@@ -3,7 +3,7 @@ import { getApiBaseUrl } from "../api_config";
 import type { PromptSectionId } from "./prompt_sections";
 
 export type PromptHistoryMessage = { role: AiHistoryRole; text: string };
-export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "history">, string>> & {
+export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "history" | "system" | "author_guidance">, string>> & {
   history?: PromptHistoryMessage[];
 };
 

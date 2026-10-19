@@ -188,8 +188,6 @@ struct ChatMessage {
 }
 
 fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage> {
-    use super::models::PromptSectionId;
-
     let history: Vec<ChatMessage> = match &input.section_overrides.history {
         Some(messages) => messages
             .iter()
@@ -209,13 +207,21 @@ fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage
     };
     std::iter::once(ChatMessage {
         role: "system".into(),
-        content: input
-            .section_overrides
-            .text
-            .get(&PromptSectionId::System)
-            .map(|text| escape_prompt_text(text))
-            .unwrap_or_else(|| SYSTEM_PROMPT.into()),
+        content: SYSTEM_PROMPT.into(),
     })
+    .chain(
+        input
+            .author_guidance
+            .as_deref()
+            .filter(|text| !text.is_empty())
+            .map(|text| ChatMessage {
+                role: "system".into(),
+                content: format!(
+                    "<author_guidance>\n{}\n</author_guidance>",
+                    escape_prompt_text(text)
+                ),
+            }),
+    )
     .chain(history)
     .chain(std::iter::once(ChatMessage {
         role: "user".into(),
@@ -504,6 +510,7 @@ mod tests {
         use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
 
         let input = GenerateInput {
+            author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {

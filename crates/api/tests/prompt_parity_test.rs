@@ -19,6 +19,8 @@ struct Fixture {
 #[derive(Deserialize)]
 struct Example {
     name: String,
+    #[serde(default, rename = "authorGuidance")]
+    author_guidance: Option<String>,
     input: Value,
     history: Vec<Value>,
     sections: Vec<Section>,
@@ -90,20 +92,42 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
                 .iter()
                 .map(|s| s.id.as_str())
                 .collect::<Vec<_>>(),
-            [
-                "system",
-                "history",
-                "instruction",
-                "story_context",
-                "selection",
-                "document"
-            ],
+            if example
+                .author_guidance
+                .as_ref()
+                .is_some_and(|text| !text.is_empty())
+            {
+                vec![
+                    "system",
+                    "author_guidance",
+                    "history",
+                    "instruction",
+                    "story_context",
+                    "selection",
+                    "document",
+                ]
+            } else {
+                vec![
+                    "system",
+                    "history",
+                    "instruction",
+                    "story_context",
+                    "selection",
+                    "document",
+                ]
+            },
             "{}: section ids",
             example.name
         );
         let request: GenerateRequest = serde_json::from_value(example.input.clone()).unwrap();
-        let input = GenerateInput::try_from(request).expect("accepted fixture request");
-        let expected_prompt: String = example.sections[2..]
+        let mut input = GenerateInput::try_from(request).expect("accepted fixture request");
+        input.author_guidance = example.author_guidance;
+        let history_index = example
+            .sections
+            .iter()
+            .position(|section| section.id == "history")
+            .unwrap();
+        let expected_prompt: String = example.sections[history_index + 1..]
             .iter()
             .map(|s| s.text.as_str())
             .collect();
@@ -113,7 +137,11 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
             "{}: build_prompt",
             example.name
         );
-        for section in &example.sections[2..] {
+        for section in example
+            .sections
+            .iter()
+            .filter(|section| section.id != "system" && section.id != "history")
+        {
             let tags: Vec<_> = section
                 .text
                 .split('<')
@@ -125,7 +153,7 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
             assert_eq!(tags, section.tags, "{}: {} tags", example.name, section.id);
         }
         assert_eq!(
-            example.sections[1].text,
+            example.sections[history_index].text,
             example
                 .history
                 .iter()
@@ -136,6 +164,13 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
         );
         let mut expected_messages =
             vec![json!({"role": "system", "content": example.sections[0].text})];
+        if let Some(section) = example
+            .sections
+            .iter()
+            .find(|section| section.id == "author_guidance")
+        {
+            expected_messages.push(json!({"role": "system", "content": section.text}));
+        }
         expected_messages.extend(example.history);
         expected_messages.push(json!({"role": "user", "content": expected_prompt}));
 

@@ -69,6 +69,7 @@ import {
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
 import { buildContextInspector } from "../context_inspector";
+import { createSettingsClient } from "../../settings/client";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -235,6 +236,41 @@ export const Container = () => {
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
+  const [settingsClient] = useState(createSettingsClient);
+  const [authorGuidance, setAuthorGuidance] = useState("");
+  const [guidanceDraft, setGuidanceDraft] = useState("");
+  const [guidanceStatus, setGuidanceStatus] = useState("Loading author guidance…");
+  const [guidancePending, setGuidancePending] = useState(true);
+  const [guidanceLoaded, setGuidanceLoaded] = useState(false);
+  useEffect(() => {
+    let active = true;
+    settingsClient.getAuthorGuidance().then(({ text }) => {
+      if (!active) return;
+      setAuthorGuidance(text);
+      setGuidanceDraft(text);
+      setGuidanceLoaded(true);
+      setGuidanceStatus("");
+    }).catch((error: unknown) => {
+      if (active) setGuidanceStatus(getUnknownAiFailureMessage(error));
+    }).finally(() => {
+      if (active) setGuidancePending(false);
+    });
+    return () => { active = false; };
+  }, [settingsClient]);
+
+  async function saveAuthorGuidance() {
+    setGuidancePending(true);
+    try {
+      const { text } = await settingsClient.putAuthorGuidance({ text: guidanceDraft });
+      setAuthorGuidance(text);
+      setGuidanceDraft(text);
+      setGuidanceStatus("Author guidance saved.");
+    } catch (error) {
+      setGuidanceStatus(getUnknownAiFailureMessage(error));
+    } finally {
+      setGuidancePending(false);
+    }
+  }
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
   const [, setContextRevision] = useState(0);
 
@@ -876,7 +912,7 @@ export const Container = () => {
       if (inspectorAction === "edit" && (!selection || selection.length === 0)) {
         return "Select text to inspect the Edit request.";
       }
-      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request);
+      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request, authorGuidance);
     } catch (error) {
       return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
     }
@@ -1062,6 +1098,17 @@ export const Container = () => {
         <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <h2 id="context-inspector-title">Live Prompt Context</h2>
           <label className="editor-field">
+            <span>Author guidance</span>
+            <textarea className="editor-textarea" aria-label="Author guidance" rows={5}
+              value={guidanceDraft} disabled={isBusy || guidancePending || !guidanceLoaded}
+              onChange={(event) => setGuidanceDraft(event.target.value)} />
+          </label>
+          <button className="editor-button editor-button-small" type="button"
+            disabled={isBusy || guidancePending || !guidanceLoaded || guidanceDraft === authorGuidance}
+            onClick={() => void saveAuthorGuidance()}>Save author guidance</button>
+          <p className="editor-note">Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only.</p>
+          <p className="editor-note" role="status">{guidanceStatus}</p>
+          <label className="editor-field">
             <span>Request to inspect</span>
             <select className="editor-input" value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
@@ -1084,7 +1131,10 @@ export const Container = () => {
                     <h3>{section.label}</h3>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
-                  {section.id === "history" ? (
+                  {section.id === "system" || section.id === "author_guidance" ? (
+                    <textarea className="editor-textarea" aria-label={`${section.label} prompt section`}
+                      value={section.text} rows={5} readOnly />
+                  ) : section.id === "history" ? (
                     <>
                       {contextInspector.history.map((message, index) => (
                         <label className="editor-field" key={index}>
@@ -1126,12 +1176,12 @@ export const Container = () => {
                       },
                     }))}
                   />}
-                  {sectionOverrides[inspectorAction][section.id] !== undefined ? (
+                  {section.id !== "system" && section.id !== "author_guidance" && sectionOverrides[inspectorAction][section.id] !== undefined ? (
                     <button className="editor-button editor-button-small" type="button"
                       disabled={isBusy}
                       onClick={() => setSectionOverrides((current) => {
                         const next = { ...current[inspectorAction] };
-                        delete next[section.id];
+                        if (section.id !== "system" && section.id !== "author_guidance") delete next[section.id];
                         return { ...current, [inspectorAction]: next };
                       })}>Reset {section.label}</button>
                   ) : null}

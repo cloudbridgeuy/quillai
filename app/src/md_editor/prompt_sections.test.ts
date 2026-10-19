@@ -31,6 +31,7 @@ describe("assemblePromptSections", () => {
     });
     const baseline = assemblePromptSections(base);
     for (const edited of baseline) {
+      if (edited.id === "system" || edited.id === "author_guidance") continue;
       const text = "  Custom & <exact> 世界\n";
       const sectionOverrides = edited.id === "history"
         ? { history: [{ role: "assistant" as const, text }, { role: "user" as const, text: "Next" }] }

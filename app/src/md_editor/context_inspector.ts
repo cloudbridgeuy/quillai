@@ -6,8 +6,8 @@ import {
   promptHistory,
 } from "./prompt_sections";
 
-export function buildContextInspector(request: AiGenerateRequest) {
-  const sections = assemblePromptSections(request);
+export function buildContextInspector(request: AiGenerateRequest, authorGuidance = "") {
+  const sections = assemblePromptSections(request, authorGuidance);
   return {
     sections,
     history: promptHistory(request),

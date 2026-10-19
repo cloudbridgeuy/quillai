@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO author_guidance (id, text) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET text = excluded.text",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "77045d7cb7501a31a81234f8e0c0bc8542dc6907bcd80c81a6b24a1f65118e6e"
+}

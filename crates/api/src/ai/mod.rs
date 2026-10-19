@@ -8,6 +8,8 @@ pub mod tagged_text;
 
 use axum::{routing::post, Router};
 
-pub fn routes() -> Router {
-    Router::new().route("/ai/generate", post(handlers::generate))
+pub fn routes(pool: sqlx::SqlitePool) -> Router {
+    Router::new()
+        .route("/ai/generate", post(handlers::generate))
+        .with_state(pool)
 }

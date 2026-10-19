@@ -4,6 +4,7 @@ pub mod database;
 pub mod error;
 pub mod manuscripts;
 pub mod prelude;
+pub mod settings;
 pub mod users;
 
 use axum::http::{header, HeaderValue, Method};
@@ -33,7 +34,8 @@ pub fn app(pool: SqlitePool) -> Router {
 
     Router::new()
         .merge(user_routes)
-        .merge(manuscripts::routes(pool))
-        .merge(ai::routes())
+        .merge(manuscripts::routes(pool.clone()))
+        .merge(settings::routes(pool.clone()))
+        .merge(ai::routes(pool))
         .layer(local_dev_cors())
 }

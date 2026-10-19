@@ -121,6 +121,7 @@ pub struct SelectionSlice {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GenerateInput {
+    pub author_guidance: Option<String>,
     pub section_overrides: SectionOverrides,
     pub action: AiAction,
     pub document: DocumentSlice,
@@ -297,6 +298,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
 
         Ok(Self {
             action,
+            author_guidance: None,
             document,
             selection,
             section_overrides,

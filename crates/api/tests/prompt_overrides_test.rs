@@ -8,8 +8,8 @@ fn override_size_limits_accept_exact_utf8_boundaries() {
     let full = "💡".repeat(MAX_OVERRIDE_SECTION_BYTES / 4);
     assert_eq!(full.len() * 4, MAX_OVERRIDE_TOTAL_BYTES);
     for value in [
-        json!({"system": full, "instruction": full, "story_context": full, "document": full}),
-        json!({"system": full, "instruction": full, "story_context": full, "history": [
+        json!({"selection": full, "instruction": full, "story_context": full, "document": full}),
+        json!({"selection": full, "instruction": full, "story_context": full, "history": [
             {"role": "user", "text": "💡".repeat(MAX_OVERRIDE_SECTION_BYTES / 8)},
             {"role": "assistant", "text": "💡".repeat(MAX_OVERRIDE_SECTION_BYTES / 8)}
         ]}),

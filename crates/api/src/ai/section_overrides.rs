@@ -11,7 +11,6 @@ pub const MAX_OVERRIDE_TOTAL_BYTES: usize = 262_144;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PromptSectionId {
-    System,
     History,
     Instruction,
     StoryContext,
