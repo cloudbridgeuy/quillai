@@ -1,8 +1,8 @@
-import { defineConfig } from "../app/node_modules/@playwright/test/index.mjs";
+import { defineConfig } from "../app/node_modules/@playwright/test/index.js";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "chapter-sync.spec.ts",
+  testMatch: ["chapter-sync.spec.ts", "chapter-emoji-sync.spec.ts"],
   outputDir: "../target/xtask-e2e/results",
   reporter: "list",
   workers: 1,

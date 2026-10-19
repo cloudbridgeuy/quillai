@@ -6,6 +6,29 @@ import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapt
 const initial = () => startChapterSync({ ops: [{ insert: "text\n" }] }, 0);
 const revision = (rev: number, delta: Delta): Revision => ({ rev, delta: parseDelta(delta) });
 
+test("emoji insertion between shared high surrogates stays valid through pending, transform and acknowledgement", () => {
+  const base = startChapterSync({ ops: [{ insert: "😀🚀\n" }] }, 0);
+  const document = new Delta().insert("😀😀a🚀\n");
+  const edited = editChapter(base, document);
+  expect(edited.pending.ops.every((op) => typeof op.insert !== "string" || op.insert.isWellFormed())).toBe(true);
+  expect(syncDocument(edited)).toEqual(document);
+  const sent = sendChapter(edited)!;
+  const pending = editChapter(sent.state, document.compose(new Delta().retain(5).insert("🌙")));
+  const remote = revision(1, new Delta().insert("R"));
+  const ack = revision(2, chapterDelta(remote.delta).transform(chapterDelta(sent.request.delta), true));
+  const rebased = receiveRevisions(pending, [remote, ack], ack);
+  const next = sendChapter(rebased)!;
+  for (const request of [sent.request, next.request]) {
+    expect(request.delta.ops.every((op) => typeof op.insert !== "string" || op.insert.isWellFormed())).toBe(true);
+  }
+  const pendingAck = revision(3, chapterDelta(next.request.delta));
+  const local = receiveRevisions(next.state, [pendingAck], pendingAck);
+  const other = receiveRevisions(base, [remote, ack, pendingAck]);
+  expect(syncDocument(local)).toEqual(new Delta().insert("R😀😀a🌙🚀\n"));
+  expect(syncDocument(other)).toEqual(syncDocument(local));
+  expect(hasLocalChanges(local)).toBe(false);
+});
+
 test("loads server content and revision without local work", () => {
   const state = startChapterSync({ ops: [{ insert: "restored\n" }] }, 42);
   expect(state.rev).toBe(42);

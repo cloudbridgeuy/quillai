@@ -66,7 +66,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 
 ### Browser Smoke (`e2e/`)
 
-`playwright.config.ts` loads the app's `@playwright/test` dependency and runs only `chapter-sync.spec.ts` with Chromium. Install the browser once with `cd app && bun --bun x playwright install chromium`. The smoke seeds one chapter through the API, opens two pages with the sandbox `apiBaseUrl` and chapter IDs, edits from each page, checks remote convergence and server revisions/content, then reloads both pages. Artifacts go to `target/xtask-e2e/results/`. The directory is outside `app/`, so `cargo xtask lint`'s `bun test` does not discover browser tests. See [browser sandbox context](.claude/context/ai-editor.md#browser-smoke-sandbox).
+`playwright.config.ts` loads the app's `@playwright/test` dependency and runs `chapter-sync.spec.ts` and `chapter-emoji-sync.spec.ts` with Chromium. Install the browser once with `cd app && bun --bun x playwright install chromium`. The smoke seeds one chapter through the API, opens two pages with the sandbox `apiBaseUrl` and chapter IDs, edits from each page, checks remote convergence and server revisions/content, then reloads both pages. Artifacts go to `target/xtask-e2e/results/`. The directory is outside `app/`, so `cargo xtask lint`'s `bun test` does not discover browser tests. See [browser sandbox context](.claude/context/ai-editor.md#browser-smoke-sandbox).
 
 ### Frontend (`app/src/`)
 

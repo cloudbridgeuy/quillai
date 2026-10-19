@@ -1,4 +1,4 @@
-import { expect, test } from "../app/node_modules/@playwright/test/index.mjs";
+import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 
 test("two pages save, sync, and reload one chapter", async ({ context, page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;

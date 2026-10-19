@@ -1,5 +1,6 @@
 import Delta from "quill-delta";
 import { parseDelta, type ManuscriptDelta, type Revision, type SubmitDelta } from "../manuscripts/contract";
+import { diffDocuments } from "./document_diff";
 
 export type ChapterSync = {
   rev: number;
@@ -27,9 +28,9 @@ export function hasLocalChanges(state: ChapterSync): boolean {
 
 export function editChapter(state: ChapterSync, document: Delta): ChapterSync {
   const baseline = state.server.compose(state.flight ?? new Delta());
-  const pending = baseline.diff(document).ops.length === 0
+  const pending = diffDocuments(baseline, document).ops.length === 0
     ? new Delta()
-    : state.pending.compose(syncDocument(state).diff(document));
+    : state.pending.compose(diffDocuments(syncDocument(state), document));
   return { ...state, pending };
 }
 
@@ -50,7 +51,7 @@ export function receiveRevisions(state: ChapterSync, revisions: Revision[], ackn
     const server = next.server.compose(remote);
     if (revision.rev === acknowledgement?.rev) {
       if (next.flight === null || JSON.stringify(parseDelta(remote)) !== JSON.stringify(parseDelta(acknowledgement.delta)) ||
-        next.server.compose(next.flight).diff(server).ops.length !== 0) {
+        diffDocuments(next.server.compose(next.flight), server).ops.length !== 0) {
         throw new Error("Chapter acknowledgement mismatch; local work retained.");
       }
       next = { ...next, server, rev: revision.rev, flight: null };

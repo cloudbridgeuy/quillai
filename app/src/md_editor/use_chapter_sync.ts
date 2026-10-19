@@ -3,6 +3,7 @@ import type Quill from "quill";
 import { createManuscriptClient } from "../manuscripts/client";
 import { bootstrapEditorChapter, createChapterSession, loadEditorChapter, NoEditorChapter } from "./chapter_session";
 import { chapterDelta } from "./chapter_sync";
+import { diffDocuments } from "./document_diff";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -70,7 +71,7 @@ export function useChapterSync(
         } catch {
           storageFailed = true;
         }
-        const change = quill.getContents().diff(document);
+        const change = diffDocuments(quill.getContents(), document);
         if (change.ops.length > 0) {
           const selection = quill.getSelection();
           applyingRef.current = true;
@@ -85,7 +86,7 @@ export function useChapterSync(
         }
         setBlocked(problem?.kind === "blocked");
         setStatus(problem?.message ?? `${chapter.title} · ${dirty ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
-        if (quill.getContents().diff(document).ops.length > 0) session.edit(quill.getContents());
+        if (diffDocuments(quill.getContents(), document).ops.length > 0) session.edit(quill.getContents());
       });
       let latestRecovery: string | null = null;
       sessionRef.current = session;
