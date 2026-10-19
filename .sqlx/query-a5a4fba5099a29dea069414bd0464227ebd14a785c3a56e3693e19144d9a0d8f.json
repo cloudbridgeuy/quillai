@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT content, snapshot_rev, head_rev FROM chapters WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "content",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "snapshot_rev",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "head_rev",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a5a4fba5099a29dea069414bd0464227ebd14a785c3a56e3693e19144d9a0d8f"
+}

@@ -1345,6 +1345,7 @@ dependencies = [
  "futures-util",
  "http-body-util",
  "listenfd",
+ "quillai_delta",
  "quillai_log",
  "reqwest",
  "serde",

@@ -15,6 +15,7 @@ name = "api"
 path = "src/main.rs"
 
 [dependencies]
+quillai_delta = { workspace = true }
 quillai_log = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }

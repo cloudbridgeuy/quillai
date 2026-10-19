@@ -38,6 +38,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 |------|---------|
 | `main.rs` | Server init, SQLite pool setup, runs migrations before serving, calls `app()` from lib.rs |
 | `database.rs` | Shared embedded migration runner for startup and integration tests |
+| `chapter_revisions.rs` | Pure Delta rebuild and transactional revision store with optimistic head checks and configurable snapshots |
 | `lib.rs` | Router composition — merges resource routes via `Router::merge()` |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
@@ -86,6 +87,8 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 `migrations/20250407204144_init.up.sql` creates `users` (id, name, email). `migrations/20261019000000_series_books_chapters.up.sql` adds `series` → `books` → `chapters` with integer IDs, titles, positions, and cascading parent foreign keys. Chapters restrict kind to `chapter`, `prologue`, or `epilogue`; content stores valid JSON text with an empty Delta (`{"ops":[]}`) default. Parent/position indexes support ordered child queries. The down migration drops children first and preserves users.
 
 Startup applies embedded migrations before serving and explicitly enables SQLite foreign keys. Integration tests share `crates/api/tests/common/mod.rs`, which creates isolated, single-connection in-memory pools and runs the same migrations. `crates/api/tests/book_schema_test.rs` covers cascades, orphan rejection, kinds, position ordering, Delta storage, and rollback/reapply.
+
+`migrations/20261019000001_chapter_revisions.up.sql` adds retained `chapter_revisions` (chapter FK cascade, unique chapter/revision, Delta JSON, creation timestamp) and chapter `head_rev`/`snapshot_rev` markers. `chapters.content` is the snapshot Delta at `snapshot_rev` (existing content starts at revision zero). `RevisionStore` takes a nonzero snapshot interval, replays revisions strictly above the snapshot in revision order, and atomically appends against an expected head. `crates/api/tests/chapter_revisions_test.rs` covers rebuild, snapshots, stale heads, rollback, and constraints. No HTTP routes are added.
 
 ## Tech Stack
 

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "49a8ddec13fb43ac8e63df3cfa24353639aff1bf39216e37483f9e17ef32be62"
+}

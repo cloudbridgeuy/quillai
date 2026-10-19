@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE chapters SET head_rev = ?, snapshot_rev = ?, content = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3a0affcfa0bc18cbbf24918f7a00ea22e2e22cbec84153d3e2a9f3bcfaffa8ec"
+}
