@@ -37,7 +37,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 | File | Purpose |
 |------|---------|
 | `main.rs` | Server init, SQLite pool setup, runs migrations before serving, calls `app()` from lib.rs |
-| `database.rs` | Shared embedded migration runner for startup and integration tests |
+| `database.rs` | Shared embedded migration runner for startup and integration tests; baselines legacy databases that have `users` but no `_sqlx_migrations` |
 | `chapter_revisions.rs` | Pure Delta rebuild and transactional revision store with optimistic head checks and configurable snapshots |
 | `lib.rs` | Router composition — merges resource routes via `Router::merge()` |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |

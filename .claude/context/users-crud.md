@@ -61,7 +61,7 @@ All errors return JSON: `{ "error": "<message>", "code": "<CODE>" }`.
 - **Integration tests** (`tests/handler_test.rs`): 16 tests covering all CRUD operations, validation errors, not-found cases
 
 Test helpers in `handler_test.rs`:
-- `test_pool()` — in-memory SQLite with migrations via `sqlx::migrate!("../../migrations")`
+- `test_pool()` (from `tests/common/mod.rs`) — single-connection in-memory SQLite with foreign keys, migrated via `quillai_api::database::migrate`
 - `json_request(method, uri, body)` — builds JSON POST/PUT requests
 - `get_request(uri)` / `delete_request(uri)` — builds bodyless requests
 - `json_body(res)` — extracts and parses response as JSON
