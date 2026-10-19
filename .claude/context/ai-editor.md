@@ -10,6 +10,7 @@ The frontend split is deliberate.
 
 **Functional Core**:
 - `ai_contract.ts` — request types, stream-event types, URL helper, selection rebasing.
+- `prompt_sections.ts` — pure assembly from accepted `AiGenerateRequest` values, matching server normalization, escaping, system text, history order, and current-turn framing; history concatenates message content without added separators (roles and message boundaries remain in the request), current-turn sections join without separators; token estimates are `ceil(UTF-8 bytes / 4)` per section, summed for totals, labeled estimates excluding chat framing, not tokenizer counts.
 - `ai_stream.ts` — incremental NDJSON parser plus final remainder handling.
 - `ai_state.ts` — AI run-state ADT and transition helpers.
 - `window.ts` — context-window calculation.
