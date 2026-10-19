@@ -372,6 +372,38 @@ async fn reads_return_chapters_head_rev_not_snapshot_rev() {
 }
 
 #[tokio::test]
+async fn corrupt_stored_content_returns_500_sqlx_for_list_and_detail() {
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool.clone());
+    let collection = collection(&app).await;
+    let chapter = create(&app, &collection, "chapter", 0).await;
+    for content in [r#"{"ops":[{"insert":"\uD83D"}]}"#, "{invalid"] {
+        sqlx::query("PRAGMA ignore_check_constraints = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("UPDATE chapters SET content = ? WHERE id = ?")
+            .bind(content)
+            .bind(chapter["id"].as_i64().unwrap())
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA ignore_check_constraints = OFF")
+            .execute(&pool)
+            .await
+            .unwrap();
+        for uri in [
+            collection.clone(),
+            format!("{collection}/{}", chapter["id"]),
+        ] {
+            let (status, body) = request(&app, "GET", &uri, Value::Null).await;
+            assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+            assert_eq!(body["code"], "SQLX");
+        }
+    }
+}
+
+#[tokio::test]
 async fn unrelated_database_failures_remain_500() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool.clone());
