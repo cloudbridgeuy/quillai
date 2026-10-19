@@ -921,7 +921,7 @@ export const Container = () => {
   return (
     <div className="editor-shell">
       <div className="editor-topbar">
-        <div>
+        <div className="editor-heading">
           <h1>QuillAI</h1>
           <p role="status">{chapterSync.status}</p>
           {chapterSync.needsChapter ? <button className="editor-button" type="button"
@@ -1058,43 +1058,45 @@ export const Container = () => {
       </div>
 
       <div className="editor-workspace">
-        <div className="editor-canvas">
+        <div className="editor-page">
           {chapterSync.title !== null && <h2 className="editor-chapter-title">{chapterSync.title}</h2>}
-          <Component
-            ref={quillRef}
-            readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
-            defaultValue={new Delta()}
-            onSelectionChange={(nextRange) => {
-              setRange(nextRange);
-              lastCursorRangeRef.current = rememberCursorRange(
-                lastCursorRangeRef.current,
-                nextRange ? { index: nextRange.index, length: nextRange.length } : null,
-              );
-              lastEditSelectionRef.current = rememberEditSelection(
-                lastEditSelectionRef.current,
-                nextRange ? { index: nextRange.index, length: nextRange.length } : null,
-              );
-            }}
-            onTextChange={(delta, _oldDelta, source) => {
-              chapterSync.documentChanged();
-              const quill = quillRef.current;
-              if (quill) {
-                persistEditorState();
-              }
-
-              if (source === "user") {
-                updateThreadState(
-                  invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
+          <div className="editor-canvas">
+            <Component
+              ref={quillRef}
+              readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
+              defaultValue={new Delta()}
+              onSelectionChange={(nextRange) => {
+                setRange(nextRange);
+                lastCursorRangeRef.current = rememberCursorRange(
+                  lastCursorRangeRef.current,
+                  nextRange ? { index: nextRange.index, length: nextRange.length } : null,
                 );
-              }
+                lastEditSelectionRef.current = rememberEditSelection(
+                  lastEditSelectionRef.current,
+                  nextRange ? { index: nextRange.index, length: nextRange.length } : null,
+                );
+              }}
+              onTextChange={(delta, _oldDelta, source) => {
+                chapterSync.documentChanged();
+                const quill = quillRef.current;
+                if (quill) {
+                  persistEditorState();
+                }
 
-              if (!shouldClearFailedRunState(aiRunStateRef.current, source)) {
-                return;
-              }
+                if (source === "user") {
+                  updateThreadState(
+                    invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
+                  );
+                }
 
-              clearFailedRunState();
-            }}
-          />
+                if (!shouldClearFailedRunState(aiRunStateRef.current, source)) {
+                  return;
+                }
+
+                clearFailedRunState();
+              }}
+            />
+          </div>
         </div>
         <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <h2 id="context-inspector-title">Live Prompt Context</h2>
