@@ -7,6 +7,10 @@ use serde_json::json;
 use sqlx::sqlite::SqlitePool;
 use tower::ServiceExt;
 
+mod common;
+
+use common::test_pool;
+
 async fn response_body(res: axum::http::Response<Body>) -> String {
     let bytes = res
         .into_body()
@@ -41,17 +45,6 @@ fn delete_request(uri: &str) -> Request<Body> {
         .uri(uri)
         .body(Body::empty())
         .unwrap()
-}
-
-async fn test_pool() -> SqlitePool {
-    let pool = SqlitePool::connect("sqlite::memory:")
-        .await
-        .expect("failed to create in-memory SQLite pool");
-    sqlx::migrate!("../../migrations")
-        .run(&pool)
-        .await
-        .expect("failed to run migrations");
-    pool
 }
 
 async fn create_user(pool: &SqlitePool, name: &str, email: &str) -> i64 {

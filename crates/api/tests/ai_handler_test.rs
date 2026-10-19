@@ -4,7 +4,6 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use serde_json::json;
-use sqlx::sqlite::SqlitePool;
 use std::sync::OnceLock;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -12,6 +11,10 @@ use tokio::{
     sync::Mutex,
 };
 use tower::ServiceExt;
+
+mod common;
+
+use common::test_pool;
 
 async fn response_body(res: axum::http::Response<Body>) -> String {
     let bytes = res
@@ -26,17 +29,6 @@ async fn response_body(res: axum::http::Response<Body>) -> String {
 async fn json_body(res: axum::http::Response<Body>) -> serde_json::Value {
     let text = response_body(res).await;
     serde_json::from_str(&text).expect("response body is not valid JSON")
-}
-
-async fn test_pool() -> SqlitePool {
-    let pool = SqlitePool::connect("sqlite::memory:")
-        .await
-        .expect("failed to create in-memory SQLite pool");
-    sqlx::migrate!("../../migrations")
-        .run(&pool)
-        .await
-        .expect("failed to run migrations");
-    pool
 }
 
 fn json_request(method: &str, uri: &str, body: serde_json::Value) -> Request<Body> {

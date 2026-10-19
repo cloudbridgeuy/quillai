@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod database;
 pub mod error;
 pub mod prelude;
 pub mod users;

@@ -36,7 +36,8 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | Server init, SQLite pool setup, calls `app()` from lib.rs |
+| `main.rs` | Server init, SQLite pool setup, runs migrations before serving, calls `app()` from lib.rs |
+| `database.rs` | Shared embedded migration runner for startup and integration tests |
 | `lib.rs` | Router composition — merges resource routes via `Router::merge()` |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
@@ -83,6 +84,8 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 ### Database
 
 Single migration: `migrations/20250407204144_init.up.sql` — creates `users` table (id, name, email).
+
+Startup applies embedded migrations before serving and explicitly enables SQLite foreign keys. Integration tests share `crates/api/tests/common/mod.rs`, which creates isolated, single-connection in-memory pools and runs the same migrations.
 
 ## Tech Stack
 
