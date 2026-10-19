@@ -1,4 +1,4 @@
-import type { AiGenerateRequest, PromptHistoryMessage } from "./ai_contract";
+import type { AiGenerateRequest, AiHistoryMessage, PromptHistoryMessage } from "./ai_contract";
 
 export type PromptSectionId =
   | "system"
@@ -42,7 +42,8 @@ export function assemblePromptSections(input: AiGenerateRequest): PromptSection[
 
   return [
     section("system", "System", escapePromptText(system), system),
-    section("history", "History", promptHistory(input).map(({ text }) => text).join("")),
+    section("history", "History", assemblePromptHistory(input).map(({ content }) => content).join(""),
+      promptHistory(input).map(({ text }) => text).join("")),
     section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),
     section("story_context", "Story context", `<story_context>\n${escapePromptText(storyContext)}\n</story_context>\n`, storyContext),
     section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`, selectionText),
@@ -54,6 +55,10 @@ export function promptHistory(input: AiGenerateRequest): PromptHistoryMessage[] 
   return input.sectionOverrides?.history ?? (input.action === "generate"
     ? input.messages.map(({ role, content }) => ({ role, text: trimServerText(content) }))
     : []);
+}
+
+export function assemblePromptHistory(input: AiGenerateRequest): AiHistoryMessage[] {
+  return promptHistory(input).map(({ role, text }) => ({ role, content: escapePromptText(text) }));
 }
 
 function section(id: PromptSectionId, label: string, text: string, editableText = text): PromptSection {

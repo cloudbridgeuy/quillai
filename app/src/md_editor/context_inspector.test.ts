@@ -76,7 +76,7 @@ test("multibyte text and emoji estimates count UTF-8 bytes, not UTF-16 units", (
 });
 
 test("Edit inspector exposes raw editable content and ordered history turns", () => {
-  const history = [{ role: "assistant" as const, text: "Earlier answer" }, { role: "user" as const, text: "Now revise" }];
+  const history = [{ role: "assistant" as const, text: "Earlier <answer> &" }, { role: "user" as const, text: "Now </history>" }];
   const model = buildContextInspector(request({
     action: "edit",
     document: { delta: { ops: [{ insert: "Hello" }] }, text: "Hello" },
@@ -84,6 +84,8 @@ test("Edit inspector exposes raw editable content and ordered history turns", ()
     sectionOverrides: { selection: "Edited </selection>", document: "New </document>", history },
   }));
   expect(model.history).toEqual(history);
+  expect(model.sections[1]!.editableText).toBe("Earlier <answer> &Now </history>");
+  expect(model.sections[1]!.text).toBe("Earlier &lt;answer&gt; &amp;Now &lt;/history&gt;");
   expect(model.sections[4]!.editableText).toBe("Edited </selection>");
   expect(model.sections[4]!.text).toBe("<selection>\nindex=0, length=5, text=Edited &lt;/selection&gt;\n</selection>\n");
   expect(model.sections[5]!.editableText).toBe("New </document>");

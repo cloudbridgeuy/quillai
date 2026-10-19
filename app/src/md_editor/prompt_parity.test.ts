@@ -1,12 +1,13 @@
 import { expect, test } from "bun:test";
 import fixture from "../../../fixtures/prompt/parity.json";
 import type { AiGenerateRequest } from "./ai_contract";
-import { assemblePromptSections } from "./prompt_sections";
+import { assemblePromptHistory, assemblePromptSections } from "./prompt_sections";
 
 for (const example of fixture.cases) {
   test(`prompt parity: ${example.name}`, () => {
     const input = structuredClone(example.input);
     const sections = assemblePromptSections(input as AiGenerateRequest);
+    expect(example.history).toEqual(assemblePromptHistory(input as AiGenerateRequest));
     expect(example.sections.map(({ id, text }) => ({ id, text }))).toEqual(
       sections.map(({ id, text }) => ({ id, text })),
     );

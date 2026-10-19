@@ -195,7 +195,7 @@ fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage
             .iter()
             .map(|message| ChatMessage {
                 role: message.role.as_str().into(),
-                content: message.text.clone(),
+                content: escape_prompt_text(&message.text),
             })
             .collect(),
         None => input
@@ -203,7 +203,7 @@ fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage
             .iter()
             .map(|message| ChatMessage {
                 role: message.role.as_str().into(),
-                content: message.content.clone(),
+                content: escape_prompt_text(&message.content),
             })
             .collect(),
     };

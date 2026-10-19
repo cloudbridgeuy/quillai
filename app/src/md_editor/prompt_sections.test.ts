@@ -47,7 +47,7 @@ describe("assemblePromptSections", () => {
       for (const actual of assemblePromptSections(sent)) {
         if (actual.id === edited.id) {
           if (edited.id === "history") {
-            expect(actual.text).toBe(text + "Next");
+            expect(actual.text).toBe("  Custom &amp; &lt;exact&gt; 世界\nNext");
           } else {
             expect(actual.editableText).toBe(text);
             expect(actual.text).toContain("  Custom &amp; &lt;exact&gt; 世界\n");
@@ -78,7 +78,7 @@ describe("assemblePromptSections", () => {
 
     expect(sections.map(({ id, label, text }) => ({ id, label, text }))).toEqual([
       { id: "system", label: "System", text: "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only." },
-      { id: "history", label: "History", text: "previous <prompt>previous & output" },
+      { id: "history", label: "History", text: "previous &lt;prompt&gt;previous &amp; output" },
       { id: "instruction", label: "Instruction", text: "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume from cutoff\n</instruction>\n" },
       { id: "story_context", label: "Story context", text: "<story_context>\nfantasy\n</story_context>\n" },
       { id: "selection", label: "Selection", text: "<selection>\nnone\n</selection>\n" },

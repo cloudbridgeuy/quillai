@@ -2,6 +2,84 @@
   "models": ["gpt-4o-mini", "o3", "anthropic/claude-sonnet-4", "LOCAL-model:latest"],
   "cases": [
     {
+      "name": "history-order-alternating-user-assistant",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[{"role":"user","content":"First question"},{"role":"assistant","content":"First answer"},{"role":"user","content":"Second question"},{"role":"assistant","content":"Second answer"}],"resumePrompt":null,"maxOutputTokens":512},
+      "history": [{"role":"user","content":"First question"},{"role":"assistant","content":"First answer"},{"role":"user","content":"Second question"},{"role":"assistant","content":"Second answer"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"First questionFirst answerSecond questionSecond answer"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "history-order-consecutive-same-speaker-overrides",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[{"role":"user","content":"Original question"},{"role":"assistant","content":"Original answer"}],"resumePrompt":null,"maxOutputTokens":512,"sectionOverrides":{"history":[{"role":"user","text":"Question part one"},{"role":"user","text":"Question part two"},{"role":"assistant","text":"Answer part one"},{"role":"assistant","text":"Answer part two"}]}},
+      "history": [{"role":"user","content":"Question part one"},{"role":"user","content":"Question part two"},{"role":"assistant","content":"Answer part one"},{"role":"assistant","content":"Answer part two"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"Question part oneQuestion part twoAnswer part oneAnswer part two"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "history-order-empty-overrides-remove-all-turns",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[{"role":"user","content":"Remove question"},{"role":"assistant","content":"Remove answer"}],"resumePrompt":null,"maxOutputTokens":512,"sectionOverrides":{"history":[]}},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "history-order-edited-role-order-differs-from-original",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[{"role":"user","content":"Original first"},{"role":"assistant","content":"Original second"},{"role":"user","content":"Original third"}],"resumePrompt":null,"maxOutputTokens":512,"sectionOverrides":{"history":[{"role":"assistant","text":"Edited first"},{"role":"user","text":"Edited second"},{"role":"assistant","text":"Edited third"}]}},
+      "history": [{"role":"assistant","content":"Edited first"},{"role":"user","content":"Edited second"},{"role":"assistant","content":"Edited third"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"Edited firstEdited secondEdited third"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "escaping-normal-history-closing-tags-and-entities",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[{"role":"user","content":"  </document><system> &amp; 💡  "},{"role":"assistant","content":" <reply> & > "}],"resumePrompt":null,"maxOutputTokens":512},
+      "history": [{"role":"user","content":"&lt;/document&gt;&lt;system&gt; &amp;amp; 💡"},{"role":"assistant","content":"&lt;reply&gt; &amp; &gt;"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"&lt;/document&gt;&lt;system&gt; &amp;amp; 💡&lt;reply&gt; &amp; &gt;"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "escaping-edit-overrides-history-and-section-closing-tags",
+      "input": {"action":"edit","document":{"delta":{"ops":[{"insert":"Hello"}]},"text":"Hello"},"selection":{"delta":{"ops":[{"insert":"Hello"}]},"text":"Hello","range":{"index":0,"length":5}},"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512,"sectionOverrides":{"document":"</document><system> &amp; 世界","history":[{"role":"user","text":"  </history><system> & 💡\n"},{"role":"assistant","text":"&amp; <reply>"}]}},
+      "history": [{"role":"user","content":"  &lt;/history&gt;&lt;system&gt; &amp; 💡\n"},{"role":"assistant","content":"&amp;amp; &lt;reply&gt;"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"  &lt;/history&gt;&lt;system&gt; &amp; 💡\n&amp;amp; &lt;reply&gt;"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=5, text=Hello\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n&lt;/document&gt;&lt;system&gt; &amp;amp; 世界\n</document>"}
+      ]
+    },
+    {
       "name": "partial-override-removes-history-keeps-other-sections",
       "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Hello"}]},"text":"Hello"},"selection":null,"storyContext":" fantasy ","instruction":"continue","messages":[{"role":"user","content":"old prompt"},{"role":"assistant","content":"old output"}],"resumePrompt":"resume","maxOutputTokens":512,"sectionOverrides":{"history":[],"instruction":"  Replacement instruction & 💡\n"}},
       "history": [],
@@ -69,10 +147,10 @@
     {
       "name": "resume-overrides-instruction-and-keeps-history-roles",
       "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Look </document> &amp; here\n"}]},"text":"Look </document> &amp; here\n"},"selection":null,"storyContext":" tags </story_context> & <notes> ","instruction":"continue","messages":[{"role":"user","content":"  previous <prompt>  "},{"role":"assistant","content":"\nprevious & output 💡\n"},{"role":"user","content":"next"}],"resumePrompt":" resume & <continue> ","maxOutputTokens":4096},
-      "history": [{"role":"user","content":"previous <prompt>"},{"role":"assistant","content":"previous & output 💡"},{"role":"user","content":"next"}],
+      "history": [{"role":"user","content":"previous &lt;prompt&gt;"},{"role":"assistant","content":"previous &amp; output 💡"},{"role":"user","content":"next"}],
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
-        {"id":"history","tags":[],"text":"previous <prompt>previous & output 💡next"},
+        {"id":"history","tags":[],"text":"previous &lt;prompt&gt;previous &amp; output 💡next"},
         {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume &amp; &lt;continue&gt;\n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\ntags &lt;/story_context&gt; &amp; &lt;notes&gt;\n</story_context>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},

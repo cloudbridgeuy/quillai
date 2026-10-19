@@ -51,12 +51,12 @@ async fn overridden_text_reaches_provider_request() {
 
 #[tokio::test]
 async fn closing_tags_in_overrides_reach_provider_escaped() {
-    replay_prompt_fixture(Some("exact-section-overrides")).await;
+    replay_prompt_fixture(Some("escaping-")).await;
 }
 
 #[tokio::test]
 async fn history_override_preserves_speaker_turns() {
-    replay_prompt_fixture(Some("exact-section-overrides")).await;
+    replay_prompt_fixture(Some("history-order-")).await;
 }
 
 #[tokio::test]
@@ -167,9 +167,14 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
             assert_eq!(body["stream"], true);
         }
     }
+    let minimum_cases = match filter {
+        Some("history-order-") => 4,
+        Some("escaping-") => 2,
+        _ => 1,
+    };
     assert!(
-        replayed > 0,
-        "fixture filter must exercise a provider request"
+        replayed >= minimum_cases,
+        "fixture coverage must not shrink"
     );
     server.abort();
 }
