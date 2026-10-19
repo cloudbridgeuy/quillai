@@ -2,13 +2,15 @@
 
 ## JSON Error Shape
 
-All API errors return a standardized JSON body:
+Errors mapped through `crates/api/src/error.rs` return a standardized JSON body:
 
 ```json
 { "error": "<human-readable message>", "code": "<SCREAMING_SNAKE error code>" }
 ```
 
 HTTP status code is set via the response status, not embedded in the body.
+
+Axum extractor rejections not mapped by a handler can return plain text.
 
 ## Backend (`crates/api/src/error.rs`)
 
