@@ -29,11 +29,6 @@ struct User {
     email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ApiResponse {
-    users: Vec<User>,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 QuillAI Log Comprehensive Example");

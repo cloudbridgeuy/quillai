@@ -190,8 +190,8 @@ async fn demo_spans_with_fields() -> Result<(), Box<dyn std::error::Error>> {
 
         // You can also add fields to existing spans
         let current_span = Span::current();
-        current_span.record("total_requests", &3);
-        current_span.record("session_duration_sec", &450);
+        current_span.record("total_requests", 3);
+        current_span.record("session_duration_sec", 450);
 
         info!("Session activity completed");
     }
@@ -280,9 +280,9 @@ async fn demo_span_timing() -> Result<(), Box<dyn std::error::Error>> {
         info!(rows_returned = 42, "Query completed");
 
         // Add performance metrics to the span
-        Span::current().record("execution_time_ms", &150);
-        Span::current().record("rows_scanned", &1000);
-        Span::current().record("index_used", &true);
+        Span::current().record("execution_time_ms", 150);
+        Span::current().record("rows_scanned", 1000);
+        Span::current().record("index_used", true);
     }
     .instrument(database_operation)
     .await;
@@ -296,7 +296,7 @@ async fn demo_span_timing() -> Result<(), Box<dyn std::error::Error>> {
 
         info!(cache_hit = true, ttl_seconds = 3600, "Cache hit");
 
-        Span::current().record("response_time_ms", &5);
+        Span::current().record("response_time_ms", 5);
     }
     .instrument(cache_operation)
     .await;
@@ -334,8 +334,8 @@ async fn demo_error_spans() -> Result<(), Box<dyn std::error::Error>> {
                 "Payment failed due to insufficient funds"
             );
 
-            Span::current().record("payment_status", &"failed");
-            Span::current().record("failure_reason", &"insufficient_funds");
+            Span::current().record("payment_status", "failed");
+            Span::current().record("failure_reason", "insufficient_funds");
 
             Err("Payment failed")
         }
@@ -403,8 +403,8 @@ async fn demo_advanced_span_patterns() -> Result<(), Box<dyn std::error::Error>>
         info!("Processing dynamic request");
 
         // Add more fields as we learn more about the request
-        Span::current().record("user_type", &"premium");
-        Span::current().record("processing_time_ms", &75);
+        Span::current().record("user_type", "premium");
+        Span::current().record("processing_time_ms", 75);
 
         debug!("Request processing completed");
     }
