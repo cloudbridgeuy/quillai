@@ -79,7 +79,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `frontend.tsx` | React root setup, CSS import, StrictMode |
-| `index.css` | Tailwind + editor shell layout, dark theme, and responsive styling |
+| `index.css` | Tailwind + editor shell layout, white paper/desk theme tokens and type, and responsive styling |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/ai_contract.ts` | Pure AI request contract and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/prompt_sections.ts` | Pure server-parity prompt sections from accepted AI requests; labeled UTF-8 byte token estimates and summed totals. See [AI editor context](.claude/context/ai-editor.md) |
