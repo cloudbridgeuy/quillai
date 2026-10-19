@@ -23,7 +23,7 @@ axum = "0.8.3"
 async-stream = "0.3"
 futures-util = "0.3"
 listenfd = "1.0.2"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { workspace = true, features = ["stream"] }
 sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -50,5 +50,7 @@ sea-orm = { version = "1.1.0", features = [
   "macros",
 ] }
 uuid = { version = "1" }
+chrono = { version = "0.4.38" }
+reqwest = { version = "0.12.15", default-features = false, features = ["json", "rustls-tls"] }
 dioxus = { version = "0.6" }
 dioxus-web = { version = "0.6" }
