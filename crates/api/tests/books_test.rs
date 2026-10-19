@@ -241,6 +241,39 @@ async fn books_order_by_position_then_id_after_update() {
 }
 
 #[tokio::test]
+async fn deleting_book_cascades_chapters() {
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool.clone());
+    let collection = create_series(&app).await;
+    let book = create_book(&app, &collection, "Removed", 0).await;
+    let chapter_id: i64 = sqlx::query_scalar(
+        "INSERT INTO chapters (book_id, title, position, kind) VALUES (?, 'Chapter', 0, 'chapter') RETURNING id",
+    )
+    .bind(book["id"].as_i64().unwrap())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        request(
+            &app,
+            "DELETE",
+            &format!("{collection}/{}", book["id"]),
+            Value::Null
+        )
+        .await,
+        (StatusCode::NO_CONTENT, Value::Null)
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM chapters WHERE id = ?")
+            .bind(chapter_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        0
+    );
+}
+
+#[tokio::test]
 async fn deleting_series_cascades_books() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool.clone());
