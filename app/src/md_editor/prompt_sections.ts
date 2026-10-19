@@ -1,4 +1,4 @@
-import type { AiGenerateRequest } from "./ai_contract";
+import type { AiGenerateRequest, PromptHistoryMessage } from "./ai_contract";
 
 export type PromptSectionId =
   | "system"
@@ -12,6 +12,7 @@ export type PromptSection = {
   id: PromptSectionId;
   label: string;
   text: string;
+  editableText: string;
   tokens: number;
 };
 
@@ -26,29 +27,37 @@ export function totalEstimatedTokens(sections: readonly PromptSection[]): number
 }
 
 export function assemblePromptSections(input: AiGenerateRequest): PromptSection[] {
-  const instruction = input.action === "generate"
+  const overrides = input.sectionOverrides ?? {};
+  const defaultInstruction = input.action === "generate"
     ? optionalText(input.resumePrompt) ?? optionalText(input.instruction)
     : optionalText(input.instruction);
+  const instruction = overrides.instruction ?? defaultInstruction ?? "none";
+  const storyContext = overrides.story_context ?? optionalText(input.storyContext) ?? "none";
+  const selectionText = overrides.selection ?? input.selection?.text ?? "none";
   const selection = input.selection
-    ? `index=${input.selection.range.index}, length=${input.selection.range.length}, text=${escapePromptText(input.selection.text)}`
-    : "none";
+    ? `index=${input.selection.range.index}, length=${input.selection.range.length}, text=${escapePromptText(selectionText)}`
+    : escapePromptText(selectionText);
+  const document = overrides.document ?? input.document.text;
+  const system = overrides.system ?? "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.";
 
-  const sections = [
-    section("system", "System", "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."),
-    section("history", "History", input.action === "generate"
-      ? input.messages.map((message) => trimServerText(message.content)).join("")
-      : ""),
-    section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction ?? "none")}\n</instruction>\n`),
-    section("story_context", "Story context", `<story_context>\n${escapePromptText(optionalText(input.storyContext) ?? "none")}\n</story_context>\n`),
-    section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`),
-    section("document", "Document", `<document>\n${escapePromptText(input.document.text)}\n</document>`),
+  return [
+    section("system", "System", escapePromptText(system), system),
+    section("history", "History", promptHistory(input).map(({ text }) => text).join("")),
+    section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),
+    section("story_context", "Story context", `<story_context>\n${escapePromptText(storyContext)}\n</story_context>\n`, storyContext),
+    section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`, selectionText),
+    section("document", "Document", `<document>\n${escapePromptText(document)}\n</document>`, document),
   ];
-  return sections.map(({ id, label, text }) =>
-    section(id, label, input.sectionOverrides?.[id] ?? text));
 }
 
-function section(id: PromptSectionId, label: string, text: string): PromptSection {
-  return { id, label, text, tokens: estimateTokens(text) };
+export function promptHistory(input: AiGenerateRequest): PromptHistoryMessage[] {
+  return input.sectionOverrides?.history ?? (input.action === "generate"
+    ? input.messages.map(({ role, content }) => ({ role, text: trimServerText(content) }))
+    : []);
+}
+
+function section(id: PromptSectionId, label: string, text: string, editableText = text): PromptSection {
+  return { id, label, text, editableText, tokens: estimateTokens(text) };
 }
 
 function trimServerText(text: string): string {

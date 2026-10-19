@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::models::{FinishReason, GenerateInput, StreamEvent};
-use super::prompt::build_prompt;
+use super::prompt::{build_prompt, escape_prompt_text};
 use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
 
@@ -190,17 +190,14 @@ struct ChatMessage {
 fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage> {
     use super::models::PromptSectionId;
 
-    let history = match input.section_overrides.get(&PromptSectionId::History) {
-        Some(text) => {
-            if text.is_empty() {
-                Vec::new()
-            } else {
-                vec![ChatMessage {
-                    role: "user".into(),
-                    content: text.clone(),
-                }]
-            }
-        }
+    let history: Vec<ChatMessage> = match &input.section_overrides.history {
+        Some(messages) => messages
+            .iter()
+            .map(|message| ChatMessage {
+                role: message.role.as_str().into(),
+                content: message.text.clone(),
+            })
+            .collect(),
         None => input
             .messages
             .iter()
@@ -214,8 +211,9 @@ fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage
         role: "system".into(),
         content: input
             .section_overrides
+            .text
             .get(&PromptSectionId::System)
-            .cloned()
+            .map(|text| escape_prompt_text(text))
             .unwrap_or_else(|| SYSTEM_PROMPT.into()),
     })
     .chain(history)

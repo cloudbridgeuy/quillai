@@ -22,30 +22,49 @@ function request(overrides: Partial<AiGenerateRequest> = {}): AiGenerateRequest 
 }
 
 describe("assemblePromptSections", () => {
-  test("unedited sections are byte-identical to the non-override request", () => {
+  test.each(["generate", "edit"] as const)("%s: unedited sections are byte-identical to the non-override request", (action) => {
     const base = request({
+      action,
+      selection: { delta: { ops: [{ insert: "Hello" }] }, text: "Hello", range: { index: 0, length: 5 } },
       messages: [{ role: "assistant", content: "  Previous 💡 & output  " }],
       resumePrompt: " resume <scene> ",
     });
     const baseline = assemblePromptSections(base);
     for (const edited of baseline) {
       const text = "  Custom & <exact> 世界\n";
+      const sectionOverrides = edited.id === "history"
+        ? { history: [{ role: "assistant" as const, text }, { role: "user" as const, text: "Next" }] }
+        : { [edited.id]: text };
       const built = buildAiRequest({
         ...base,
-        action: "generate",
+        action,
+        selection: base.selection!,
         window: { start: 0, end: 5 },
-        sectionOverrides: { [edited.id]: text },
+        sectionOverrides,
       });
       const sent = JSON.parse(JSON.stringify(built)) as AiGenerateRequest;
-      expect(sent.sectionOverrides).toEqual({ [edited.id]: text });
+      expect(sent.sectionOverrides).toEqual(sectionOverrides);
       for (const actual of assemblePromptSections(sent)) {
-        const expected = actual.id === edited.id ? text : baseline.find(({ id }) => id === actual.id)!.text;
+        if (actual.id === edited.id) {
+          if (edited.id === "history") {
+            expect(actual.text).toBe(text + "Next");
+          } else {
+            expect(actual.editableText).toBe(text);
+            expect(actual.text).toContain("  Custom &amp; &lt;exact&gt; 世界\n");
+          }
+          continue;
+        }
+        const expected = baseline.find(({ id }) => id === actual.id)!.text;
         expect(new TextEncoder().encode(actual.text)).toEqual(new TextEncoder().encode(expected));
       }
+      const reset = { ...sent.sectionOverrides };
+      delete reset[edited.id];
+      expect(assemblePromptSections({ ...sent, sectionOverrides: reset })).toEqual(baseline);
     }
     expect(assemblePromptSections({ ...base, sectionOverrides: {} })).toEqual(baseline);
-    expect(assemblePromptSections({ ...base, sectionOverrides: { document: "" } })[5]!.text).toBe("");
+    expect(assemblePromptSections({ ...base, sectionOverrides: { document: "" } })[5]!.text).toBe("<document>\n\n</document>");
     expect(base.sectionOverrides).toBeUndefined();
+    expect(buildAiRequest({ ...base, action, selection: base.selection!, window: { start: 0, end: 5 }, sectionOverrides: {} }).sectionOverrides).toBeUndefined();
   });
 
   test("generate golden matches provider content order and the complete server prompt", () => {

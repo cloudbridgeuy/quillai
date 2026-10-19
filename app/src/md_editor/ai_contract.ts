@@ -2,7 +2,10 @@ import type { DocumentWindow } from "./window";
 import { getApiBaseUrl } from "../api_config";
 import type { PromptSectionId } from "./prompt_sections";
 
-export type PromptSectionOverrides = Partial<Record<PromptSectionId, string>>;
+export type PromptHistoryMessage = { role: AiHistoryRole; text: string };
+export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "history">, string>> & {
+  history?: PromptHistoryMessage[];
+};
 
 export type AiAction = "generate" | "edit";
 

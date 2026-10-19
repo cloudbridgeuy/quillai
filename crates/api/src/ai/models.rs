@@ -1,5 +1,5 @@
+pub use super::section_overrides::{PromptSectionId, SectionOverrides};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 use super::segments::{plain_text, sanitize_document, DeltaDocument, InsertValue};
 use crate::error::Error;
@@ -22,17 +22,6 @@ pub struct GenerateRequest {
     pub messages: Vec<RawConversationMessage>,
     pub resume_prompt: Option<String>,
     pub max_output_tokens: Option<usize>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PromptSectionId {
-    System,
-    History,
-    Instruction,
-    StoryContext,
-    Selection,
-    Document,
 }
 
 fn empty_section_overrides() -> serde_json::Value {
@@ -81,7 +70,8 @@ impl AiAction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ConversationRole {
     User,
     Assistant,
@@ -131,7 +121,7 @@ pub struct SelectionSlice {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GenerateInput {
-    pub section_overrides: BTreeMap<PromptSectionId, String>,
+    pub section_overrides: SectionOverrides,
     pub action: AiAction,
     pub document: DocumentSlice,
     pub selection: Option<SelectionSlice>,
@@ -282,8 +272,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         } = request;
 
         let action = AiAction::try_from(action)?;
-        let section_overrides = serde_json::from_value(section_overrides)
-            .map_err(|error| Error::Validation(format!("invalid sectionOverrides: {error}")))?;
+        let section_overrides = SectionOverrides::try_from(section_overrides)?;
         let document = DocumentSlice::try_from(document)?;
         let selection = selection.map(SelectionSlice::try_from).transpose()?;
         let messages = if action == AiAction::Generate {

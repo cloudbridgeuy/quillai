@@ -102,6 +102,10 @@ async fn malformed_section_overrides_return_422() {
         json!({"unknown": "text"}),
         json!({"document": 42}),
         json!({"history": null}),
+        json!({"history": "one blob"}),
+        json!({"history": [{"role": "system", "text": "no"}]}),
+        json!({"history": [{"role": "assistant", "text": 4}]}),
+        json!({"history": [{"role": "user", "content": "wrong field"}]}),
         json!({"system": ["text"]}),
         json!(null),
         json!([]),
@@ -122,6 +126,44 @@ async fn malformed_section_overrides_return_422() {
             .unwrap();
         assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
         assert_eq!(json_body(res).await["code"], "VALIDATION_ERROR");
+    }
+}
+
+#[tokio::test]
+async fn oversized_section_overrides_return_422_for_both_actions() {
+    use quillai_api::ai::section_overrides::MAX_OVERRIDE_SECTION_BYTES;
+
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool);
+    let full = "a".repeat(MAX_OVERRIDE_SECTION_BYTES);
+    for action in ["generate", "edit"] {
+        for overrides in [
+            json!({"document": format!("{full}a")}),
+            json!({"document": "💡".repeat(MAX_OVERRIDE_SECTION_BYTES / 4 + 1)}),
+            json!({"history": [{"role": "user", "text": full}, {"role": "assistant", "text": "a"}]}),
+            json!({"system": full, "instruction": full, "story_context": full, "document": full, "selection": "a"}),
+            json!({"system": full, "instruction": full, "story_context": full, "document": full, "history": [{"role": "assistant", "text": "a"}]}),
+        ] {
+            let res = app
+                .clone()
+                .into_service()
+                .oneshot(json_request(
+                    "POST",
+                    "/ai/generate",
+                    json!({
+                        "action": action,
+                        "document": document_slice("Hello"),
+                        "selection": selection_slice("Hello", 0, 5),
+                        "sectionOverrides": overrides,
+                    }),
+                ))
+                .await
+                .unwrap();
+            assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+            let body = json_body(res).await;
+            assert_eq!(body["code"], "VALIDATION_ERROR");
+            assert!(body["error"].as_str().unwrap().contains("UTF-8 bytes"));
+        }
     }
 }
 

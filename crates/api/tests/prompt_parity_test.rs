@@ -41,15 +41,30 @@ async fn capture_request(
 
 #[tokio::test]
 async fn shared_prompt_sections_match_build_prompt_and_chat_messages() {
-    replay_prompt_fixture(false).await;
+    replay_prompt_fixture(None).await;
 }
 
 #[tokio::test]
 async fn overridden_text_reaches_provider_request() {
-    replay_prompt_fixture(true).await;
+    replay_prompt_fixture(Some("override")).await;
 }
 
-async fn replay_prompt_fixture(overrides_only: bool) {
+#[tokio::test]
+async fn closing_tags_in_overrides_reach_provider_escaped() {
+    replay_prompt_fixture(Some("exact-section-overrides")).await;
+}
+
+#[tokio::test]
+async fn history_override_preserves_speaker_turns() {
+    replay_prompt_fixture(Some("exact-section-overrides")).await;
+}
+
+#[tokio::test]
+async fn edit_overridden_text_reaches_provider_request() {
+    replay_prompt_fixture(Some("edit-overrides")).await;
+}
+
+async fn replay_prompt_fixture(filter: Option<&str>) {
     let fixture: Fixture =
         serde_json::from_str(include_str!("../../../fixtures/prompt/parity.json"))
             .expect("valid shared prompt fixture");
@@ -63,10 +78,12 @@ async fn replay_prompt_fixture(overrides_only: bool) {
     let base_url = format!("http://{}", listener.local_addr().unwrap());
     let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
 
+    let mut replayed = 0;
     for example in fixture.cases {
-        if overrides_only && example.input.get("sectionOverrides").is_none() {
+        if filter.is_some_and(|filter| !example.name.contains(filter)) {
             continue;
         }
+        replayed += 1;
         assert_eq!(
             example
                 .sections
@@ -150,5 +167,9 @@ async fn replay_prompt_fixture(overrides_only: bool) {
             assert_eq!(body["stream"], true);
         }
     }
+    assert!(
+        replayed > 0,
+        "fixture filter must exercise a provider request"
+    );
     server.abort();
 }

@@ -2,6 +2,7 @@ pub mod handlers;
 pub mod models;
 pub mod prompt;
 pub mod provider;
+pub mod section_overrides;
 pub mod segments;
 pub mod tagged_text;
 

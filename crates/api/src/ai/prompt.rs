@@ -1,57 +1,70 @@
 use super::models::{GenerateInput, PromptSectionId};
 
 pub fn build_prompt(input: &GenerateInput) -> String {
-    let instruction = escape_prompt_text(input.effective_prompt_text().unwrap_or("none"));
-    let story_context = escape_prompt_text(input.story_context.as_deref().unwrap_or("none"));
+    let instruction = escape_prompt_text(section_text(
+        input,
+        PromptSectionId::Instruction,
+        input.effective_prompt_text().unwrap_or("none"),
+    ));
+    let story_context = escape_prompt_text(section_text(
+        input,
+        PromptSectionId::StoryContext,
+        input.story_context.as_deref().unwrap_or("none"),
+    ));
     let selection = format_selection(input);
-    let document = escape_prompt_text(&input.document.text);
+    let document = escape_prompt_text(section_text(
+        input,
+        PromptSectionId::Document,
+        &input.document.text,
+    ));
 
-    let instruction = format!(
+    format!(
         concat!(
             "You are helping with a fiction-writing task. ",
             "Respond with plain text only, and do not exceed two sentences. ",
             "<action>{}</action>\n",
-            "<instruction>\n{}\n</instruction>\n"
+            "<instruction>\n{}\n</instruction>\n",
+            "<story_context>\n{}\n</story_context>\n",
+            "<selection>\n{}\n</selection>\n",
+            "<document>\n{}\n</document>"
         ),
         input.action.as_str(),
-        instruction
-    );
-    [
-        (PromptSectionId::Instruction, instruction),
-        (
-            PromptSectionId::StoryContext,
-            format!("<story_context>\n{story_context}\n</story_context>\n"),
-        ),
-        (
-            PromptSectionId::Selection,
-            format!("<selection>\n{selection}\n</selection>\n"),
-        ),
-        (
-            PromptSectionId::Document,
-            format!("<document>\n{document}\n</document>"),
-        ),
-    ]
-    .into_iter()
-    .map(|(id, text)| input.section_overrides.get(&id).cloned().unwrap_or(text))
-    .collect()
+        instruction,
+        story_context,
+        selection,
+        document
+    )
 }
 
-fn escape_prompt_text(text: &str) -> String {
+pub fn escape_prompt_text(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
 }
 
+fn section_text<'a>(input: &'a GenerateInput, id: PromptSectionId, fallback: &'a str) -> &'a str {
+    input
+        .section_overrides
+        .text
+        .get(&id)
+        .map(String::as_str)
+        .unwrap_or(fallback)
+}
+
 fn format_selection(input: &GenerateInput) -> String {
     let Some(selection) = input.selection.as_ref() else {
-        return "none".into();
+        return escape_prompt_text(section_text(input, PromptSectionId::Selection, "none"));
     };
 
     format!(
         "index={}, length={}, text={}",
         selection.range.index,
         selection.range.length,
-        escape_prompt_text(&selection.text)
+        escape_prompt_text(section_text(
+            input,
+            PromptSectionId::Selection,
+            &selection.text
+        ))
     )
 }
 

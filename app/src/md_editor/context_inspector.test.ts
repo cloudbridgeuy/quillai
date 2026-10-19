@@ -70,7 +70,22 @@ test("multibyte text and emoji estimates count UTF-8 bytes, not UTF-16 units", (
     document: { delta: { ops: [{ insert: "💡 世界" }] }, text: "💡 世界" },
     messages: [{ role: "assistant", content: "💡 世界" }],
   }));
-  expect(model.sections[1]).toEqual({ id: "history", label: "History", text: "💡 世界", tokens: 3 });
-  expect(model.sections[5]).toEqual({ id: "document", label: "Document", text: "<document>\n💡 世界\n</document>", tokens: 9 });
+  expect(model.sections[1]).toEqual({ id: "history", label: "History", text: "💡 世界", editableText: "💡 世界", tokens: 3 });
+  expect(model.sections[5]).toEqual({ id: "document", label: "Document", text: "<document>\n💡 世界\n</document>", editableText: "💡 世界", tokens: 9 });
   expect(model.totalTokens).toBe(93);
+});
+
+test("Edit inspector exposes raw editable content and ordered history turns", () => {
+  const history = [{ role: "assistant" as const, text: "Earlier answer" }, { role: "user" as const, text: "Now revise" }];
+  const model = buildContextInspector(request({
+    action: "edit",
+    document: { delta: { ops: [{ insert: "Hello" }] }, text: "Hello" },
+    selection: { delta: { ops: [{ insert: "Hello" }] }, text: "Hello", range: { index: 0, length: 5 } },
+    sectionOverrides: { selection: "Edited </selection>", document: "New </document>", history },
+  }));
+  expect(model.history).toEqual(history);
+  expect(model.sections[4]!.editableText).toBe("Edited </selection>");
+  expect(model.sections[4]!.text).toBe("<selection>\nindex=0, length=5, text=Edited &lt;/selection&gt;\n</selection>\n");
+  expect(model.sections[5]!.editableText).toBe("New </document>");
+  expect(model.sections[5]!.text).toBe("<document>\nNew &lt;/document&gt;\n</document>");
 });

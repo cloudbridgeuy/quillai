@@ -233,7 +233,8 @@ export const Container = () => {
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
-  const [sectionOverrides, setSectionOverrides] = useState<PromptSectionOverrides>({});
+  const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
+  const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
   const [, setContextRevision] = useState(0);
 
@@ -248,7 +249,7 @@ export const Container = () => {
     ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status), () => {
       lastCursorRangeRef.current = null;
       lastEditSelectionRef.current = null;
-      setSectionOverrides({});
+      setSectionOverrides({ generate: {}, edit: {} });
       setRange(quillRef.current?.getSelection() ?? null);
       updateThreadState(resetThread(threadStateRef.current));
     });
@@ -446,6 +447,7 @@ export const Container = () => {
     return action === "edit"
       ? buildAiRequestPreview({
           action: "edit",
+          sectionOverrides: sectionOverrides.edit,
           document: documentSlice,
           window: documentWindow,
           selection: selectionSlice!,
@@ -455,7 +457,7 @@ export const Container = () => {
         })
       : buildAiRequestPreview({
           action: "generate",
-          sectionOverrides,
+          sectionOverrides: sectionOverrides.generate,
           document: documentSlice,
           window: documentWindow,
           selection: selectionSlice,
@@ -596,7 +598,7 @@ export const Container = () => {
         throw new Error(getAiErrorMessage(await response.text(), response.status));
       }
 
-      if (action === "generate") setSectionOverrides({});
+      setSectionOverrides((current) => ({ ...current, [action]: {} }));
 
       assertEditorActive();
 
@@ -867,11 +869,14 @@ export const Container = () => {
     const quill = quillRef.current;
     if (!quill || !chapterSync.ready) return "Editor is not ready yet.";
     try {
-      const selection = resolveContinueSelection(
+      const selection = (inspectorAction === "edit" ? resolveEditSelection : resolveContinueSelection)(
         quill.getSelection() ?? range,
-        lastCursorRangeRef.current,
+        inspectorAction === "edit" ? lastEditSelectionRef.current : lastCursorRangeRef.current,
       );
-      return buildContextInspector(buildRequestPreview("generate", quill, selection).request);
+      if (inspectorAction === "edit" && (!selection || selection.length === 0)) {
+        return "Select text to inspect the Edit request.";
+      }
+      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request);
     } catch (error) {
       return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
     }
@@ -1055,9 +1060,17 @@ export const Container = () => {
           />
         </div>
         <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
-          <h2 id="context-inspector-title">Live Continue/Resume Context</h2>
+          <h2 id="context-inspector-title">Live Prompt Context</h2>
+          <label className="editor-field">
+            <span>Request to inspect</span>
+            <select className="editor-input" value={inspectorAction} disabled={isBusy}
+              onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
+              <option value="generate">Continue/Resume</option>
+              <option value="edit">Edit selection</option>
+            </select>
+          </label>
           <p className="editor-note">
-            Edit exact section text for the next Continue/Resume request. Overrides are cleared after sending or loading a chapter. Tags are sent as written. History edits replace all prior messages with one user message. Edit selection requests are unchanged.
+            Edit content for the next selected request. Tagged content is escaped; section tags and selection ranges stay fixed. History keeps separate speaker turns. Overrides reset after accepted sends or chapter changes. Limits: 65,536 UTF-8 bytes per section, 262,144 total.
           </p>
           {typeof contextInspector === "string" ? (
             <p className="editor-note">{contextInspector}</p>
@@ -1071,23 +1084,55 @@ export const Container = () => {
                     <h3>{section.label}</h3>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
-                  <textarea
+                  {section.id === "history" ? (
+                    <>
+                      {contextInspector.history.map((message, index) => (
+                        <label className="editor-field" key={index}>
+                          <span>{message.role} turn {index + 1}</span>
+                          <textarea className="editor-textarea" value={message.text} rows={3}
+                            disabled={isBusy || chapterSync.blocked}
+                            onChange={(event) => setSectionOverrides((current) => ({
+                              ...current,
+                              [inspectorAction]: {
+                                ...current[inspectorAction],
+                                history: contextInspector.history.map((turn, turnIndex) =>
+                                  turnIndex === index ? { ...turn, text: event.target.value } : turn),
+                              },
+                            }))} />
+                        </label>
+                      ))}
+                      {contextInspector.history.length === 0 ? <p>No history turns.</p> : null}
+                      {(["user", "assistant"] as const).map((role) => (
+                        <button className="editor-button editor-button-small" type="button" key={role}
+                          disabled={isBusy || chapterSync.blocked}
+                          onClick={() => setSectionOverrides((current) => ({
+                            ...current,
+                            [inspectorAction]: {
+                              ...current[inspectorAction],
+                              history: [...contextInspector.history, { role, text: "" }],
+                            },
+                          }))}>Add {role} turn</button>
+                      ))}
+                    </>
+                  ) : <textarea
                     className="editor-textarea"
                     aria-label={`${section.label} prompt section`}
-                    value={section.text}
+                    value={section.editableText}
                     rows={5}
                     disabled={isBusy || chapterSync.blocked}
                     onChange={(event) => setSectionOverrides((current) => ({
-                      ...current, [section.id]: event.target.value,
+                      ...current, [inspectorAction]: {
+                        ...current[inspectorAction], [section.id]: event.target.value,
+                      },
                     }))}
-                  />
-                  {sectionOverrides[section.id] !== undefined ? (
+                  />}
+                  {sectionOverrides[inspectorAction][section.id] !== undefined ? (
                     <button className="editor-button editor-button-small" type="button"
                       disabled={isBusy}
                       onClick={() => setSectionOverrides((current) => {
-                        const next = { ...current };
+                        const next = { ...current[inspectorAction] };
                         delete next[section.id];
-                        return next;
+                        return { ...current, [inspectorAction]: next };
                       })}>Reset {section.label}</button>
                   ) : null}
                 </section>

@@ -45,7 +45,9 @@ The feature follows Functional Core and Imperative Shell.
 }
 ```
 
-Optional `sectionOverrides` is an object mapping any of `system`, `history`, `instruction`, `story_context`, `selection`, `document` to string text. Omission or `{}` keeps existing assembly unchanged. Unknown ids, non-string values, and non-object overrides return 422 before streaming. Overrides replace complete rendered sections verbatim (no trimming, escaping, or added tags); empty strings remove section text. `system` replaces the system message. `history` replaces all history with one user message, or no messages for an empty string. Other overridden sections join in their existing order as the current user message. Overrides do not bypass document/selection parsing and do not change the Quill insertion range. Both actions accept overrides; the current UI exposes them for Continue/Resume only.
+Optional `sectionOverrides` maps `system`, `instruction`, `story_context`, `selection`, and `document` to raw content strings; `history` accepts an ordered list of `{role: "user" | "assistant", text: string}`. Omission or `{}` leaves existing assembly unchanged. Unknown ids, invalid types/roles, extra history fields, and oversized overrides return 422 before streaming. Text overrides preserve whitespace but pass through normal escaping and fixed section tags; action and selection range metadata are not editable. Empty text keeps the frame. System override text is escaped. History turns remain separate untagged chat messages, with roles/order/text preserved; `[]` removes history. Overrides do not bypass document/selection parsing or change the Quill insertion range. Both API and inspector support Continue/Resume and Edit.
+
+No explicit API prompt/request size cap was found in the application code. Override content is capped at 65,536 UTF-8 bytes per section (all history turn texts combined) and 262,144 bytes total across override text, before escaping. This permits large chapter context while bounding added prompt allocation/provider cost independently of the HTTP body extractor. JSON framing and role names do not count toward these content caps. Limits are parsed once in `section_overrides.rs`.
 
 ## Validation Rules
 
@@ -68,9 +70,9 @@ Validation failures return the normal JSON error contract:
 
 ## Prompt Assembly
 
-`prompt.rs` builds a plain-text provider prompt that includes action, instruction, story context, selection details when present, and the full transmitted document text.
+`prompt.rs` builds a plain-text provider prompt with action, instruction, story context, selection details when present, and document text. Section overrides replace content, not tags or selection range metadata.
 
-Automatically assembled user-controlled text is escaped before it is inserted into tagged prompt sections so strings like `</document>` cannot break the prompt frame. Explicit section overrides are exact prompt edits and can change that framing.
+All user-controlled text inserted into tagged sections, including overrides, escapes `&`, `<`, and `>` so strings like `</document>` cannot break the prompt frame. History stays in separate chat messages without section tags, matching non-override history handling.
 
 ## Streaming Contract
 
