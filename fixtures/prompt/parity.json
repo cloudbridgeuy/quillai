@@ -1,0 +1,83 @@
+{
+  "models": ["gpt-4o-mini", "o3", "anthropic/claude-sonnet-4", "LOCAL-model:latest"],
+  "cases": [
+    {
+      "name": "missing-context-no-history-or-selection",
+      "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n\n</document>"}
+      ]
+    },
+    {
+      "name": "continue-empty-selection",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Hello"}]},"text":"Hello"},"selection":{"delta":{"ops":[]},"text":"","range":{"index":5,"length":0}},"storyContext":" fantasy ","instruction":" continue ","messages":[],"resumePrompt":null,"maxOutputTokens":1},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\ncontinue\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nfantasy\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nindex=5, length=0, text=\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nHello\n</document>"}
+      ]
+    },
+    {
+      "name": "resume-overrides-instruction-and-keeps-history-roles",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Look </document> &amp; here\n"}]},"text":"Look </document> &amp; here\n"},"selection":null,"storyContext":" tags </story_context> & <notes> ","instruction":"continue","messages":[{"role":"user","content":"  previous <prompt>  "},{"role":"assistant","content":"\nprevious & output 💡\n"},{"role":"user","content":"next"}],"resumePrompt":" resume & <continue> ","maxOutputTokens":4096},
+      "history": [{"role":"user","content":"previous <prompt>"},{"role":"assistant","content":"previous & output 💡"},{"role":"user","content":"next"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"previous <prompt>previous & output 💡next"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume &amp; &lt;continue&gt;\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\ntags &lt;/story_context&gt; &amp; &lt;notes&gt;\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nLook &lt;/document&gt; &amp;amp; here\n\n</document>"}
+      ]
+    },
+    {
+      "name": "edit-unicode-utf16-selection-drops-thread-and-resume",
+      "input": {"action":"edit","document":{"delta":{"ops":[{"insert":"Hi 💡 世界 & <end>\n"}]},"text":"Hi 💡 世界 & <end>\n"},"selection":{"delta":{"ops":[{"insert":"💡 世界 & <end>"}]},"text":"💡 世界 & <end>","range":{"index":3,"length":13}},"storyContext":null,"instruction":" tighten & <polish> ","messages":[{"role":"assistant","content":"must not appear"}],"resumePrompt":"must not appear either","maxOutputTokens":777},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\ntighten &amp; &lt;polish&gt;\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nindex=3, length=13, text=💡 世界 &amp; &lt;end&gt;\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nHi 💡 世界 &amp; &lt;end&gt;\n\n</document>"}
+      ]
+    },
+    {
+      "name": "blank-resume-falls-back-and-blank-context-is-missing",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"世界 🌍"}]},"text":"世界 🌍"},"selection":null,"storyContext":" \n\t ","instruction":" continue ","messages":[],"resumePrompt":" \n\t ","maxOutputTokens":512},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\ncontinue\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\n世界 🌍\n</document>"}
+      ]
+    },
+    {
+      "name": "rust-unicode-whitespace-trims-nel-but-keeps-bom",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"é é 💡"}]},"text":"é é 💡"},"selection":null,"storyContext":"\ufeffnotes\ufeff","instruction":"\u0085continue\u0085","messages":[{"role":"user","content":"\u0085💡 世界\u0085"}],"resumePrompt":"\u2003\u0085","maxOutputTokens":512},
+      "history": [{"role":"user","content":"💡 世界"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":"💡 世界"},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\ncontinue\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\n\ufeffnotes\ufeff\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\né é 💡\n</document>"}
+      ]
+    }
+  ]
+}

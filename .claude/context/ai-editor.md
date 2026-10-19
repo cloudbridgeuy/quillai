@@ -91,6 +91,7 @@ bun run --cwd app build
 Pure helper coverage currently lives in:
 
 - `ai_contract.test.ts`
+- `prompt_parity.test.ts` — replays `fixtures/prompt/parity.json` with Rust `crates/api/tests/prompt_parity_test.rs`, checking section ids/tags/text, normalized history, resume/edit behavior, Unicode, and model-independent prompts against captured provider requests.
 - `ai_stream.test.ts`
 - `ai_state.test.ts`
 - `window.test.ts`
