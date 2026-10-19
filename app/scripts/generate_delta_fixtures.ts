@@ -41,6 +41,13 @@ const pool: Record<string, Ops> = {
   attrNested: [{ insert: "link", attributes: { link: "https://x.y", bold: true } }],
   retainEmbedAttr: [{ retain: 1, attributes: { width: "20" } }, { insert: "z" }],
   zeroAttr: [{ retain: 4, attributes: {} }],
+  // Zero-length ops: quill-delta keeps them on parse and has quirks composing them.
+  zeroInsert: [{ insert: "" }],
+  zeroInsertAttr: [{ insert: "", attributes: { bold: true } }],
+  zeroRetain: [{ retain: 0 }],
+  zeroDelete: [{ delete: 0 }],
+  zeroMix: [{ insert: "" }, { retain: 0 }, { insert: "a" }, { delete: 0 }, { retain: 1 }],
+  zeroBetween: [{ retain: 1 }, { retain: 0 }, { insert: "" }, { delete: 2 }, { delete: 0 }],
 };
 const names = Object.keys(pool);
 

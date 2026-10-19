@@ -158,3 +158,77 @@ fn half_split_emoji_is_rejected_with_clear_error() {
     let ok = Delta::from_json(r#"{"ops":[{"insert":"😀"}]}"#).unwrap();
     assert_eq!(ok.len(), 2);
 }
+
+/// Expected differences for compose/transform/transformPosition replay, with exact
+/// enforced counts per file: (file, half_emoji_input, compose_cuts_emoji).
+/// - half_emoji_input: a fixture Delta already holds half an emoji (lone-surrogate
+///   escape); Rust strings cannot represent it, so the case is not run.
+/// - compose_cuts_emoji: inputs are valid, but compose must cut an emoji in half
+///   (e.g. retain 1 over "😀"); we return `DeltaError::SplitSurrogate` instead.
+const EXPECTED_DIFFS: [(&str, usize, usize); 3] = [
+    ("compose", HALF_INPUT_COMPOSE, CUTS_COMPOSE),
+    ("transform", 0, 0),
+    ("transform_position", 0, 0),
+];
+const HALF_INPUT_COMPOSE: usize = 7;
+const CUTS_COMPOSE: usize = 2;
+
+fn delta(v: &Value, ctx: &str) -> Delta {
+    Delta::from_json(&serde_json::to_string(v).unwrap()).unwrap_or_else(|e| panic!("{ctx}: {e}"))
+}
+
+fn to_value(d: &Delta) -> Value {
+    serde_json::from_str(&d.to_json()).unwrap()
+}
+
+#[test]
+fn fixtures_replay_compose_transform_position() {
+    for (file, want_half, want_cuts) in EXPECTED_DIFFS {
+        let raw = fs::read_to_string(dir().join(format!("{file}.json"))).unwrap();
+        let cases: Vec<Value> = serde_json::from_str(&mask(&raw)).unwrap();
+        let (mut ran, mut half, mut cuts) = (0, Vec::new(), Vec::new());
+        for case in &cases {
+            let name = case["name"].as_str().unwrap();
+            let ctx = format!("{file}/{name}");
+            if has_masked(&serde_json::to_string(case).unwrap()) {
+                half.push(ctx);
+                continue;
+            }
+            let input = &case["input"];
+            let expected = &case["expected"];
+            match file {
+                "compose" => match delta(&input["a"], &ctx).compose(&delta(&input["b"], &ctx)) {
+                    Ok(got) => assert_eq!(&to_value(&got), expected, "{ctx}"),
+                    Err(DeltaError::SplitSurrogate(_)) => {
+                        cuts.push(ctx);
+                        continue;
+                    }
+                    Err(e) => panic!("{ctx}: {e}"),
+                },
+                "transform" => {
+                    let got = delta(&input["a"], &ctx).transform(
+                        &delta(&input["b"], &ctx),
+                        input["priority"].as_bool().unwrap(),
+                    );
+                    assert_eq!(&to_value(&got), expected, "{ctx}");
+                }
+                _ => {
+                    let got = delta(&input["delta"], &ctx).transform_position(
+                        input["index"].as_u64().unwrap() as usize,
+                        input["priority"].as_bool().unwrap(),
+                    );
+                    assert_eq!(got as u64, expected.as_u64().unwrap(), "{ctx}");
+                }
+            }
+            ran += 1;
+        }
+        println!("{file}: replayed {ran}, half-emoji input {half:?}, compose cuts emoji {cuts:?}");
+        assert_eq!(half.len(), want_half, "{file}: half-emoji input: {half:#?}");
+        assert_eq!(
+            cuts.len(),
+            want_cuts,
+            "{file}: compose cuts emoji: {cuts:#?}"
+        );
+        assert_eq!(ran + half.len() + cuts.len(), cases.len(), "{file}");
+    }
+}

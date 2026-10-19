@@ -1,5 +1,3 @@
-use std::num::NonZeroUsize;
-
 use serde::de::{self, Deserializer};
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
@@ -21,7 +19,7 @@ pub enum Insert {
 /// What a retain op retains: a count of units or a single embed.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Retain {
-    Count(NonZeroUsize),
+    Count(usize),
     Embed(Embed),
 }
 
@@ -36,7 +34,7 @@ pub enum Op {
         retain: Retain,
         attributes: Option<Attributes>,
     },
-    Delete(NonZeroUsize),
+    Delete(usize),
 }
 
 impl Op {
@@ -56,17 +54,19 @@ impl Op {
         }
     }
 
-    /// Retain `n` units. `None` if `n` is zero.
+    /// Retain `n` units. `None` if `n` is zero (like quill-delta's `retain()` builder).
+    /// A zero retain is still a valid op: build `Op::Retain` directly to keep it.
     pub fn retain(n: usize, attributes: Option<Attributes>) -> Option<Op> {
-        NonZeroUsize::new(n).map(|n| Op::Retain {
+        (n > 0).then_some(Op::Retain {
             retain: Retain::Count(n),
             attributes,
         })
     }
 
-    /// Delete `n` units. `None` if `n` is zero.
+    /// Delete `n` units. `None` if `n` is zero (like quill-delta's `delete()` builder).
+    /// A zero delete is still a valid op: build `Op::Delete(0)` to keep it.
     pub fn delete(n: usize) -> Option<Op> {
-        NonZeroUsize::new(n).map(Op::Delete)
+        (n > 0).then_some(Op::Delete(n))
     }
 
     /// Length in UTF-16 code units (embeds are 1).
@@ -80,13 +80,13 @@ impl Op {
             Op::Retain {
                 retain: Retain::Count(n),
                 ..
-            } => n.get(),
+            } => *n,
             Op::Retain { .. } => 1,
-            Op::Delete(n) => n.get(),
+            Op::Delete(n) => *n,
         }
     }
 
-    /// True for a zero-length op (only possible for hand-built empty text).
+    /// True for a zero-length op (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`).
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -120,12 +120,12 @@ impl Serialize for Op {
             Op::Retain {
                 retain: Retain::Count(c),
                 ..
-            } => m.serialize_entry("retain", &c.get())?,
+            } => m.serialize_entry("retain", c)?,
             Op::Retain {
                 retain: Retain::Embed(e),
                 ..
             } => m.serialize_entry("retain", e)?,
-            Op::Delete(c) => m.serialize_entry("delete", &c.get())?,
+            Op::Delete(c) => m.serialize_entry("delete", c)?,
         }
         if let Some(a) = attrs {
             m.serialize_entry("attributes", a)?;
@@ -143,35 +143,20 @@ struct RawOp {
     attributes: Option<Attributes>,
 }
 
-fn count<E: de::Error>(key: &str, v: Value) -> Result<NonZeroUsize, E> {
+/// Non-negative count. Zero is kept: quill-delta keeps `{"retain":0}` / `{"delete":0}`.
+fn count<E: de::Error>(key: &str, v: Value) -> Result<usize, E> {
     v.as_u64()
         .and_then(|n| usize::try_from(n).ok())
-        .and_then(NonZeroUsize::new)
-        .ok_or_else(|| E::custom(format!("`{key}` must be a positive integer, got {v}")))
-}
-
-/// Parse result of one wire op: a real op, or a zero-length no-op
-/// (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`) that normalization drops.
-pub(crate) struct WireOp(pub(crate) Option<Op>);
-
-impl<'de> Deserialize<'de> for WireOp {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<WireOp, D::Error> {
-        parse_op(RawOp::deserialize(d)?).map(WireOp)
-    }
+        .ok_or_else(|| E::custom(format!("`{key}` must be a non-negative integer, got {v}")))
 }
 
 impl<'de> Deserialize<'de> for Op {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Op, D::Error> {
-        parse_op(RawOp::deserialize(d)?)?
-            .ok_or_else(|| de::Error::custom("zero-length op is a no-op, not an `Op`"))
+        parse_op(RawOp::deserialize(d)?)
     }
 }
 
-fn zero_ok(v: &Value) -> bool {
-    v.as_u64() == Some(0)
-}
-
-fn parse_op<E: de::Error>(raw: RawOp) -> Result<Option<Op>, E> {
+fn parse_op<E: de::Error>(raw: RawOp) -> Result<Op, E> {
     {
         let present = [&raw.insert, &raw.retain, &raw.delete]
             .iter()
@@ -188,33 +173,28 @@ fn parse_op<E: de::Error>(raw: RawOp) -> Result<Option<Op>, E> {
         let attributes = raw.attributes;
         if let Some(v) = raw.insert {
             return match v {
-                Value::String(s) if s.is_empty() => Ok(None),
-                Value::String(s) => Ok(Some(Op::Insert {
+                Value::String(s) => Ok(Op::Insert {
                     insert: Insert::Text(s),
                     attributes,
-                })),
-                Value::Object(e) => Ok(Some(Op::Insert {
+                }),
+                Value::Object(e) => Ok(Op::Insert {
                     insert: Insert::Embed(e),
                     attributes,
-                })),
+                }),
                 other => Err(E::custom(format!(
                     "`insert` must be a string or object, got {other}"
                 ))),
             };
         }
         if let Some(v) = raw.retain {
-            if zero_ok(&v) {
-                return Ok(None);
-            }
             let retain = match v {
                 Value::Object(e) => Retain::Embed(e),
                 other => Retain::Count(count("retain", other)?),
             };
-            return Ok(Some(Op::Retain { retain, attributes }));
+            return Ok(Op::Retain { retain, attributes });
         }
         match raw.delete {
-            Some(v) if zero_ok(&v) => Ok(None),
-            Some(v) => Ok(Some(Op::Delete(count("delete", v)?))),
+            Some(v) => Ok(Op::Delete(count("delete", v)?)),
             None => unreachable!("exactly one key checked above"),
         }
     }

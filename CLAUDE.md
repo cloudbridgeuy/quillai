@@ -11,7 +11,7 @@ Cargo workspace with four members:
 ```
 crates/api/    — Axum HTTP server, SQLite, CLI config
 crates/log/    — Structured logging library (tracing-based)
-crates/delta/  — Quill Delta core types, JSON serde, push/normalize (UTF-16 lengths)
+crates/delta/  — Quill Delta core types, JSON serde, push/normalize, compose/transform/transform_position (UTF-16 lengths)
 xtask/         — Development process runner (`cargo xtask dev`)
 app/           — React frontend (Bun runtime, Quill.js editor)
 migrations/    — SQLx migrations (SQLite)
@@ -151,6 +151,7 @@ Default to using Bun instead of Node.js.
 
 ### Rust Conventions
 
+- `crates/delta` parity rule: the crate is a superset of JS `quill-delta` (the version the browser runs). It may add functions but must never drop or change JS behavior: for every Delta `quill-delta` accepts that holds valid Unicode, parse/serialize, `compose`, `transform` and `transform_position` give exactly the JS JSON, including zero-length ops (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`). The only exception is half a UTF-16 surrogate pair (half an emoji), which returns a Rust error; `crates/delta/tests/fixtures.rs` pins those cases by count (9 parse-level, 7 compose inputs, 2 compose results) and any other mismatch must fail.
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
 - SQLx with compile-time checked queries (`.sqlx/` cache). See [SQLx offline context](.claude/context/sqlx-offline.md).

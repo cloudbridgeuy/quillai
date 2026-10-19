@@ -288,6 +288,81 @@
     }
   },
   {
+    "name": "invert zeroInsert on empty",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on empty",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on empty",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on empty",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": []
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "invert empty on plain",
     "input": {
       "change": {
@@ -1092,6 +1167,176 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsert on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroMix on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "invert zeroBetween on plain",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hello World\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "el"
+        }
+      ]
     }
   },
   {
@@ -2355,6 +2600,275 @@
     }
   },
   {
+    "name": "invert zeroInsert on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroMix on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "invert zeroBetween on styled",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Hel",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "lo "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "el"
+        }
+      ]
+    }
+  },
+  {
     "name": "invert empty on embeds",
     "input": {
       "change": {
@@ -3595,6 +4109,298 @@
     }
   },
   {
+    "name": "invert zeroInsert on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroMix on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "invert zeroBetween on embeds",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a"
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          },
+          {
+            "insert": "b",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "b"
+        }
+      ]
+    }
+  },
+  {
     "name": "invert empty on unicode",
     "input": {
       "change": {
@@ -4373,6 +5179,176 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsert on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroMix on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "invert zeroBetween on unicode",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "a😀b日本語\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "😀"
+        }
+      ]
     }
   },
   {
@@ -5432,6 +6408,230 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsert on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroInsertAttr on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroRetain on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroDelete on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "invert zeroMix on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "invert zeroBetween on headers",
+    "input": {
+      "change": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "base": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          },
+          {
+            "insert": "body\n"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "it"
+        }
+      ]
     }
   }
 ]

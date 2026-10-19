@@ -6,6 +6,10 @@ pub enum DeltaError {
     /// An op's text splits a UTF-16 surrogate pair (for example half of an emoji).
     #[error("{0}")]
     SplitSurrogate(String),
+    /// An operation quill-delta only supports through registered embed handlers
+    /// (composing an embed retain with an embed).
+    #[error("unsupported delta operation: {0}")]
+    Unsupported(String),
     /// Any other JSON or shape error.
     #[error("invalid delta: {0}")]
     Json(serde_json::Error),

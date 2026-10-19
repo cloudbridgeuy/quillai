@@ -2,13 +2,13 @@ use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{is_split_surrogate_message, DeltaError, SPLIT_SURROGATE_MSG};
-use crate::op::{Insert, Op, Retain, WireOp};
+use crate::op::{Insert, Op, Retain};
 
 /// A Quill Delta: an ordered list of ops.
 ///
-/// Serializes as `{"ops":[...]}`. Deserialization drops zero-length no-op ops
-/// (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`) but otherwise keeps ops as
-/// given; build fully normalized deltas with [`Delta::push`].
+/// Serializes as `{"ops":[...]}`. Deserialization keeps every op as given, including
+/// zero-length ones (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`), exactly like
+/// `new Delta(ops)` in quill-delta; build normalized deltas with [`Delta::push`].
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct Delta {
     pub ops: Vec<Op>,
@@ -17,7 +17,7 @@ pub struct Delta {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DeltaWire {
-    ops: Vec<WireOp>,
+    ops: Vec<Op>,
 }
 
 /// The single parse path: `from_json` and `serde_json::from_str::<Delta>` both
@@ -31,9 +31,7 @@ impl<'de> Deserialize<'de> for Delta {
                 e
             }
         })?;
-        Ok(Delta {
-            ops: wire.ops.into_iter().filter_map(|w| w.0).collect(),
-        })
+        Ok(Delta { ops: wire.ops })
     }
 }
 
@@ -66,19 +64,17 @@ impl Delta {
         self.ops.is_empty()
     }
 
-    /// Push an op, normalizing like quill-delta's `Delta.push`:
-    /// zero-length ops are dropped, adjacent deletes merge, an insert goes
+    /// Push an op, normalizing like quill-delta's `Delta.push` (which, like Rust here,
+    /// does NOT drop zero-length ops; only the `insert()/retain()/delete()` builders
+    /// do): adjacent deletes merge, an insert goes
     /// before a trailing delete, and adjacent text inserts / count retains
     /// with equal attributes merge.
     pub fn push(&mut self, op: Op) -> &mut Self {
-        if op.is_empty() {
-            return self;
-        }
         let mut index = self.ops.len();
         if let Some(Op::Delete(last)) = self.ops.last() {
             match &op {
                 Op::Delete(n) => {
-                    let sum = last.checked_add(n.get()).expect("delete length overflow");
+                    let sum = last.checked_add(*n).expect("delete length overflow");
                     *self.ops.last_mut().expect("non-empty") = Op::Delete(sum);
                     return self;
                 }
@@ -113,7 +109,7 @@ impl Delta {
                             ..
                         },
                     ) => {
-                        *a = a.checked_add(b.get()).expect("retain length overflow");
+                        *a = a.checked_add(*b).expect("retain length overflow");
                         return self;
                     }
                     _ => {}
@@ -179,13 +175,18 @@ mod tests {
     }
 
     #[test]
-    fn drops_empty_and_counts_utf16() {
+    fn push_keeps_zero_length_ops_like_quill_delta() {
+        // quill-delta: `push` keeps them, only the insert()/retain()/delete() builders drop.
         let mut d = Delta::new();
         d.push(Op::Insert {
             insert: Insert::Text(String::new()),
             attributes: None,
         });
-        assert!(d.is_empty());
+        assert_eq!(d.to_json(), r#"{"ops":[{"insert":""}]}"#);
+        assert!(Op::insert_text("", None).is_none());
+        assert!(Op::retain(0, None).is_none());
+        assert!(Op::delete(0).is_none());
+        let mut d = Delta::new();
         d.push(text("😀日"));
         assert_eq!(d.len(), 3);
     }
@@ -204,25 +205,42 @@ mod tests {
     }
 
     #[test]
-    fn zero_length_ops_parse_and_are_dropped() {
-        for (wire, expect) in [
-            (r#"{"ops":[{"insert":""}]}"#, r#"{"ops":[]}"#),
-            (r#"{"ops":[{"retain":0}]}"#, r#"{"ops":[]}"#),
-            (r#"{"ops":[{"delete":0}]}"#, r#"{"ops":[]}"#),
-            (
-                r#"{"ops":[{"insert":"","attributes":{"bold":true}}]}"#,
-                r#"{"ops":[]}"#,
-            ),
-            (
-                r#"{"ops":[{"insert":""},{"insert":"a"},{"retain":0},{"retain":2,"attributes":{"bold":true}},{"delete":0},{"delete":1},{"insert":""}]}"#,
-                r#"{"ops":[{"insert":"a"},{"retain":2,"attributes":{"bold":true}},{"delete":1}]}"#,
-            ),
+    fn zero_length_ops_are_kept_verbatim_like_quill_delta() {
+        // Each expectation was produced with quill-delta 5.1.0 (`new Delta(ops)`).
+        for wire in [
+            r#"{"ops":[{"insert":""}]}"#,
+            r#"{"ops":[{"retain":0}]}"#,
+            r#"{"ops":[{"delete":0}]}"#,
+            r#"{"ops":[{"insert":"","attributes":{"bold":true}}]}"#,
+            r#"{"ops":[{"insert":""},{"retain":0},{"delete":0},{"insert":"a"}]}"#,
         ] {
             let d = Delta::from_json(wire).unwrap();
-            assert_eq!(d.to_json(), expect, "{wire}");
+            assert_eq!(d.to_json(), wire, "{wire}");
             let d2: Delta = serde_json::from_str(wire).unwrap();
             assert_eq!(d, d2);
         }
+    }
+
+    #[test]
+    fn zero_length_ops_in_compose_transform_match_quill_delta() {
+        let d = |w: &str| Delta::from_json(w).unwrap();
+        let ab = d(r#"{"ops":[{"insert":"ab"}]}"#);
+        // JS: new Delta([{insert:"ab"}]).compose(new Delta([{insert:""},{retain:1}])).ops
+        let got = ab
+            .compose(&d(r#"{"ops":[{"insert":""},{"retain":1}]}"#))
+            .unwrap();
+        assert_eq!(got.to_json(), r#"{"ops":[{"insert":"ab"}]}"#);
+        // JS: ... .compose(new Delta([{retain:0},{delete:0},{retain:1}])).ops
+        let got = ab
+            .compose(&d(r#"{"ops":[{"retain":0},{"delete":0},{"retain":1}]}"#))
+            .unwrap();
+        assert_eq!(got.to_json(), r#"{"ops":[{"delete":0}]}"#);
+        // JS: new Delta([{insert:"",},{retain:0},{insert:"a"}]).transform(new Delta([{retain:0},{insert:"b"}]), true).ops
+        let a = d(r#"{"ops":[{"insert":""},{"retain":0},{"insert":"a"}]}"#);
+        let got = a.transform(&d(r#"{"ops":[{"retain":0},{"insert":"b"}]}"#), true);
+        assert_eq!(got.to_json(), r#"{"ops":[{"retain":1},{"insert":"b"}]}"#);
+        // JS: .transformPosition(0) === 1
+        assert_eq!(a.transform_position(0, false), 1);
     }
 
     #[test]

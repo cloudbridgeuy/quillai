@@ -538,6 +538,90 @@
     }
   },
   {
+    "name": "transform empty vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform empty vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform empty vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform empty vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": []
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform text vs textBold priority=true",
     "input": {
       "a": {
@@ -1138,6 +1222,142 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "transform text vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform text vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform text vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform text vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
     }
   },
   {
@@ -1761,6 +1981,174 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform textBold vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform textBold vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform textBold vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform textBold vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        },
+        {
+          "retain": 5
+        },
+        {
+          "insert": "a"
         }
       ]
     }
@@ -2565,6 +2953,145 @@
     }
   },
   {
+    "name": "transform mixed vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 12
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform mixed vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform mixed vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform mixed vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform retain3 vs textBold priority=true",
     "input": {
       "a": {
@@ -3138,6 +3665,142 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "transform retain3 vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retain3 vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retain3 vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retain3 vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
     }
   },
   {
@@ -3740,6 +4403,162 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainBold vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainBold vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainBold vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainBold vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
@@ -4399,6 +5218,118 @@
           "insert": "link"
         }
       ]
+    }
+  },
+  {
+    "name": "transform retainUnbold vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainUnbold vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainUnbold vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainUnbold vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
     }
   },
   {
@@ -5104,6 +6035,170 @@
     }
   },
   {
+    "name": "transform retainMulti vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainMulti vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainMulti vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainMulti vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
     "name": "transform delete2 vs text priority=true",
     "input": {
       "a": {
@@ -5625,6 +6720,150 @@
       "ops": [
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform delete2 vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform delete2 vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform delete2 vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform delete2 vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
@@ -6288,6 +7527,118 @@
     }
   },
   {
+    "name": "transform deleteStart vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteStart vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteStart vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform deleteStart vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform retainDelete vs textBold priority=true",
     "input": {
       "a": {
@@ -6918,6 +8269,148 @@
     }
   },
   {
+    "name": "transform retainDelete vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainDelete vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainDelete vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainDelete vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
     "name": "transform insMid vs text priority=true",
     "input": {
       "a": {
@@ -7517,6 +9010,168 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insMid vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insMid vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insMid vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        },
+        {
+          "retain": 2
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insMid vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
@@ -8243,6 +9898,126 @@
     }
   },
   {
+    "name": "transform insEmbed vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insEmbed vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform insEmbed vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform insEmbed vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform embedOnly vs textBold priority=true",
     "input": {
       "a": {
@@ -8879,6 +10654,150 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "transform embedOnly vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform embedOnly vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform embedOnly vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform embedOnly vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
     }
   },
   {
@@ -9561,6 +11480,186 @@
     }
   },
   {
+    "name": "transform embedAttr vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform embedAttr vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform embedAttr vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform embedAttr vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        },
+        {
+          "retain": 1
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
     "name": "transform video vs empty priority=true",
     "input": {
       "a": {
@@ -10234,6 +12333,117 @@
     }
   },
   {
+    "name": "transform video vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform video vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform video vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform video vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform emoji vs textBold priority=true",
     "input": {
       "a": {
@@ -10837,6 +13047,142 @@
     }
   },
   {
+    "name": "transform emoji vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform emoji vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform emoji vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform emoji vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
     "name": "transform emojiRetain vs text priority=true",
     "input": {
       "a": {
@@ -11436,6 +13782,168 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform emojiRetain vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform emojiRetain vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform emojiRetain vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        },
+        {
+          "retain": 8
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform emojiRetain vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
@@ -12117,6 +14625,121 @@
     }
   },
   {
+    "name": "transform cjk vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform cjk vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform cjk vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform cjk vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform combining vs textBold priority=true",
     "input": {
       "a": {
@@ -12717,6 +15340,142 @@
     },
     "expected": {
       "ops": []
+    }
+  },
+  {
+    "name": "transform combining vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform combining vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform combining vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 4
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform combining vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 4
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
     }
   },
   {
@@ -13394,6 +16153,186 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform lineAttr vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform lineAttr vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform lineAttr vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform lineAttr vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        },
+        {
+          "retain": 6
+        },
+        {
+          "insert": "a"
         }
       ]
     }
@@ -14107,6 +17046,130 @@
     }
   },
   {
+    "name": "transform retainLine vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainLine vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainLine vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainLine vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
     "name": "transform newlines vs textBold priority=true",
     "input": {
       "a": {
@@ -14710,6 +17773,142 @@
     }
   },
   {
+    "name": "transform newlines vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform newlines vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform newlines vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform newlines vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 6
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
     "name": "transform deleteLong vs text priority=true",
     "input": {
       "a": {
@@ -15207,6 +18406,150 @@
       "ops": [
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteLong vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteLong vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteLong vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform deleteLong vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
@@ -15918,6 +19261,125 @@
           "insert": "link"
         }
       ]
+    }
+  },
+  {
+    "name": "transform attrNested vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 4
+        },
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform attrNested vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform attrNested vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform attrNested vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
     }
   },
   {
@@ -16647,6 +20109,166 @@
     }
   },
   {
+    "name": "transform retainEmbedAttr vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainEmbedAttr vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform retainEmbedAttr vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform retainEmbedAttr vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
     "name": "transform zeroAttr vs text priority=true",
     "input": {
       "a": {
@@ -17210,6 +20832,4888 @@
         },
         {
           "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroAttr vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroAttr vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroAttr vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroAttr vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs empty priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsert vs empty priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsert vs mixed priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs mixed priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs retainUnbold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3,
+          "attributes": {
+            "bold": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs retainUnbold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3,
+          "attributes": {
+            "bold": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs deleteStart priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "X"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs deleteStart priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "X"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs insEmbed priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs insEmbed priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs video priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "video": "https://example.com/v.mp4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs video priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "video": "https://example.com/v.mp4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs cjk priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs cjk priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs retainLine priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs retainLine priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 5
+        },
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs attrNested priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "link": "https://x.y",
+            "bold": true
+          },
+          "insert": "link"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs attrNested priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "link": "https://x.y",
+            "bold": true
+          },
+          "insert": "link"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsert vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsert vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs textBold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs textBold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs retainBold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3,
+          "attributes": {
+            "bold": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs retainBold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 3,
+          "attributes": {
+            "bold": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs delete2 priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs delete2 priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs insMid priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "ab"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs insMid priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "ab"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs embedAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "alt": "b",
+            "width": "10"
+          },
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs embedAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "alt": "b",
+            "width": "10"
+          },
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs emojiRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "👨‍👩‍👧"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs emojiRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2
+        },
+        {
+          "insert": "👨‍👩‍👧"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs lineAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Title"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs lineAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Title"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs deleteLong priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 10
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs deleteLong priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 10
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroInsertAttr vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs text priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs text priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retain3 priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retain3 priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainMulti priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2,
+          "attributes": {
+            "italic": true,
+            "color": "red"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainMulti priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 2,
+          "attributes": {
+            "italic": true,
+            "color": "red"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs embedOnly priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs embedOnly priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs emoji priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs emoji priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs combining priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "éx"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs combining priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "éx"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs newlines priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\n\nb\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs newlines priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\n\nb\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainEmbedAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs retainEmbedAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroRetain vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs empty priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroDelete vs empty priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": []
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroDelete vs mixed priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs mixed priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello "
+          },
+          {
+            "insert": "World",
+            "attributes": {
+              "bold": true
+            }
+          },
+          {
+            "insert": "\n"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello "
+        },
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "World"
+        },
+        {
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs retainUnbold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroDelete vs retainUnbold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": null
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroDelete vs deleteStart priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "X"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs deleteStart priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 1
+          },
+          {
+            "insert": "X"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "X"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs insEmbed priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs insEmbed priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs video priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "video": "https://example.com/v.mp4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs video priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "video": "https://example.com/v.mp4"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "video": "https://example.com/v.mp4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs cjk priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs cjk priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "日本語"
+          },
+          {
+            "delete": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "日本語"
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs retainLine priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs retainLine priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 5
+          },
+          {
+            "retain": 1,
+            "attributes": {
+              "header": 2
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1,
+          "attributes": {
+            "header": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs attrNested priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "link": "https://x.y",
+            "bold": true
+          },
+          "insert": "link"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs attrNested priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "link",
+            "attributes": {
+              "link": "https://x.y",
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "link": "https://x.y",
+            "bold": true
+          },
+          "insert": "link"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs zeroInsert priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs zeroInsert priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroDelete vs zeroDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroDelete vs zeroDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs textBold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs textBold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs retainBold priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs retainBold priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3,
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs delete2 priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs delete2 priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 2
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs insMid priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "ab"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs insMid priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "ab"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "ab"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs embedAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "alt": "b",
+            "width": "10"
+          },
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs embedAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/b.png"
+            },
+            "attributes": {
+              "alt": "b",
+              "width": "10"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "alt": "b",
+            "width": "10"
+          },
+          "insert": {
+            "image": "https://example.com/b.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs emojiRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": "👨‍👩‍👧"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs emojiRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "insert": "👨‍👩‍👧"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "👨‍👩‍👧"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs lineAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Title"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs lineAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Title"
+          },
+          {
+            "insert": "\n",
+            "attributes": {
+              "header": 1
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Title"
+        },
+        {
+          "attributes": {
+            "header": 1
+          },
+          "insert": "\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs deleteLong priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 10
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs deleteLong priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "delete": 10
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "delete": 10
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 4,
+            "attributes": {}
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroRetain priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroRetain priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroBetween priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroMix vs zeroBetween priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "insert": ""
+        },
+        {
+          "delete": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs text priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs text priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "Hello"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retain3 priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retain3 priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 3
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainMulti priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainMulti priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "retain": 2,
+            "attributes": {
+              "italic": true,
+              "color": "red"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": []
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainDelete priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainDelete priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 2
+          },
+          {
+            "delete": 3
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1
+        },
+        {
+          "delete": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs embedOnly priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs embedOnly priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": {
+              "image": "https://example.com/a.png"
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": {
+            "image": "https://example.com/a.png"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs emoji priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs emoji priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a😀b"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a😀b"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs combining priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "éx"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs combining priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "éx"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "éx"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs newlines priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\n\nb\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs newlines priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "a\n\nb\n"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a\n\nb\n"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainEmbedAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1,
+          "attributes": {
+            "width": "20"
+          }
+        },
+        {
+          "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs retainEmbedAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "retain": 1,
+            "attributes": {
+              "width": "20"
+            }
+          },
+          {
+            "insert": "z"
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "retain": 1,
+          "attributes": {
+            "width": "20"
+          }
+        },
+        {
+          "insert": "z"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs zeroInsertAttr priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs zeroInsertAttr priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": "",
+            "attributes": {
+              "bold": true
+            }
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "attributes": {
+            "bold": true
+          },
+          "insert": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs zeroMix priority=true",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": true
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
+        }
+      ]
+    }
+  },
+  {
+    "name": "transform zeroBetween vs zeroMix priority=false",
+    "input": {
+      "a": {
+        "ops": [
+          {
+            "retain": 1
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": ""
+          },
+          {
+            "delete": 2
+          },
+          {
+            "delete": 0
+          }
+        ]
+      },
+      "b": {
+        "ops": [
+          {
+            "insert": ""
+          },
+          {
+            "retain": 0
+          },
+          {
+            "insert": "a"
+          },
+          {
+            "delete": 0
+          },
+          {
+            "retain": 1
+          }
+        ]
+      },
+      "priority": false
+    },
+    "expected": {
+      "ops": [
+        {
+          "insert": "a"
         }
       ]
     }
