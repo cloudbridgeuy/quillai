@@ -36,7 +36,7 @@ impl<'de> Deserialize<'de> for Delta {
                 e
             }
         })?;
-        Delta::from_value(v, false).map_err(de::Error::custom)
+        Ok(Delta::from_value(v, false))
     }
 }
 
@@ -45,21 +45,16 @@ impl Delta {
         Self::default()
     }
 
-    /// Like `new Delta(JSON.parse(json))`: the object's `ops` array is kept as given
-    /// (non-object entries too) and other top-level keys are ignored. Whole numbers
-    /// become integers (`1.0` is `1`); numbers too large for `f64` read as ±Infinity,
-    /// like `JSON.parse` (only this entry point: `serde_json`'s parser rejects them).
     pub fn from_json(json: &str) -> Result<Delta, DeltaError> {
         let v = match serde_json::from_str::<Value>(&prescan(json)) {
             Ok(v) => v,
-            // Same wording as the `Deserialize` path.
             Err(e) => {
                 return Err(classify(
                     serde_json::from_str::<Delta>(json).err().unwrap_or(e),
                 ))
             }
         };
-        Delta::from_value(v, true).map_err(|m| DeltaError::Json(de::Error::custom(m)))
+        Ok(Delta::from_value(v, true))
     }
 
     /// `JSON.stringify(delta)` (up to object key order): floats print like JS and
@@ -72,16 +67,18 @@ impl Delta {
         String::from_utf8(out).expect("serde_json writes UTF-8")
     }
 
-    fn from_value(mut v: Value, keep_inf: bool) -> Result<Delta, &'static str> {
+    fn from_value(mut v: Value, keep_inf: bool) -> Delta {
         normalize(&mut v, keep_inf);
-        match v {
+        let ops = match v {
+            Value::Array(ops) => ops,
             Value::Object(mut m) => match m.remove("ops") {
-                Some(Value::Array(ops)) => Ok(Delta {
-                    ops: ops.into_iter().map(Op::from_js).collect(),
-                }),
-                _ => Err("missing `ops` array"),
+                Some(Value::Array(ops)) => ops,
+                _ => Vec::new(),
             },
-            _ => Err("expected a `{\"ops\":[...]}` object"),
+            _ => Vec::new(),
+        };
+        Delta {
+            ops: ops.into_iter().map(Op::from_js).collect(),
         }
     }
 
