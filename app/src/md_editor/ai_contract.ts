@@ -1,5 +1,8 @@
 import type { DocumentWindow } from "./window";
 import { getApiBaseUrl } from "../api_config";
+import type { PromptSectionId } from "./prompt_sections";
+
+export type PromptSectionOverrides = Partial<Record<PromptSectionId, string>>;
 
 export type AiAction = "generate" | "edit";
 
@@ -46,6 +49,7 @@ export type AiHistoryMessage = {
 };
 
 type BuildAiRequestBase = {
+  sectionOverrides?: PromptSectionOverrides;
   document: AiDocumentSlice;
   window: DocumentWindow;
   storyContext?: string | null;
@@ -68,6 +72,7 @@ export type BuildAiEditRequestInput = BuildAiRequestBase & {
 export type BuildAiRequestInput = BuildAiGenerateRequestInput | BuildAiEditRequestInput;
 
 export type AiGenerateRequest = {
+  sectionOverrides?: PromptSectionOverrides;
   action: AiAction;
   document: AiDocumentSlice;
   selection: AiSelectionSlice | null;
@@ -101,6 +106,8 @@ export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
   }
 
   return {
+    ...(input.sectionOverrides && Object.keys(input.sectionOverrides).length > 0
+      ? { sectionOverrides: { ...input.sectionOverrides } } : {}),
     action,
     document,
     selection: toRelativeSelection(action, selection, window, document),

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use super::segments::{plain_text, sanitize_document, DeltaDocument, InsertValue};
 use crate::error::Error;
@@ -10,6 +11,8 @@ pub const MAX_MAX_OUTPUT_TOKENS: usize = 4096;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerateRequest {
+    #[serde(default = "empty_section_overrides")]
+    pub section_overrides: serde_json::Value,
     pub action: String,
     pub document: RawDocumentSlice,
     pub selection: Option<RawSelectionSlice>,
@@ -19,6 +22,21 @@ pub struct GenerateRequest {
     pub messages: Vec<RawConversationMessage>,
     pub resume_prompt: Option<String>,
     pub max_output_tokens: Option<usize>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PromptSectionId {
+    System,
+    History,
+    Instruction,
+    StoryContext,
+    Selection,
+    Document,
+}
+
+fn empty_section_overrides() -> serde_json::Value {
+    serde_json::json!({})
 }
 
 #[derive(Debug, Deserialize)]
@@ -113,6 +131,7 @@ pub struct SelectionSlice {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GenerateInput {
+    pub section_overrides: BTreeMap<PromptSectionId, String>,
     pub action: AiAction,
     pub document: DocumentSlice,
     pub selection: Option<SelectionSlice>,
@@ -251,6 +270,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
 
     fn try_from(request: GenerateRequest) -> Result<Self, Self::Error> {
         let GenerateRequest {
+            section_overrides,
             action,
             document,
             selection,
@@ -262,6 +282,8 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         } = request;
 
         let action = AiAction::try_from(action)?;
+        let section_overrides = serde_json::from_value(section_overrides)
+            .map_err(|error| Error::Validation(format!("invalid sectionOverrides: {error}")))?;
         let document = DocumentSlice::try_from(document)?;
         let selection = selection.map(SelectionSlice::try_from).transpose()?;
         let messages = if action == AiAction::Generate {
@@ -288,6 +310,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             action,
             document,
             selection,
+            section_overrides,
             story_context: normalize_optional_text(story_context),
             instruction: normalize_optional_text(instruction),
             messages,
@@ -465,6 +488,7 @@ mod tests {
     #[test]
     fn generate_request_parses_and_sanitizes() {
         let input = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
                 delta: DeltaDocument {
@@ -520,6 +544,7 @@ mod tests {
     #[test]
     fn edit_requires_non_empty_selection() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
             selection: Some(text_selection("", 0, 0)),
@@ -537,6 +562,7 @@ mod tests {
     #[test]
     fn malformed_document_is_rejected_at_boundary() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
                 delta: DeltaDocument {
@@ -566,6 +592,7 @@ mod tests {
     #[test]
     fn selection_must_fit_sanitized_document_text_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
             selection: Some(text_selection("o!", 4, 2)),
@@ -585,6 +612,7 @@ mod tests {
     #[test]
     fn selection_text_must_match_document_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
             selection: Some(text_selection("there", 6, 5)),
@@ -604,6 +632,7 @@ mod tests {
     #[test]
     fn selected_text_uses_selection_slice_text() {
         let input = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
             selection: Some(text_selection("world", 6, 5)),
@@ -621,6 +650,7 @@ mod tests {
     #[test]
     fn selection_delta_text_must_match_selection_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
             selection: Some(RawSelectionSlice {
@@ -654,6 +684,7 @@ mod tests {
     #[test]
     fn document_text_must_match_sanitized_delta_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
                 delta: DeltaDocument {
@@ -683,6 +714,7 @@ mod tests {
     #[test]
     fn document_and_selection_slices_reject_embeds() {
         let document_err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
                 delta: DeltaDocument {
@@ -709,6 +741,7 @@ mod tests {
             .contains("AI document slices currently support text inserts only"));
 
         let selection_err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
             selection: Some(RawSelectionSlice {
@@ -742,6 +775,7 @@ mod tests {
     #[test]
     fn utf16_selection_indices_accept_emoji_spans() {
         let input = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hi 💡 there"),
             selection: Some(text_selection("💡", 3, 2)),
@@ -779,6 +813,7 @@ mod tests {
     #[test]
     fn blank_message_content_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
             selection: None,
@@ -801,6 +836,7 @@ mod tests {
     #[test]
     fn invalid_message_role_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
             selection: None,
@@ -823,6 +859,7 @@ mod tests {
     #[test]
     fn token_limit_defaults_and_bounds_are_enforced() {
         let defaulted = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
             selection: None,
@@ -837,6 +874,7 @@ mod tests {
         assert_eq!(defaulted.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
 
         let too_large = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
             selection: None,
@@ -853,6 +891,7 @@ mod tests {
             .contains("maxOutputTokens must be at most"));
 
         let too_small = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
             selection: None,
@@ -872,6 +911,7 @@ mod tests {
     #[test]
     fn edit_requests_drop_generate_only_thread_fields() {
         let input = GenerateInput::try_from(GenerateRequest {
+            section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
             selection: Some(text_selection("world", 6, 5)),

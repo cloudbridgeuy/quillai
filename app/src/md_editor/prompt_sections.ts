@@ -33,7 +33,7 @@ export function assemblePromptSections(input: AiGenerateRequest): PromptSection[
     ? `index=${input.selection.range.index}, length=${input.selection.range.length}, text=${escapePromptText(input.selection.text)}`
     : "none";
 
-  return [
+  const sections = [
     section("system", "System", "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."),
     section("history", "History", input.action === "generate"
       ? input.messages.map((message) => trimServerText(message.content)).join("")
@@ -43,6 +43,8 @@ export function assemblePromptSections(input: AiGenerateRequest): PromptSection[
     section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`),
     section("document", "Document", `<document>\n${escapePromptText(input.document.text)}\n</document>`),
   ];
+  return sections.map(({ id, label, text }) =>
+    section(id, label, input.sectionOverrides?.[id] ?? text));
 }
 
 function section(id: PromptSectionId, label: string, text: string): PromptSection {

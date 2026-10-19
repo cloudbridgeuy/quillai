@@ -6,7 +6,7 @@ use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 
-use super::models::{ConversationMessage, FinishReason, GenerateInput, StreamEvent};
+use super::models::{FinishReason, GenerateInput, StreamEvent};
 use super::prompt::build_prompt;
 use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
@@ -176,7 +176,7 @@ impl ChatCompletionRequest {
             model,
             stream: true,
             max_tokens: input.max_output_tokens,
-            messages: chat_messages(&input.messages, current_turn),
+            messages: chat_messages(input, current_turn),
         }
     }
 }
@@ -187,15 +187,38 @@ struct ChatMessage {
     content: String,
 }
 
-fn chat_messages(history: &[ConversationMessage], current_turn: String) -> Vec<ChatMessage> {
+fn chat_messages(input: &GenerateInput, current_turn: String) -> Vec<ChatMessage> {
+    use super::models::PromptSectionId;
+
+    let history = match input.section_overrides.get(&PromptSectionId::History) {
+        Some(text) => {
+            if text.is_empty() {
+                Vec::new()
+            } else {
+                vec![ChatMessage {
+                    role: "user".into(),
+                    content: text.clone(),
+                }]
+            }
+        }
+        None => input
+            .messages
+            .iter()
+            .map(|message| ChatMessage {
+                role: message.role.as_str().into(),
+                content: message.content.clone(),
+            })
+            .collect(),
+    };
     std::iter::once(ChatMessage {
         role: "system".into(),
-        content: SYSTEM_PROMPT.into(),
+        content: input
+            .section_overrides
+            .get(&PromptSectionId::System)
+            .cloned()
+            .unwrap_or_else(|| SYSTEM_PROMPT.into()),
     })
-    .chain(history.iter().map(|message| ChatMessage {
-        role: message.role.as_str().into(),
-        content: message.content.clone(),
-    }))
+    .chain(history)
     .chain(std::iter::once(ChatMessage {
         role: "user".into(),
         content: current_turn,
@@ -479,10 +502,11 @@ mod tests {
 
     #[test]
     fn chat_completion_request_includes_history_and_max_tokens() {
-        use crate::ai::models::{AiAction, ConversationRole, DocumentSlice};
+        use crate::ai::models::{AiAction, ConversationMessage, ConversationRole, DocumentSlice};
         use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
 
         let input = GenerateInput {
+            section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
                 delta: DeltaDocument {

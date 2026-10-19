@@ -14,6 +14,7 @@ import {
   buildAiRequestPreview,
   type AiAction,
   type AiRequestPreview,
+  type PromptSectionOverrides,
 } from "../ai_contract";
 import {
   getStatusPresentation,
@@ -232,6 +233,7 @@ export const Container = () => {
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
+  const [sectionOverrides, setSectionOverrides] = useState<PromptSectionOverrides>({});
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
   const [, setContextRevision] = useState(0);
 
@@ -246,6 +248,7 @@ export const Container = () => {
     ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status), () => {
       lastCursorRangeRef.current = null;
       lastEditSelectionRef.current = null;
+      setSectionOverrides({});
       setRange(quillRef.current?.getSelection() ?? null);
       updateThreadState(resetThread(threadStateRef.current));
     });
@@ -452,6 +455,7 @@ export const Container = () => {
         })
       : buildAiRequestPreview({
           action: "generate",
+          sectionOverrides,
           document: documentSlice,
           window: documentWindow,
           selection: selectionSlice,
@@ -591,6 +595,8 @@ export const Container = () => {
       if (!response.ok) {
         throw new Error(getAiErrorMessage(await response.text(), response.status));
       }
+
+      if (action === "generate") setSectionOverrides({});
 
       assertEditorActive();
 
@@ -1051,7 +1057,7 @@ export const Container = () => {
         <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <h2 id="context-inspector-title">Live Continue/Resume Context</h2>
           <p className="editor-note">
-            Next {shouldUseResumeThread(threadState, normalizedInstructionText()) ? "Resume Output" : "Continue"} request. Read-only; no AI request is sent.
+            Edit exact section text for the next Continue/Resume request. Overrides are cleared after sending or loading a chapter. Tags are sent as written. History edits replace all prior messages with one user message. Edit selection requests are unchanged.
           </p>
           {typeof contextInspector === "string" ? (
             <p className="editor-note">{contextInspector}</p>
@@ -1065,7 +1071,25 @@ export const Container = () => {
                     <h3>{section.label}</h3>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
-                  <pre className="editor-preview-block editor-preview-block-large">{section.text || "(empty)"}</pre>
+                  <textarea
+                    className="editor-textarea"
+                    aria-label={`${section.label} prompt section`}
+                    value={section.text}
+                    rows={5}
+                    disabled={isBusy || chapterSync.blocked}
+                    onChange={(event) => setSectionOverrides((current) => ({
+                      ...current, [section.id]: event.target.value,
+                    }))}
+                  />
+                  {sectionOverrides[section.id] !== undefined ? (
+                    <button className="editor-button editor-button-small" type="button"
+                      disabled={isBusy}
+                      onClick={() => setSectionOverrides((current) => {
+                        const next = { ...current };
+                        delete next[section.id];
+                        return next;
+                      })}>Reset {section.label}</button>
+                  ) : null}
                 </section>
               ))}
             </>

@@ -1,4 +1,4 @@
-use super::models::GenerateInput;
+use super::models::{GenerateInput, PromptSectionId};
 
 pub fn build_prompt(input: &GenerateInput) -> String {
     let instruction = escape_prompt_text(input.effective_prompt_text().unwrap_or("none"));
@@ -6,22 +6,34 @@ pub fn build_prompt(input: &GenerateInput) -> String {
     let selection = format_selection(input);
     let document = escape_prompt_text(&input.document.text);
 
-    format!(
+    let instruction = format!(
         concat!(
             "You are helping with a fiction-writing task. ",
             "Respond with plain text only, and do not exceed two sentences. ",
             "<action>{}</action>\n",
-            "<instruction>\n{}\n</instruction>\n",
-            "<story_context>\n{}\n</story_context>\n",
-            "<selection>\n{}\n</selection>\n",
-            "<document>\n{}\n</document>"
+            "<instruction>\n{}\n</instruction>\n"
         ),
         input.action.as_str(),
-        instruction,
-        story_context,
-        selection,
-        document
-    )
+        instruction
+    );
+    [
+        (PromptSectionId::Instruction, instruction),
+        (
+            PromptSectionId::StoryContext,
+            format!("<story_context>\n{story_context}\n</story_context>\n"),
+        ),
+        (
+            PromptSectionId::Selection,
+            format!("<selection>\n{selection}\n</selection>\n"),
+        ),
+        (
+            PromptSectionId::Document,
+            format!("<document>\n{document}\n</document>"),
+        ),
+    ]
+    .into_iter()
+    .map(|(id, text)| input.section_overrides.get(&id).cloned().unwrap_or(text))
+    .collect()
 }
 
 fn escape_prompt_text(text: &str) -> String {
@@ -54,6 +66,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_core_fields_and_sentence_limit() {
         let input = GenerateInput {
+            section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
                 delta: DeltaDocument {
@@ -87,6 +100,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_selection_details() {
         let input = GenerateInput {
+            section_overrides: Default::default(),
             action: AiAction::Edit,
             document: DocumentSlice {
                 delta: DeltaDocument {
@@ -129,6 +143,7 @@ mod tests {
     #[test]
     fn build_prompt_uses_resume_prompt_as_effective_generate_instruction() {
         let input = GenerateInput {
+            section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
                 delta: DeltaDocument {
@@ -158,6 +173,7 @@ mod tests {
     #[test]
     fn build_prompt_escapes_user_controlled_text() {
         let input = GenerateInput {
+            section_overrides: Default::default(),
             action: AiAction::Generate,
             document: DocumentSlice {
                 delta: DeltaDocument {

@@ -2,6 +2,32 @@
   "models": ["gpt-4o-mini", "o3", "anthropic/claude-sonnet-4", "LOCAL-model:latest"],
   "cases": [
     {
+      "name": "partial-override-removes-history-keeps-other-sections",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Hello"}]},"text":"Hello"},"selection":null,"storyContext":" fantasy ","instruction":"continue","messages":[{"role":"user","content":"old prompt"},{"role":"assistant","content":"old output"}],"resumePrompt":"resume","maxOutputTokens":512,"sectionOverrides":{"history":"","instruction":"  Replacement instruction & 💡\n"}},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":[],"text":"  Replacement instruction & 💡\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nfantasy\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nHello\n</document>"}
+      ]
+    },
+    {
+      "name": "exact-section-overrides",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Original"}]},"text":"Original"},"selection":null,"storyContext":"old notes","instruction":"continue","messages":[{"role":"assistant","content":"old output"}],"resumePrompt":"resume","maxOutputTokens":512,"sectionOverrides":{"system":"  Custom system 💡\n","history":"  Rewritten & <history>\n","instruction":"<instruction>Custom & exact</instruction>\n","story_context":"","selection":"<selection>Custom selection</selection>\n","document":"<document>Replacement 世界</document>"}},
+      "history": [{"role":"user","content":"  Rewritten & <history>\n"}],
+      "sections": [
+        {"id":"system","tags":[],"text":"  Custom system 💡\n"},
+        {"id":"history","tags":[],"text":"  Rewritten & <history>\n"},
+        {"id":"instruction","tags":["instruction"],"text":"<instruction>Custom & exact</instruction>\n"},
+        {"id":"story_context","tags":[],"text":""},
+        {"id":"selection","tags":["selection"],"text":"<selection>Custom selection</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>Replacement 世界</document>"}
+      ]
+    },
+    {
       "name": "missing-context-no-history-or-selection",
       "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512},
       "history": [],

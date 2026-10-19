@@ -45,6 +45,8 @@ The feature follows Functional Core and Imperative Shell.
 }
 ```
 
+Optional `sectionOverrides` is an object mapping any of `system`, `history`, `instruction`, `story_context`, `selection`, `document` to string text. Omission or `{}` keeps existing assembly unchanged. Unknown ids, non-string values, and non-object overrides return 422 before streaming. Overrides replace complete rendered sections verbatim (no trimming, escaping, or added tags); empty strings remove section text. `system` replaces the system message. `history` replaces all history with one user message, or no messages for an empty string. Other overridden sections join in their existing order as the current user message. Overrides do not bypass document/selection parsing and do not change the Quill insertion range. Both actions accept overrides; the current UI exposes them for Continue/Resume only.
+
 ## Validation Rules
 
 The backend validates all of these before streaming starts:
@@ -68,7 +70,7 @@ Validation failures return the normal JSON error contract:
 
 `prompt.rs` builds a plain-text provider prompt that includes action, instruction, story context, selection details when present, and the full transmitted document text.
 
-User-controlled text is escaped before it is inserted into tagged prompt sections so strings like `</document>` cannot break the prompt frame.
+Automatically assembled user-controlled text is escaped before it is inserted into tagged prompt sections so strings like `</document>` cannot break the prompt frame. Explicit section overrides are exact prompt edits and can change that framing.
 
 ## Streaming Contract
 

@@ -95,6 +95,37 @@ async fn spawn_mock_provider(
 }
 
 #[tokio::test]
+async fn malformed_section_overrides_return_422() {
+    let pool = test_pool().await;
+    let app = quillai_api::app(pool);
+    for overrides in [
+        json!({"unknown": "text"}),
+        json!({"document": 42}),
+        json!({"history": null}),
+        json!({"system": ["text"]}),
+        json!(null),
+        json!([]),
+    ] {
+        let res = app
+            .clone()
+            .into_service()
+            .oneshot(json_request(
+                "POST",
+                "/ai/generate",
+                json!({
+                    "action": "generate",
+                    "document": document_slice("Opening line."),
+                    "sectionOverrides": overrides,
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(json_body(res).await["code"], "VALIDATION_ERROR");
+    }
+}
+
+#[tokio::test]
 async fn generate_returns_ndjson_delta_and_done_events() {
     let _guard = env_lock().lock().await;
     let base_url = spawn_mock_provider(

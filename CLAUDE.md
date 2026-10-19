@@ -81,7 +81,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/ai_contract.ts` | Pure AI request contract and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/prompt_sections.ts` | Pure server-parity prompt sections from accepted AI requests; labeled UTF-8 byte token estimates and summed totals. See [AI editor context](.claude/context/ai-editor.md) |
-| `md_editor/context_inspector.ts` | Pure live Continue/Resume context view-model; Editor reuses request previews, refreshes on all Quill changes and settings/thread changes, and hides the read-only panel at 800px. |
+| `md_editor/context_inspector.ts` | Pure live Continue/Resume context view-model; Editor reuses request previews, refreshes on all Quill changes and settings/thread changes, sends per-section text overrides, and hides the panel at 800px. |
 | `fixtures/prompt/parity.json` | Shared prompt section ids, tags, text, and history fixtures replayed by `crates/api/tests/prompt_parity_test.rs` and `app/src/md_editor/prompt_parity.test.ts`; provider model names pass through unchanged. |
 | `md_editor/ai_stream.ts` | Pure incremental NDJSON parser for AI stream events. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/ai_state.ts` | AI run-state ADT and transition helpers. See [AI editor context](.claude/context/ai-editor.md) |

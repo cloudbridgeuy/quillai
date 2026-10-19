@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AiGenerateRequest } from "./ai_contract";
+import { buildAiRequest, type AiGenerateRequest } from "./ai_contract";
 import {
   assemblePromptSections,
   estimateTokens,
@@ -22,6 +22,32 @@ function request(overrides: Partial<AiGenerateRequest> = {}): AiGenerateRequest 
 }
 
 describe("assemblePromptSections", () => {
+  test("unedited sections are byte-identical to the non-override request", () => {
+    const base = request({
+      messages: [{ role: "assistant", content: "  Previous 💡 & output  " }],
+      resumePrompt: " resume <scene> ",
+    });
+    const baseline = assemblePromptSections(base);
+    for (const edited of baseline) {
+      const text = "  Custom & <exact> 世界\n";
+      const built = buildAiRequest({
+        ...base,
+        action: "generate",
+        window: { start: 0, end: 5 },
+        sectionOverrides: { [edited.id]: text },
+      });
+      const sent = JSON.parse(JSON.stringify(built)) as AiGenerateRequest;
+      expect(sent.sectionOverrides).toEqual({ [edited.id]: text });
+      for (const actual of assemblePromptSections(sent)) {
+        const expected = actual.id === edited.id ? text : baseline.find(({ id }) => id === actual.id)!.text;
+        expect(new TextEncoder().encode(actual.text)).toEqual(new TextEncoder().encode(expected));
+      }
+    }
+    expect(assemblePromptSections({ ...base, sectionOverrides: {} })).toEqual(baseline);
+    expect(assemblePromptSections({ ...base, sectionOverrides: { document: "" } })[5]!.text).toBe("");
+    expect(base.sectionOverrides).toBeUndefined();
+  });
+
   test("generate golden matches provider content order and the complete server prompt", () => {
     const sections = assemblePromptSections(request({
       messages: [

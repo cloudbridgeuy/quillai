@@ -41,6 +41,15 @@ async fn capture_request(
 
 #[tokio::test]
 async fn shared_prompt_sections_match_build_prompt_and_chat_messages() {
+    replay_prompt_fixture(false).await;
+}
+
+#[tokio::test]
+async fn overridden_text_reaches_provider_request() {
+    replay_prompt_fixture(true).await;
+}
+
+async fn replay_prompt_fixture(overrides_only: bool) {
     let fixture: Fixture =
         serde_json::from_str(include_str!("../../../fixtures/prompt/parity.json"))
             .expect("valid shared prompt fixture");
@@ -55,6 +64,9 @@ async fn shared_prompt_sections_match_build_prompt_and_chat_messages() {
     let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
 
     for example in fixture.cases {
+        if overrides_only && example.input.get("sectionOverrides").is_none() {
+            continue;
+        }
         assert_eq!(
             example
                 .sections
