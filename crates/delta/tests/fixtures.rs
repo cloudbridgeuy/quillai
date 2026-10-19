@@ -156,7 +156,7 @@ fn half_split_emoji_is_rejected_with_clear_error() {
     assert!(msg.contains("splits a UTF-16 surrogate pair"), "{msg}");
     // A whole emoji is fine and has UTF-16 length 2.
     let ok = Delta::from_json(r#"{"ops":[{"insert":"😀"}]}"#).unwrap();
-    assert_eq!(ok.len(), 2);
+    assert_eq!(ok.len(), 2.0);
 }
 
 /// Expected differences for compose/transform/transformPosition replay, with exact
@@ -214,10 +214,10 @@ fn fixtures_replay_compose_transform_position() {
                 }
                 _ => {
                     let got = delta(&input["delta"], &ctx).transform_position(
-                        input["index"].as_u64().unwrap() as usize,
+                        input["index"].as_f64().unwrap(),
                         input["priority"].as_bool().unwrap(),
                     );
-                    assert_eq!(got as u64, expected.as_u64().unwrap(), "{ctx}");
+                    assert_eq!(got, expected.as_f64().unwrap(), "{ctx}");
                 }
             }
             ran += 1;

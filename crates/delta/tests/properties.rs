@@ -160,8 +160,8 @@ fn check(rng: &mut Rng, case: &mut Vec<(&'static str, Delta)>) -> Result<(), Str
         for cursor_priority in [false, true] {
             // Cursor priority is the opposite of the transform's `priority` (self wins).
             let want = marker_pos(&a.transform(&m, !cursor_priority));
-            let got = a.transform_position(i, cursor_priority);
-            if want != Some(got) {
+            let got = a.transform_position(i as f64, cursor_priority);
+            if want.map(|w| w as f64) != Some(got) {
                 return Err(format!(
                     "transform_position({i}, {cursor_priority}) = {got}, marker transform = {want:?}"
                 ));

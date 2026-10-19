@@ -55,9 +55,9 @@ impl Delta {
         serde_json::to_string(self).expect("Delta serialization is infallible")
     }
 
-    /// Total length in UTF-16 code units.
-    pub fn len(&self) -> usize {
-        self.ops.iter().map(Op::len).sum()
+    /// quill-delta `length()`: the sum of [`Op::len`] in JS numbers.
+    pub fn len(&self) -> f64 {
+        self.ops.iter().map(Op::len).fold(0.0, |a, b| a + b)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -70,6 +70,15 @@ impl Delta {
     /// before a trailing delete, and adjacent text inserts / count retains
     /// with equal attributes merge.
     pub fn push(&mut self, op: Op) -> &mut Self {
+        let tail = self.ops.len().saturating_sub(2);
+        if matches!(op, Op::Raw(_)) || self.ops[tail..].iter().any(|o| matches!(o, Op::Raw(_))) {
+            // Odd ops (see `Op::Raw`) go through the exact JS port.
+            let mut js_tail: Vec<_> = self.ops[tail..].iter().map(Op::to_js).collect();
+            crate::js::push(&mut js_tail, op.to_js());
+            self.ops.truncate(tail);
+            self.ops.extend(js_tail.into_iter().map(Op::from_js));
+            return self;
+        }
         let mut index = self.ops.len();
         if let Some(Op::Delete(last)) = self.ops.last() {
             match &op {
@@ -79,7 +88,7 @@ impl Delta {
                     return self;
                 }
                 Op::Insert { .. } => index -= 1,
-                Op::Retain { .. } => {}
+                Op::Retain { .. } | Op::Raw(_) => {}
             }
         }
         if index > 0 {
@@ -188,19 +197,56 @@ mod tests {
         assert!(Op::delete(0).is_none());
         let mut d = Delta::new();
         d.push(text("😀日"));
-        assert_eq!(d.len(), 3);
+        assert_eq!(d.len(), 3.0);
     }
 
     #[test]
-    fn rejects_bad_ops() {
-        for bad in [
-            r#"{"ops":[{"retain":-1}]}"#,
-            r#"{"ops":[{"delete":0,"attributes":{}}]}"#,
-            r#"{"ops":[{"insert":"a","delete":1}]}"#,
-            r#"{"ops":[{"delete":1,"attributes":{}}]}"#,
+    fn any_object_is_an_op_like_quill_delta() {
+        // quill-delta 5.1.0 accepts these; Op.length falls back to 1 for all of them.
+        for wire in [
             r#"{"ops":[{}]}"#,
+            r#"{"ops":[{"insert":5}]}"#,
+            r#"{"ops":[{"retain":"3"}]}"#,
+            r#"{"ops":[{"delete":null}]}"#,
+            r#"{"ops":[{"insert":"a","attributes":5}]}"#,
         ] {
-            assert!(Delta::from_json(bad).is_err(), "{bad}");
+            let d = Delta::from_json(wire).unwrap();
+            assert!(matches!(d.ops[0], Op::Raw(_)), "{wire}");
+            let back: serde_json::Value = serde_json::from_str(&d.to_json()).unwrap();
+            assert_eq!(back, serde_json::from_str::<serde_json::Value>(wire).unwrap());
+            assert_eq!(d.len(), 1.0, "{wire}");
+        }
+        assert!(Delta::from_json(r#"{"ops":[5]}"#).is_err());
+    }
+
+    #[test]
+    fn lengths_are_js_numbers() {
+        let d = Delta::from_json(r#"{"ops":[{"retain":-2},{"delete":1.5},{"insert":"ab"}]}"#)
+            .unwrap();
+        assert_eq!(d.ops[0].len(), -2.0);
+        assert_eq!(d.ops[1].len(), 1.5);
+        assert_eq!(d.len(), 1.5);
+    }
+
+    #[test]
+    fn odd_ops_are_kept_verbatim_like_quill_delta() {
+        // quill-delta 5.1.0 accepts and round-trips all of these.
+        for wire in [
+            r#"{"ops":[{"retain":-1}]}"#,
+            r#"{"ops":[{"delete":-2},{"retain":1.5}]}"#,
+            r#"{"ops":[{"insert":"a","delete":1}]}"#,
+            r#"{"ops":[{"insert":"a","foo":{"x":[1]}}]}"#,
+            r#"{"ops":[{"insert":"a","attributes":null}]}"#,
+            r#"{"ops":[{"delete":1,"attributes":{"bold":true}}]}"#,
+            r#"{"ops":[{"retain":{"image":"x"},"attributes":null}]}"#,
+        ] {
+            let d = Delta::from_json(wire).unwrap();
+            // Object key order is not preserved (serde_json sorts keys); content is.
+            let back: serde_json::Value = serde_json::from_str(&d.to_json()).unwrap();
+            assert_eq!(
+                back,
+                serde_json::from_str::<serde_json::Value>(wire).unwrap()
+            );
         }
     }
 
@@ -240,7 +286,7 @@ mod tests {
         let got = a.transform(&d(r#"{"ops":[{"retain":0},{"insert":"b"}]}"#), true);
         assert_eq!(got.to_json(), r#"{"ops":[{"retain":1},{"insert":"b"}]}"#);
         // JS: .transformPosition(0) === 1
-        assert_eq!(a.transform_position(0, false), 1);
+        assert_eq!(a.transform_position(0.0, false), 1.0);
     }
 
     #[test]
@@ -248,7 +294,7 @@ mod tests {
         let wire = r#"{"ops":[{"insert":"\\ud83d"}]}"#;
         let d = Delta::from_json(wire).unwrap();
         assert_eq!(d.ops, vec![text("\\ud83d")]);
-        assert_eq!(d.len(), 6);
+        assert_eq!(d.len(), 6.0);
         assert_eq!(d.to_json(), wire);
     }
 

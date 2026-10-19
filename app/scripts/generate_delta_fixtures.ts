@@ -95,6 +95,94 @@ for (const n of posDeltas) {
   }
 }
 
+// Odd-but-accepted ops (GUZ-718): quill-delta takes them at face value, so Rust must too.
+// Cases where quill-delta throws (e.g. composing an embed retain with an embed) are skipped.
+const odd: Record<string, Ops> = {
+  // negative / fractional counts
+  negRetain: [{ retain: -1 }],
+  negRetainMid: [{ retain: 1 }, { retain: -2 }, { insert: "x" }],
+  negDelete: [{ delete: -2 }],
+  negDeleteMid: [{ retain: 1 }, { delete: -1 }],
+  fracRetain: [{ retain: 1.5 }],
+  fracRetainAttr: [{ retain: 2.5, attributes: { bold: true } }],
+  fracDelete: [{ delete: 0.5 }],
+  fracMix: [{ insert: "abc" }, { retain: 0.5 }, { delete: 1.5 }],
+  // more than one of insert/retain/delete
+  insDel: [{ insert: "a", delete: 1 } as any],
+  insRet: [{ insert: "a", retain: 1 } as any],
+  retDel: [{ retain: 2, delete: 1 } as any],
+  allThree: [{ insert: "ab", retain: 1, delete: 2, attributes: { bold: true } } as any],
+  retObjIns: [{ insert: "z", retain: { image: "x" } } as any],
+  // unknown keys
+  insUnknown: [{ insert: "a", foo: 1 } as any],
+  insUnknownMid: [{ insert: "Hello", x: { y: [1, 2] } } as any, { retain: 2, note: "n" } as any],
+  retUnknown: [{ retain: 2, foo: "x" } as any],
+  delUnknown: [{ delete: 1, why: true } as any],
+  embedUnknown: [{ insert: IMG, foo: 1 } as any],
+  // attributes: null
+  insAttrNull: [{ insert: "a", attributes: null } as any],
+  retAttrNull: [{ retain: 2, attributes: null } as any],
+  insAttrNullTwice: [{ insert: "a", attributes: null } as any, { insert: "b", attributes: null } as any],
+  insAttrNullMixed: [{ insert: "a" }, { insert: "b", attributes: null } as any],
+  embedAttrNull: [{ insert: IMG, attributes: null } as any],
+  delAttrs: [{ delete: 1, attributes: { bold: true } } as any],
+  delAttrNull: [{ delete: 2, attributes: null } as any],
+  retNullThenText: [{ retain: 1, attributes: null } as any, { insert: "x", attributes: null } as any],
+  // embed retains
+  embedRet: [{ retain: { image: "x" } } as any],
+  embedRetAttr: [{ retain: IMG2, attributes: { alt: "q" } } as any],
+  embedRetMid: [{ retain: 1 }, { retain: { video: "v" } } as any, { insert: "t" }],
+  embedRetDel: [{ retain: { image: "x" } } as any, { delete: 1 }],
+  embedRetNull: [{ retain: { image: "x" }, attributes: null } as any],
+  // any object is an op: no insert/retain/delete, or values of other types (length 1)
+  emptyOp: [{} as any],
+  emptyOpMid: [{ retain: 1 }, {} as any, { insert: "q" }],
+  insNum: [{ insert: 5 } as any],
+  insNull: [{ insert: null } as any],
+  insBool: [{ retain: 1 }, { insert: true } as any],
+  retStr: [{ retain: "3" } as any],
+  retNull: [{ retain: null, attributes: { bold: true } } as any],
+  delNull: [{ delete: null } as any],
+  delStr: [{ retain: 1 }, { delete: "2" } as any],
+  // non-object attributes
+  insAttrNum: [{ insert: "a", attributes: 5 } as any],
+  insAttrStr: [{ insert: "ab", attributes: "x" } as any, { insert: "c", attributes: "x" } as any],
+  insAttrFalse: [{ insert: "a", attributes: false } as any],
+  retAttrNum: [{ retain: 2, attributes: 7 } as any],
+  retAttrZero: [{ retain: 2, attributes: 0 } as any],
+};
+const oddNames = Object.keys(odd);
+const all: Record<string, Ops> = { ...pool, ...odd };
+const attempt = <T>(f: () => T): { ok: true; v: T } | { ok: false } => {
+  try { return { ok: true, v: f() }; } catch { return { ok: false }; }
+};
+// Emoji pool entries are left out: odd ops cut them in half, which would grow the counted
+// half-emoji exceptions pinned in crates/delta/tests/fixtures.rs.
+const allNames = Object.keys(all).filter((n) => n !== "emoji" && n !== "emojiRetain");
+const record = (x: string, y: string, priorities: boolean[]) => {
+  const A = d(all[x]!), B = d(all[y]!);
+  const c = attempt(() => wire(A.compose(B)));
+  if (c.ok) out.compose!.push({ name: `compose ${x} then ${y}`, input: { a: wire(A), b: wire(B) }, expected: c.v });
+  for (const priority of priorities) {
+    const t = attempt(() => wire(A.transform(B, priority)));
+    if (t.ok) out.transform!.push({ name: `transform ${x} vs ${y} priority=${priority}`, input: { a: wire(A), b: wire(B), priority }, expected: t.v });
+  }
+};
+for (const an of oddNames) {
+  for (const [k, bn] of allNames.entries()) {
+    const bothOdd = bn in odd;
+    // odd x odd: every ordered pair; odd x plain: both orders, transform thinned.
+    const thin = bothOdd || (oddNames.indexOf(an) + k) % 2 === 0 ? [true, false] : [];
+    record(an, bn, thin);
+    if (!bothOdd) record(bn, an, thin);
+  }
+  const A = d(odd[an]!);
+  for (const index of [0, 1, 2, 3, 5, 8]) for (const priority of [true, false]) {
+    const p = attempt(() => A.transformPosition(index, priority));
+    if (p.ok) out.transform_position!.push({ name: `transformPosition ${an} index=${index} priority=${priority}`, input: { delta: wire(A), index, priority }, expected: p.v });
+  }
+}
+
 // invert: base documents x applicable changes
 const bases: Record<string, Ops> = {
   empty: [],

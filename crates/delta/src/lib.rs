@@ -27,13 +27,21 @@
 //! (parse-level half-emoji fixtures, compose fixtures with half-emoji input, and
 //! compose results that would split a pair); any other mismatch fails the tests.
 //!
-//! Parsing is otherwise strict (parse, don't validate): unknown keys are rejected and
-//! counts must be non-negative integers. Merging is not applied on deserialize; use
-//! [`Delta::push`].
+//! quill-delta never validates ops, so any JSON object is an op here too: odd ones
+//! (negative or fractional counts, several or none of `insert`/`retain`/`delete`,
+//! values of other types such as `{"insert":5}` or `{"retain":"3"}`, unknown keys,
+//! non-object `attributes`) parse into [`Op::Raw`] and are handled exactly like JS.
+//! Every function named after a JS one works in JS numbers (`f64`): [`Op::len`],
+//! [`Delta::len`] and [`Delta::transform_position`] return exactly what JS returns.
+//! Known limits: object key order is not preserved (serde_json sorts keys), and where
+//! quill-delta throws (composing an embed retain with an embed) `compose` returns
+//! [`DeltaError::Unsupported`]; `transform` of two embed retains keeps the other side's.
+//! Merging is not applied on deserialize; use [`Delta::push`].
 
 mod compose;
 mod delta;
 mod error;
+mod js;
 mod op;
 
 pub use delta::Delta;
