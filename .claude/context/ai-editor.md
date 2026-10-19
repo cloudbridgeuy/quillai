@@ -38,13 +38,11 @@ The frontend split is deliberate.
 
 ## Browser URL Constraint
 
-The browser-side Continue and Edit trigger path currently uses a fixed local API URL:
+AI and manuscript requests share `app/src/api_config.ts`. Its pure `resolveApiBaseUrl(override)` defaults to `http://127.0.0.1:2908` and accepts an absolute HTTP(S) URL, including random ports. It trims whitespace and trailing slashes, and rejects credentials, queries, and fragments.
 
-- `http://127.0.0.1:2908`
+Set the frontend URL's `apiBaseUrl` query parameter to override the API URL, e.g. `http://localhost:3001/?apiBaseUrl=http%3A%2F%2F127.0.0.1%3A49152`. The browser shell passes this setting to the pure resolver. Chapter selection preserves the parameter. Reload after changing it. This uses the browser's native URL support with Bun-served bundles in development and production: no config endpoint, injected script, rebuild, or browser-side `process.env` (which previously caused `process is not defined`). The E2E sandbox can select any API port with its initial navigation URL.
 
-The current local development CORS setup also assumes the frontend is served from port `3001`.
-
-This is intentional. The browser shell no longer reads `process.env` directly, because that caused the QA failure `process is not defined` before `fetch` started. The URL helper in `ai_contract.ts` is now pure and returns the default URL with no browser-side override parameter.
+The current backend CORS setup still assumes the frontend is served from port `3001`; API port configuration does not change that restriction.
 
 ## Continue And Edit Flow
 

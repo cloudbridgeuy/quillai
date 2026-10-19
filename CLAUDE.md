@@ -28,7 +28,7 @@ docs/          — QuillJS implementation guide
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
 API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
-Current AI browser calls assume the API is on `2908` and the frontend is on `3001`.
+Set the frontend URL's `apiBaseUrl` query parameter to configure both AI and manuscript requests, e.g. `http://localhost:3001/?apiBaseUrl=http%3A%2F%2F127.0.0.1%3A49152`. The default is `http://127.0.0.1:2908`. No browser-side `process.env` or rebuild is needed. Backend CORS still assumes frontend port `3001`.
 
 ## Source Index
 

@@ -4,9 +4,7 @@ import {
   buildAiGenerateUrl,
   buildAiRequest,
   buildAiRequestPreview,
-  DEFAULT_API_BASE_URL,
   DEFAULT_MAX_OUTPUT_TOKENS,
-  resolveApiBaseUrl,
 } from "./ai_contract";
 
 const documentSlice = {
@@ -384,10 +382,6 @@ test("buildAiRequest rejects invalid token limits and blank history", () => {
       messages: [{ role: "user", content: "   " }],
     }),
   ).toThrow("messages content must not be blank");
-});
-
-test("resolveApiBaseUrl returns the local API default", () => {
-  expect(resolveApiBaseUrl()).toBe(DEFAULT_API_BASE_URL);
 });
 
 test("buildAiGenerateUrl appends the AI route to the resolved base URL", () => {

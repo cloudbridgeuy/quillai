@@ -1,4 +1,4 @@
-import { resolveApiBaseUrl } from "../md_editor/ai_contract";
+import { getApiBaseUrl } from "../api_config";
 import {
   parseApiError, parseBook, parseChapter, parseList, parseRevision, parseSeries,
   type BookScope, type ChapterScope, type CreateBook, type CreateChapter,
@@ -41,7 +41,7 @@ function chapterPath(scope: ChapterScope): string {
 }
 
 export function createManuscriptClient({
-  baseUrl = resolveApiBaseUrl(),
+  baseUrl = getApiBaseUrl(),
   fetch: fetchRequest = globalThis.fetch,
 }: { baseUrl?: string; fetch?: Fetch } = {}) {
   const base = baseUrl.replace(/\/+$/, "");

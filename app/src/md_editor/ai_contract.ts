@@ -1,6 +1,5 @@
 import type { DocumentWindow } from "./window";
-
-export const DEFAULT_API_BASE_URL = "http://127.0.0.1:2908";
+import { getApiBaseUrl } from "../api_config";
 
 export type AiAction = "generate" | "edit";
 
@@ -130,12 +129,8 @@ function assertTextOnlySlice(
   }
 }
 
-export function resolveApiBaseUrl(): string {
-  return DEFAULT_API_BASE_URL;
-}
-
 export function buildAiGenerateUrl(): string {
-  return `${resolveApiBaseUrl()}/ai/generate`;
+  return `${getApiBaseUrl()}/ai/generate`;
 }
 
 function toRelativeSelection(
