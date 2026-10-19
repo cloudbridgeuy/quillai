@@ -2,6 +2,7 @@ pub mod ai;
 pub mod chapter_revisions;
 pub mod database;
 pub mod error;
+pub mod manuscripts;
 pub mod prelude;
 pub mod users;
 
@@ -28,10 +29,11 @@ fn local_dev_cors() -> CorsLayer {
 }
 
 pub fn app(pool: SqlitePool) -> Router {
-    let user_routes = users::routes(pool);
+    let user_routes = users::routes(pool.clone());
 
     Router::new()
         .merge(user_routes)
+        .merge(manuscripts::routes(pool))
         .merge(ai::routes())
         .layer(local_dev_cors())
 }

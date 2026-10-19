@@ -45,6 +45,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 | `prelude.rs` | Re-exports Error and Result |
 | `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming, and NDJSON event output. See [AI streaming context](.claude/context/ai-streaming.md) |
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
+| `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 
 ### Rust — Logging (`crates/log/src/`)
 
@@ -104,12 +105,17 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 
 ## API Routes
 
-**Rust backend** (`crates/api/src/users/`):
+**Rust backend** (`crates/api/src/`):
 - `GET /users` — List all users (JSON array)
 - `POST /users` — Create user (201 + JSON)
 - `GET /users/{id}` — Get user by ID (JSON or 404)
 - `PUT /users/{id}` — Partial update user (JSON, 404, or 422)
 - `DELETE /users/{id}` — Delete user (204 or 404)
+- `GET /series` — List series ordered by position, then ID (JSON array)
+- `POST /series` — Create series with nonblank title and nonnegative integer position (201 + JSON or 422)
+- `GET /series/{id}` — Get series by ID (JSON or 404)
+- `PUT /series/{id}` — Partial update title and/or position (JSON, 404, or 422); omitted/null fields stay unchanged
+- `DELETE /series/{id}` — Delete series and cascade children (204 or 404)
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
 
 **Bun frontend** (`app/src/index.tsx`):
