@@ -23,6 +23,7 @@ docs/          — QuillJS implementation guide
 | What | Command | File |
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
+| Lint and tests (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
@@ -53,7 +54,7 @@ Current AI browser calls assume the API is on `2908` and the frontend is on `300
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C |
+| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks with short output (logs in `target/xtask-lint/`) |
 
 ### Frontend (`app/src/`)
 
@@ -152,8 +153,10 @@ Default to using Bun instead of Node.js.
 ### Rust Conventions
 
 - `crates/delta` parity rule: the crate is a superset of JS `quill-delta` 5.1.0 (the version the browser runs). It may add functions but must never drop or change JS behavior: for every Delta `quill-delta` accepts that holds valid Unicode, parse/serialize, `compose`, `transform` and `transform_position` give exactly the JS JSON, including zero-length ops (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`) and odd ops (negative/fractional counts, several op keys, unknown keys, `"attributes": null`, embed retains; parsed as `Op::Raw`, lengths as `f64`). The only intended exception is half a UTF-16 surrogate pair (half an emoji), which returns a Rust error; `crates/delta/tests/fixtures.rs` pins those cases by count (9 parse-level, 7 compose inputs, 2 compose results) and any other mismatch must fail. Also matched (GUZ-718): array `attributes` (read as index-keyed objects), whole-number floats (`1.0` prints `1`; floats print like JS), non-object `ops` entries and extra top-level keys next to `ops` (ignored), and out-of-range numbers (`1e400` reads as `Infinity`, prints `null`; `Delta::from_json` only, since serde_json's own parser rejects them); `fixtures/delta/parse.json` pins these with raw JSON text, replayed by Rust only. Object key order is not preserved, and cases where JS throws are out of scope.
+- MSRV is Rust 1.95.0 or higher, set as `rust-version` in the workspace `Cargo.toml` and inherited by every member crate.
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
+- Tracked `.rs` files under `crates/` and `xtask/` must stay at or below 1000 lines (enforced by `cargo xtask lint`).
 - SQLx with compile-time checked queries (`.sqlx/` cache). See [SQLx offline context](.claude/context/sqlx-offline.md).
 - Errors via `thiserror` with manual `IntoResponse` for JSON responses. See [error handling context](.claude/context/error-handling.md).
 
