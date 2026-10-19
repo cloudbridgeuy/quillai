@@ -1,7 +1,9 @@
-use serde::de::{self, Deserializer};
+use serde::de::Deserializer;
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+use crate::number::{Js, JsMap};
 
 /// Attribute map. `Value::Null` means "remove this attribute" (as in quill-delta).
 pub type Attributes = Map<String, Value>;
@@ -41,7 +43,13 @@ pub enum Op {
     /// attributes, or a negative/fractional `retain`/`delete`. The map is kept
     /// verbatim; `compose`, `transform` and `transform_position` treat it the way
     /// quill-delta does (`delete` wins over `retain`, which wins over `insert`).
+    ///
+    /// A whole float ±1e18 in the map stands for ±Infinity (JSON such as `1e400`,
+    /// which JS reads as `Infinity`); it serializes as `null`, like JS.
     Raw(Map<String, Value>),
+    /// An `ops` entry that is not an object (`5`, `"s"`, `[1]`, `true`). quill-delta
+    /// keeps it as given; it has length 1 and otherwise acts like `{}`.
+    NonObject(Value),
 }
 
 impl Op {
@@ -91,7 +99,7 @@ impl Op {
             } => *n as f64,
             Op::Retain { .. } => 1.0,
             Op::Delete(n) => *n as f64,
-            Op::Raw(m) => crate::js::op_len(m),
+            Op::Raw(_) | Op::NonObject(_) => crate::js::op_len(&self.to_js()),
         }
     }
 
@@ -103,28 +111,56 @@ impl Op {
     pub fn attributes(&self) -> Option<&Attributes> {
         match self {
             Op::Insert { attributes, .. } | Op::Retain { attributes, .. } => attributes.as_ref(),
-            Op::Delete(_) => None,
+            Op::Delete(_) | Op::NonObject(_) => None,
             Op::Raw(m) => m.get("attributes").and_then(Value::as_object),
         }
     }
 
-    /// The op as a plain JSON object (what `serde_json::to_value` gives).
-    pub(crate) fn to_js(&self) -> Map<String, Value> {
-        match serde_json::to_value(self) {
-            Ok(Value::Object(m)) => m,
-            _ => unreachable!("an Op always serializes to an object"),
+    /// True for ops only the JS port handles ([`Op::Raw`], [`Op::NonObject`]).
+    pub(crate) fn is_odd(&self) -> bool {
+        matches!(self, Op::Raw(_) | Op::NonObject(_))
+    }
+
+    /// The op as the plain JSON value quill-delta holds (Infinity markers kept).
+    pub(crate) fn to_js(&self) -> Value {
+        let mut m = Map::new();
+        let attributes = match self {
+            Op::Raw(r) => return Value::Object(r.clone()),
+            Op::NonObject(v) => return v.clone(),
+            Op::Insert { insert, attributes } => {
+                let v = match insert {
+                    Insert::Text(t) => Value::String(t.clone()),
+                    Insert::Embed(e) => Value::Object(e.clone()),
+                };
+                m.insert("insert".into(), v);
+                attributes
+            }
+            Op::Retain { retain, attributes } => {
+                let v = match retain {
+                    Retain::Count(n) => Value::from(*n),
+                    Retain::Embed(e) => Value::Object(e.clone()),
+                };
+                m.insert("retain".into(), v);
+                attributes
+            }
+            Op::Delete(n) => {
+                m.insert("delete".into(), Value::from(*n));
+                &None
+            }
+        };
+        if let Some(a) = attributes {
+            m.insert("attributes".into(), Value::Object(a.clone()));
         }
+        Value::Object(m)
     }
 
     /// Typed op when the object has exactly the canonical shape, `Op::Raw` otherwise.
-    pub(crate) fn from_js(mut m: Map<String, Value>) -> Op {
-        for key in ["retain", "delete"] {
-            if let Some(Value::Number(n)) = m.get(key) {
-                if let Some(f) = n.as_f64() {
-                    m.insert(key.to_string(), crate::js::num_value(f));
-                }
-            }
-        }
+    /// Numbers must already be canonical (see `number.rs`).
+    pub(crate) fn from_js(v: Value) -> Op {
+        let m = match v {
+            Value::Object(m) => m,
+            v => return Op::NonObject(v),
+        };
         let attributes = match m.get("attributes") {
             None => Some(None),
             Some(Value::Object(a)) => Some(Some(a.clone())),
@@ -179,14 +215,16 @@ impl Op {
 
 impl Serialize for Op {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if let Op::Raw(m) = self {
-            return m.serialize(s);
+        match self {
+            Op::Raw(m) => return JsMap(m).serialize(s),
+            Op::NonObject(v) => return Js(v).serialize(s),
+            _ => {}
         }
         let (attrs, n) = match self {
             Op::Insert { attributes, .. } | Op::Retain { attributes, .. } => {
                 (attributes.as_ref(), 1 + usize::from(attributes.is_some()))
             }
-            Op::Delete(_) | Op::Raw(_) => (None, 1),
+            Op::Delete(_) | Op::Raw(_) | Op::NonObject(_) => (None, 1),
         };
         let mut m = s.serialize_map(Some(n))?;
         match self {
@@ -197,7 +235,7 @@ impl Serialize for Op {
             Op::Insert {
                 insert: Insert::Embed(e),
                 ..
-            } => m.serialize_entry("insert", e)?,
+            } => m.serialize_entry("insert", &JsMap(e))?,
             Op::Retain {
                 retain: Retain::Count(c),
                 ..
@@ -205,12 +243,12 @@ impl Serialize for Op {
             Op::Retain {
                 retain: Retain::Embed(e),
                 ..
-            } => m.serialize_entry("retain", e)?,
+            } => m.serialize_entry("retain", &JsMap(e))?,
             Op::Delete(c) => m.serialize_entry("delete", c)?,
-            Op::Raw(_) => unreachable!("handled above"),
+            Op::Raw(_) | Op::NonObject(_) => unreachable!("handled above"),
         }
         if let Some(a) = attrs {
-            m.serialize_entry("attributes", a)?;
+            m.serialize_entry("attributes", &JsMap(a))?;
         }
         m.end()
     }
@@ -218,13 +256,8 @@ impl Serialize for Op {
 
 impl<'de> Deserialize<'de> for Op {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Op, D::Error> {
-        parse_op(Map::<String, Value>::deserialize(d)?)
+        let mut v = Value::deserialize(d)?;
+        crate::number::normalize(&mut v, false);
+        Ok(Op::from_js(v))
     }
-}
-
-/// Accept any JSON object, like quill-delta (which never validates ops): canonical
-/// shapes become typed variants, everything else (`{}`, `{"insert":5}`,
-/// `{"retain":"3"}`, ...) is kept verbatim as [`Op::Raw`].
-fn parse_op<E: de::Error>(m: Map<String, Value>) -> Result<Op, E> {
-    Ok(Op::from_js(m))
 }

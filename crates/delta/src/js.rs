@@ -1,26 +1,21 @@
 //! Faithful port of the quill-delta 5.1.0 pieces that `compose`, `transform` and
 //! `transform_position` rely on, working on plain JSON objects with `f64` lengths so
 //! that odd-but-accepted ops (negative or fractional counts, several op keys, unknown
-//! keys, `"attributes": null`) behave exactly like the JS library.
+//! keys, `"attributes": null`, array attributes, non-object entries, Infinity)
+//! behave exactly like the JS library.
 
-use serde_json::{Map, Number, Value};
+use serde_json::{Map, Value};
 
 use crate::error::{DeltaError, SPLIT_SURROGATE_MSG};
+use crate::number::js_f64;
+pub(crate) use crate::number::num_value;
 
-pub(crate) type JOp = Map<String, Value>;
-
-/// A JSON number for a JS number: integers print without a fraction, like `JSON.stringify`.
-pub(crate) fn num_value(f: f64) -> Value {
-    if f.fract() == 0.0 && f.abs() < 9.0e15 {
-        Value::Number(Number::from(f as i64))
-    } else {
-        Number::from_f64(f).map_or(Value::Null, Value::Number)
-    }
-}
+/// An `ops` entry as quill-delta holds it: usually an object, but any JSON value.
+pub(crate) type JOp = Value;
 
 fn num(v: Option<&Value>) -> Option<f64> {
     match v {
-        Some(Value::Number(n)) => n.as_f64(),
+        Some(Value::Number(n)) => Some(js_f64(n)),
         _ => None,
     }
 }
@@ -68,9 +63,41 @@ pub(crate) fn op_len(op: &JOp) -> f64 {
     }
 }
 
-/// `op.attributes` as an attribute map: `AttributeMap` treats any non-object as `{}`.
-fn attrs(op: &JOp) -> Option<&Map<String, Value>> {
-    op.get("attributes").and_then(Value::as_object)
+fn attrs(op: &JOp) -> Option<&Value> {
+    op.get("attributes")
+}
+
+/// `Object.keys(v)` for a JS object or array (array indices as strings).
+fn keys(v: &Value) -> Vec<String> {
+    match v {
+        Value::Object(m) => m.keys().cloned().collect(),
+        Value::Array(a) => (0..a.len()).map(|i| i.to_string()).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// A canonical JS array index (`"0"`, `"12"`, not `"01"`).
+fn array_index(k: &str) -> Option<usize> {
+    let i: u32 = k.parse().ok()?;
+    (i.to_string() == k && i < u32::MAX).then_some(i as usize)
+}
+
+/// `v[k] !== undefined` for a JS object or array (arrays also have `length`).
+fn has(v: &Value, k: &str) -> bool {
+    match v {
+        Value::Object(m) => m.contains_key(k),
+        Value::Array(a) => k == "length" || array_index(k).is_some_and(|i| i < a.len()),
+        _ => false,
+    }
+}
+
+/// `v[k]` for a key from `keys(v)`.
+fn get<'a>(v: &'a Value, k: &str) -> Option<&'a Value> {
+    match v {
+        Value::Object(m) => m.get(k),
+        Value::Array(a) => array_index(k).and_then(|i| a.get(i)),
+        _ => None,
+    }
 }
 
 /// JS `String.prototype.substr(start, len)` over UTF-16 units.
@@ -154,11 +181,10 @@ impl<'a> It<'a> {
         } else {
             length
         };
-        let mut out = JOp::new();
+        let mut out = Map::new();
         let Some(op) = self.peek() else {
-            // Infinity cannot be JSON; it is only ever used as "a number".
-            out.insert("retain".into(), num_value(f64::MAX));
-            return Ok(out);
+            out.insert("retain".into(), num_value(f64::INFINITY));
+            return Ok(Value::Object(out));
         };
         let offset = self.offset;
         let op_length = op_len(op);
@@ -170,7 +196,7 @@ impl<'a> It<'a> {
         }
         if delete_n(op).is_some() {
             out.insert("delete".into(), num_value(length));
-            return Ok(out);
+            return Ok(Value::Object(out));
         }
         // `if (nextOp.attributes)`: any truthy value is copied as is.
         if truthy(op.get("attributes")) {
@@ -188,7 +214,7 @@ impl<'a> It<'a> {
         } else if let Some(v) = op.get("insert") {
             out.insert("insert".into(), v.clone());
         }
-        Ok(out)
+        Ok(Value::Object(out))
     }
 
     pub(crate) fn rest(&mut self) -> Result<Vec<JOp>, DeltaError> {
@@ -214,18 +240,20 @@ fn attr_eq(a: &JOp, b: &JOp) -> bool {
 
 /// quill-delta's `Delta.push` on a plain op list.
 pub(crate) fn push(ops: &mut Vec<JOp>, new: JOp) {
+    // `typeof lastOp === 'object'` (`null` would make JS throw).
+    let object = |o: &JOp| matches!(o, Value::Object(_) | Value::Array(_) | Value::Null);
     let mut index = ops.len();
-    if index > 0 {
+    if index > 0 && object(&ops[index - 1]) {
         let last = &ops[index - 1];
         if let (Some(a), Some(b)) = (delete_n(&new), delete_n(last)) {
-            let mut m = JOp::new();
+            let mut m = Map::new();
             m.insert("delete".into(), num_value(a + b));
-            ops[index - 1] = m;
+            ops[index - 1] = Value::Object(m);
             return;
         }
         if delete_n(last).is_some() && new.get("insert").is_some_and(|v| !v.is_null()) {
             index -= 1;
-            if index == 0 {
+            if index == 0 || !object(&ops[index - 1]) {
                 ops.insert(0, new);
                 return;
             }
@@ -242,14 +270,14 @@ pub(crate) fn push(ops: &mut Vec<JOp>, new: JOp) {
                 },
             };
             if let Some((key, value)) = merged {
-                let mut m = JOp::new();
+                let mut m = Map::new();
                 m.insert(key.into(), value);
                 if let Some(a) = new.get("attributes") {
                     if a.is_null() || is_js_object(Some(a)) {
                         m.insert("attributes".into(), a.clone());
                     }
                 }
-                ops[index - 1] = m;
+                ops[index - 1] = Value::Object(m);
                 return;
             }
         }
@@ -266,62 +294,80 @@ pub(crate) fn chop(ops: &mut Vec<JOp>) {
     }
 }
 
-/// `Delta.retain(length, attributes)`: a non-positive number is dropped.
-fn push_retain(ops: &mut Vec<JOp>, length: Value, attributes: Option<Map<String, Value>>) {
+/// `Delta.retain(length, attributes)`: a non-positive number is dropped; attributes
+/// are kept if they are an object or array with at least one key.
+fn push_retain(ops: &mut Vec<JOp>, length: Value, attributes: Option<Value>) {
     if let Value::Number(n) = &length {
-        if n.as_f64().is_some_and(|f| f <= 0.0) {
+        if js_f64(n) <= 0.0 {
             return;
         }
     }
-    let mut m = JOp::new();
+    let mut m = Map::new();
     m.insert("retain".into(), length);
-    if let Some(a) = attributes.filter(|a| !a.is_empty()) {
-        m.insert("attributes".into(), Value::Object(a));
+    if let Some(a) = attributes.filter(|a| !keys(a).is_empty()) {
+        m.insert("attributes".into(), a);
     }
-    push(ops, m);
+    push(ops, Value::Object(m));
 }
 
-fn compose_attrs(
-    a: Option<&Map<String, Value>>,
-    b: Option<&Map<String, Value>>,
-    keep_null: bool,
-) -> Option<Map<String, Value>> {
+/// `AttributeMap.compose`. Non-objects count as `{}`; arrays are objects whose keys
+/// are their indices. With `keep_null` an array `b` stays an array; keys of `a` that
+/// are not indices then land on it as properties `JSON.stringify` leaves out.
+fn compose_attrs(a: Option<&Value>, b: Option<&Value>, keep_null: bool) -> Option<Value> {
+    let empty = Value::Object(Map::new());
+    let a = a.filter(|v| is_js_object(Some(v))).unwrap_or(&empty);
+    let b = b.filter(|v| is_js_object(Some(v))).unwrap_or(&empty);
+    let from_a = keys(a).into_iter().filter(|k| !has(b, k));
+    if let (true, Value::Array(arr)) = (keep_null, b) {
+        let mut arr = arr.clone();
+        let mut hidden = false;
+        for k in from_a {
+            let v = get(a, &k).cloned().unwrap_or(Value::Null);
+            match array_index(&k) {
+                Some(i) => {
+                    if i >= arr.len() {
+                        // Holes serialize as `null`.
+                        arr.resize(i + 1, Value::Null);
+                    }
+                    arr[i] = v;
+                }
+                None => hidden = true,
+            }
+        }
+        return (!arr.is_empty() || hidden).then_some(Value::Array(arr));
+    }
     let mut out = Map::new();
-    if let Some(b) = b {
-        for (k, v) in b {
-            if keep_null || !v.is_null() {
-                out.insert(k.clone(), v.clone());
-            }
+    for k in keys(b) {
+        let v = get(b, &k).expect("own key");
+        if keep_null || !v.is_null() {
+            out.insert(k, v.clone());
         }
     }
-    if let Some(a) = a {
-        for (k, v) in a {
-            if !b.is_some_and(|b| b.contains_key(k)) {
-                out.insert(k.clone(), v.clone());
-            }
-        }
+    for k in from_a {
+        let v = get(a, &k).expect("own key").clone();
+        out.insert(k, v);
     }
-    (!out.is_empty()).then_some(out)
+    (!out.is_empty()).then_some(Value::Object(out))
 }
 
-fn transform_attrs(
-    a: Option<&Map<String, Value>>,
-    b: Option<&Map<String, Value>>,
-    priority: bool,
-) -> Option<Map<String, Value>> {
-    let Some(a) = a else {
+/// `AttributeMap.transform`.
+fn transform_attrs(a: Option<&Value>, b: Option<&Value>, priority: bool) -> Option<Value> {
+    let Some(a) = a.filter(|v| is_js_object(Some(v))) else {
         return b.cloned();
     };
-    let b = b?;
+    let b = b.filter(|v| is_js_object(Some(v)))?;
     if !priority {
         return Some(b.clone());
     }
-    let out: Map<String, Value> = b
-        .iter()
-        .filter(|(k, _)| !a.contains_key(*k))
-        .map(|(k, v)| (k.clone(), v.clone()))
+    let out: Map<String, Value> = keys(b)
+        .into_iter()
+        .filter(|k| !has(a, k))
+        .map(|k| {
+            let v = get(b, &k).expect("own key").clone();
+            (k, v)
+        })
         .collect();
-    (!out.is_empty()).then_some(out)
+    (!out.is_empty()).then_some(Value::Object(out))
 }
 
 pub(crate) fn compose(a: &[JOp], b: &[JOp]) -> Result<Vec<JOp>, DeltaError> {
@@ -358,7 +404,7 @@ pub(crate) fn compose(a: &[JOp], b: &[JOp]) -> Result<Vec<JOp>, DeltaError> {
             let other_op = oth.next(length)?;
             let other_retain = other_op.get("retain");
             if truthy(other_retain) {
-                let mut new_op = JOp::new();
+                let mut new_op = Map::new();
                 let this_retain = this_op.get("retain");
                 let this_is_count = matches!(this_retain, Some(Value::Number(_)));
                 if this_is_count {
@@ -386,8 +432,9 @@ pub(crate) fn compose(a: &[JOp], b: &[JOp]) -> Result<Vec<JOp>, DeltaError> {
                     ));
                 }
                 if let Some(a) = compose_attrs(attrs(&this_op), attrs(&other_op), this_is_count) {
-                    new_op.insert("attributes".into(), Value::Object(a));
+                    new_op.insert("attributes".into(), a);
                 }
+                let new_op = Value::Object(new_op);
                 push(&mut delta, new_op.clone());
                 if !oth.has_next() && delta.last() == Some(&new_op) {
                     let mut rest = this.rest()?.into_iter();

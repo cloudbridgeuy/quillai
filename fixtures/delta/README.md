@@ -12,6 +12,7 @@ Each file is an array of `{ name, input, expected }`. Deltas use Quill wire JSON
 | transform_position.json | `{delta, index, priority}` | integer from `delta.transformPosition(index, priority)` |
 | invert.json | `{change, base}` | `change.invert(base)` |
 | diff.json | `{a, b, cursor?}` | `a.diff(b, cursor)` |
+| parse.json | `{op, a, b?, index?, priority?}` with `a`/`b` raw JSON text | JSON text of `new Delta(JSON.parse(a))` after `op` (`parse`, `compose`, `transform`); `String(x)` for `transform_position`. Replayed by Rust only (`crates/delta/tests/fixtures.rs`). |
 
 ## Length semantics (important for Rust)
 

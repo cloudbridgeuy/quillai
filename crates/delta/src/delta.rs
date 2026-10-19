@@ -1,8 +1,19 @@
 use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize};
 
+use serde_json::Value;
+
 use crate::error::{is_split_surrogate_message, DeltaError, SPLIT_SURROGATE_MSG};
+use crate::number::{normalize, prescan, JsFormatter};
 use crate::op::{Insert, Op, Retain};
+
+fn classify(e: serde_json::Error) -> DeltaError {
+    if e.to_string().contains(SPLIT_SURROGATE_MSG) {
+        DeltaError::SplitSurrogate(e.to_string())
+    } else {
+        DeltaError::Json(e)
+    }
+}
 
 /// A Quill Delta: an ordered list of ops.
 ///
@@ -14,24 +25,18 @@ pub struct Delta {
     pub ops: Vec<Op>,
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DeltaWire {
-    ops: Vec<Op>,
-}
-
 /// The single parse path: `from_json` and `serde_json::from_str::<Delta>` both
 /// go through here, so split surrogate pairs get the same error wording.
 impl<'de> Deserialize<'de> for Delta {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Delta, D::Error> {
-        let wire = DeltaWire::deserialize(d).map_err(|e| {
+        let v = Value::deserialize(d).map_err(|e| {
             if is_split_surrogate_message(&e.to_string()) {
                 de::Error::custom(SPLIT_SURROGATE_MSG)
             } else {
                 e
             }
         })?;
-        Ok(Delta { ops: wire.ops })
+        Delta::from_value(v, false).map_err(de::Error::custom)
     }
 }
 
@@ -40,19 +45,44 @@ impl Delta {
         Self::default()
     }
 
-    /// Parse a Delta from Quill JSON, with clear errors (including split surrogate pairs).
+    /// Like `new Delta(JSON.parse(json))`: the object's `ops` array is kept as given
+    /// (non-object entries too) and other top-level keys are ignored. Whole numbers
+    /// become integers (`1.0` is `1`); numbers too large for `f64` read as ±Infinity,
+    /// like `JSON.parse` (only this entry point: `serde_json`'s parser rejects them).
     pub fn from_json(json: &str) -> Result<Delta, DeltaError> {
-        serde_json::from_str(json).map_err(|e| {
-            if e.to_string().contains(SPLIT_SURROGATE_MSG) {
-                DeltaError::SplitSurrogate(e.to_string())
-            } else {
-                DeltaError::Json(e)
+        let v = match serde_json::from_str::<Value>(&prescan(json)) {
+            Ok(v) => v,
+            // Same wording as the `Deserialize` path.
+            Err(e) => {
+                return Err(classify(
+                    serde_json::from_str::<Delta>(json).err().unwrap_or(e),
+                ))
             }
-        })
+        };
+        Delta::from_value(v, true).map_err(|m| DeltaError::Json(de::Error::custom(m)))
     }
 
+    /// `JSON.stringify(delta)` (up to object key order): floats print like JS and
+    /// Infinity as `null`.
     pub fn to_json(&self) -> String {
-        serde_json::to_string(self).expect("Delta serialization is infallible")
+        let mut out = Vec::new();
+        let mut ser = serde_json::Serializer::with_formatter(&mut out, JsFormatter);
+        self.serialize(&mut ser)
+            .expect("Delta serialization is infallible");
+        String::from_utf8(out).expect("serde_json writes UTF-8")
+    }
+
+    fn from_value(mut v: Value, keep_inf: bool) -> Result<Delta, &'static str> {
+        normalize(&mut v, keep_inf);
+        match v {
+            Value::Object(mut m) => match m.remove("ops") {
+                Some(Value::Array(ops)) => Ok(Delta {
+                    ops: ops.into_iter().map(Op::from_js).collect(),
+                }),
+                _ => Err("missing `ops` array"),
+            },
+            _ => Err("expected a `{\"ops\":[...]}` object"),
+        }
     }
 
     /// quill-delta `length()`: the sum of [`Op::len`] in JS numbers.
@@ -71,7 +101,7 @@ impl Delta {
     /// with equal attributes merge.
     pub fn push(&mut self, op: Op) -> &mut Self {
         let tail = self.ops.len().saturating_sub(2);
-        if matches!(op, Op::Raw(_)) || self.ops[tail..].iter().any(|o| matches!(o, Op::Raw(_))) {
+        if op.is_odd() || self.ops[tail..].iter().any(Op::is_odd) {
             // Odd ops (see `Op::Raw`) go through the exact JS port.
             let mut js_tail: Vec<_> = self.ops[tail..].iter().map(Op::to_js).collect();
             crate::js::push(&mut js_tail, op.to_js());
@@ -88,7 +118,7 @@ impl Delta {
                     return self;
                 }
                 Op::Insert { .. } => index -= 1,
-                Op::Retain { .. } | Op::Raw(_) => {}
+                Op::Retain { .. } | Op::Raw(_) | Op::NonObject(_) => {}
             }
         }
         if index > 0 {
@@ -213,16 +243,22 @@ mod tests {
             let d = Delta::from_json(wire).unwrap();
             assert!(matches!(d.ops[0], Op::Raw(_)), "{wire}");
             let back: serde_json::Value = serde_json::from_str(&d.to_json()).unwrap();
-            assert_eq!(back, serde_json::from_str::<serde_json::Value>(wire).unwrap());
+            assert_eq!(
+                back,
+                serde_json::from_str::<serde_json::Value>(wire).unwrap()
+            );
             assert_eq!(d.len(), 1.0, "{wire}");
         }
-        assert!(Delta::from_json(r#"{"ops":[5]}"#).is_err());
+        // Non-object entries and extra top-level keys are accepted too.
+        let d = Delta::from_json(r#"{"ops":[5,"s",[1],true,null],"x":1}"#).unwrap();
+        assert!(d.ops.iter().all(|o| matches!(o, Op::NonObject(_))));
+        assert_eq!(d.to_json(), r#"{"ops":[5,"s",[1],true,null]}"#);
     }
 
     #[test]
     fn lengths_are_js_numbers() {
-        let d = Delta::from_json(r#"{"ops":[{"retain":-2},{"delete":1.5},{"insert":"ab"}]}"#)
-            .unwrap();
+        let d =
+            Delta::from_json(r#"{"ops":[{"retain":-2},{"delete":1.5},{"insert":"ab"}]}"#).unwrap();
         assert_eq!(d.ops[0].len(), -2.0);
         assert_eq!(d.ops[1].len(), 1.5);
         assert_eq!(d.len(), 1.5);

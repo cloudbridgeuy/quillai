@@ -232,3 +232,89 @@ fn fixtures_replay_compose_transform_position() {
         assert_eq!(ran + half.len() + cuts.len(), cases.len(), "{file}");
     }
 }
+
+/// JSON number literals outside strings, sorted: compares number formatting exactly
+/// even though object key order differs.
+fn number_tokens(json: &str) -> Vec<&str> {
+    let b = json.as_bytes();
+    let (mut out, mut i) = (Vec::new(), 0);
+    while i < b.len() {
+        match b[i] {
+            b'"' => {
+                i += 1;
+                while b[i] != b'"' {
+                    i += if b[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+            }
+            b'-' | b'0'..=b'9' => {
+                let start = i;
+                while i < b.len() && matches!(b[i], b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')
+                {
+                    i += 1;
+                }
+                out.push(&json[start..i]);
+            }
+            _ => i += 1,
+        }
+    }
+    out.sort_unstable();
+    out
+}
+
+fn js_number(s: &str) -> f64 {
+    match s {
+        "Infinity" => f64::INFINITY,
+        "-Infinity" => f64::NEG_INFINITY,
+        "NaN" => f64::NAN,
+        s => s.parse().unwrap(),
+    }
+}
+
+/// `parse.json`: raw JSON text inputs (whole-number floats, number formatting, numbers
+/// beyond f64 that JS reads as Infinity, extra top-level keys, non-object ops). The
+/// expected values are JS's exact JSON text; all of them must match.
+#[test]
+fn fixtures_replay_raw_json_text() {
+    let raw = fs::read_to_string(dir().join("parse.json")).unwrap();
+    let cases: Vec<Value> = serde_json::from_str(&raw).unwrap();
+    let mut ran = 0;
+    for case in &cases {
+        let ctx = format!("parse/{}", case["name"].as_str().unwrap());
+        let input = &case["input"];
+        let expected = case["expected"].as_str().unwrap();
+        let parse = |k: &str| {
+            Delta::from_json(input[k].as_str().unwrap()).unwrap_or_else(|e| panic!("{ctx}: {e}"))
+        };
+        let a = parse("a");
+        let priority = input["priority"].as_bool().unwrap_or(false);
+        let got = match input["op"].as_str().unwrap() {
+            "parse" => a.to_json(),
+            "compose" => a
+                .compose(&parse("b"))
+                .unwrap_or_else(|e| panic!("{ctx}: {e}"))
+                .to_json(),
+            "transform" => a.transform(&parse("b"), priority).to_json(),
+            "transform_position" => {
+                let got = a.transform_position(input["index"].as_f64().unwrap(), priority);
+                let want = js_number(expected);
+                assert!(
+                    got == want || (got.is_nan() && want.is_nan()),
+                    "{ctx}: {got} != {want}"
+                );
+                ran += 1;
+                continue;
+            }
+            op => panic!("{ctx}: unknown op {op}"),
+        };
+        let (g, w): (Value, Value) = (
+            serde_json::from_str(&got).unwrap(),
+            serde_json::from_str(expected).unwrap(),
+        );
+        assert_eq!(g, w, "{ctx}");
+        assert_eq!(number_tokens(&got), number_tokens(expected), "{ctx}: {got}");
+        ran += 1;
+    }
+    println!("parse: replayed {ran}");
+    assert!(ran > 1000);
+}

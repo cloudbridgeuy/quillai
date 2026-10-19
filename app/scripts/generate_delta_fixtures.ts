@@ -150,6 +150,21 @@ const odd: Record<string, Ops> = {
   insAttrFalse: [{ insert: "a", attributes: false } as any],
   retAttrNum: [{ retain: 2, attributes: 7 } as any],
   retAttrZero: [{ retain: 2, attributes: 0 } as any],
+  retAttrStr: [{ retain: 2, attributes: "xy" } as any],
+  // array attributes: AttributeMap reads them as objects keyed by index
+  insAttrArr: [{ insert: "ab", attributes: ["x", "y"] } as any],
+  insAttrArrTwice: [{ insert: "a", attributes: ["b"] } as any, { insert: "c", attributes: ["b"] } as any],
+  retAttrArr: [{ retain: 2, attributes: ["q", null] } as any],
+  retAttrArrLong: [{ retain: 1, attributes: ["p", "q", "r"] } as any, { insert: "s" }],
+  retAttrArrEmpty: [{ retain: 3, attributes: [] } as any],
+  embedRetAttrArr: [{ retain: { image: "x" }, attributes: ["u"] } as any],
+  // non-object ops entries: kept as given, length 1, act like {}
+  nonObjNum: [5 as any],
+  nonObjMid: [{ insert: "ab" }, 5 as any, { retain: 1 }],
+  nonObjStr: ["s" as any, { retain: 1 }],
+  nonObjArr: [[1] as any, { delete: 1 }],
+  nonObjBool: [{ retain: 1 }, true as any, { insert: "q" }],
+  nonObjAfterDel: [7 as any, { delete: 1 }],
 };
 const oddNames = Object.keys(odd);
 const all: Record<string, Ops> = { ...pool, ...odd };
@@ -180,6 +195,56 @@ for (const an of oddNames) {
   for (const index of [0, 1, 2, 3, 5, 8]) for (const priority of [true, false]) {
     const p = attempt(() => A.transformPosition(index, priority));
     if (p.ok) out.transform_position!.push({ name: `transformPosition ${an} index=${index} priority=${priority}`, input: { delta: wire(A), index, priority }, expected: p.v });
+  }
+}
+
+// Raw JSON text (GUZ-718) for what JSON.stringify would already have changed in the
+// pools above: whole-number floats, number formatting, numbers beyond f64 (JSON.parse
+// reads them as Infinity), extra top-level keys. `new Delta(JSON.parse(text))` is what
+// a browser does with a Delta from the wire. Written to parse.json; expected values
+// are JSON text (exact number formatting), transformPosition results are String(x).
+// Replayed by crates/delta/tests/fixtures.rs only.
+const raw: Record<string, string> = {
+  floatWhole: `{"ops":[{"insert":"a","attributes":{"header":1.0,"size":2e1,"w":-0.0}},{"retain":2.0},{"delete":3.00}]}`,
+  floatAttrMerge: `{"ops":[{"insert":"a","attributes":{"h":1.0}},{"insert":"b","attributes":{"h":1}}]}`,
+  floatRetainMerge: `{"ops":[{"retain":1.0,"attributes":{"x":[2.0]}},{"retain":1,"attributes":{"x":[2]}}]}`,
+  floatFormat: `{"ops":[{"insert":{"image":"x","w":1e20,"h":1e21,"r":0.000001,"s":1e-7,"t":1.5e300,"u":-2.5e-9,"v":123.4560}}]}`,
+  floatBig: `{"ops":[{"retain":1,"attributes":{"n":18446744073709551616,"m":-9223372036854775809}}]}`,
+  extraKeys: `{"ops":[{"insert":"ab"},{"retain":1}],"extra":{"x":1},"y":[1e400]}`,
+  extraKeysOnly: `{"ops":[],"note":"n"}`,
+  nonObjectOps: `{"ops":[5,{"insert":"a"},"s",[1,{"insert":"x"}],true,{"retain":2}]}`,
+  infRetain: `{"ops":[{"retain":1e400}]}`,
+  infRetainAttr: `{"ops":[{"retain":1e400,"attributes":{"bold":true}}]}`,
+  infRetainMid: `{"ops":[{"retain":1},{"retain":1e999},{"insert":"z"}]}`,
+  infDelete: `{"ops":[{"insert":"x"},{"delete":-1e400}]}`,
+  infDeletePos: `{"ops":[{"delete":1e400}]}`,
+  infAttr: `{"ops":[{"insert":"ab","attributes":{"w":1e400}},{"insert":"c","attributes":{"w":null}}]}`,
+  infAttrRetain: `{"ops":[{"retain":2,"attributes":{"w":-1e400,"bold":null}}]}`,
+  infInsert: `{"ops":[{"insert":-1e400},{"insert":"k"}]}`,
+  infEmbed: `{"ops":[{"insert":{"image":1e400,"list":[1e400,-1e400]}}]}`,
+  // 1e15 is how Rust holds Infinity internally; as a literal it must stay a number.
+  infMarkerLiteral: `{"ops":[{"retain":1e15},{"insert":"a","attributes":{"w":1.0e15,"v":-1E15,"u":1e18,"t":9007199254740993}}]}`,
+};
+const partners = ["text", "mixed", "retain3", "retainBold", "retainUnbold", "delete2", "insMid", "embedOnly", "zeroMix", "retainDelete", "insAttrArr", "nonObjMid"];
+const P = (t: string) => new Delta(JSON.parse(t));
+const parseOut: { name: string; input: Record<string, unknown>; expected: unknown }[] = [];
+const texts: Record<string, string> = { ...raw };
+for (const n of partners) texts[n] = JSON.stringify({ ops: all[n]! });
+for (const [an, at] of Object.entries(raw)) {
+  parseOut.push({ name: `parse ${an}`, input: { op: "parse", a: at }, expected: JSON.stringify(P(at)) });
+  for (const index of [0, 1, 2, 3, 5]) for (const priority of [true, false]) {
+    const p = attempt(() => String(P(at).transformPosition(index, priority)));
+    if (p.ok) parseOut.push({ name: `transformPosition ${an} index=${index} priority=${priority}`, input: { op: "transform_position", a: at, index, priority }, expected: p.v });
+  }
+  for (const [bn, bt] of Object.entries(texts)) {
+    for (const [x, xt, y, yt] of bn in raw ? [[an, at, bn, bt]] : [[an, at, bn, bt], [bn, bt, an, at]]) {
+      const c = attempt(() => JSON.stringify(P(xt!).compose(P(yt!))));
+      if (c.ok) parseOut.push({ name: `compose ${x} then ${y}`, input: { op: "compose", a: xt, b: yt }, expected: c.v });
+      for (const priority of [true, false]) {
+        const t = attempt(() => JSON.stringify(P(xt!).transform(P(yt!), priority)));
+        if (t.ok) parseOut.push({ name: `transform ${x} vs ${y} priority=${priority}`, input: { op: "transform", a: xt, b: yt, priority }, expected: t.v });
+      }
+    }
   }
 }
 
@@ -248,7 +313,9 @@ for (const a of dn) for (const b of dn) {
 
 const dir = join(import.meta.dir, "../../fixtures/delta");
 mkdirSync(dir, { recursive: true });
-let total = 0;
+writeFileSync(join(dir, "parse.json"), JSON.stringify(parseOut, null, 2) + "\n");
+console.log(`parse: ${parseOut.length}`);
+let total = parseOut.length;
 for (const [op, cases] of Object.entries(out)) {
   writeFileSync(join(dir, `${op}.json`), JSON.stringify(cases, null, 2) + "\n");
   console.log(`${op}: ${cases.length}`);

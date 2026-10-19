@@ -30,7 +30,11 @@
 //! quill-delta never validates ops, so any JSON object is an op here too: odd ones
 //! (negative or fractional counts, several or none of `insert`/`retain`/`delete`,
 //! values of other types such as `{"insert":5}` or `{"retain":"3"}`, unknown keys,
-//! non-object `attributes`) parse into [`Op::Raw`] and are handled exactly like JS.
+//! non-object or array `attributes`) parse into [`Op::Raw`] and are handled exactly
+//! like JS; `ops` entries that are not objects (`5`, `"s"`) are [`Op::NonObject`], and
+//! keys next to `ops` are ignored, like `new Delta(obj)`. Numbers are JS numbers:
+//! [`Delta::from_json`] reads `1.0` as `1` and `1e400` as Infinity, and
+//! [`Delta::to_json`] prints floats like `JSON.stringify` (Infinity as `null`).
 //! Every function named after a JS one works in JS numbers (`f64`): [`Op::len`],
 //! [`Delta::len`] and [`Delta::transform_position`] return exactly what JS returns.
 //! Known limits: object key order is not preserved (serde_json sorts keys), and where
@@ -42,6 +46,7 @@ mod compose;
 mod delta;
 mod error;
 mod js;
+mod number;
 mod op;
 
 pub use delta::Delta;
