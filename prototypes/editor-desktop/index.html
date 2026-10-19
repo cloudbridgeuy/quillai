@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>QuillAI desktop writing view (prototype)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="style.css"></head>
+<body data-effect="tint">
+<div id="savebar" class="savebar" role="status" aria-live="polite"><span class="dot"></span><span id="savetext">Saved</span><span id="savesub" class="sub"></span></div>
+
+<nav class="rail left" aria-label="Navigation">
+  <button data-panel="nav" title="Manuscript (Ctrl/Cmd+[)" aria-label="Manuscript">&#9776;</button>
+</nav>
+<nav class="rail right" aria-label="AI tools">
+  <button id="btn-continue" title="Continue" aria-label="Continue">&#10148;</button>
+  <button id="btn-edit" title="Edit selection" aria-label="Edit selection">&#9998;</button>
+  <button data-panel="ctx" title="Context inspector (Ctrl/Cmd+])" aria-label="Context inspector">&#9707;</button>
+  <button id="btn-settings" class="gear" title="Settings" aria-label="Settings">&#9881;</button>
+</nav>
+
+<aside id="panel-nav" class="panel left" aria-hidden="true">
+  <h2>Manuscript</h2>
+  <ul class="tree">
+    <li class="s">The Lantern Cycle
+      <ul><li class="b">Book 1 &middot; Salt and Ash
+        <ul><li class="c">Prologue</li><li class="c cur"><span class="flag blue">1 &middot; The Harbour at Dusk</span></li><li class="c">2 &middot; A Letter Unsent</li><li class="c">3 &middot; Low Tide</li></ul></li>
+        <li class="b">Book 2 &middot; The Glass Orchard</li></ul></li>
+    <li class="s">Short Stories</li>
+  </ul>
+</aside>
+<aside id="panel-ctx" class="panel right" aria-hidden="true">
+  <h2>Context inspector</h2>
+  <section><h3>System <em>locked</em></h3><p class="mono">You are a fiction co-writer. Continue in the author's voice&hellip;</p></section>
+  <section><h3>Author guidance <em>saved</em></h3>
+    <textarea class="postit yellow" rows="4" aria-label="Author guidance">Close third person, past tense. Spare, concrete imagery. Mara never says what she means.</textarea></section>
+  <section><h3>Lore in window <em id="lw-count"></em></h3><ul id="lorewin" class="lorewin"></ul></section>
+  <section><h3>History</h3><p class="mono">2 prior turns &middot; ~180 tokens</p></section>
+  <section><h3>Document</h3><p class="mono"><span class="sw blue"></span>Continue: 6 paragraphs before caret &middot; ~420 tokens<br><span class="sw lav"></span>Resume: 14 paragraphs before caret &middot; ~980 tokens</p></section>
+  <p class="note">Placeholder: only author guidance is editable in this mock.</p>
+</aside>
+
+<div id="pop" class="pop" hidden>
+  <h2>Settings</h2>
+  <label>Recenter
+    <select id="set-recenter"><option value="typing">while typing</option><option value="never">never</option></select></label>
+  <label>AI text effect
+    <select id="set-effect"><option value="none">none</option><option value="tint" selected>tinted ink</option><option value="hl">soft highlight</option><option value="fade">fade-in</option></select></label>
+  <label class="chk"><input type="checkbox" id="set-w-continue" checked> Show Continue window</label>
+  <label class="chk"><input type="checkbox" id="set-w-resume" checked> Show Resume window</label>
+  <label class="chk"><input type="checkbox" id="set-fail"> Simulate "Save stopped"</label>
+</div>
+
+<div id="editbox" class="editbox" role="dialog" aria-label="Edit instruction" hidden>
+  <div class="flag pink">Edit selection</div>
+  <textarea id="edit-instr" class="postit pink" rows="4" placeholder="How should the selected text change?"></textarea>
+  <div class="row"><small>Enter applies &middot; Esc cancels</small><button id="edit-apply" class="btn">Apply</button></div>
+</div>
+
+<div id="lore" class="lorecard" role="dialog" aria-label="Lore match" hidden>
+  <div class="flag lav">Lore match</div>
+  <h3 id="lore-name">Mara Vell</h3>
+  <p class="why" id="lore-why"></p>
+  <fieldset><legend>In AI requests</legend>
+    <label><input type="radio" name="lore-use" value="include"> Include</label>
+    <label><input type="radio" name="lore-use" value="hidden"> Known, don't reveal</label>
+    <label><input type="radio" name="lore-use" value="out"> Leave out</label>
+  </fieldset>
+  <div class="lvl"><span>Lore as of</span>
+    <select id="lore-book" aria-label="Book"><option value="1">Book 1 &middot; Salt and Ash</option><option value="2">Book 2 &middot; The Glass Orchard</option></select>
+    <select id="lore-ch" aria-label="Chapter"><option value="0">Prologue</option><option value="1">Ch. 1 (current)</option><option value="2">Ch. 2</option><option value="3">Ch. 3</option></select></div>
+  <textarea id="lore-note" class="postit green" rows="2" placeholder="Note for the AI about this match&hellip;"></textarea>
+  <div class="row"><button id="lore-ignore" class="link">Ignore this match</button><small>Alt+L opens &middot; Esc closes</small></div>
+</div>
+
+<main id="scroller">
+  <div id="wrap" class="wrap">
+    <div id="br-resume" class="bracket lav" title="Sent with Resume"></div>
+    <div id="br-continue" class="bracket blue" title="Sent with Continue"></div>
+    <article id="page" contenteditable="true" spellcheck="false" aria-label="Chapter text"></article>
+  </div>
+</main>
+
+<div id="flags" class="flags" aria-label="Context window markers"></div>
+
+<div id="switcher" class="switcher" hidden>
+  <b>State</b>
+  <button data-state="idle">Idle writing</button>
+  <button data-state="stream">AI streaming</button>
+  <button data-state="panel">Panel open</button>
+  <button data-state="lore">Lore card</button>
+  <button data-state="fail">Save stopped</button>
+  <small>press ? to hide</small>
+</div>
+<div id="hint" class="hint">Ctrl/Cmd+[ manuscript &middot; Ctrl/Cmd+] context &middot; Alt+L lore card for nearest name &middot; Esc closes &middot; Alt+? (or ? outside text) states</div>
+<script src="proto.js"></script>
+</body></html>

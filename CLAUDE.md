@@ -15,7 +15,8 @@ crates/delta/  — Quill Delta core types, JSON serde, push/normalize, compose/t
 xtask/         — Development process runner (`cargo xtask dev`)
 app/           — React frontend (Bun runtime, Quill.js editor)
 migrations/    — SQLx migrations (SQLite)
-docs/          — QuillJS implementation guide
+docs/          — QuillJS implementation guide, plans, and the v1 editor design spec (`docs/editor-design.md`)
+prototypes/    — Static HTML design prototypes, not built or tested (`prototypes/editor-desktop/` is the visual reference for `docs/editor-design.md`)
 ```
 
 ## Entry Points
