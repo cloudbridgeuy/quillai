@@ -11,6 +11,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+mod e2e;
+
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 
@@ -36,6 +38,14 @@ pub enum Commands {
         about = "Run read-only quality checks with short output; full logs in target/xtask-lint"
     )]
     Lint(LintArgs),
+    #[command(about = "Run the isolated chapter-sync browser smoke test")]
+    E2e(E2eArgs),
+}
+
+#[derive(Debug, Parser)]
+pub struct E2eArgs {
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    playwright_args: Vec<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -46,19 +56,15 @@ pub struct LintArgs {
 
 #[derive(Debug, Parser)]
 pub struct DevArgs {
-    /// API port.
     #[clap(long, default_value_t = 2908)]
     api_port: u16,
 
-    /// Frontend app port.
     #[clap(long, default_value_t = 3001)]
     app_port: u16,
 
-    /// AI model name passed to the API provider.
     #[clap(long)]
     ai_model: Option<String>,
 
-    /// OpenAI-compatible AI provider base URL.
     #[clap(long)]
     ai_base_url: Option<String>,
 }
@@ -67,6 +73,7 @@ pub struct DevArgs {
 enum Service {
     Api,
     App,
+    E2e,
 }
 
 impl Service {
@@ -74,6 +81,7 @@ impl Service {
         match self {
             Self::Api => "api",
             Self::App => "app",
+            Self::E2e => "e2e",
         }
     }
 
@@ -81,6 +89,7 @@ impl Service {
         match self {
             Self::Api => API_COLOR,
             Self::App => APP_COLOR,
+            Self::E2e => APP_COLOR,
         }
     }
 }
@@ -143,6 +152,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli.command {
         Commands::Dev(args) => dev(args),
+        Commands::E2e(args) => e2e::run(args),
         Commands::Lint(args) => {
             if !lint(args)? {
                 std::process::exit(1);
@@ -289,15 +299,14 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
     install_shutdown_signal_handlers(Arc::clone(&shutdown))?;
 
     let (tx, rx) = mpsc::channel();
-    let mut children = ManagedChildren::new(vec![
-        spawn_api(
-            args.api_port,
-            args.ai_model.as_deref(),
-            args.ai_base_url.as_deref(),
-            tx.clone(),
-        )?,
-        spawn_app(args.app_port, tx)?,
-    ]);
+    let mut children = ManagedChildren::new(Vec::new());
+    children.children.push(spawn_api(
+        args.api_port,
+        args.ai_model.as_deref(),
+        args.ai_base_url.as_deref(),
+        tx.clone(),
+    )?);
+    children.children.push(spawn_app(args.app_port, tx)?);
 
     let ai_model = args.ai_model.as_deref().unwrap_or("env:QUILLAI_AI_MODEL");
     log_supervisor_line(format!(
@@ -487,14 +496,8 @@ fn supervise(
 
 fn terminate_children(children: &mut [ManagedChild]) {
     for child in children.iter_mut() {
-        match child.child.try_wait() {
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                terminate_process_group_or_child(&mut child.child);
-                let _ = child.child.wait();
-            }
-            Err(_) => {}
-        }
+        terminate_process_group_or_child(&mut child.child);
+        let _ = child.child.wait();
     }
 }
 
@@ -506,10 +509,8 @@ fn terminate_process_group_or_child(child: &mut Child) {
             libc::kill(-pid, libc::SIGTERM);
         }
         thread::sleep(Duration::from_millis(250));
-        if matches!(child.try_wait(), Ok(None)) {
-            unsafe {
-                libc::kill(-pid, libc::SIGKILL);
-            }
+        unsafe {
+            libc::kill(-pid, libc::SIGKILL);
         }
     }
 

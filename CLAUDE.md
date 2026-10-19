@@ -24,6 +24,7 @@ docs/          — QuillJS implementation guide
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
 | Lint and tests (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
+| Isolated two-page chapter sync smoke | `cargo xtask e2e` | `xtask/src/e2e.rs`, `e2e/chapter-sync.spec.ts` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
@@ -61,6 +62,11 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | File | Purpose |
 |------|---------|
 | `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks with short output (logs in `target/xtask-lint/`) |
+| `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API port, frontend port 3001, HTTP readiness, managed Playwright runner, process-group and database cleanup. Pass Playwright flags directly, e.g. `cargo xtask e2e --headed --trace on`. |
+
+### Browser Smoke (`e2e/`)
+
+`playwright.config.ts` loads the app's `@playwright/test` dependency and runs only `chapter-sync.spec.ts` with Chromium. Install the browser once with `cd app && bun --bun x playwright install chromium`. The smoke seeds one chapter through the API, opens two pages with the sandbox `apiBaseUrl` and chapter IDs, edits from each page, checks remote convergence and server revisions/content, then reloads both pages. Artifacts go to `target/xtask-e2e/results/`. The directory is outside `app/`, so `cargo xtask lint`'s `bun test` does not discover browser tests. See [browser sandbox context](.claude/context/ai-editor.md#browser-smoke-sandbox).
 
 ### Frontend (`app/src/`)
 

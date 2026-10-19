@@ -44,6 +44,14 @@ Set the frontend URL's `apiBaseUrl` query parameter to override the API URL, e.g
 
 The current backend CORS setup still assumes the frontend is served from port `3001`; API port configuration does not change that restriction.
 
+## Browser Smoke Sandbox
+
+Run `cargo xtask e2e` from the workspace. On first use, install Chromium with `cd app && bun --bun x playwright install chromium`. The runner installs app dependencies if Playwright is missing, builds the API, creates a temporary on-disk SQLite database, and starts the API on a random loopback port. Frontend port 3001 is mandatory for existing CORS; an occupied port fails before startup. No CORS configuration changes are made.
+
+The runner waits for HTTP 200 from API `/series` and frontend `/`, then runs `bun --bun x playwright test` from `app/` with the config in root `e2e/`. Additional flags pass through unchanged: `cargo xtask e2e --headed --trace on`. The test supplies `apiBaseUrl` and chapter IDs on both page URLs. It seeds one chapter, edits in each page in sequence, checks convergence and saved server revisions/content, then reloads both pages. This is a happy-path smoke, not simultaneous-edit or AI coverage. Browser tests live outside `app/` to keep `bun test` separate. `e2e/package.json` marks this directory as ESM for Bun's Playwright loader; imports reuse the dependency installed under `app/node_modules/`. Failure screenshots and traces are under `target/xtask-e2e/results/`.
+
+Services, build/install commands, and Playwright run in managed process groups. Normal exit, startup/test failure, and Ctrl-C terminate those groups before removing the database directory and SQLite sidecars. The random API port is released before API bind; a competing bind fails startup rather than silently reusing another service. Port 3001 is reserved during setup and released immediately before frontend startup.
+
 ## Continue And Edit Flow
 
 `Continue`:
