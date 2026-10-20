@@ -52,3 +52,21 @@ test("stream inserts preserve the logical caret and selection without advancing 
   expect(transformContinueSelection({ index: 8, length: 4 }, change)).toEqual({ index: 10, length: 4 });
   expect(transformContinueSelection({ index: 2, length: 9 }, change)).toEqual({ index: 2, length: 11 });
 });
+
+test("deleting the whole saved selection collapses it at the deletion start", () => {
+  expect(transformContinueSelection({ index: 5, length: 6 }, new Delta().retain(3).delete(10))).toEqual({ index: 3, length: 0 });
+});
+
+test("replacing the saved selection collapses it at the replacement end", () => {
+  expect(transformContinueSelection({ index: 5, length: 6 }, new Delta().retain(5).insert("NEW").delete(6))).toEqual({ index: 8, length: 0 });
+});
+
+test("partial deletion selects exactly the undeleted remainder", () => {
+  for (const [change, expected] of [
+    [new Delta().retain(3).delete(5), { index: 3, length: 3 }],
+    [new Delta().retain(8).delete(5), { index: 5, length: 3 }],
+    [new Delta().retain(7).delete(2), { index: 5, length: 4 }],
+  ] as const) {
+    expect(transformContinueSelection({ index: 5, length: 6 }, change)).toEqual(expected);
+  }
+});

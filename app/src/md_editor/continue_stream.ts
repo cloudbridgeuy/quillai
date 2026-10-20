@@ -8,8 +8,11 @@ export type ContinueStream = {
 };
 
 export function transformContinueSelection(selection: { index: number; length: number }, change: Delta) {
-  const index = change.transformPosition(selection.index, true);
   const end = change.transformPosition(selection.index + selection.length, true);
+  const deletions = new Delta(change.ops.filter((op) => op.insert === undefined));
+  const fullyDeleted = selection.length > 0 &&
+    deletions.transformPosition(selection.index) === deletions.transformPosition(selection.index + selection.length);
+  const index = fullyDeleted ? end : change.transformPosition(selection.index, true);
   return { index, length: Math.max(0, end - index) };
 }
 

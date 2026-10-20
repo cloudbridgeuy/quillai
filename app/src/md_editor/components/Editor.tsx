@@ -344,6 +344,8 @@ export const Container = () => {
     if (!quill) return;
     const refreshContext = (event: string, delta: Delta) => {
       if (event === Quill.events.TEXT_CHANGE && continueStreamRef.current && !applyingContinueRef.current) {
+        if (lastCursorRangeRef.current) lastCursorRangeRef.current = transformContinueSelection(lastCursorRangeRef.current, delta);
+        if (lastEditSelectionRef.current) lastEditSelectionRef.current = transformContinueSelection(lastEditSelectionRef.current, delta);
         continueStreamRef.current = transformContinueStream(continueStreamRef.current, delta);
         renderContinueTint(quill, continueStreamRef.current.removal, tintEnabledRef.current);
       }
