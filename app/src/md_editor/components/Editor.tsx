@@ -70,6 +70,8 @@ import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
 import { buildContextInspector } from "../context_inspector";
 import { createSettingsClient } from "../../settings/client";
+import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
+import { ManuscriptTree } from "./ManuscriptTree";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -228,6 +230,7 @@ export const Container = () => {
   const initialEditorState = initialEditorStateRef.current;
 
   const [range, setRange] = useState<RangeT | null>(null);
+  const [panel, setPanel] = useState<PanelState>(null);
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
   const [instruction, setInstruction] = useState(initialEditorState.instruction);
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
@@ -342,19 +345,41 @@ export const Container = () => {
   }, []);
 
   useEffect(() => {
-    if (!requestPreview) {
-      return;
-    }
-
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setRequestPreview(null);
+      if (event.defaultPrevented) return;
+      const action = panelShortcut(event);
+      if (action === null) return;
+      if (action === "close") {
+        if (!panel && !requestPreview) return;
+        event.preventDefault();
+        closePanels();
+        return;
       }
+      if (requestPreview) return;
+      event.preventDefault();
+      togglePanel(action);
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [requestPreview]);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [panel, requestPreview]);
+
+  function closePanels() {
+    setPanel(transitionPanel(panel, "close"));
+    setRequestPreview(null);
+    const selection = lastCursorRangeRef.current;
+    if (selection) {
+      quillRef.current?.setSelection(selection.index, selection.length, "silent");
+      setRange(selection);
+    } else {
+      quillRef.current?.focus();
+    }
+  }
+
+  function togglePanel(nextPanel: Exclude<PanelState, null>) {
+    if (panel === nextPanel) closePanels();
+    else setPanel(transitionPanel(panel, nextPanel));
+  }
 
   const isBusy =
     aiRunState.status === "continuing" ||
@@ -920,6 +945,38 @@ export const Container = () => {
 
   return (
     <div className="editor-shell">
+      <nav className="editor-rail editor-rail-left" aria-label="Navigation">
+        <button type="button" aria-label="Manuscript" title="Manuscript (Ctrl/Cmd+[)"
+          aria-controls="manuscript-drawer" aria-expanded={panel === "manuscript"}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => togglePanel("manuscript")}>☰</button>
+      </nav>
+      <nav className="editor-rail editor-rail-right" aria-label="AI tools">
+        <button type="button" aria-label={isBusy ? "Stop AI" : "Continue writing"}
+          title={isBusy ? "Stop AI" : "Continue writing"}
+          disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => isBusy ? cancelRun() : void runAiAction("generate")}>➤</button>
+        <button type="button" aria-label="Edit selection" title="Edit selection"
+          disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => void runAiAction("edit")}>✎</button>
+        <button type="button" aria-label="Context inspector" title="Context inspector (Ctrl/Cmd+])"
+          aria-controls="context-drawer" aria-expanded={panel === "context"}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => togglePanel("context")}>◫</button>
+      </nav>
+      {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
+        aria-labelledby="manuscript-title">
+        <div className="editor-drawer-header">
+          <h2 id="manuscript-title">Manuscript</h2>
+          <button className="editor-button editor-button-small" type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={closePanels}>Close manuscript</button>
+        </div>
+        <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+          onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+      </aside> : null}
       <div className="editor-topbar">
         <div className="editor-heading">
           <h1>QuillAI</h1>
@@ -1098,8 +1155,14 @@ export const Container = () => {
             />
           </div>
         </div>
-        <aside className="editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
-          <h2 id="context-inspector-title">Live Prompt Context</h2>
+        <aside id="context-drawer" hidden={panel !== "context"}
+          className="editor-drawer editor-drawer-right editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
+          <div className="editor-drawer-header">
+            <h2 id="context-inspector-title">Live Prompt Context</h2>
+            <button className="editor-button editor-button-small" type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={closePanels}>Close context</button>
+          </div>
           <label className="editor-field">
             <span>Author guidance</span>
             <textarea className="editor-textarea" aria-label="Author guidance" rows={5}

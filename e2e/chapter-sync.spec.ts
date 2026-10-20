@@ -52,8 +52,62 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   await expect(title).toHaveCSS("text-align", "center");
   expect(await title.evaluate((element) => (element as HTMLElement).isContentEditable)).toBe(false);
   await expect(title).toHaveCSS("color", "rgb(78, 98, 114)");
+  const editor = page.locator(".ql-editor");
+  await editor.click();
+  await editor.evaluate((element) => {
+    const text = element.querySelector("p")?.firstChild;
+    if (!text) throw new Error("Missing chapter text");
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 7);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  });
+  await expect(page.getByRole("button", { name: "Edit selection", exact: true })).toBeEnabled();
+  const selectedText = await page.evaluate(() => window.getSelection()?.toString());
+  expect(selectedText).toBe("Opening");
+  for (const shortcut of ["Control+]", "Meta+]"]) {
+    await page.keyboard.press(shortcut);
+    await expect(page.getByRole("heading", { name: "Live Prompt Context" })).toBeVisible();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("heading", { name: "Live Prompt Context" })).toBeHidden();
+    await expect(editor).toBeFocused();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
+  }
+  const inspector = page.getByRole("button", { name: "Context inspector", exact: true });
+  await inspector.hover();
+  await expect(inspector).toHaveAttribute("aria-expanded", "false");
+  await inspector.click();
   await expect(page.getByRole("heading", { name: "Live Prompt Context" })).toBeVisible();
+  await expect(editor).toBeFocused();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Control+[");
+  await expect(page.getByRole("heading", { name: "Manuscript", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "E2E chapter", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Control+]");
+  await page.getByRole("textbox", { name: "Author guidance", exact: true }).focus();
+  await page.keyboard.press("Escape");
+  await expect(editor).toBeFocused();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
   await page.screenshot({ path: "../target/guz-750/editor-desktop.png", fullPage: true });
+  for (const width of [768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.keyboard.press("Control+]");
+    const drawer = page.locator("#context-drawer");
+    await expect(drawer).toBeVisible();
+    const drawerBounds = await drawer.boundingBox();
+    const pageBounds = await page.locator(".editor-page").boundingBox();
+    expect(drawerBounds).not.toBeNull();
+    expect(pageBounds).not.toBeNull();
+    expect(drawerBounds!.y + drawerBounds!.height).toBeLessThanOrEqual(pageBounds!.y);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.keyboard.press("Escape");
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
 
   await page.locator(".ql-editor").fill("Page one writes");
   await expect(second.locator(".ql-editor")).toHaveText("Page one writes");
@@ -79,4 +133,90 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     await expect(tab.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
   }
   expect(failures).toEqual([]);
+});
+
+test("tree opens a second chapter only after saving and keeps text when saving fails", async ({ page, request }) => {
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run this smoke with cargo xtask e2e");
+  const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: "Switch series", position: 0 } });
+  expect(seriesResponse.status()).toBe(201);
+  const series = await seriesResponse.json();
+  const bookResponse = await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Switch book", position: 0 } });
+  expect(bookResponse.status()).toBe(201);
+  const book = await bookResponse.json();
+  const chaptersUrl = `${apiUrl}/series/${series.id}/books/${book.id}/chapters`;
+  const chapters = [];
+  for (const [position, title, text] of [[0, "Switch first", "First opening\n"], [1, "Switch second", "Second opening\n"]] as const) {
+    const response = await request.post(chaptersUrl, {
+      data: { title, position, kind: "chapter", content: { ops: [{ insert: text }] } },
+    });
+    expect(response.status()).toBe(201);
+    chapters.push(await response.json());
+  }
+  const [first, second] = chapters;
+  const query = new URLSearchParams({
+    apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(first.id),
+  });
+  let secondGets = 0;
+  let firstGets = 0;
+  page.on("request", (request) => {
+    if (request.method() === "GET" && request.url() === `${chaptersUrl}/${second.id}`) secondGets++;
+    if (request.method() === "GET" && request.url() === `${chaptersUrl}/${first.id}`) firstGets++;
+  });
+  await page.goto(`/?${query}`);
+  const editor = page.locator(".ql-editor");
+  await expect(editor).toHaveText("First opening");
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+  const firstButton = page.getByRole("button", { name: "Switch first", exact: true });
+  const secondButton = page.getByRole("button", { name: "Switch second", exact: true });
+  await expect(firstButton).toHaveAttribute("aria-pressed", "true");
+  let releaseSave!: () => void;
+  const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
+  let sawSave!: () => void;
+  const saving = new Promise<void>((resolve) => { sawSave = resolve; });
+  await page.route(`${chaptersUrl}/${first.id}/deltas`, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    sawSave();
+    await saveGate;
+    await route.continue();
+  });
+  await editor.fill("First pending edit");
+  await secondButton.click();
+  await saving;
+  await expect(secondButton).toBeDisabled();
+  await expect(editor).toHaveAttribute("contenteditable", "false");
+  await expect(page.getByRole("heading", { name: "Switch first", exact: true })).toBeVisible();
+  expect(secondGets).toBe(0);
+  releaseSave();
+  await expect(editor).toHaveText("Second opening");
+  await expect(page.getByRole("heading", { name: "Switch second", exact: true })).toBeVisible();
+  await expect(secondButton).toHaveAttribute("aria-pressed", "true");
+  await expect(firstButton).toHaveAttribute("aria-pressed", "false");
+  await expect(page).toHaveURL(new RegExp(`chapterId=${second.id}(?:&|$)`));
+  expect(secondGets).toBe(1);
+  const saved = await request.get(`${chaptersUrl}/${first.id}`);
+  expect((await saved.json()).content).toEqual({ ops: [{ insert: "First pending edit\n" }] });
+
+  let releaseFailure!: () => void;
+  const failureGate = new Promise<void>((resolve) => { releaseFailure = resolve; });
+  let sawFailure!: () => void;
+  const failing = new Promise<void>((resolve) => { sawFailure = resolve; });
+  await page.route(`${chaptersUrl}/${second.id}/deltas`, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    sawFailure();
+    await failureGate;
+    await route.fulfill({ status: 503, json: { error: "Save unavailable", code: "UNAVAILABLE" } });
+  });
+  await editor.fill("Second unsaved text retained");
+  await firstButton.click();
+  await failing;
+  releaseFailure();
+  await expect(page.getByRole("status").filter({ hasText: "Chapter switch failed" })).toContainText("Save stopped");
+  await expect(editor).toHaveText("Second unsaved text retained");
+  await expect(page.getByRole("heading", { name: "Switch second", exact: true })).toBeVisible();
+  await expect(secondButton).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(new RegExp(`chapterId=${second.id}(?:&|$)`));
+  expect(firstGets).toBe(1);
+  const recovery = await page.evaluate(() => window.sessionStorage.getItem("quillai.chapter.recovery.v1"));
+  expect(JSON.parse(recovery!).document.ops).toEqual([{ insert: "Second unsaved text retained\n" }]);
 });

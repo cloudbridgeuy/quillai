@@ -9,7 +9,9 @@ test("inspector locks System and saves author guidance across reload", async ({ 
   const create = page.getByRole("button", { name: "Create chapter", exact: true });
   await expect(create).toBeVisible();
   await create.click();
-  await expect(page.locator(".ql-editor")).toBeVisible();
+  await page.waitForURL((url) => url.searchParams.has("chapterId"));
+  await expect(page.locator(".ql-editor")).toBeEditable();
+  await page.keyboard.press("Control+]");
   const system = page.getByRole("textbox", { name: "System prompt section", exact: true });
   await expect(system).toHaveAttribute("readonly", "");
   await expect(system).toHaveValue("You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.");
@@ -23,6 +25,7 @@ test("inspector locks System and saves author guidance across reload", async ({ 
   await expect(page.getByRole("textbox", { name: "Author guidance prompt section", exact: true }))
     .toHaveValue("<author_guidance>\nUse &lt;/author_guidance&gt; &amp; 💡\n</author_guidance>");
   await page.reload();
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(guidance).toHaveValue("Use </author_guidance> & 💡");
   await expect(system).toHaveAttribute("readonly", "");
   await expect(page.getByRole("button", { name: "Reset System", exact: true })).toHaveCount(0);

@@ -7,12 +7,11 @@ export type DeltaOperation = (
   | { delete: number; insert?: never; retain?: never }
 ) & { attributes?: Record<string, unknown> | null };
 export type ManuscriptDelta = { ops: DeltaOperation[] };
-export type Chapter = Series & {
-  book_id: number;
+export type ChapterSummary = Series & {
   kind: ChapterKind;
-  content: ManuscriptDelta;
   head_rev: number;
 };
+export type Chapter = ChapterSummary & { book_id: number; content: ManuscriptDelta };
 export type Revision = { rev: number; delta: ManuscriptDelta };
 export type CreateSeries = Pick<Series, "title" | "position">;
 export type UpdateSeries = { title?: string | null; position?: number | null };
@@ -63,15 +62,18 @@ export function parseBook(value: unknown): Book {
   return { ...parseSeries(row), series_id: integer(row.series_id, 1) };
 }
 
-export function parseChapter(value: unknown): Chapter {
+export function parseChapterSummary(value: unknown): ChapterSummary {
   const row = record(value);
   return {
     ...parseSeries(row),
-    book_id: integer(row.book_id, 1),
     kind: chapterKind(row.kind),
-    content: parseDelta(row.content),
     head_rev: integer(row.head_rev),
   };
+}
+
+export function parseChapter(value: unknown): Chapter {
+  const row = record(value);
+  return { ...parseChapterSummary(row), book_id: integer(row.book_id, 1), content: parseDelta(row.content) };
 }
 
 export function parseDelta(value: unknown): ManuscriptDelta {

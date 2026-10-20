@@ -1,11 +1,17 @@
 use axum::{
-    extract::{rejection::JsonRejection, Path, State},
+    extract::{
+        rejection::{JsonRejection, QueryRejection},
+        Path, Query, State,
+    },
     http::StatusCode,
+    response::{IntoResponse, Response},
     Json,
 };
 use sqlx::sqlite::SqlitePool;
 
-use super::models::{Chapter, ChapterRow, CreateChapter, UpdateChapter};
+use super::models::{
+    Chapter, ChapterRow, ChapterSummary, CreateChapter, ListChapters, UpdateChapter,
+};
 use crate::chapter_revisions::load;
 use crate::error::Error;
 
@@ -25,7 +31,9 @@ async fn rebuilt(
 pub async fn list_chapters(
     State(pool): State<SqlitePool>,
     Path((series_id, book_id)): Path<(i64, i64)>,
-) -> Result<Json<Vec<Chapter>>, Error> {
+    query: Result<Query<ListChapters>, QueryRejection>,
+) -> Result<Response, Error> {
+    let Query(query) = query.map_err(|error| Error::Validation(error.body_text()))?;
     let mut transaction = pool.begin().await?;
     sqlx::query!(
         "SELECT id FROM books WHERE series_id = ? AND id = ?",
@@ -35,6 +43,17 @@ pub async fn list_chapters(
     .fetch_optional(&mut *transaction)
     .await?
     .ok_or(Error::NotFound)?;
+    if query.content.is_none() {
+        let chapters = sqlx::query_as!(
+            ChapterSummary,
+            r#"SELECT id AS "id!", title, position, kind, head_rev FROM chapters WHERE book_id = ? ORDER BY position, id"#,
+            book_id,
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
+        transaction.commit().await?;
+        return Ok(Json(chapters).into_response());
+    }
     let rows = sqlx::query_as!(
         ChapterRow,
         r#"SELECT id AS "id!", book_id, title, position, kind, content, head_rev FROM chapters WHERE book_id = ? ORDER BY position, id"#,
@@ -47,7 +66,7 @@ pub async fn list_chapters(
         chapters.push(rebuilt(&mut transaction, row).await?);
     }
     transaction.commit().await?;
-    Ok(Json(chapters))
+    Ok(Json(chapters).into_response())
 }
 
 pub async fn create_chapter(

@@ -5,6 +5,26 @@ use serde_json::Value;
 use crate::error::Error;
 
 #[derive(Debug, Serialize)]
+pub struct ChapterSummary {
+    pub id: i64,
+    pub title: String,
+    pub position: i64,
+    pub kind: String,
+    pub head_rev: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListChapters {
+    pub content: Option<IncludeContent>,
+}
+
+#[derive(Debug, Deserialize)]
+pub enum IncludeContent {
+    #[serde(rename = "true")]
+    True,
+}
+
+#[derive(Debug, Serialize)]
 pub struct Chapter {
     pub id: i64,
     pub book_id: i64,

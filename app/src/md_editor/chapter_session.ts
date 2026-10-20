@@ -34,7 +34,10 @@ export async function loadEditorChapter(client: Client, search: string): Promise
     for (const book of await client.listBooks({ seriesId: series.id })) {
       const scope = { seriesId: series.id, bookId: book.id };
       const chapter = (await client.listChapters(scope))[0];
-      if (chapter) return { scope: { ...scope, chapterId: chapter.id }, chapter };
+      if (chapter) {
+        const chapterScope = { ...scope, chapterId: chapter.id };
+        return { scope: chapterScope, chapter: await client.getChapter(chapterScope) };
+      }
     }
   }
   throw new NoEditorChapter("No chapter found. Create a chapter to start editing.");
@@ -47,11 +50,51 @@ export function createChapterSession(
   publish: (document: Delta, dirty: boolean, problem: SyncProblem | null) => void,
 ) {
   let state = startChapterSync(chapter.content, chapter.head_rev);
-  let running = false;
+  let running: Promise<void> | null = null;
   let stopped = false;
   let failure: string | null = null;
+  let lastError: string | null = null;
   let acknowledgement: Revision | null = null;
   const notify = () => publish(syncDocument(state), hasLocalChanges(state), failure ? { kind: "blocked", message: failure } : null);
+
+  function tick(): Promise<void> {
+    if (running) return Promise.resolve();
+    if (stopped || failure) return Promise.resolve();
+    running = synchronize().finally(() => { running = null; });
+    return running;
+  }
+
+  async function synchronize() {
+    let posting = false;
+    try {
+      if (acknowledgement === null) {
+        const submission = sendChapter(state);
+        if (submission) {
+          state = submission.state;
+          posting = true;
+          acknowledgement = await client.postDelta(scope, submission.request);
+          posting = false;
+        }
+      }
+      if (stopped) return;
+      const revisions = await client.getDeltas(scope, state.rev);
+      if (stopped) return;
+      state = receiveRevisions(state, revisions, acknowledgement);
+      acknowledgement = null;
+      lastError = null;
+      notify();
+    } catch (error) {
+      if (stopped) return;
+      const message = error instanceof Error ? error.message : "Unknown synchronization error";
+      lastError = message;
+      if (posting || !(error instanceof TypeError)) {
+        failure = `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.`;
+      }
+      publish(syncDocument(state), hasLocalChanges(state), failure
+        ? { kind: "blocked", message: failure }
+        : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` });
+    }
+  }
 
   return {
     document: () => syncDocument(state),
@@ -62,38 +105,22 @@ export function createChapterSession(
       state = editChapter(state, document);
       notify();
     },
-    async tick() {
-      if (running || stopped || failure) return;
-      running = true;
-      let posting = false;
-      try {
-        if (acknowledgement === null) {
-          const submission = sendChapter(state);
-          if (submission) {
-            state = submission.state;
-            posting = true;
-            acknowledgement = await client.postDelta(scope, submission.request);
-            posting = false;
-          }
-        }
-        if (stopped) return;
-        const revisions = await client.getDeltas(scope, state.rev);
-        if (stopped) return;
-        state = receiveRevisions(state, revisions, acknowledgement);
-        acknowledgement = null;
-        notify();
-      } catch (error) {
-        if (stopped) return;
-        const message = error instanceof Error ? error.message : "Unknown synchronization error";
-        if (posting || !(error instanceof TypeError)) {
-          failure = `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.`;
-        }
-        publish(syncDocument(state), hasLocalChanges(state), failure
-          ? { kind: "blocked", message: failure }
-          : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` });
-      } finally {
-        running = false;
+    tick,
+    async flush() {
+      if (running) {
+        await running;
+        if (lastError) throw new Error(failure ?? lastError);
+      }
+      if (stopped || failure) throw new Error(failure ?? "Chapter session stopped.");
+      while (hasLocalChanges(state)) {
+        await tick();
+        if (stopped || lastError) throw new Error(failure ?? lastError ?? "Chapter session stopped.");
       }
     },
   };
+}
+
+export function canSwitchChapter(current: ChapterScope | null, target: ChapterScope, unavailable: boolean): boolean {
+  return !unavailable && current !== null &&
+    (current.seriesId !== target.seriesId || current.bookId !== target.bookId || current.chapterId !== target.chapterId);
 }

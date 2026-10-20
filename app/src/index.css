@@ -79,7 +79,7 @@ button {
 }
 
 .editor-shell {
-  width: min(1100px, 100%);
+  width: min(1100px, calc(100% - 112px));
   margin: 0 auto;
   padding: 2rem 1rem 2.5rem;
   display: flex;
@@ -367,14 +367,138 @@ button {
 
 .editor-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 1rem;
 }
 
-.editor-context-inspector {
-  max-height: 75vh;
+.editor-rail {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 9;
+  width: 56px;
+  padding: 18px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: .35;
+  transition: opacity 160ms ease;
+}
+
+.editor-rail-left {
+  left: 0;
+}
+
+.editor-rail-right {
+  right: 0;
+}
+
+.editor-rail:hover,
+.editor-rail:focus-within {
+  opacity: .95;
+}
+
+.editor-rail button {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--graphite);
+  font-size: 20px;
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.editor-rail button:is(:hover, :focus-visible):not(:disabled) {
+  color: var(--ink);
+  background: var(--pi-pink);
+  transform: translateY(-1px);
+}
+
+.editor-rail button[aria-expanded="true"] {
+  background: var(--pi-green);
+}
+
+.editor-rail button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.editor-drawer {
+  min-width: 0;
+  max-height: 70vh;
   overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 18px;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  background: var(--paper);
+  box-shadow: var(--panel-shadow);
+}
+
+.editor-drawer[hidden] {
+  display: none;
+}
+
+.editor-drawer-header {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.editor-drawer h2 {
+  margin: 0;
+  font: 600 12px var(--sans);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+.editor-context-inspector {
+  grid-row: 1;
+}
+
+.editor-manuscript-tree,
+.editor-manuscript-tree ul {
+  list-style: none;
+  padding-left: 14px;
+}
+
+.editor-manuscript-tree {
+  padding-left: 0;
+}
+
+.editor-manuscript-tree li {
+  margin: 8px 0;
+}
+
+.editor-manuscript-tree summary {
+  cursor: pointer;
+  color: var(--slate);
+  font-weight: 600;
+}
+
+.editor-manuscript-tree button {
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.editor-manuscript-tree button:is(:hover, :focus-visible) {
+  background: var(--pi-pink);
+}
+
+.editor-manuscript-tree button[aria-pressed="true"] {
+  background: var(--pi-blue);
 }
 
 .editor-context-inspector h2 {
@@ -605,19 +729,20 @@ button {
     width: min(760px, calc(100vw - 400px));
   }
 
-  .editor-controls-panel,
-  .editor-context-inspector {
+  .editor-drawer {
     position: fixed;
-    top: 1rem;
-    bottom: 1rem;
-    width: 184px;
+    z-index: 8;
+    top: 0;
+    bottom: 0;
+    width: 300px;
     max-height: none;
     overflow: auto;
     overflow-wrap: anywhere;
   }
 
   .editor-controls-panel {
-    left: 8px;
+    width: min(760px, calc(100vw - 400px));
+    margin: 1rem auto;
   }
 
   .editor-controls-panel > *,
@@ -625,25 +750,16 @@ button {
     flex-shrink: 0;
   }
 
-  .editor-controls-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .editor-thread-card {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .editor-actions .editor-button {
-    width: 100%;
-  }
-
   .editor-workspace {
     display: contents;
   }
 
-  .editor-context-inspector {
-    right: 8px;
+  .editor-drawer-left {
+    left: 56px;
+  }
+
+  .editor-drawer-right {
+    right: 56px;
   }
 
   .editor-page {
@@ -693,10 +809,6 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .editor-context-inspector {
-    display: none;
-  }
-
   .editor-shell {
     padding: 1rem 0.75rem 1.5rem;
   }
@@ -707,13 +819,14 @@ button {
   }
 
   .editor-controls-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .editor-status {
     width: 100%;
     justify-content: space-between;
     border-radius: 14px;
+    white-space: normal;
   }
 
   .editor-actions,

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import Delta from "quill-delta";
 import { createManuscriptClient } from "../manuscripts/client";
 import { parseDelta, type Chapter, type Revision } from "../manuscripts/contract";
-import { bootstrapEditorChapter, createChapterSession, loadEditorChapter } from "./chapter_session";
+import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter } from "./chapter_session";
 
 const scope = { seriesId: 1, bookId: 2, chapterId: 3 };
 const chapter: Chapter = { id: 3, book_id: 2, title: "Chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "text\n" }] }, head_rev: 0 };
@@ -137,12 +137,14 @@ test("bootstrap walks real hierarchy, skips empty books, and never creates resou
       "/series": [{ id: 1, title: "Series", position: 0 }],
       "/series/1/books": [{ id: 8, series_id: 1, title: "Empty", position: 0 }, { id: 2, series_id: 1, title: "Book", position: 1 }],
       "/series/1/books/8/chapters": [],
-      "/series/1/books/2/chapters": [chapter],
+      "/series/1/books/2/chapters": [{ id: chapter.id, title: chapter.title, position: chapter.position, kind: chapter.kind, head_rev: chapter.head_rev }],
+      "/series/1/books/2/chapters/3": chapter,
     };
     return Response.json(values[path]);
   } });
   expect((await loadEditorChapter(client, "")).scope).toEqual(scope);
-  expect(paths).toHaveLength(4);
+  expect(paths).toHaveLength(5);
+  expect(paths.at(-1)).toBe("/series/1/books/2/chapters/3");
 });
 
 test("invalid explicit scope and empty hierarchy report errors without guessing IDs", async () => {
@@ -166,4 +168,81 @@ test("explicit bootstrap creates missing hierarchy and a valid newline document"
   } });
   expect(await bootstrapEditorChapter(client)).toEqual(scope);
   expect(created).toEqual(["http://api/series", "http://api/series/1/books", "http://api/series/1/books/2/chapters"]);
+});
+
+test("bootstrap reuses the first chapter summary without needing content or creating resources", async () => {
+  const client = createManuscriptClient({ baseUrl: "http://api", fetch: async (url, init) => {
+    expect(init?.method).toBe("GET");
+    if (url.endsWith("/series")) return Response.json([{ id: 1, title: "Series", position: 0 }]);
+    if (url.endsWith("/books")) return Response.json([{ id: 2, series_id: 1, title: "Book", position: 0 }]);
+    expect(url).toBe("http://api/series/1/books/2/chapters");
+    return Response.json([{ id: 3, title: "Chapter", position: 0, kind: "chapter", head_rev: 0 }]);
+  } });
+  expect(await bootstrapEditorChapter(client)).toEqual(scope);
+});
+
+test("chapter switch requires a loaded idle session and a different full scope", () => {
+  expect(canSwitchChapter(null, scope, false)).toBe(false);
+  expect(canSwitchChapter(scope, scope, false)).toBe(false);
+  expect(canSwitchChapter(scope, { ...scope, chapterId: 4 }, true)).toBe(false);
+  expect(canSwitchChapter(scope, { ...scope, chapterId: 4 }, false)).toBe(true);
+  expect(canSwitchChapter(scope, { ...scope, bookId: 4 }, false)).toBe(true);
+});
+
+test("flush awaits the active save and then saves edits queued during that request", async () => {
+  let resolvePost!: (value: Revision) => void;
+  const revisions: Revision[] = [];
+  let posts = 0;
+  const session = createChapterSession({
+    postDelta: async (_scope, input) => {
+      posts++;
+      const revision = posts === 1
+        ? await new Promise<Revision>((resolve) => { resolvePost = resolve; })
+        : { rev: posts, delta: input.delta };
+      revisions.push(revision);
+      return revision;
+    },
+    getDeltas: async (_scope, since) => revisions.filter((revision) => revision.rev > since),
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Atext\n"));
+  const polling = session.tick();
+  session.edit(new Delta().insert("ABtext\n"));
+  let flushed = false;
+  const saving = session.flush().then(() => { flushed = true; });
+  await Promise.resolve();
+  expect(flushed).toBe(false);
+  resolvePost(ack);
+  await Promise.all([polling, saving]);
+  expect(posts).toBe(2);
+  expect(session.canStartAi()).toBe(true);
+  expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
+});
+
+test("failed flush retains the current document and rejects without resubmitting", async () => {
+  let posts = 0;
+  const session = createChapterSession({
+    postDelta: async () => { posts++; throw new TypeError("offline"); },
+    getDeltas: async () => [],
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Atext\n"));
+  await expect(session.flush()).rejects.toThrow("Save stopped");
+  await expect(session.flush()).rejects.toThrow("Do not retry");
+  expect(posts).toBe(1);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+});
+
+test("flush rejects failed acknowledgement history and retries only history on the next attempt", async () => {
+  let posts = 0;
+  let gets = 0;
+  const session = createChapterSession({
+    postDelta: async () => { posts++; return ack; },
+    getDeltas: async () => { if (++gets === 1) throw new TypeError("offline"); return [ack]; },
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Atext\n"));
+  await expect(session.flush()).rejects.toThrow("offline");
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  await session.flush();
+  expect(posts).toBe(1);
+  expect(gets).toBe(2);
+  expect(session.canStartAi()).toBe(true);
 });

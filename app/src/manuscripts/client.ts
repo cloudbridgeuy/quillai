@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "../api_config";
 import {
-  parseApiError, parseBook, parseChapter, parseList, parseRevision, parseSeries,
+  parseApiError, parseBook, parseChapter, parseChapterSummary, parseList, parseRevision, parseSeries,
   type BookScope, type ChapterScope, type CreateBook, type CreateChapter,
   type CreateSeries, type SeriesScope, type SubmitDelta, type UpdateBook,
   type UpdateChapter, type UpdateSeries,
@@ -94,7 +94,7 @@ export function createManuscriptClient({
     getBook: (scope: BookScope) => request(bookPath(scope), "GET", 200, parseBook),
     updateBook: (scope: BookScope, input: UpdateBook) => request(bookPath(scope), "PUT", 200, parseBook, input),
     deleteBook: (scope: BookScope) => request(bookPath(scope), "DELETE", 204, deleted),
-    listChapters: (scope: BookScope) => request(chaptersPath(scope), "GET", 200, (value) => parseList(value, parseChapter)),
+    listChapters: (scope: BookScope) => request(chaptersPath(scope), "GET", 200, (value) => parseList(value, parseChapterSummary)),
     createChapter: (scope: BookScope, input: CreateChapter) => request(chaptersPath(scope), "POST", 201, parseChapter, input),
     getChapter: (scope: ChapterScope) => request(chapterPath(scope), "GET", 200, parseChapter),
     updateChapter: (scope: ChapterScope, input: UpdateChapter) => request(chapterPath(scope), "PUT", 200, parseChapter, input),

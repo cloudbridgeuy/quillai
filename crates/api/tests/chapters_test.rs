@@ -162,7 +162,13 @@ async fn chapters_order_by_position_then_id_after_reorder() {
     let first = create(&app, &collection, "prologue", 1).await;
     let tied = create(&app, &collection, "chapter", 1).await;
     assert_eq!(
-        request(&app, "GET", &collection, Value::Null).await,
+        request(
+            &app,
+            "GET",
+            &format!("{collection}?content=true"),
+            Value::Null
+        )
+        .await,
         (StatusCode::OK, json!([first, tied, late]))
     );
     let (status, moved) = request(
@@ -174,9 +180,84 @@ async fn chapters_order_by_position_then_id_after_reorder() {
     .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(
-        request(&app, "GET", &collection, Value::Null).await,
+        request(
+            &app,
+            "GET",
+            &format!("{collection}?content=true"),
+            Value::Null
+        )
+        .await,
         (StatusCode::OK, json!([moved, first, tied]))
     );
+}
+
+#[tokio::test]
+async fn chapter_list_defaults_to_only_headers_and_content_true_returns_full_chapters() {
+    let app = quillai_api::app(test_pool().await);
+    let collection = collection(&app).await;
+    for suffix in ["", "?content=true"] {
+        assert_eq!(
+            request(&app, "GET", &format!("{collection}{suffix}"), Value::Null).await,
+            (StatusCode::OK, json!([]))
+        );
+        assert_eq!(
+            request(
+                &app,
+                "GET",
+                &format!("/series/999/books/999/chapters{suffix}"),
+                Value::Null
+            )
+            .await,
+            not_found()
+        );
+    }
+    let late = create(&app, &collection, "epilogue", 9).await;
+    let first = create(&app, &collection, "prologue", 1).await;
+    let tied = create(&app, &collection, "chapter", 1).await;
+    let chapters = vec![first, tied, late];
+    let summaries: Vec<_> = chapters
+        .iter()
+        .map(|chapter| {
+            json!({
+                "id": chapter["id"],
+                "title": chapter["title"],
+                "position": chapter["position"],
+                "kind": chapter["kind"],
+                "head_rev": chapter["head_rev"]
+            })
+        })
+        .collect();
+    assert_eq!(
+        request(&app, "GET", &collection, Value::Null).await,
+        (StatusCode::OK, json!(summaries))
+    );
+    assert_eq!(
+        request(
+            &app,
+            "GET",
+            &format!("{collection}?content=true"),
+            Value::Null
+        )
+        .await,
+        (StatusCode::OK, json!(chapters))
+    );
+}
+
+#[tokio::test]
+async fn chapter_list_rejects_every_content_value_except_true_before_lookup() {
+    let app = quillai_api::app(test_pool().await);
+    let collection = collection(&app).await;
+    for path in [collection.as_str(), "/series/999/books/999/chapters"] {
+        for value in ["false", "", "TRUE", "True", "1", "0", "null", "invalid"] {
+            let (status, body) =
+                request(&app, "GET", &format!("{path}?content={value}"), Value::Null).await;
+            assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{value}");
+            assert_eq!(body["code"], "VALIDATION_ERROR");
+        }
+        let (status, body) = request(&app, "GET", &format!("{path}?content"), Value::Null).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(body["code"], "VALIDATION_ERROR");
+    }
 }
 
 #[tokio::test]
@@ -373,6 +454,9 @@ async fn reads_return_chapters_head_rev_not_snapshot_rev() {
             .unwrap();
     }
     chapter["head_rev"] = json!(4);
+    let (status, headers) = request(&app, "GET", &collection, Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(headers[0]["head_rev"], 4);
     assert_eq!(
         request(
             &app,
@@ -384,13 +468,19 @@ async fn reads_return_chapters_head_rev_not_snapshot_rev() {
         (StatusCode::OK, chapter.clone())
     );
     assert_eq!(
-        request(&app, "GET", &collection, Value::Null).await,
+        request(
+            &app,
+            "GET",
+            &format!("{collection}?content=true"),
+            Value::Null
+        )
+        .await,
         (StatusCode::OK, json!([chapter]))
     );
 }
 
 #[tokio::test]
-async fn corrupt_stored_content_returns_500_sqlx_for_list_and_detail() {
+async fn corrupt_stored_content_only_fails_content_list_and_detail() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool.clone());
     let collection = collection(&app).await;
@@ -410,8 +500,12 @@ async fn corrupt_stored_content_returns_500_sqlx_for_list_and_detail() {
             .execute(&pool)
             .await
             .unwrap();
+        let (status, headers) = request(&app, "GET", &collection, Value::Null).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(headers[0]["id"], chapter["id"]);
+        assert_eq!(headers[0].as_object().unwrap().len(), 5);
         for uri in [
-            collection.clone(),
+            format!("{collection}?content=true"),
             format!("{collection}/{}", chapter["id"]),
         ] {
             let (status, body) = request(&app, "GET", &uri, Value::Null).await;
@@ -538,7 +632,13 @@ async fn sync_in_order_and_same_base_transform_converge_and_reads_rebuild() {
         assert_eq!(read["head_rev"], 3);
         assert_eq!(read["content"], expected);
     }
-    let (status, list) = request(&app, "GET", &collection, Value::Null).await;
+    let (status, list) = request(
+        &app,
+        "GET",
+        &format!("{collection}?content=true"),
+        Value::Null,
+    )
+    .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(list[0]["head_rev"], 3);
     assert_eq!(list[0]["content"], expected);

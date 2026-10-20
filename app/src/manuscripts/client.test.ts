@@ -8,6 +8,7 @@ const chapter: Chapter = {
   id: 3, book_id: 2, title: "Chapter", position: 2, kind: "chapter",
   content: { ops: [{ insert: "Hello 🌍\n", attributes: { bold: true } }] }, head_rev: 0,
 };
+const { content: _content, book_id: _bookId, ...chapterSummary } = chapter;
 const scope = { seriesId: 1, bookId: 2, chapterId: 3 };
 const metadata = { title: "New", position: 0 };
 const createChapter: CreateChapter = { ...metadata, kind: "prologue" };
@@ -32,7 +33,7 @@ describe("manuscript request contracts", () => {
     { name: "get book", call: (c) => c.getBook(scope), path: "/series/1/books/2", method: "GET", status: 200, response: book },
     { name: "update book", call: (c) => c.updateBook(scope, update), path: "/series/1/books/2", method: "PUT", status: 200, response: book, body: update },
     { name: "delete book", call: (c) => c.deleteBook(scope), path: "/series/1/books/2", method: "DELETE", status: 204 },
-    { name: "list chapters", call: (c) => c.listChapters(scope), path: "/series/1/books/2/chapters", method: "GET", status: 200, response: [chapter] },
+    { name: "list chapters", call: (c) => c.listChapters(scope), path: "/series/1/books/2/chapters", method: "GET", status: 200, response: [chapterSummary] },
     { name: "create chapter", call: (c) => c.createChapter(scope, createChapter), path: "/series/1/books/2/chapters", method: "POST", status: 201, response: chapter, body: createChapter },
     { name: "get chapter", call: (c) => c.getChapter(scope), path: root, method: "GET", status: 200, response: chapter },
     { name: "update chapter", call: (c) => c.updateChapter(scope, { kind: null }), path: root, method: "PUT", status: 200, response: chapter, body: { kind: null } },

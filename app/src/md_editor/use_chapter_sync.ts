@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { createManuscriptClient } from "../manuscripts/client";
-import { bootstrapEditorChapter, createChapterSession, loadEditorChapter, NoEditorChapter } from "./chapter_session";
+import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter, NoEditorChapter } from "./chapter_session";
+import type { Chapter, ChapterScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 
@@ -18,7 +19,10 @@ export function useChapterSync(
   const [blocked, setBlocked] = useState(false);
   const [recovery, setRecovery] = useState<string | null>(null);
   const [needsChapter, setNeedsChapter] = useState(false);
+  const [scope, setScope] = useState<ChapterScope | null>(null);
   const sessionRef = useRef<ReturnType<typeof createChapterSession> | null>(null);
+  const switchRef = useRef<((target: ChapterScope) => Promise<void>) | null>(null);
+  const switchingRef = useRef(false);
   const applyingRef = useRef(false);
   const dirtyRef = useRef(false);
   const activeRef = useRef(isAiActive);
@@ -48,9 +52,11 @@ export function useChapterSync(
       storageFailed = true;
     }
     const client = createManuscriptClient();
-    void loadEditorChapter(client, window.location.search).then(({ scope, chapter }) => {
+    let currentScope: ChapterScope | null = null;
+    function openChapter(scope: ChapterScope, chapter: Chapter) {
       const quill = quillRef.current;
       if (disposed || !quill) return;
+      sessionRef.current?.stop();
       const url = new URL(window.location.href);
       for (const [key, value] of Object.entries(scope)) url.searchParams.set(key, String(value));
       window.history.replaceState(null, "", url);
@@ -91,18 +97,47 @@ export function useChapterSync(
       });
       let latestRecovery: string | null = null;
       sessionRef.current = session;
+      currentScope = scope;
+      setScope(scope);
+      setBlocked(false);
       setTitle(chapter.title);
       setStatus(`${chapter.title} · Saved${storageFailed ? " · Recovery storage unavailable" : ""}`);
       setReady(true);
       session.edit(quill.getContents());
-    }).catch((error: unknown) => {
-      if (!disposed) {
-        setStatus(error instanceof Error ? error.message : "Chapter load failed.");
-        setNeedsChapter(error instanceof NoEditorChapter);
+    }
+    switchRef.current = async (target) => {
+      const quill = quillRef.current;
+      const session = sessionRef.current;
+      if (!quill || !session || !canSwitchChapter(currentScope, target, switchingRef.current || activeRef.current())) return;
+      switchingRef.current = true;
+      setReady(false);
+      setStatus("Saving current chapter before opening…");
+      try {
+        session.edit(quill.getContents());
+        await session.flush();
+        if (disposed) return;
+        setStatus("Loading chapter…");
+        const chapter = await client.getChapter(target);
+        if (disposed) return;
+        openChapter(target, chapter);
+      } catch (error) {
+        if (!disposed) setStatus(`Chapter switch failed: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
+      } finally {
+        switchingRef.current = false;
+        if (!disposed) setReady(true);
       }
+    };
+    queueMicrotask(() => {
+      if (disposed) return;
+      void loadEditorChapter(client, window.location.search).then(({ scope, chapter }) => openChapter(scope, chapter)).catch((error: unknown) => {
+        if (!disposed) {
+          setStatus(error instanceof Error ? error.message : "Chapter load failed.");
+          setNeedsChapter(error instanceof NoEditorChapter);
+        }
+      });
     });
     const timer = window.setInterval(() => {
-      if (!activeRef.current()) void sessionRef.current?.tick();
+      if (!activeRef.current() && !switchingRef.current) void sessionRef.current?.tick();
     }, 1000);
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (dirtyRef.current) {
@@ -117,6 +152,7 @@ export function useChapterSync(
       window.removeEventListener("beforeunload", beforeUnload);
       sessionRef.current?.stop();
       sessionRef.current = null;
+      switchRef.current = null;
     };
   }, [quillRef]);
 
@@ -125,6 +161,8 @@ export function useChapterSync(
     blocked,
     status,
     title,
+    scope,
+    switchChapter: (target: ChapterScope) => switchRef.current?.(target),
     recovery,
     needsChapter,
     async bootstrap() {
@@ -140,7 +178,7 @@ export function useChapterSync(
         setNeedsChapter(true);
       }
     },
-    canStartAi: () => sessionRef.current?.canStartAi() ?? false,
+    canStartAi: () => !switchingRef.current && (sessionRef.current?.canStartAi() ?? false),
     documentChanged() {
       if (!applyingRef.current && quillRef.current) {
         sessionRef.current?.edit(quillRef.current.getContents());

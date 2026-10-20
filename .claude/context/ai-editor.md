@@ -10,7 +10,8 @@ The frontend split is deliberate.
 
 **Functional Core**:
 - `ai_contract.ts` — request types, stream-event types, URL helper, selection rebasing.
-- `context_inspector.ts` — pure prompt-section view-model with summed estimated tokens and ordered history turns; the editable live panel selects Continue/Resume or Edit and uses the same request builder as sending. It refreshes for Quill/settings/thread changes, handles unavailable previews, and hides at 800px. Only edited ids enter `sectionOverrides`; Reset restores assembly per section. Each action owns separate overrides, cleared after its accepted send or any chapter load/remote reset, never persisted. History is edited per speaker turn, with explicit user/assistant add controls. Editing alone sends no request.
+- `context_inspector.ts` — pure prompt-section view-model with summed estimated tokens and ordered history turns; the editable live panel selects Continue/Resume or Edit and uses the same request builder as sending. It refreshes for Quill/settings/thread changes and handles unavailable previews. The right drawer starts closed and remains available inline below 1100px. Only edited ids enter `sectionOverrides`; Reset restores assembly per section. Each action owns separate overrides, cleared after its accepted send or any chapter load/remote reset, never persisted. History is edited per speaker turn, with explicit user/assistant add controls. Editing alone sends no request.
+- `editor_panels.ts` — pure single-open-drawer transitions and Ctrl/Cmd+[ / Ctrl/Cmd+] shortcut mapping. Escape closes drawers and the request preview, then restores editor selection/focus. Hover changes rail contrast only; rail mousedown prevents focus theft. Existing writing controls stay inline above the sheet, not in fixed side panels.
 - `prompt_sections.ts` — pure server-parity assembly from accepted requests. `editableText` is raw section content; `text` is provider-rendered content. Text overrides pass through normal escaping and fixed tags/action/selection metadata; empty text keeps its section frame. History overrides are ordered `{role, text}` turns, preserving roles and message boundaries without tagged framing. Both normal and edited history escape `&`, `<`, and `>` before provider delivery and token estimation; normal history is trimmed first, while edited history preserves whitespace. `promptHistory` exposes raw turns for editing; `assemblePromptHistory` exposes escaped provider messages. History display concatenates escaped turn text; current-turn sections join without separators. Token estimates are `ceil(UTF-8 bytes / 4)` per section, summed for totals, excluding chat framing, not tokenizer counts.
 - `ai_stream.ts` — incremental NDJSON parser plus final remainder handling.
 - `ai_state.ts` — AI run-state ADT and transition helpers.
@@ -23,6 +24,7 @@ The frontend split is deliberate.
 
 **Imperative Shell**:
 - `components/Editor.tsx` — owns Quill, DOM refs, browser `fetch`, `AbortController`, streamed delta application, and UI state wiring.
+- `components/ManuscriptTree.tsx` — loads the ordered series/books/chapter-summary outline through the existing manuscript client when opened, with loading, empty, error, and retry states. Selection requests a save-before-switch and highlights only the open chapter. Reopening refreshes the outline.
 - `chapter_session.ts` — hierarchy selection/bootstrap and serialized POST/GET orchestration.
 - `use_chapter_sync.ts` — Quill synchronization, one-second polling, save status, unload warning, and per-tab sessionStorage recovery/export.
 
@@ -30,6 +32,7 @@ The frontend split is deliberate.
 
 - A URL with `seriesId`, `bookId`, and `chapterId` opens that scoped server chapter. All three IDs must be positive integers.
 - Without IDs, selection walks the ordered series/books hierarchy and opens its first chapter. The selected scope is written to the URL, so reload opens the same server chapter with its current content and `head_rev`.
+- Chapter lists contain only `id`, `title`, `position`, `kind`, and `head_rev`. Initial hierarchy selection fetches the first chapter through the single-chapter GET; bootstrap only needs the listed ID. Tree selection disables editing and further switches, awaits any active synchronization cycle and flushes remaining pending edits, then issues one single-chapter GET. A successful load replaces the session, clears undo/AI context, and updates the title, URL, and selected highlight. Failed saves or loads leave the current session and text in place with an error; uncertain submissions are not retried.
 - An empty hierarchy offers **Create chapter**. Only this explicit action creates missing default series/book/chapter resources through the manuscript API. Concurrent bootstrap actions can create separate defaults; no backend uniqueness is assumed.
 - All local document changes enter the same sync path: typing, formatting, undo/redo, markdown conversion, AI selection deletion, streamed fragments, and cancellation/failure restoration. Markdown's silent replacement is captured by comparing the final Quill document with the sync core's visible document.
 - Quill's document normalization, including the required terminal newline, enters that same local path after chapter load or a remote update.
@@ -106,7 +109,10 @@ Pure helper coverage currently lives in:
 - `window.test.ts`
 - `delta_bridge.test.ts`
 - `editor_ai.test.ts`
+- `editor_panels.test.ts` — drawer toggle/switch/close and shortcut modifier/composition handling. The chapter browser smoke checks Ctrl and Cmd inspector shortcuts, hover/click behavior, manuscript loading, and Escape selection/focus restoration, including from the guidance field.
 - `chapter_sync.test.ts`
 - `chapter_session.test.ts`
+
+The second `chapter-sync.spec.ts` browser test seeds two chapters, checks save-before-switch ordering and the single detail GET, then checks failed-save text, current scope/highlight, and recovery retention.
 
 There is still no direct component-level test for the full Quill streaming shell, so browser QA remains important for Continue/Edit trigger regressions.

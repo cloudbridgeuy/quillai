@@ -4,8 +4,8 @@ Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/
 
 ## Scope
 
-- Desktop first: 1100px and wider. Narrow/mobile layout is undecided and untested.
-- Existing `context_inspector` (GUZ-664/665/666) becomes the right-hand drawer.
+- Desktop first: 1100px and wider. Below 1100px, open panels use the document flow between the rails, without covering the editor. Mobile visual design remains provisional.
+- Existing `context_inspector` (GUZ-664/665/666) is the right-hand drawer. The temporary fixed 184px side panels are removed; existing writing controls remain inline above the sheet.
 
 ## Palette
 
@@ -69,6 +69,9 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - Rails are muted: opacity .35, .95 on hover/focus-within; buttons 36px, radius 10px, `--graphite`.
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
+- Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.
+- Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer; Escape and drawer Close restore the remembered editor selection and focus. Hover changes only appearance.
+- The manuscript drawer loads series → books → chapter summaries through the existing manuscript client, with loading, empty, error, and retry states. Selecting a chapter waits for the current save and any pending edits, then fetches that chapter once through the single-chapter GET. Editing and further switches pause until loading completes. Only a successful load changes the title, selected highlight, URL, and AI context. Save/load failures keep the current chapter and its text, show an error, and preserve recovery/export. Reopening refreshes the hierarchy.
 - Z-order: hint 4, flags 5, panels 8, rails 9, settings popover 9, switcher/edit box 10, lore card 11, save bar 20.
 
 ## Sticky notes (styled textareas)
@@ -98,7 +101,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Continue
 
-- One Continue control (right rail) with a "with thread" indicator in place of a separate Resume. Resume is the implicit thread-history variant (`Editor.tsx:502-506`).
+- One Continue control (right rail) with a "with thread" indicator in place of a separate Resume. Resume is the implicit thread-history variant (`shouldUseResumeThread` in `Editor.tsx`).
 - Click while streaming stops the stream.
 
 ## Saves
@@ -110,10 +113,10 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 | Keys | Action | Status |
 |------|--------|--------|
-| Ctrl/Cmd+[ | Toggle manuscript panel | Intended for product |
-| Ctrl/Cmd+] | Toggle context inspector | Intended for product |
+| Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
+| Ctrl/Cmd+] | Toggle context inspector | Implemented |
 | Alt+L | Open lore card for nearest in-window name | Intended for product |
-| Esc | Close panels, popovers, cards; refocus the page | Intended for product |
+| Esc | Close panels and context preview; restore editor selection/focus | Implemented; lore/popovers remain future work |
 | Enter (in edit note) | Apply edit | Intended for product |
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
