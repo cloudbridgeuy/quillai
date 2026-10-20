@@ -83,6 +83,7 @@ import { StickyNote } from "../../components/StickyNote";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";
+import { LoreWindow } from "./LoreWindow";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -1085,6 +1086,16 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     mode: windowMode,
   });
 
+  const continueInspector = (() => {
+    if (!desktop || !chapterSync.ready || !markerQuill) return null;
+    try {
+      return inspectorAction === "generate" && typeof contextInspector !== "string" ? contextInspector
+        : buildContextInspector(buildRequestPreview("generate", markerQuill, markerSelection).request, authorGuidance, loreEntries);
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <div className="editor-shell">
       {desktop && showContinueWindow && chapterSync.ready && markerQuill ? <ContinueWindow
@@ -1249,6 +1260,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
               onMouseDown={(event) => event.preventDefault()}
               onClick={closePanels}>Close context</button>
           </div>
+          {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}
         <label className="editor-field editor-field-full">
           <span>Story Context</span>
           <textarea

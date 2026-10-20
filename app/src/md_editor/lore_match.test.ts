@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { matchLoreEntries, type LoreMatch, type LoreMatchEntry } from "./lore_match";
+import { matchLoreEntries, matchLoreOccurrences, type LoreMatch, type LoreMatchEntry } from "./lore_match";
 import { calculateDocumentWindow } from "./window";
 
 function entry(overrides: Partial<LoreMatchEntry> = {}): LoreMatchEntry {
@@ -16,6 +16,15 @@ function entry(overrides: Partial<LoreMatchEntry> = {}): LoreMatchEntry {
     ...overrides,
   };
 }
+
+test("occurrence offsets preserve decomposed text, emoji and overlapping aliases", () => {
+  const text = "🐉 E\u0301lodie met Captain Mira by the compass. Mirage.";
+  const entries = [entry({ name: "Élodie" }), entry({ id: 2, aliases: ["Captain Mira", "Mira"], keywords: ["compass"] })];
+  const matches = matchLoreOccurrences(text, entries);
+  expect(matches.map(match => match.text)).toEqual(["E\u0301lodie", "Captain Mira", "compass"]);
+  for (const match of matches) expect(text.slice(match.start, match.end)).toBe(match.text);
+  expect(matches[0]?.start).toBe(3);
+});
 
 test("matches an entry name once even with repeated mentions", () => {
   expect(matchLoreEntries("Mira met Mira.", [entry()], 100)).toEqual([{

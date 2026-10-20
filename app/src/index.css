@@ -1131,3 +1131,82 @@ button {
     color: var(--ai-stream-color);
   }
 }
+::highlight(quillai-lore-include) {
+  text-decoration: underline dotted var(--st-lav) 1.5px;
+}
+
+::highlight(quillai-lore-known_dont_reveal) {
+  text-decoration: underline dashed var(--st-tan) 1.5px;
+}
+
+::highlight(quillai-lore-leave_out) {
+  text-decoration: underline dotted var(--pencil) 1.5px;
+}
+
+::highlight(quillai-lore-hover) {
+  background-color: var(--pi-lav);
+}
+
+.editor-lore-window {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.editor-lore-window button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  padding: 7px 9px;
+  text-align: left;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.editor-lore-window button:hover,
+.editor-lore-window button:focus-visible {
+  background: var(--pi-lav);
+}
+
+.editor-lore-card {
+  position: fixed;
+  z-index: 11;
+  width: 300px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(31, 41, 51, .07);
+  border-radius: 4px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(31, 41, 51, .14);
+  font-size: 13px;
+}
+
+.editor-lore-card h3 {
+  margin: 10px 0 2px;
+}
+
+.editor-lore-card > button {
+  float: right;
+}
+
+.editor-lore-flag {
+  padding: 4px 12px;
+  margin-left: -14px;
+  background: var(--pi-lav);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%);
+}
+
+.editor-lore-visible {
+  padding: 12px;
+  background: var(--pi-green);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

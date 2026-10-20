@@ -11,7 +11,8 @@ const request = buildAiRequest({ action: "generate", document: { text: "Mira arr
 test("injected lore reports keyword reason, level, type and provider-parity token estimate", () => {
   const view = buildInjectedLore(request, [mira]);
   expect(view.injected).toEqual([{ id: 1, name: "Mira", kind: "character", level: "include", reason: "keyword",
-    tokens: assemblePromptSections(request).find(section => section.id === "lore")!.tokens }]);
+    tokens: assemblePromptSections(request).find(section => section.id === "lore")!.tokens,
+    visible_text: mira.visible_text, occurrences: [{ id: 1, start: 0, end: 4, text: "Mira" }] }]);
   expect(view.skipped).toEqual([]);
   expect(JSON.stringify(view)).not.toContain("SECRET");
   expect(JSON.stringify(view)).not.toContain("hidden_notes");

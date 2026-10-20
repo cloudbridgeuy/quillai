@@ -51,13 +51,41 @@ export function matchLoreEntries(
   return matches;
 }
 
-function matchesTerm(text: string, term: string): boolean {
+function termPattern(term: string): RegExp | null {
   const normalized = term.normalize("NFC").trim();
   if (!normalized) {
-    return false;
+    return null;
   }
 
   const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const wordCharacter = "[\\p{L}\\p{M}\\p{N}\\p{Pc}\\p{Emoji_Modifier}\\u200d]";
-  return new RegExp(`(?<!${wordCharacter})${escaped}(?!${wordCharacter})`, "iu").test(text);
+  return new RegExp(`(?<!${wordCharacter})${escaped}(?!${wordCharacter})`, "giu");
+}
+
+function matchesTerm(text: string, term: string): boolean {
+  return termPattern(term)?.test(text) ?? false;
+}
+
+export type LoreOccurrence = { id: number; start: number; end: number; text: string };
+
+export function matchLoreOccurrences(text: string, entries: readonly LoreMatchEntry[]): LoreOccurrence[] {
+  const offsets = new Map<number, number>([[0, 0]]);
+  let normalized = "";
+  for (const part of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)) {
+    offsets.set(normalized.length, part.index);
+    normalized += part.segment.normalize("NFC");
+    offsets.set(normalized.length, part.index + part.segment.length);
+  }
+  return entries.flatMap(entry => {
+    const found = [entry.name, ...entry.aliases, ...entry.keywords].flatMap(term => {
+      const pattern = termPattern(term);
+      if (!pattern) return [];
+      return [...normalized.matchAll(pattern)].flatMap(match => {
+        const start = offsets.get(match.index);
+        const end = offsets.get(match.index + match[0].length);
+        return start === undefined || end === undefined ? [] : [{ id: entry.id, start, end, text: text.slice(start, end) }];
+      });
+    }).sort((a, b) => a.start - b.start || b.end - a.end);
+    return found.filter((match, index) => !found.slice(0, index).some(previous => previous.start <= match.start && previous.end >= match.end));
+  });
 }

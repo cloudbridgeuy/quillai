@@ -94,7 +94,7 @@ The shared `StickyNote` textarea provides both yellow guidance and pink Edit inp
 |------|------|---------|-------|
 | Yellow, author guidance | `#F4E8B5` | Inspector drawer, always, 5 rows | Section "Author guidance" |
 | Pink, Edit instruction | `#F3D6D8` | Edit click with a non-empty selection; Enter applies, Esc cancels | Edit box, right 72px, top 96px, 280px wide |
-| Green, lore note | `#D7E6D0` | In the lore card, 2 rows, per-match note for the AI | Lore card |
+| Green, lore text | `#D7E6D0` | In the lore card, read-only visible AI context | Lore card |
 
 Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit box ("Edit selection", pink), the lore card ("Lore match", lavender), and an off-screen Continue window start. The Continue bracket itself is a gutter stroke, not a flag.
 
@@ -106,13 +106,13 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Lore
 
-- The left manuscript drawer includes Series lore for the current chapter's series, with loading, empty, error, and retry states. New lore and entry buttons open a square inline form for kind, name, newline-separated keywords/aliases, visible AI context, author-only hidden notes, request level, and pin. Save and Delete persist through the series-scoped API; Cancel discards the draft. Author-only notes never enter AI requests. Series changes clear previous entries and drafts. This management form does not implement the planned in-prose lore cards below.
+- The left manuscript drawer includes Series lore for the current chapter's series, with loading, empty, error, and retry states. New lore and entry buttons open a square inline form for kind, name, newline-separated keywords/aliases, visible AI context, author-only hidden notes, request level, and pin. Save and Delete persist through the series-scoped API; Cancel discards the draft. Author-only notes never enter AI requests. Series changes clear previous entries and drafts.
 - The context drawer's Injected lore section previews the next selected request: name, kind, request level, keyword or pin reason, and per-entry token estimate, followed by matches skipped by budget. It uses the same transmitted window, level filter, matcher, and 65,536 UTF-16 budget as request assembly. Pins may exceed the cap. Per-entry estimates include standalone Lore tags and are not additive; the existing Lore prompt section provides the combined estimate. No author-only notes appear here.
 
-- Names inside the displayed window get a dotted lavender underline; hover shows `--pi-lav` background. Hover for 600ms (or Alt+L for the nearest name) opens a 300px lore card; Esc closes.
-- Card: name, matched alias, "In AI requests" radios (Include | Known, don't reveal | Leave out), "Lore as of" book and chapter selects (story-point level gating what enters the completion), green note, "Ignore this match".
+- At 1100px and wider, names, aliases, and keywords inside the calculated Continue window get visual-only CSS Custom Highlights, independent of bracket visibility. No Quill format or saved Delta changes. Hover for 600ms (or Alt+L for the nearest match) opens a 300px lore card with lavender highlight; Esc closes.
+- Card: name, kind, request level (Include | Known, don't reveal | Leave out), and read-only visible text on green. Hidden notes never appear. Editing radios, story-point selects, and per-match ignore/note controls remain prototype-only.
 - Underline style per level: include dotted lavender; known-don't-reveal dashed tan; leave out dotted pencil.
-- Inspector section "Lore in window": list of names with type, match count, and level; click scrolls to the first match and opens its card.
+- Inspector section "Lore in window": the lore Continue would send, with type, match count, and level. It shares `context_inspector.ts`'s injected lore model and budget, even when inspecting Edit. Leave-out entries and budget skips are absent; unmatched pins remain with zero matches and disabled navigation. Click a matched entry to scroll to its first match and open its card.
 
 ## Continue
 
@@ -131,8 +131,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 |------|--------|--------|
 | Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
 | Ctrl/Cmd+] | Toggle context inspector | Implemented |
-| Alt+L | Open lore card for nearest in-window name | Intended for product |
-| Esc | Close panels, Settings, and Edit note; restore editor selection/focus | Implemented; lore remains future work |
+| Alt+L | Open lore card for nearest in-window match | Implemented on desktop |
+| Esc | Close panels, Settings, Edit note, and lore card; restore editor selection/focus | Implemented |
 | Enter (in edit note) | Apply edit; Shift+Enter inserts a newline | Implemented |
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
@@ -149,6 +149,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Product browser coverage
 
 `e2e/lore.spec.ts` creates and updates a character through the left drawer, matches near the caret in the inspector, reloads persisted lore and chapter text, verifies Continue and Edit request bodies omit hidden notes, and deletes the entry. Desktop captures at 1100px and 1440px are stored in `target/guz-671/`.
+
+The same spec checks visual-only name/alias/keyword underlines, hover cards without hidden notes, the budgeted Continue lore list, window changes, and unchanged saved chapter content/revision at 1100px and 1440px. Lore UI screenshots are stored in `target/guz-759/`.
 
 Run with `cargo xtask e2e`. Existing `e2e/continue-stream.spec.ts` covers concurrent typing before and inside AI text, caret and selection preservation, Stop and server-error rollback that retains author inserts, server cancellation, completion tint fade, persisted tint preference, saved-selection deletion/replacement transforms, and the narrow-screen locking boundary. Existing `e2e/author-guidance.spec.ts` covers Settings persistence and idle dismissal, forced-503 save failure, accessible recovery details, export, and failure-pill geometry without sheet movement or prose overlap at 1100px and 1440px.
 
