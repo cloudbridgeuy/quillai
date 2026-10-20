@@ -77,6 +77,8 @@ import { createSettingsClient } from "../../settings/client";
 import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
 import { StickyNote } from "../../components/StickyNote";
+import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
+import { renderContinueTint } from "../continue_tint";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -242,6 +244,13 @@ export const Container = () => {
   const [instruction, setInstruction] = useState(initialEditorState.instruction);
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
+  const [aiTextTint, setAiTextTint] = useState(initialEditorState.aiTextTint);
+  const [desktop, setDesktop] = useState(() => window.matchMedia("(min-width: 1100px)").matches);
+  const continueStreamRef = useRef<ContinueStream | null>(null);
+  const applyingContinueRef = useRef(false);
+  const tintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tintEnabledRef = useRef(aiTextTint);
+  tintEnabledRef.current = aiTextTint;
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
@@ -295,6 +304,7 @@ export const Container = () => {
     ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status), () => {
       lastCursorRangeRef.current = null;
       lastEditSelectionRef.current = null;
+      clearContinueTint();
       setSectionOverrides({ generate: {}, edit: {} });
       setRange(quillRef.current?.getSelection() ?? null);
       updateThreadState(resetThread(threadStateRef.current));
@@ -314,6 +324,7 @@ export const Container = () => {
           instruction,
           windowSize,
           windowMode,
+          aiTextTint,
           threadState: threadStateRef.current,
         }),
       );
@@ -331,7 +342,13 @@ export const Container = () => {
   useEffect(() => {
     const quill = quillRef.current;
     if (!quill) return;
-    const refreshContext = () => setContextRevision((revision) => revision + 1);
+    const refreshContext = (event: string, delta: Delta) => {
+      if (event === Quill.events.TEXT_CHANGE && continueStreamRef.current && !applyingContinueRef.current) {
+        continueStreamRef.current = transformContinueStream(continueStreamRef.current, delta);
+        renderContinueTint(quill, continueStreamRef.current.removal, tintEnabledRef.current);
+      }
+      setContextRevision((revision) => revision + 1);
+    };
     quill.on(Quill.events.EDITOR_CHANGE, refreshContext);
     return () => {
       quill.off(Quill.events.EDITOR_CHANGE, refreshContext);
@@ -340,7 +357,19 @@ export const Container = () => {
 
   useEffect(() => {
     persistEditorState();
-  }, [storyContext, instruction, windowSize, windowMode, threadState]);
+  }, [storyContext, instruction, windowSize, windowMode, threadState, aiTextTint]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1100px)");
+    const changed = () => setDesktop(media.matches);
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
+
+  useEffect(() => {
+    const quill = quillRef.current;
+    if (quill && continueStreamRef.current) renderContinueTint(quill, continueStreamRef.current.removal, aiTextTint && desktop);
+  }, [aiTextTint, desktop]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -348,6 +377,7 @@ export const Container = () => {
     return () => {
       isMountedRef.current = false;
       abortControllerRef.current?.abort();
+      clearContinueTint();
     };
   }, []);
 
@@ -383,6 +413,35 @@ export const Container = () => {
       setRange(selection);
     } else {
       quillRef.current?.focus();
+    }
+  }
+
+  function clearContinueTint() {
+    if (tintTimerRef.current !== null) clearTimeout(tintTimerRef.current);
+    tintTimerRef.current = null;
+    continueStreamRef.current = null;
+    const quill = quillRef.current;
+    if (quill) {
+      renderContinueTint(quill, new Delta(), false);
+      delete quill.root.dataset.aiTint;
+    }
+  }
+
+  function applyContinueChange(quill: Quill, change: Delta) {
+    const selection = quill.getSelection();
+    if (lastCursorRangeRef.current) lastCursorRangeRef.current = transformContinueSelection(lastCursorRangeRef.current, change);
+    if (lastEditSelectionRef.current) lastEditSelectionRef.current = transformContinueSelection(lastEditSelectionRef.current, change);
+    applyingContinueRef.current = true;
+    try {
+      quill.updateContents(change, "api");
+      if (selection) {
+        const next = transformContinueSelection(selection, change);
+        quill.setSelection(next.index, next.length, "silent");
+        lastCursorRangeRef.current = next;
+        setRange(lastCursorRangeRef.current);
+      }
+    } finally {
+      applyingContinueRef.current = false;
     }
   }
 
@@ -604,10 +663,23 @@ export const Container = () => {
       deleteLength > 0 ? new Delta(quill.getContents(anchor, deleteLength).ops) : null;
     let didDeleteSelection = false;
     const controller = new AbortController();
+    const concurrentContinue = action === "generate" && desktop;
+    clearContinueTint();
+    if (concurrentContinue) {
+      continueStreamRef.current = createContinueStream(quill.getText(), anchor);
+      quill.root.dataset.aiTint = "streaming";
+    }
+
+    const rollbackContinue = () => {
+      const stream = continueStreamRef.current;
+      if (!concurrentContinue || !stream || !isActiveEditor()) return;
+      applyContinueChange(quill, stream.removal);
+      clearContinueTint();
+    };
 
     abortControllerRef.current = controller;
     updateAiRunState(started.state);
-    quill.enable(false);
+    quill.enable(concurrentContinue);
     lastEditSelectionRef.current = null;
 
     const isActiveEditor = () => isMountedRef.current && quillRef.current === quill;
@@ -675,6 +747,14 @@ export const Container = () => {
               .join("");
             generatedText += fragmentText;
             const fragment = new Delta(toQuillDeltaDocument(event.delta));
+            if (concurrentContinue && continueStreamRef.current) {
+              const appended = appendContinueFragment(continueStreamRef.current, fragment);
+              continueStreamRef.current = appended.state;
+              applyContinueChange(quill, appended.change);
+              renderContinueTint(quill, appended.state.removal, tintEnabledRef.current);
+              nextInsertIndex = appended.state.end;
+              continue;
+            }
             quill.updateContents(
               new Delta().retain(nextInsertIndex).concat(fragment),
               "api",
@@ -744,6 +824,11 @@ export const Container = () => {
       }
 
       updateAiRunState(finished.state);
+      if (concurrentContinue && terminalOutcome === "cancelled") {
+        rollbackContinue();
+        updateThreadState(finishCancelledThread(threadStateRef.current));
+        return;
+      }
       if (action === "generate") {
         updateThreadState(
           finishGenerateThread({
@@ -752,7 +837,7 @@ export const Container = () => {
             instruction: request.instruction,
             userPrompt: request.resumePrompt ?? request.instruction,
             generatedText,
-            generatedRange: { start: anchor, end: nextInsertIndex },
+            generatedRange: { start: continueStreamRef.current?.anchor ?? anchor, end: continueStreamRef.current?.end ?? nextInsertIndex },
           }),
         );
       }
@@ -777,7 +862,7 @@ export const Container = () => {
         return;
       }
 
-      setCursorState(quill, nextInsertIndex);
+      if (!concurrentContinue) setCursorState(quill, nextInsertIndex);
     } catch (error) {
       const wasAborted =
         (error instanceof DOMException && error.name === "AbortError") ||
@@ -790,6 +875,11 @@ export const Container = () => {
           updateThreadState(finishCancelledThread(threadStateRef.current));
         } else {
           setAiFailure(action, "Cancellation did not complete cleanly.");
+        }
+
+        if (concurrentContinue) {
+          rollbackContinue();
+          return;
         }
 
         if (
@@ -838,6 +928,12 @@ export const Container = () => {
           setAiFailure(action, failureMessage);
         }
 
+        if (concurrentContinue) {
+          rollbackContinue();
+          updateThreadState(finishCancelledThread(threadStateRef.current));
+          return;
+        }
+
         if (
           originalSelectionDelta &&
           shouldRollbackFailedEditSelection(action, didDeleteSelection, deleteLength)
@@ -870,6 +966,10 @@ export const Container = () => {
         }
       }
     } finally {
+      if (concurrentContinue && continueStreamRef.current && isActiveEditor()) {
+        quill.root.dataset.aiTint = "fading";
+        tintTimerRef.current = setTimeout(clearContinueTint, 2050);
+      }
       abortControllerRef.current = null;
       if (isMountedRef.current) setActiveContinueWithThread(null);
       if (isMountedRef.current && quillRef.current === quill) {
@@ -1025,7 +1125,7 @@ export const Container = () => {
           <div className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={isBusy || !chapterSync.ready || chapterSync.blocked}
+              readOnly={(isBusy && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);
@@ -1136,12 +1236,17 @@ export const Container = () => {
         </div>
 
         <p className="editor-note">
-          Edit replaces the current selection as text arrives. Stop keeps text
-          that already landed, and failed edits roll back to the original
-          passage.
+          Edit replaces the current selection as text arrives. Stopping an Edit
+          keeps text that already landed; failed edits restore the original passage.
+          Desktop Continue Stop removes only AI text and keeps your typing.
         </p>
           <details className="editor-advanced-section">
             <summary>Advanced AI controls</summary>
+            {desktop ? <label className="editor-toggle">
+              <input type="checkbox" checked={aiTextTint}
+                onChange={(event) => setAiTextTint(event.target.checked)} />
+              <span>Tint AI text</span>
+            </label> : null}
             <label className="editor-field">
               <span>Max Output Tokens</span>
               <input className="editor-input" type="number" min="1" max="4096" step="1"

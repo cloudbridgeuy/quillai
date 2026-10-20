@@ -19,6 +19,7 @@ const persistedState: PersistedEditorState = {
   instruction: "Continue with restrained dread.",
   windowSize: "2400",
   windowMode: "document",
+  aiTextTint: false,
   threadState: {
     settings: {
       maxOutputTokens: 900,
@@ -42,6 +43,7 @@ test("parsePersistedEditorState falls back for missing or malformed storage", ()
   expect(parsePersistedEditorState(null)).toEqual(fallback);
   expect(parsePersistedEditorState("not json")).toEqual(fallback);
   expect(parsePersistedEditorState(JSON.stringify([]))).toEqual(fallback);
+  expect(parsePersistedEditorState('{"aiTextTint":"false"}').aiTextTint).toBe(true);
 });
 
 test("persisted editor state round trips document, controls, and thread history", () => {

@@ -1017,3 +1017,23 @@ button {
     transition: none !important;
   }
 }
+@property --ai-stream-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #4e6272;
+}
+
+@media (min-width: 1100px) {
+  .ql-editor[data-ai-tint="streaming"] {
+    --ai-stream-color: #4e6272;
+  }
+
+  .ql-editor[data-ai-tint="fading"] {
+    --ai-stream-color: #1f2933;
+    transition: --ai-stream-color 1.8s 250ms;
+  }
+
+  .ql-editor::highlight(quillai-stream) {
+    color: var(--ai-stream-color);
+  }
+}

@@ -87,7 +87,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await continueButton.click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
   await expect(editor).toBeEditable();
-  await expect(editor).toHaveText("A saved beginning. More words.");
+  await expect(editor).toHaveText("A saved beginning.");
   await expect(continueButton).toHaveAccessibleName("Continue writing");
   await expect(continueButton.locator(".editor-thread-indicator")).toHaveCount(0);
   const proof = await page.evaluate(() => (window as unknown as { continueProof: {

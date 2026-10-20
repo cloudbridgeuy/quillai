@@ -55,14 +55,15 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 
 ## Caret and scroll
 
-Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
-- While AI streams, the caret does not move and the author can keep typing. Streamed text is inserted as a new paragraph after the caret paragraph and grows below.
+- At 1100px and wider, Continue leaves the editor writable. Its output starts as a new paragraph after the original caret paragraph, not at a later caret location. Every author change transforms the insertion anchor, append end, and exact surviving AI-owned ranges with `quill-delta`. Later fragments append at that transformed end.
+- Stream insertion, completion, and rollback preserve the logical caret or selection, including selections after the AI paragraph. No recentering or stream-driven scrolling is added. Further smooth-writing work remains in GUZ-763.
+- Desktop Continue Stop, server cancellation, and failures delete only surviving AI-owned text, including the inserted paragraph separator. Author inserts inside that text survive. Edit selection and screens below 1100px retain their existing locked-editor behavior.
 
 ## AI text
 
-- While streaming: inked in `--slate` (tint).
-- When streaming ends: tint transitions to plain ink over 1.8s (`.old` class added 250ms after the end).
-- Settings: AI text effect. Prototype options: none | tinted ink | soft highlight (`--pi-green`) | fade-in (1.2s). v1 decision is tint on/off; extra options are optional.
+- Desktop Continue text uses `--slate` while streaming. CSS custom highlights cover only surviving AI-owned text; author inserts are not tinted. Tint is local presentation, never chapter Delta formatting.
+- On successful completion, tint transitions to plain ink over 1.8s after a 250ms delay, then clears. Cancellation and failure clear it with rollback.
+- The desktop context drawer's Advanced AI controls contains Tint AI text, on by default. The on/off preference uses `editor_persistence` local storage, not server settings. Browsers without CSS custom highlights show plain ink. Prototype extra effects remain out of scope.
 
 ## Tools
 
@@ -112,7 +113,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Continue
 
 - One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "with thread" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
-- While streaming the same control shows Stop. Clicking it uses the existing cancellation and rollback path for Continue and Edit; no new cancellation behavior.
+- While streaming the same control shows Stop. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
 - The context drawer has one Continue view, labeled "Continue · with thread" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
 ## Saves
