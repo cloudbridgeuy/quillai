@@ -34,7 +34,7 @@ export function matchLoreEntries(
 
     const cost = entry.name.length + entry.visible_text.length;
     if (!entry.pinned && cost > remaining) {
-      break;
+      continue;
     }
 
     remaining -= cost;

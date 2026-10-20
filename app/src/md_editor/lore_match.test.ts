@@ -48,6 +48,12 @@ test("matches names, aliases, and keywords without case sensitivity", () => {
   }
 });
 
+test("uses Unicode simple case folding without expanding sharp s to SS", () => {
+  const lore = entry({ name: "Straße" });
+  expect(matchLoreEntries("STRAẞE", [lore], 100)).toHaveLength(1);
+  expect(matchLoreEntries("STRASSE", [lore], 100)).toEqual([]);
+});
+
 test("rejects substrings within longer Unicode words or identifiers", () => {
   for (const text of ["Mirage", "adMira", "Mira2", "_Mira", "Mira_", "éMira", "Mira界", "Mira\u0301"]) {
     expect(matchLoreEntries(text, [entry()], 100)).toEqual([]);
@@ -94,11 +100,11 @@ test("orders pins first and preserves input order within both groups", () => {
   expect(matchLoreEntries("Mira", entries, 100).map(match => match.id)).toEqual([3, 1, 4, 2]);
 });
 
-test("keeps the matching prefix at the exact character budget and stops at overflow", () => {
+test("respects the exact character budget and skips overflow to include smaller later matches", () => {
   const entries = [entry({ id: 1, visible_text: "ab" }), entry({ id: 2 }), entry({ id: 3, visible_text: "" })];
   expect(matchLoreEntries("Mira", entries, 6).map(match => match.id)).toEqual([1]);
-  expect(matchLoreEntries("Mira", entries, 10).map(match => match.id)).toEqual([1]);
-  expect(matchLoreEntries("Mira", entries, 5)).toEqual([]);
+  expect(matchLoreEntries("Mira", entries, 10).map(match => match.id)).toEqual([1, 3]);
+  expect(matchLoreEntries("Mira", entries, 5).map(match => match.id)).toEqual([3]);
 });
 
 test("pins consume the budget but are never dropped even when they overflow", () => {
@@ -106,6 +112,15 @@ test("pins consume the budget but are never dropped even when they overflow", ()
   expect(matchLoreEntries("Mira", entries, 0).map(match => match.id)).toEqual([2, 3]);
   expect(matchLoreEntries("Mira", entries, 45).map(match => match.id)).toEqual([2, 3, 1]);
   expect(matchLoreEntries("Mira", entries, 44).map(match => match.id)).toEqual([2, 3]);
+});
+
+test("pins exceeding the budget suppress every optional match, including small ones", () => {
+  const entries = [
+    entry({ id: 1, name: "M", visible_text: "", keywords: ["Mira"] }),
+    entry({ id: 2, pinned: true }),
+    entry({ id: 3, pinned: true }),
+  ];
+  expect(matchLoreEntries("Mira", entries, 20).map(match => match.id)).toEqual([2, 3]);
 });
 
 test("counts UTF-16 code units in names and visible text only", () => {
