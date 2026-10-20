@@ -1,6 +1,12 @@
 import type { AiAction, AiSelection, DeltaDocument } from "./ai_contract";
 import type { AiRunState } from "./ai_state";
 
+export function continueClickAction(state: AiRunState): "stop" | "generate" {
+  return state.status === "continuing" || state.status === "editing" || state.status === "cancelling"
+    ? "stop"
+    : "generate";
+}
+
 export type StatusPresentation = {
   tone: "idle" | "running" | "success" | "warning" | "error";
   label: string;

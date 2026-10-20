@@ -35,6 +35,15 @@ test("empty context keeps all sections, empty history, and framed defaults", () 
   expect(model.totalTokens).toBe(87);
 });
 
+test("one Continue label indicates the effective history, including overrides", () => {
+  expect(buildContextInspector(request()).requestLabel).toBe("Continue");
+  const messages = [{ role: "assistant" as const, content: "Earlier" }];
+  expect(buildContextInspector(request({ messages })).requestLabel).toBe("Continue · with thread");
+  expect(buildContextInspector(request({ messages, sectionOverrides: { history: [] } })).requestLabel).toBe("Continue");
+  expect(buildContextInspector(request({ sectionOverrides: { history: [{ role: "user", text: "Earlier" }] } })).requestLabel).toBe("Continue · with thread");
+  expect(buildContextInspector(request({ action: "edit" })).requestLabel).toBe("Edit selection");
+});
+
 test("all sections use resume context and sum individually rounded estimates", () => {
   const input = request({
     document: { delta: { ops: [{ insert: "Hello" }] }, text: "Hello" },

@@ -24,9 +24,9 @@ Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/
 | `--pi-pink` | `#F3D6D8` | Post-it: Edit instruction; selection; tool hover bg |
 | `--pi-green` | `#D7E6D0` | Post-it: lore note; active tool bg |
 | `--pi-blue` | `#D2E2EC` | Flag: Continue window |
-| `--pi-lav` | `#E0D8EC` | Flag: Resume window; lore hover |
+| `--pi-lav` | `#E0D8EC` | Lore flag and hover |
 | `--st-blue` | `#7C9BB0` | Continue bracket stroke |
-| `--st-lav` | `#9B8BB8` | Resume bracket, lore underline |
+| `--st-lav` | `#9B8BB8` | Lore underline |
 | `--st-tan` | `#B79A6C` | Lore "don't reveal" underline |
 | `--sheet-shadow` | `0 1px 2px rgba(31,41,51,.06), 0 10px 34px rgba(31,41,51,.09)` | Sheet, drawers, author guidance |
 | `--note-shadow` | `0 1px 1px rgba(31,41,51,.06), 0 6px 14px -6px rgba(31,41,51,.22)` | Post-its, flags |
@@ -68,7 +68,7 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 
 - Left rail (56px): navigation (manuscript tree panel, 300px, opens at `left: 56px`).
 - Right rail (56px): Continue, Edit selection, Context inspector, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
-- Rails are muted: opacity .35, .95 on hover/focus-within; buttons 36px, radius 10px, `--graphite`.
+- Rails are muted: opacity .35, .95 on hover/focus-within. The right rail stays at .95 when the thread indicator is present so history use remains visible. Tool buttons are 36px with radius 10px and `--graphite`; Continue uses the full 56px rail width for its label and indicator.
 - At 1100px and wider, both rails have 4px top padding; the first buttons and the QuillAI label share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
@@ -96,9 +96,9 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Context window
 
-- Brackets in the left gutter mark what a completion sends: 9px wide, 2px stroke, opacity .6; Continue at `left: -24px` (blue), Resume at `left: -38px` (lavender). Bracket runs from window start to the caret.
+- One blue Continue bracket in the left gutter marks the document slice sent: 9px wide, 2px stroke, opacity .6, at `left: -24px`. It runs from window start to the caret. Saved thread history does not create a second document window.
 - When the window start is off-screen, a flag sits at the top of the viewport reading `starts ↑ N pages up` (or "just above"); clicking scrolls to the start.
-- Settings: Show Continue window, Show Resume window (checkboxes).
+- Intended setting: Show Continue window. Window markers remain prototype-only.
 
 ## Lore
 
@@ -109,8 +109,9 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Continue
 
-- One Continue control (right rail) with a "with thread" indicator in place of a separate Resume. Resume is the implicit thread-history variant (`shouldUseResumeThread` in `Editor.tsx`).
-- Click while streaming stops the stream.
+- One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "with thread" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
+- While streaming the same control shows Stop. Clicking it uses the existing cancellation and rollback path for Continue and Edit; no new cancellation behavior.
+- The context drawer has one Continue view, labeled "Continue · with thread" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
 ## Saves
 
@@ -131,7 +132,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Prototype vs decisions
 
-- Resume is still a separate second window, bracket and flag. The decision folds it into Continue with a "with thread" indicator; the prototype has no such indicator.
+- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a visible "with thread" indicator; the prototype has no such indicator.
 - Off-screen marker reads `Continue window / starts ↑ N pages up`, not "window starts ↑ N pages".
 - AI text effect has four options, not an on/off switch.
 - Post-its have no rotation, and yellow lives in the drawer rather than on the sheet.

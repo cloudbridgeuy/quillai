@@ -1,4 +1,4 @@
-import type { AiFinishReason, AiHistoryMessage } from "./ai_contract";
+import type { AiFinishReason, AiHistoryMessage, PromptHistoryMessage } from "./ai_contract";
 
 export type GeneratedRange = {
   start: number;
@@ -76,6 +76,14 @@ export function resetThread(state: AiThreadState): AiThreadState {
   return { ...state, thread: null };
 }
 
+export function shouldContinueWithThread(
+  state: AiThreadState,
+  instruction: string | null,
+  historyOverride?: readonly PromptHistoryMessage[],
+): boolean {
+  return (historyOverride ?? (shouldUseResumeThread(state, instruction) ? historyForResume(state) : [])).length > 0;
+}
+
 export function getThreadPresentation(
   state: AiThreadState,
   instruction: string | null,
@@ -85,8 +93,8 @@ export function getThreadPresentation(
   if (!state.thread || !canResume) {
     return {
       mode: "completion",
-      label: "Completion mode",
-      detail: "No resumable history will be sent.",
+      label: "Continue",
+      detail: "No saved thread history will be sent.",
       messageCount: 0,
       canReset: state.thread !== null,
     };
@@ -97,7 +105,7 @@ export function getThreadPresentation(
 
   return {
     mode: isResuming ? "resuming" : "resume",
-    label: isResuming ? "Resuming output…" : "Resume mode",
+    label: isResuming ? "Continuing with thread…" : "Continue · with thread",
     detail: `${messageCount} history messages · range ${range}`,
     messageCount,
     canReset: true,

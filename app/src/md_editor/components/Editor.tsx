@@ -17,6 +17,7 @@ import {
   type PromptSectionOverrides,
 } from "../ai_contract";
 import {
+  continueClickAction,
   getStatusPresentation,
   isTextOnlyDeltaDocument,
   rememberCursorRange,
@@ -63,6 +64,7 @@ import {
   resetThread,
   resetThreadOnInstructionChange,
   shouldUseResumeThread,
+  shouldContinueWithThread,
   updateThreadSettings,
   type AiThreadState,
 } from "../ai_thread";
@@ -239,6 +241,7 @@ export const Container = () => {
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
+  const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
   const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
@@ -650,6 +653,9 @@ export const Container = () => {
 
       const preparedRequest = buildRequestPreview(action, quill, normalizedSelection);
       const request = preparedRequest.request;
+      if (action === "generate") {
+        setActiveContinueWithThread(buildContextInspector(request).history.length > 0);
+      }
 
       const response = await fetch(
         buildAiGenerateUrl(),
@@ -896,6 +902,7 @@ export const Container = () => {
       }
     } finally {
       abortControllerRef.current = null;
+      if (isMountedRef.current) setActiveContinueWithThread(null);
       if (isMountedRef.current && quillRef.current === quill) {
         quill.enable(true);
       }
@@ -915,7 +922,15 @@ export const Container = () => {
     abortControllerRef.current.abort();
   }
 
+  function continueOrStop() {
+    if (continueClickAction(aiRunStateRef.current) === "stop") cancelRun();
+    else void runAiAction("generate");
+  }
+
   const statusPresentation = getStatusPresentation(aiRunState);
+  const withThread = activeContinueWithThread ?? shouldContinueWithThread(
+    threadState, normalizedInstructionText(), sectionOverrides.generate.history,
+  );
   const isResumingOutput =
     aiRunState.status === "continuing" &&
     shouldUseResumeThread(threadState, normalizedInstructionText());
@@ -960,11 +975,15 @@ export const Container = () => {
           onClick={() => togglePanel("manuscript")}>☰</button>
       </nav>
       <nav className="editor-rail editor-rail-right" aria-label="AI tools">
-        <button type="button" aria-label={isBusy ? "Stop AI" : "Continue writing"}
-          title={isBusy ? "Stop AI" : "Continue writing"}
+        <button type="button" className="editor-continue" aria-label={isBusy ? "Stop AI" : withThread ? "Continue writing with thread" : "Continue writing"}
+          title={isBusy ? "Stop AI" : withThread ? "Continue writing with thread" : "Continue writing"}
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => isBusy ? cancelRun() : void runAiAction("generate")}>➤</button>
+          onClick={continueOrStop}>
+          <span aria-hidden="true">{isBusy ? "■" : "➤"}</span>
+          <span className="editor-continue-label">{isBusy ? "Stop" : "Continue"}</span>
+          {withThread ? <span className="editor-thread-indicator">with thread</span> : null}
+        </button>
         <button type="button" aria-label="Edit selection" title="Edit selection"
           disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           onMouseDown={(event) => event.preventDefault()}
@@ -1087,14 +1106,6 @@ export const Container = () => {
 
         <div className="editor-actions">
           <button
-            className="editor-button editor-button-primary"
-            type="button"
-            onClick={() => void runAiAction("generate")}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          >
-            {shouldUseResumeThread(threadState, normalizedInstructionText()) ? "Resume Output" : "Continue"}
-          </button>
-          <button
             className="editor-button"
             type="button"
             onClick={openGeneratePreview}
@@ -1110,15 +1121,6 @@ export const Container = () => {
           >
             Edit
           </button>
-          {isBusy ? (
-            <button
-              className="editor-button editor-button-danger"
-              type="button"
-              onClick={cancelRun}
-            >
-              Cancel
-            </button>
-          ) : null}
         </div>
 
         <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
@@ -1138,7 +1140,7 @@ export const Container = () => {
         </div>
 
         <p className="editor-note">
-          Edit replaces the current selection as text arrives. Cancel keeps text
+          Edit replaces the current selection as text arrives. Stop keeps text
           that already landed, and failed edits roll back to the original
           passage.
         </p>
@@ -1208,7 +1210,7 @@ export const Container = () => {
             <span>Request to inspect</span>
             <select className="editor-input" value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
-              <option value="generate">Continue/Resume</option>
+              <option value="generate">{withThread ? "Continue · with thread" : "Continue"}</option>
               <option value="edit">Edit selection</option>
             </select>
           </label>
@@ -1219,6 +1221,7 @@ export const Container = () => {
             <p className="editor-note">{contextInspector}</p>
           ) : (
             <>
+              <p className="editor-note">{contextInspector.requestLabel}</p>
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
               <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
               {contextInspector.sections.map((section) => (
@@ -1399,7 +1402,7 @@ export const Container = () => {
                   />
                 </label>
                 <label className="editor-field">
-                  <span>Resume Prompt</span>
+                  <span>Thread continuation prompt</span>
                   <textarea
                     className="editor-textarea editor-textarea-compact"
                     value={threadState.settings.resumePrompt}

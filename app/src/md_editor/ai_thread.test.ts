@@ -33,8 +33,8 @@ test("initialAiThreadState keeps sticky default settings", () => {
 test("getThreadPresentation describes completion mode without matching history", () => {
   expect(getThreadPresentation(base, "continue", false)).toEqual({
     mode: "completion",
-    label: "Completion mode",
-    detail: "No resumable history will be sent.",
+    label: "Continue",
+    detail: "No saved thread history will be sent.",
     messageCount: 0,
     canReset: false,
   });
@@ -50,8 +50,8 @@ test("getThreadPresentation describes completion mode without matching history",
 
   expect(getThreadPresentation(withThread, "changed", false)).toEqual({
     mode: "completion",
-    label: "Completion mode",
-    detail: "No resumable history will be sent.",
+    label: "Continue",
+    detail: "No saved thread history will be sent.",
     messageCount: 0,
     canReset: true,
   });
@@ -69,7 +69,7 @@ test("getThreadPresentation describes resume and resuming modes", () => {
 
   expect(getThreadPresentation(withThread, "continue", false)).toEqual({
     mode: "resume",
-    label: "Resume mode",
+    label: "Continue · with thread",
     detail: "2 history messages · range 10–17",
     messageCount: 2,
     canReset: true,
@@ -77,7 +77,7 @@ test("getThreadPresentation describes resume and resuming modes", () => {
 
   expect(getThreadPresentation(withThread, "continue", true)).toMatchObject({
     mode: "resuming",
-    label: "Resuming output…",
+    label: "Continuing with thread…",
   });
 });
 
