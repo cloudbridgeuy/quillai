@@ -104,7 +104,7 @@ Supported event types:
 
 `usage` carries non-negative integer `promptTokens` and `completionTokens`. The provider asks upstream for `stream_options: {"include_usage": true}` and emits `usage` only when the final usage chunk includes both `prompt_tokens` and `completion_tokens`. `total_tokens` is not forwarded. A missing, null, or incomplete usage object emits no `usage` event; the stream still ends with `done` or `error`. An earlier `finish_reason` is kept and written on `done` after usage is read. `[DONE]` or the end of the upstream body completes the response.
 
-The browser parser in `app/src/md_editor/ai_stream.ts` accepts `usage`. The editor does not display token counts. Its apply loop still treats any event other than `delta` or `error` as the end of the run, so a `usage` line stops it before `done` and the thread keeps `finishReason` `unknown`.
+The browser parser in `app/src/md_editor/ai_stream.ts` accepts `usage`. The editor shell ignores it and does not display token counts. The run still ends on `done`, `error`, `cancelled`, or EOF, so `finishReason` on `done` is kept.
 
 The current provider implementation emits `delta`, `usage` when present, `done`, and `error`. Browser cancellation is handled locally by aborting the request.
 

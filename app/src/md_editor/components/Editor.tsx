@@ -796,6 +796,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
             throw new Error(event.error);
           }
 
+          if (event.type === "usage") {
+            continue;
+          }
+
           if (event.type === "done") {
             finishReason = event.finishReason;
           }

@@ -76,7 +76,7 @@ Both actions use series lore loaded by `manuscripts/use_lore.ts` through the par
 
 `Continue`:
 
-- One right-rail control, with a visible "with thread" badge when saved or overridden history will be sent. No separate Resume or inline Continue control. While either AI stream runs, the same control shows Stop and uses the existing abort/cancellation/rollback path. The badge retains the active request's history state after request-local overrides reset. `shouldContinueWithThread` and `continueClickAction` provide pure decisions covered by unit tests; the browser smoke mocks a length-limited response and an abortable stream.
+- One right-rail control, with a visible "with thread" badge when saved or overridden history will be sent. No separate Resume or inline Continue control. While either AI stream runs, the same control shows Stop and uses the existing abort/cancellation/rollback path. The badge retains the active request's history state after request-local overrides reset. `shouldContinueWithThread` and `continueClickAction` provide pure decisions covered by unit tests; the browser smoke mocks a length-limited response and an abortable stream. A `usage` event before `done` leaves the run active, and `finishReason: length` still shows Continue with thread.
 - resolves the current caret or remembered caret
 - builds a windowed request
 - starts `fetch`
@@ -99,7 +99,7 @@ Both actions use series lore loaded by `manuscripts/use_lore.ts` through the par
 
 ## Stream Contract Expectations
 
-The frontend expects NDJSON events with Quill-delta payloads, but the editor shell currently accepts text inserts only from streamed `delta` events. Non-text embed inserts are rejected at the shell boundary, and request slices containing embeds are rejected before `fetch` starts.
+The frontend expects NDJSON events with Quill-delta payloads, but the editor shell currently accepts text inserts only from streamed `delta` events. Non-text embed inserts are rejected at the shell boundary, and request slices containing embeds are rejected before `fetch` starts. `ai_stream.ts` accepts a `usage` event with integer `promptTokens` and `completionTokens`. Continue and Edit ignore it and do not display token counts. The run still ends only on `done`, `error`, `cancelled`, or EOF, so `finishReason` on the following `done` is kept.
 
 ## Tests
 

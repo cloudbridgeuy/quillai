@@ -42,7 +42,7 @@ test.beforeEach(async ({ page }) => {
           const send = (event: Event) => {
             const detail = (event as CustomEvent).detail;
             controller.enqueue(encoder.encode(`${JSON.stringify(detail)}\n`));
-            if (detail.type !== "delta") {
+            if (detail.type === "done" || detail.type === "error" || detail.type === "cancelled") {
               window.removeEventListener("ai-test-event", send);
               controller.close();
             }
@@ -109,6 +109,33 @@ test("Continue sends matched visible lore and previews the escaped lore block", 
   });
   await expect(editor).toContainText("She raised her sword.");
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
+});
+
+test("usage before done keeps length finish and arms Continue with thread", async ({ page, request }) => {
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run with cargo xtask e2e");
+  const series = await (await request.post(`${apiUrl}/series`, { data: { title: "Usage series", position: 0 } })).json();
+  const book = await (await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Usage book", position: 0 } })).json();
+  const chapter = await (await request.post(`${apiUrl}/series/${series.id}/books/${book.id}/chapters`, { data: {
+    title: "Usage chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "Opening line.\n" }] },
+  } })).json();
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  await expect(editor).toContainText("Opening line.");
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await editor.evaluate(quillSnapshot, { selection: { index: 13, length: 0 } });
+  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
+  const send = async (detail: unknown) => page.evaluate((detail) => {
+    window.dispatchEvent(new CustomEvent("ai-test-event", { detail }));
+  }, detail);
+  await send({ type: "delta", delta: { ops: [{ insert: "More prose." }] } });
+  await expect(editor).toContainText("More prose.");
+  await send({ type: "usage", promptTokens: 11, completionTokens: 4 });
+  await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
+  await send({ type: "done", finishReason: "length" });
+  await expect(page.getByRole("button", { name: "Continue writing with thread", exact: true })).toBeVisible();
+  await expect(editor).toContainText("More prose.");
 });
 
 test("desktop Continue preserves concurrent typing, selection and exact rollback", async ({ page, request }) => {
