@@ -1,4 +1,4 @@
-export type EditorPanel = "manuscript" | "context";
+export type EditorPanel = "manuscript" | "context" | "settings";
 export type PanelState = EditorPanel | null;
 export type PanelAction = EditorPanel | "close";
 

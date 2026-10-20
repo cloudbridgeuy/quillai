@@ -6,7 +6,10 @@ test("panels toggle, switch sides, and close without simultaneous drawers", () =
   expect(transitionPanel("manuscript", "context")).toBe("context");
   expect(transitionPanel("context", "context")).toBeNull();
   expect(transitionPanel("manuscript", "manuscript")).toBeNull();
-  for (const state of [null, "manuscript", "context"] as const) {
+  expect(transitionPanel("context", "settings")).toBe("settings");
+  expect(transitionPanel("settings", "settings")).toBeNull();
+  expect(transitionPanel("settings", "manuscript")).toBe("manuscript");
+  for (const state of [null, "manuscript", "context", "settings"] as const) {
     expect(transitionPanel(state, "close")).toBeNull();
   }
 });

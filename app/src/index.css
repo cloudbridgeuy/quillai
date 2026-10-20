@@ -422,6 +422,36 @@ button {
   opacity: .95;
 }
 
+.editor-settings-button {
+  margin-top: auto;
+}
+
+.editor-settings-popover {
+  position: fixed;
+  right: 72px;
+  bottom: 18px;
+  z-index: 9;
+  width: 280px;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 30px rgba(31,41,51,.12);
+}
+
+.editor-settings-popover h2 {
+  margin: 0;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
 .editor-rail .editor-continue {
   width: 56px;
   height: auto;
@@ -849,6 +879,28 @@ button {
   .editor-topbar {
     margin: 10px auto 0;
     width: min(760px, calc(100vw - 400px));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
+    align-items: center;
+    position: relative;
+    z-index: 20;
+  }
+
+  .editor-save-status {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .editor-topbar .editor-save-failed {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .editor-run-status {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .editor-topbar h1 {
@@ -903,7 +955,7 @@ button {
     clip-path: inset(-40px -40px 0);
   }
 
-  .editor-shell:has(.editor-drawer-right:not([hidden])) {
+  .editor-shell:has(.editor-drawer-right:not([hidden]), .editor-settings-popover) {
     padding-right: 356px;
     padding-left: 56px;
   }
@@ -913,7 +965,7 @@ button {
     padding-left: 356px;
   }
 
-  .editor-shell:has(.editor-drawer:not([hidden])) :is(.editor-topbar, .editor-page) {
+  .editor-shell:has(.editor-drawer:not([hidden]), .editor-settings-popover) :is(.editor-topbar, .editor-page) {
     width: min(760px, calc(100% - 48px));
   }
 

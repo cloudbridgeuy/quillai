@@ -71,8 +71,8 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   const context = page.locator("#context-drawer");
   await expect(context.getByRole("textbox", { name: "Story Context", exact: true })).toBeVisible();
   await expect(context.getByRole("textbox", { name: "Instruction", exact: true })).toBeVisible();
-  await expect(context.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveValue("1200");
-  await expect(context.getByRole("checkbox", { name: "Whole document", exact: true })).not.toBeChecked();
+  await expect(context.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveCount(0);
+  await expect(context.getByRole("checkbox", { name: "Whole document", exact: true })).toHaveCount(0);
   await expect(context.getByRole("button", { name: "Reset Thread", exact: true })).toBeEnabled();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -239,3 +239,107 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
 });
 
 test("single Continue indicates thread history and stops an active stream", continueControlTest);
+
+test("settings persist outside the sheet and failed saves show the red recovery pill", async ({ page, request }) => {
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run this smoke with cargo xtask e2e");
+  const series = await (await request.post(`${apiUrl}/series`, { data: { title: "Settings series", position: 0 } })).json();
+  const book = await (await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Settings book", position: 0 } })).json();
+  const chaptersUrl = `${apiUrl}/series/${series.id}/books/${book.id}/chapters`;
+  const chapterResponse = await request.post(chaptersUrl, {
+    data: { title: "Settings chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "The harbour was quiet.\n".repeat(30) }] } },
+  });
+  expect(chapterResponse.status()).toBe(201);
+  const chapter = await chapterResponse.json();
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
+  const gear = page.getByRole("button", { name: "Settings", exact: true });
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await expect(status).toHaveText("Saved");
+  await expect(editor).toBeEditable();
+  await editor.click();
+  await editor.evaluate((element) => {
+    const text = element.querySelector("p")?.firstChild;
+    if (!text) throw new Error("Missing chapter text");
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 3);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+  await gear.click();
+  await expect(settings).toBeVisible();
+  await settings.getByRole("spinbutton", { name: "Window Size", exact: true }).fill("2400");
+  await settings.getByRole("checkbox", { name: "Whole document", exact: true }).check();
+  await settings.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();
+  await page.keyboard.press("Escape");
+  await expect(settings).toBeHidden();
+  await expect(editor).toBeFocused();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("The");
+  await page.reload();
+  await expect(status).toHaveText("Saved");
+  await gear.click();
+  await expect(settings.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveValue("2400");
+  await expect(settings.getByRole("checkbox", { name: "Whole document", exact: true })).toBeChecked();
+  await expect(settings.getByRole("checkbox", { name: "Tint AI text", exact: true })).not.toBeChecked();
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  await expect(settings).toBeHidden();
+  await expect(page.locator("#context-drawer")).toBeVisible();
+  await gear.click();
+  await expect(page.locator("#context-drawer")).toBeHidden();
+  await page.locator(".editor-chapter-title").click();
+  await expect(settings).toBeHidden();
+  for (const width of [1100, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(status).toBeInViewport();
+    const sheet = await page.locator(".editor-page").boundingBox();
+    const label = await status.boundingBox();
+    if (!sheet || !label) throw new Error("Missing sheet or status");
+    expect(label.y + label.height).toBeLessThan(sheet.y);
+    expect(Math.abs(label.x + label.width / 2 - sheet.x - sheet.width / 2)).toBeLessThan(1);
+    await page.screenshot({ path: `../target/guz-758/saved-${width}.png` });
+    await gear.click();
+    await expect(settings).toBeVisible();
+    await expect(status).toBeInViewport();
+    const prose = await editor.boundingBox();
+    const popover = await settings.boundingBox();
+    if (!prose || !popover) throw new Error("Missing prose or settings");
+    expect(prose.x + prose.width).toBeLessThan(popover.x);
+    await page.screenshot({ path: `../target/guz-758/gear-${width}.png` });
+    await page.getByRole("button", { name: "Close settings", exact: true }).click();
+  }
+  await page.evaluate(() => window.scrollTo(0, 400));
+  const scrolledStatus = await status.boundingBox();
+  expect(scrolledStatus?.y).toBeLessThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  let saveAttempts = 0;
+  await page.route(`${chaptersUrl}/${chapter.id}/deltas`, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    saveAttempts++;
+    await route.fulfill({ status: 503, json: { error: "Save unavailable", code: "UNAVAILABLE" } });
+  });
+  await editor.click();
+  await page.keyboard.type("Local work");
+  await expect(status).toContainText("Save stopped");
+  await expect(status).toHaveClass(/editor-save-failed/);
+  await expect(status).toHaveAttribute("aria-live", "assertive");
+  await expect(status).toHaveCSS("background-color", "rgb(180, 65, 47)");
+  await expect(status).toHaveCSS("color", "rgb(255, 255, 255)");
+  for (const width of [1100, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const sheet = await page.locator(".editor-page").boundingBox();
+    const pill = await status.boundingBox();
+    if (!sheet || !pill) throw new Error("Missing sheet or failure pill");
+    expect(pill.y + pill.height).toBeLessThan(sheet.y);
+    await page.screenshot({ path: `../target/guz-758/failed-${width}.png` });
+  }
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Export local chapter", exact: true }).click();
+  expect((await download).suggestedFilename()).toBe("chapter-local.json");
+  expect(saveAttempts).toBe(1);
+});

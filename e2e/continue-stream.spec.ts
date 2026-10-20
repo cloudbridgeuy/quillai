@@ -146,16 +146,14 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-756/after-${width}.png`, fullPage: true });
   }
-  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  await page.getByText("Advanced AI controls", { exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.reload();
   await expect(editor).toHaveText("OpeAUTHORning paragraphKEPTSURVIVESCompleted AILater paragraph");
-  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  await page.getByText("Advanced AI controls", { exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Tint AI text", exact: true })).not.toBeChecked();
-  await page.getByRole("button", { name: "Close context", exact: true }).click();
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   await select(0, 1);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();

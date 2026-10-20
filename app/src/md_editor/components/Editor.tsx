@@ -238,6 +238,7 @@ export const Container = () => {
 
   const [range, setRange] = useState<RangeT | null>(null);
   const [panel, setPanel] = useState<PanelState>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
@@ -386,6 +387,20 @@ export const Container = () => {
   useEffect(() => {
     if (editBoxOpen) editInstructionRef.current?.focus();
   }, [editBoxOpen]);
+
+  useEffect(() => {
+    if (panel !== "settings") return;
+    if (!desktop) {
+      setPanel(null);
+      return;
+    }
+    settingsRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus({ preventScroll: true });
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Element && !settingsRef.current?.contains(event.target) && !event.target.closest(".editor-settings-button")) setPanel(null);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [panel, desktop]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1036,6 +1051,19 @@ export const Container = () => {
     }
   })();
 
+  const windowSettings = <>
+    <label className="editor-field">
+      <span>Window Size</span>
+      <input className="editor-input" type="number" min="0" step="1" value={windowSize}
+        onChange={(event) => setWindowSize(event.target.value)} disabled={isBusy} />
+    </label>
+    <label className="editor-toggle">
+      <input type="checkbox" checked={windowMode === "document"}
+        onChange={(event) => setWindowMode(event.target.checked ? "document" : "window")} disabled={isBusy} />
+      <span>Whole document</span>
+    </label>
+  </>;
+
   return (
     <div className="editor-shell">
       <nav className="editor-rail editor-rail-left" aria-label="Navigation">
@@ -1063,7 +1091,23 @@ export const Container = () => {
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("context")}>◫</button>
+        {desktop ? <button type="button" className="editor-settings-button" aria-label="Settings" title="Settings"
+          aria-controls="editor-settings" aria-expanded={panel === "settings"} aria-haspopup="dialog"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => togglePanel("settings")}>⚙</button> : null}
       </nav>
+      {desktop && panel === "settings" ? <div id="editor-settings" ref={settingsRef}
+        className="editor-settings-popover" role="dialog" aria-labelledby="editor-settings-title">
+        <div className="editor-drawer-header">
+          <h2 id="editor-settings-title">Settings</h2>
+          <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Close settings</button>
+        </div>
+        {windowSettings}
+        <label className="editor-toggle">
+          <input type="checkbox" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
+          <span>Tint AI text</span>
+        </label>
+      </div> : null}
       {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
         <div className="editor-edit-flag">Edit selection</div>
         <StickyNote tone="pink" ref={editInstructionRef} aria-label="Edit instruction" rows={4}
@@ -1195,30 +1239,7 @@ export const Container = () => {
             />
           </label>
 
-          <label className="editor-field editor-field-number">
-            <span>Window Size</span>
-            <input
-              className="editor-input"
-              type="number"
-              min="0"
-              step="1"
-              value={windowSize}
-              onChange={(event) => setWindowSize(event.target.value)}
-              disabled={isBusy}
-            />
-          </label>
-
-          <label className="editor-toggle">
-            <input
-              type="checkbox"
-              checked={windowMode === "document"}
-              onChange={(event) =>
-                setWindowMode(event.target.checked ? "document" : "window")
-              }
-              disabled={isBusy}
-            />
-            <span>Whole document</span>
-          </label>
+          {!desktop ? windowSettings : null}
         </div>
 
         <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
@@ -1244,11 +1265,6 @@ export const Container = () => {
         </p>
           <details className="editor-advanced-section">
             <summary>Advanced AI controls</summary>
-            {desktop ? <label className="editor-toggle">
-              <input type="checkbox" checked={aiTextTint}
-                onChange={(event) => setAiTextTint(event.target.checked)} />
-              <span>Tint AI text</span>
-            </label> : null}
             <label className="editor-field">
               <span>Max Output Tokens</span>
               <input className="editor-input" type="number" min="1" max="4096" step="1"

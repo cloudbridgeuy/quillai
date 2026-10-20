@@ -48,7 +48,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 ## Writing surface
 
 - Centered sheet: `width: min(760px, 100vw - 400px)`; padding `72px 84px`; radius `2px 2px 0 0`; visible hairline edge plus `--sheet-shadow` on `--desk`.
-- At 1100px and wider, an open drawer reserves 356px on its side (56px rail plus 300px drawer) and 56px on the opposite side. The sheet and header center in the remaining desk, with width `min(760px, 100% - 48px)`. Both sheet edges stay visible. At 1100px the sheet is 640px wide; at 1440px it is 760px wide. Closed-drawer layout is unchanged.
+- At 1100px and wider, an open drawer reserves 356px on its side (56px rail plus 300px drawer) and 56px on the opposite side. Settings reserves the same right-side space so its floating popover cannot cover prose. The sheet and header center in the remaining desk, with width `min(760px, 100% - 48px)`. Both sheet edges stay visible. At 1100px the sheet is 640px wide; at 1440px it is 760px wide. Closed-drawer layout is unchanged.
 - Infinite page: the sheet bottom border is removed and never shown.
 - Scrollbar hidden; scroll container is full viewport.
 - Caret color `--slate`.
@@ -63,7 +63,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 
 - Desktop Continue text uses `--slate` while streaming. CSS custom highlights cover only surviving AI-owned text; author inserts are not tinted. Tint is local presentation, never chapter Delta formatting.
 - On successful completion, tint transitions to plain ink over 1.8s after a 250ms delay, then clears. Cancellation and failure clear it with rollback.
-- The desktop context drawer's Advanced AI controls contains Tint AI text, on by default. The on/off preference uses `editor_persistence` local storage, not server settings. Browsers without CSS custom highlights show plain ink. Prototype extra effects remain out of scope.
+- The desktop Settings gear popover contains Tint AI text, on by default. The on/off preference uses `editor_persistence` local storage, not server settings. Browsers without CSS custom highlights show plain ink. Prototype extra effects remain out of scope.
 
 ## Tools
 
@@ -73,8 +73,9 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 - At 1100px and wider, both rails have 4px top padding; the first buttons and the QuillAI label share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
-- Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.
-- The right drawer holds Story Context, Instruction, Window Size, Whole document, and the AI Thread bar with Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal. No Settings popover is added.
+- Product rails provide manuscript, Continue/Stop, Edit selection, context inspector, and a bottom-pinned desktop Settings gear.
+- The right drawer holds Story Context, Instruction, and the AI Thread bar with Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal.
+- At 1100px and wider, Settings opens a 280px popover at right 72px, bottom 18px, outside the prose. It holds Window Size, Whole document, and Tint AI text, using the existing persisted local preferences. Window controls remain disabled during AI runs. Opening it closes either drawer; opening a drawer closes Settings. Click outside dismisses it; Escape and Close settings restore the remembered editor selection/focus. Narrow screens retain the window controls in the context drawer. Prototype-only recentering, extra text effects, window markers, and save-failure simulation are not exposed.
 - Export local chapter is in the left manuscript drawer. It remains available after a save failure.
 - Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer; Escape and drawer Close restore the remembered editor selection and focus. Hover changes only appearance.
 - Drawers and all descendants have square corners. Drawers use `--sheet-shadow`; buttons and the request picker stay flat, with no shadow or hover lift. Section boxes remain square. Below 1100px, drawers remain in document flow.
@@ -118,7 +119,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Saves
 
-- Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`; the chapter title is not repeated. Loading and switching messages remain visible.
+- Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Failure messages take a separate full-width header row and push the sheet down.
 - Failed save: clearly visible red label with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The full failure/recovery message stays visible and is announced assertively. Existing uncertain-submission failures stop saving; the UI must not promise automatic retry. Export remains in the left drawer.
 
 ## Shortcuts (prototype)
@@ -128,7 +129,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 | Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
 | Ctrl/Cmd+] | Toggle context inspector | Implemented |
 | Alt+L | Open lore card for nearest in-window name | Intended for product |
-| Esc | Close panels and Edit note; restore editor selection/focus | Implemented; lore/popovers remain future work |
+| Esc | Close panels, Settings, and Edit note; restore editor selection/focus | Implemented; lore remains future work |
 | Enter (in edit note) | Apply edit; Shift+Enter inserts a newline | Implemented |
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
@@ -144,7 +145,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Known gaps
 
-- "Saved" label overlaps the first line of text.
+- Prototype "Saved" label overlaps the first line of text; the product uses a separate flowing header above the sheet.
 - The shortcut hint line overlaps text on partial scroll.
 - Narrow screens untested; no typing test.
 - Plain contenteditable, not Quill; data and streaming are faked.
