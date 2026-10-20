@@ -31,19 +31,28 @@ async fn entries_round_trip_with_defaults_and_all_kinds_and_levels() {
         )
     );
 
-    let keywords = serde_json::json!(["Al", "旅人"]);
+    let default_aliases: String = sqlx::query_scalar("SELECT aliases FROM lore_entries")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(default_aliases, "[]");
+
+    let keywords = serde_json::json!(["traveler", "heir"]);
+    let aliases = serde_json::json!(["Al", "旅人"]);
     sqlx::query(
-        "UPDATE lore_entries SET keywords = ?, visible_text = 'A traveler', hidden_notes = 'Secret heir', pinned = 1",
+        "UPDATE lore_entries SET keywords = ?, aliases = ?, visible_text = 'A traveler', hidden_notes = 'Secret heir', pinned = 1",
     )
     .bind(keywords.to_string())
+    .bind(aliases.to_string())
     .execute(&pool)
     .await
     .unwrap();
-    let stored: (String, String, String, i64) =
-        sqlx::query_as("SELECT keywords, visible_text, hidden_notes, pinned FROM lore_entries")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let stored: (String, String, String, i64, String) = sqlx::query_as(
+        "SELECT keywords, visible_text, hidden_notes, pinned, aliases FROM lore_entries",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&stored.0).unwrap(),
         keywords
@@ -51,6 +60,10 @@ async fn entries_round_trip_with_defaults_and_all_kinds_and_levels() {
     assert_eq!(stored.1, "A traveler");
     assert_eq!(stored.2, "Secret heir");
     assert_eq!(stored.3, 1);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&stored.4).unwrap(),
+        aliases
+    );
 
     for kind in ["character", "place", "term", "note"] {
         for level in ["include", "known_dont_reveal", "leave_out"] {
@@ -65,7 +78,7 @@ async fn entries_round_trip_with_defaults_and_all_kinds_and_levels() {
 }
 
 #[tokio::test]
-async fn invalid_kinds_levels_names_keywords_and_pinned_flags_are_rejected() {
+async fn invalid_kinds_levels_names_keywords_aliases_and_pinned_flags_are_rejected() {
     let pool = common::test_pool().await;
     sqlx::raw_sql(
         "INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
@@ -83,6 +96,9 @@ async fn invalid_kinds_levels_names_keywords_and_pinned_flags_are_rejected() {
         "UPDATE lore_entries SET keywords = 'not json'",
         "UPDATE lore_entries SET keywords = '{}'",
         "UPDATE lore_entries SET keywords = 'null'",
+        "UPDATE lore_entries SET aliases = 'not json'",
+        "UPDATE lore_entries SET aliases = '{}'",
+        "UPDATE lore_entries SET aliases = 'null'",
         "UPDATE lore_entries SET pinned = -1",
         "UPDATE lore_entries SET pinned = 2",
     ] {
@@ -94,6 +110,7 @@ async fn invalid_kinds_levels_names_keywords_and_pinned_flags_are_rejected() {
         "kind",
         "name",
         "keywords",
+        "aliases",
         "visible_text",
         "hidden_notes",
         "pinned",
