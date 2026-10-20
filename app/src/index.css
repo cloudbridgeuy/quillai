@@ -436,7 +436,7 @@ button {
   border: 1px solid var(--rule);
   border-radius: 0;
   background: var(--paper);
-  box-shadow: var(--panel-shadow);
+  box-shadow: var(--sheet-shadow);
 }
 
 .editor-drawer[hidden] {
@@ -709,6 +709,35 @@ button {
   grid-column: 1 / -1;
 }
 
+.editor-shell .editor-drawer,
+.editor-shell .editor-drawer * {
+  border-radius: 0;
+}
+
+.editor-drawer .editor-button,
+.editor-drawer .editor-button:hover:not(:disabled),
+.editor-drawer select {
+  box-shadow: none;
+  transform: none;
+}
+
+.editor-context-inspector .editor-textarea[aria-label="Author guidance"] {
+  border: 0;
+  padding: 14px 12px 10px;
+  background: linear-gradient(rgba(31, 41, 51, .045), transparent 12px), var(--pi-yellow);
+  color: var(--ink);
+  font: 13px/1.5 var(--sans);
+  box-shadow: var(--sheet-shadow);
+}
+
+.editor-context-inspector .editor-textarea[aria-label="Author guidance"]::placeholder {
+  color: #6b6f73;
+}
+
+.editor-context-inspector .editor-textarea[aria-label="Author guidance"]:focus {
+  box-shadow: 0 0 0 2px rgba(78, 98, 114, .35), var(--sheet-shadow);
+}
+
 @media (min-width: 1100px) {
   html {
     scrollbar-width: none;
@@ -773,6 +802,20 @@ button {
     background: var(--paper);
     box-shadow: var(--sheet-shadow);
     clip-path: inset(-40px -40px 0);
+  }
+
+  .editor-shell:has(.editor-drawer-right:not([hidden])) {
+    padding-right: 356px;
+    padding-left: 56px;
+  }
+
+  .editor-shell:has(.editor-drawer-left:not([hidden])) {
+    padding-right: 56px;
+    padding-left: 356px;
+  }
+
+  .editor-shell:has(.editor-drawer:not([hidden])) :is(.editor-topbar, .editor-controls-panel, .editor-page) {
+    width: min(760px, calc(100% - 48px));
   }
 
   .editor-canvas {

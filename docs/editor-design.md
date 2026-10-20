@@ -28,7 +28,7 @@ Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/
 | `--st-blue` | `#7C9BB0` | Continue bracket stroke |
 | `--st-lav` | `#9B8BB8` | Resume bracket, lore underline |
 | `--st-tan` | `#B79A6C` | Lore "don't reveal" underline |
-| `--sheet-shadow` | `0 1px 2px rgba(31,41,51,.06), 0 10px 34px rgba(31,41,51,.09)` | Sheet |
+| `--sheet-shadow` | `0 1px 2px rgba(31,41,51,.06), 0 10px 34px rgba(31,41,51,.09)` | Sheet, drawers, author guidance |
 | `--note-shadow` | `0 1px 1px rgba(31,41,51,.06), 0 6px 14px -6px rgba(31,41,51,.22)` | Post-its, flags |
 | Fail shadow | `0 4px 18px rgba(180,65,47,.35)` | Red save pill |
 
@@ -47,6 +47,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 ## Writing surface
 
 - Centered sheet: `width: min(760px, 100vw - 400px)`; padding `72px 84px`; radius `2px 2px 0 0`; visible hairline edge plus `--sheet-shadow` on `--desk`.
+- At 1100px and wider, an open drawer reserves 356px on its side (56px rail plus 300px drawer) and 56px on the opposite side. The sheet, controls, and heading center in the remaining desk, with width `min(760px, 100% - 48px)`. Both sheet edges stay visible. At 1100px the sheet is 640px wide; at 1440px it is 760px wide. Closed-drawer layout is unchanged.
 - Infinite page: the sheet bottom border is removed and never shown.
 - Scrollbar hidden; scroll container is full viewport.
 - Caret color `--slate`.
@@ -71,6 +72,7 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.
 - Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer; Escape and drawer Close restore the remembered editor selection and focus. Hover changes only appearance.
+- Drawers and all descendants have square corners. Drawers use `--sheet-shadow`; buttons and the request picker stay flat, with no shadow or hover lift. Section boxes remain square. Below 1100px, drawers remain in document flow.
 - The manuscript drawer loads series → books → chapter summaries through the existing manuscript client, with loading, empty, error, and retry states. Selecting a chapter waits for the current save and any pending edits, then fetches that chapter once through the single-chapter GET. Editing and further switches pause until loading completes. Only a successful load changes the title, selected highlight, URL, and AI context. Save/load failures keep the current chapter and its text, show an error, and preserve recovery/export. Reopening refreshes the hierarchy.
 - Z-order: hint 4, flags 5, panels 8, rails 9, settings popover 9, switcher/edit box 10, lore card 11, save bar 20.
 
@@ -78,9 +80,11 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 
 Common: `.postit` textarea, full width, vertical resize, no border, radius 1px, padding `14px 12px 10px`, sans 13px / 1.5, `--ink` text, `--note-shadow`, top "adhesive" gradient `rgba(31,41,51,.045)` to transparent over 12px, focus ring `0 0 0 2px rgba(78,98,114,.35)`. Placeholder `#6b6f73`. Prototype notes are flat: no rotation. Any rotation is a design addition, not in the prototype; if added, keep it under about 1deg.
 
+Author guidance uses the yellow post-it styling above, with owner-approved square corners and `--sheet-shadow` instead of the common radius and note shadow. Its focus ring is added to the sheet shadow; the yellow fill remains on focus.
+
 | Note | Fill | Appears | Where |
 |------|------|---------|-------|
-| Yellow, author guidance | `#F4E8B5` | Inspector drawer, always, 4 rows | Section "Author guidance" |
+| Yellow, author guidance | `#F4E8B5` | Inspector drawer, always, 5 rows | Section "Author guidance" |
 | Pink, Edit instruction | `#F3D6D8` | Edit click with a non-empty selection; Enter applies, Esc cancels | Edit box, right 72px, top 96px, 280px wide |
 | Green, lore note | `#D7E6D0` | In the lore card, 2 rows, per-match note for the AI | Lore card |
 
