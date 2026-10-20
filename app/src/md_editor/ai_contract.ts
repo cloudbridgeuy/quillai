@@ -11,6 +11,7 @@ export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "hi
 export type AiAction = "generate" | "edit";
 
 export const DEFAULT_MAX_OUTPUT_TOKENS = 512;
+export const DEFAULT_MAX_LORE_CHARACTERS = 65_536;
 export const MIN_MAX_OUTPUT_TOKENS = 1;
 export const MAX_MAX_OUTPUT_TOKENS = 4096;
 
@@ -119,7 +120,7 @@ export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
   const lore = input.loreEntries && matchLoreEntries(
     document.text,
     input.loreEntries.filter(entry => entry.level !== "leave_out"),
-    input.maxLoreCharacters ?? 65_536,
+    input.maxLoreCharacters ?? DEFAULT_MAX_LORE_CHARACTERS,
   ).flatMap(({ name, kind, visible_text, level }) =>
     level === "leave_out" ? [] : [{ name, kind, visible_text, level }],
   );

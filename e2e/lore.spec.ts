@@ -51,12 +51,17 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await expect(prompt).toHaveValue(/Mira is the ship's navigator/);
   await expect(prompt).toHaveValue(/MUST NOT be revealed/);
   await expect(prompt).not.toHaveValue(new RegExp(secret));
+  const injected = page.getByRole("region", { name: "Injected lore", exact: true });
+  await expect(injected).toContainText("Mira · character · keyword · Known, don't reveal");
+  await expect(injected).toContainText("estimated tokens");
   await page.reload();
   await expect(editor).toHaveText("Mira studied the compass.");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(prompt).toHaveValue(/Mira is the ship's navigator/);
+  await expect(injected).toContainText("Mira · character · keyword");
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
+    await injected.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `../target/guz-671/inspector-${width}.png`, fullPage: true });
   }
   await page.getByRole("button", { name: "Close context", exact: true }).click();

@@ -1056,7 +1056,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
       if (inspectorAction === "edit" && (!selection || selection.length === 0)) {
         return "Select text to inspect the Edit request.";
       }
-      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request, authorGuidance);
+      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request, authorGuidance, loreEntries);
     } catch (error) {
       return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
     }
@@ -1345,6 +1345,22 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
               <p className="editor-note">{contextInspector.requestLabel}</p>
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
               <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
+              <section className="editor-preview-section" aria-label="Injected lore">
+                <div className="editor-preview-section-header"><h3>Injected lore</h3></div>
+                <p className="editor-note">Next request · {contextInspector.lore.maxCharacters.toLocaleString()} UTF-16 character budget. Pins can exceed it.</p>
+                <p className="editor-note">Tokens: UTF-8 bytes ÷ 4, rounded up per entry including standalone Lore tags; not additive.</p>
+                {contextInspector.lore.injected.length === 0 ? <p>No lore injected.</p> : <ul>
+                  {contextInspector.lore.injected.map(entry => <li key={entry.id}>
+                    <strong>{entry.name}</strong> · {entry.kind} · {entry.reason === "pinned" ? "pin" : "keyword"} · {entry.level === "known_dont_reveal" ? "Known, don't reveal" : "Include"} · {entry.tokens} estimated tokens
+                  </li>)}
+                </ul>}
+                <h4>Skipped by budget</h4>
+                {contextInspector.lore.skipped.length === 0 ? <p>No entries skipped by budget.</p> : <ul>
+                  {contextInspector.lore.skipped.map(entry => <li key={entry.id}>
+                    <strong>{entry.name}</strong> · {entry.kind} · keyword · {entry.tokens} estimated tokens
+                  </li>)}
+                </ul>}
+              </section>
               {contextInspector.sections.map((section) => (
                 <section className="editor-preview-section" key={section.id}>
                   <div className="editor-preview-section-header">

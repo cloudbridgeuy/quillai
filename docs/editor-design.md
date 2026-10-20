@@ -107,6 +107,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Lore
 
 - The left manuscript drawer includes Series lore for the current chapter's series, with loading, empty, error, and retry states. New lore and entry buttons open a square inline form for kind, name, newline-separated keywords/aliases, visible AI context, author-only hidden notes, request level, and pin. Save and Delete persist through the series-scoped API; Cancel discards the draft. Author-only notes never enter AI requests. Series changes clear previous entries and drafts. This management form does not implement the planned in-prose lore cards below.
+- The context drawer's Injected lore section previews the next selected request: name, kind, request level, keyword or pin reason, and per-entry token estimate, followed by matches skipped by budget. It uses the same transmitted window, level filter, matcher, and 65,536 UTF-16 budget as request assembly. Pins may exceed the cap. Per-entry estimates include standalone Lore tags and are not additive; the existing Lore prompt section provides the combined estimate. No author-only notes appear here.
 
 - Names inside the displayed window get a dotted lavender underline; hover shows `--pi-lav` background. Hover for 600ms (or Alt+L for the nearest name) opens a 300px lore card; Esc closes.
 - Card: name, matched alias, "In AI requests" radios (Include | Known, don't reveal | Leave out), "Lore as of" book and chapter selects (story-point level gating what enters the completion), green note, "Ignore this match".
