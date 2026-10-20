@@ -1,4 +1,5 @@
 import Quill from "quill";
+import type { LoreMatchEntry } from "../lore_match";
 import { Delta } from "quill/core";
 import "quill/dist/quill.snow.css";
 import {
@@ -230,7 +231,7 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 
 Component.displayName = "EditorComponent";
 
-export const Container = () => {
+export const Container = ({ loreEntries }: { loreEntries?: readonly LoreMatchEntry[] }) => {
   const initialEditorStateRef = useRef<PersistedEditorState | null>(null);
   if (initialEditorStateRef.current === null) {
     initialEditorStateRef.current = getStoredEditorState();
@@ -593,6 +594,7 @@ export const Container = () => {
     return action === "edit"
       ? buildAiRequestPreview({
           action: "edit",
+          loreEntries,
           sectionOverrides: sectionOverrides.edit,
           document: documentSlice,
           window: documentWindow,
@@ -603,6 +605,7 @@ export const Container = () => {
         })
       : buildAiRequestPreview({
           action: "generate",
+          loreEntries,
           sectionOverrides: sectionOverrides.generate,
           document: documentSlice,
           window: documentWindow,
@@ -1341,7 +1344,7 @@ export const Container = () => {
                     <h3>{section.label}</h3>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
-                  {section.id === "system" || section.id === "author_guidance" ? (
+                  {section.id === "system" || section.id === "author_guidance" || section.id === "lore" ? (
                     <textarea className="editor-textarea" aria-label={`${section.label} prompt section`}
                       value={section.text} rows={5} readOnly />
                   ) : section.id === "history" ? (
@@ -1386,12 +1389,12 @@ export const Container = () => {
                       },
                     }))}
                   />}
-                  {section.id !== "system" && section.id !== "author_guidance" && sectionOverrides[inspectorAction][section.id] !== undefined ? (
+                  {section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore" && sectionOverrides[inspectorAction][section.id] !== undefined ? (
                     <button className="editor-button editor-button-small" type="button"
                       disabled={isBusy}
                       onClick={() => setSectionOverrides((current) => {
                         const next = { ...current[inspectorAction] };
-                        if (section.id !== "system" && section.id !== "author_guidance") delete next[section.id];
+                        if (section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore") delete next[section.id];
                         return { ...current, [inspectorAction]: next };
                       })}>Reset {section.label}</button>
                   ) : null}

@@ -1,4 +1,4 @@
-use super::models::{GenerateInput, PromptSectionId};
+use super::models::{GenerateInput, LoreEntry, LoreLevel, PromptSectionId};
 
 pub fn build_prompt(input: &GenerateInput) -> String {
     let instruction = escape_prompt_text(section_text(
@@ -12,6 +12,12 @@ pub fn build_prompt(input: &GenerateInput) -> String {
         input.story_context.as_deref().unwrap_or("none"),
     ));
     let selection = format_selection(input);
+    let lore = lore_text(&input.lore);
+    let lore = if lore.is_empty() {
+        String::new()
+    } else {
+        format!("<lore>\n{}\n</lore>\n", escape_prompt_text(&lore))
+    };
     let document = escape_prompt_text(section_text(
         input,
         PromptSectionId::Document,
@@ -25,15 +31,38 @@ pub fn build_prompt(input: &GenerateInput) -> String {
             "<action>{}</action>\n",
             "<instruction>\n{}\n</instruction>\n",
             "<story_context>\n{}\n</story_context>\n",
+            "{}",
             "<selection>\n{}\n</selection>\n",
             "<document>\n{}\n</document>"
         ),
         input.action.as_str(),
         instruction,
         story_context,
+        lore,
         selection,
         document
     )
+}
+
+pub fn lore_text(entries: &[LoreEntry]) -> String {
+    entries
+        .iter()
+        .filter(|entry| entry.level != LoreLevel::LeaveOut)
+        .map(|entry| {
+            format!(
+                "Name: {}\nKind: {}\n{}Text: {}",
+                entry.name,
+                entry.kind.as_str(),
+                if entry.level == LoreLevel::KnownDontReveal {
+                    "Known, but MUST NOT be revealed in prose.\n"
+                } else {
+                    ""
+                },
+                entry.visible_text
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 pub fn escape_prompt_text(text: &str) -> String {
@@ -79,6 +108,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_core_fields_and_sentence_limit() {
         let input = GenerateInput {
+            lore: vec![],
             author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
@@ -114,6 +144,7 @@ mod tests {
     #[test]
     fn build_prompt_includes_selection_details() {
         let input = GenerateInput {
+            lore: vec![],
             author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Edit,
@@ -158,6 +189,7 @@ mod tests {
     #[test]
     fn build_prompt_uses_resume_prompt_as_effective_generate_instruction() {
         let input = GenerateInput {
+            lore: vec![],
             author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,
@@ -189,6 +221,7 @@ mod tests {
     #[test]
     fn build_prompt_escapes_user_controlled_text() {
         let input = GenerateInput {
+            lore: vec![],
             author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,

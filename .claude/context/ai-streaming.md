@@ -10,7 +10,7 @@ The feature follows Functional Core and Imperative Shell.
 
 **Functional Core**:
 - `models.rs` parses request JSON into typed `GenerateInput` values.
-- `prompt.rs` builds the provider prompt from the document text, selection text, story context, and instruction.
+- `prompt.rs` builds the provider prompt from the document text, selection text, story context, injected lore, and instruction.
 - `segments.rs` owns the minimal Quill-delta contract and sanitization rules.
 - provider parsing helpers in `provider.rs` decode UTF-8 chunks, split SSE events, and extract text deltas.
 
@@ -49,7 +49,15 @@ Optional `sectionOverrides` maps `instruction`, `story_context`, `selection`, an
 
 `GET/PUT /settings/author-guidance` reads/saves `{text: string}` in a singleton SQLite row. Missing row and empty text disable guidance. Whitespace is preserved. PUT uses the same 65,536 UTF-8 byte cap as override sections, before escaping; oversize returns 422. The AI handler loads saved text for every accepted request, never from request JSON. The provider keeps its fixed core system message and inserts a separate system message immediately after it: `<author_guidance>\n{escaped text}\n</author_guidance>`. History follows, then the current user prompt. Guidance escapes `&`, `<`, and `>` and cannot replace the core system section. Empty/missing guidance emits no message and preserves the old provider payload byte-for-byte. This is prompt framing, not a guarantee that a model ignores malicious instructions.
 
-No explicit API prompt/request size cap was found in the application code. Override content is capped at 65,536 UTF-8 bytes per section (all history turn texts combined) and 262,144 bytes total across override text, before escaping. This permits large chapter context while bounding added prompt allocation/provider cost independently of the HTTP body extractor. JSON framing and role names do not count toward these content caps. Limits are parsed once in `section_overrides.rs`.
+There is no application-level cap on the complete assembled prompt. Override content is capped at 65,536 UTF-8 bytes per section (all history turn texts combined) and 262,144 bytes total across override text, before escaping. Lore has a separate 65,536-byte cap. This permits large chapter context while bounding added prompt allocation/provider cost independently of the HTTP body extractor. JSON framing and role names do not count toward the override caps. Override limits are parsed once in `section_overrides.rs`.
+
+## Injected Lore
+
+Optional `lore` accepts an array of `{name, kind, visible_text, level}`. Kind is `character`, `place`, `term`, or `note`; level is `include`, `known_dont_reveal`, or `leave_out`. `lore.rs` rejects malformed entries, unknown fields (including hidden notes), and invalid kinds/levels with 422 before provider startup. It drops `leave_out` entries; the renderer also ignores them defensively. Only name, kind, visible text, and the non-reveal policy enter the prompt. IDs, aliases, keywords, pin state, and hidden notes are not request fields.
+
+`prompt.rs` renders eligible entries between story context and selection as `<lore>\n{escaped content}\n</lore>\n`. Each entry uses `Name: ...`, `Kind: ...`, and `Text: ...` lines; entries are separated by a blank line. `known_dont_reveal` inserts `Known, but MUST NOT be revealed in prose.` before Text. All content escapes `&`, `<`, and `>`. Missing, empty, or leave-out-only lore emits no block and preserves the existing prompt. The combined content, including labels, names, kinds, non-reveal markers, and entry separators, must fit 65,536 UTF-8 bytes before escaping; overflow returns 422. Outer tags and JSON framing do not count. Lore is not a System override and cannot be replaced through `sectionOverrides.lore`.
+
+This policy marker is model guidance, not a guarantee against disclosure. Hidden notes never enter the AI contract.
 
 ## Validation Rules
 
@@ -72,7 +80,7 @@ Validation failures return the normal JSON error contract:
 
 ## Prompt Assembly
 
-`prompt.rs` builds a plain-text provider prompt with action, instruction, story context, selection details when present, and document text. Section overrides replace content, not tags or selection range metadata.
+`prompt.rs` builds a plain-text provider prompt with action, instruction, story context, optional lore, selection details when present, and document text. Section overrides replace editable content, not tags, lore policy, or selection range metadata.
 
 All user-controlled text inserted into tagged sections, including overrides, escapes `&`, `<`, and `>` so strings like `</document>` cannot break the prompt frame. Normal and edited history now use the same escaping, while staying in separate chat messages without section tags. For example, history `</document> &` reaches the provider as `&lt;/document&gt; &amp;`.
 

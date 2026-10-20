@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
+import type { LoreMatchEntry } from "../app/src/md_editor/lore_match";
 
 function quillSnapshot(element: Element, action: {
   selection?: { index: number; length: number };
@@ -55,6 +56,59 @@ test.beforeEach(async ({ page }) => {
       }), { headers: { "Content-Type": "application/x-ndjson" } });
     };
   });
+});
+
+test("Continue sends matched visible lore and previews the escaped lore block", async ({ page, request }) => {
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run with cargo xtask e2e");
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (String(input).endsWith("/ai/generate")) {
+        document.documentElement.dataset.loreRequest = String(init?.body);
+      }
+      return original(input, init);
+    };
+  });
+  const series = await (await request.post(`${apiUrl}/series`, { data: { title: "Lore series", position: 0 } })).json();
+  const book = await (await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Lore book", position: 0 } })).json();
+  const chapter = await (await request.post(`${apiUrl}/series/${series.id}/books/${book.id}/chapters`, { data: {
+    title: "Lore chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "Mara arrived.\n" }] },
+  } })).json();
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  await expect(editor).toContainText("Mara arrived.");
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  const entry = { id: 1, name: "Mara", kind: "character" as const, aliases: [], keywords: [], visible_text: "Wields <fire> & ice.", hidden_notes: "PRIVATE", pinned: false, level: "include" as const };
+  await editor.evaluate((element, entries) => {
+    const host = element.closest(".editor-host")!;
+    const key = Object.keys(host).find(key => key.startsWith("__reactFiber$"))!;
+    type Fiber = { type?: { name?: string }; memoizedProps: object; pendingProps: object; alternate?: Fiber; return?: Fiber };
+    let fiber: Fiber | undefined = (host as unknown as Record<string, Fiber>)[key];
+    while (fiber && fiber.type?.name !== "Container") fiber = fiber.return;
+    if (!fiber) throw new Error("Editor Container fiber not found");
+    for (const target of [fiber, fiber.alternate]) {
+      if (!target) continue;
+      target.pendingProps = { ...target.pendingProps, loreEntries: entries };
+      target.memoizedProps = target.pendingProps;
+    }
+  }, [entry, { ...entry, id: 2, name: "OMITTED", visible_text: "NEVER SENT", pinned: true, level: "leave_out" }] satisfies (LoreMatchEntry & { hidden_notes: string })[]);
+  await editor.evaluate(quillSnapshot, { selection: { index: 4, length: 0 } });
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  const lore = page.getByRole("textbox", { name: "Lore prompt section", exact: true });
+  await expect(lore).toHaveValue("<lore>\nName: Mara\nKind: character\nText: Wields &lt;fire&gt; &amp; ice.\n</lore>\n");
+  await expect(lore).toHaveAttribute("readonly", "");
+  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
+  const sent = await page.evaluate(() => JSON.parse(document.documentElement.dataset.loreRequest!));
+  expect(sent.lore).toEqual([{ name: "Mara", kind: "character", visible_text: entry.visible_text, level: "include" }]);
+  for (const forbidden of ["PRIVATE", "hidden_notes", "OMITTED", "NEVER SENT", "leave_out"]) expect(JSON.stringify(sent)).not.toContain(forbidden);
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent("ai-test-event", { detail: { type: "delta", delta: { ops: [{ insert: "She raised her sword." }] } } }));
+    window.dispatchEvent(new CustomEvent("ai-test-event", { detail: { type: "done", finishReason: "stop" } }));
+  });
+  await expect(editor).toContainText("She raised her sword.");
+  await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
 });
 
 test("desktop Continue preserves concurrent typing, selection and exact rollback", async ({ page, request }) => {

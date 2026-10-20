@@ -9,7 +9,7 @@ The AI editor lives under `app/src/md_editor/`. Quill holds the visible document
 The frontend split is deliberate.
 
 **Functional Core**:
-- `ai_contract.ts` — request types, stream-event types, URL helper, selection rebasing.
+- `ai_contract.ts` — request types, stream-event types, URL helper, selection rebasing, and visible-only lore request assembly.
 - `context_inspector.ts` — pure prompt-section view-model with summed estimated tokens and ordered history turns; the editable live panel selects Continue or Edit and uses the same request builder as sending. Continue shows "with thread" when effective history is nonempty, including history overrides. It refreshes for Quill/settings/thread changes and handles unavailable previews. The right drawer starts closed and remains available inline below 1100px. Only edited ids enter `sectionOverrides`; Reset restores assembly per section. Each action owns separate overrides, cleared after its accepted send or any chapter load/remote reset, never persisted. History is edited per speaker turn, with explicit user/assistant add controls. Editing alone sends no request.
 - `editor_panels.ts` — pure mutually exclusive drawer/Settings transitions and Ctrl/Cmd+[ / Ctrl/Cmd+] shortcut mapping. Escape closes drawers, Settings, and the pink Edit note, then restores editor selection/focus. Hover changes rail contrast only; rail mousedown prevents focus theft. The centre column contains only the chapter title, Quill toolbar, and text. The right context drawer holds Story Context, Instruction, and AI Thread/Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls are under Advanced AI controls in this drawer. At 1100px and wider the bottom gear opens a Settings popover outside the prose with persisted Window Size, Whole document, and Tint AI text. Outside pointer presses dismiss it without redirecting focus; Escape and Close restore the remembered editor selection. Narrow screens retain window controls in the drawer. Export local chapter is in the left manuscript drawer. The Preview Context button/modal and middle Edit button are removed.
 - `prompt_sections.ts` — pure server-parity assembly from accepted requests. `editableText` is raw section content; `text` is provider-rendered content. Text overrides pass through normal escaping and fixed tags/action/selection metadata; empty text keeps its section frame. History overrides are ordered `{role, text}` turns, preserving roles and message boundaries without tagged framing. Both normal and edited history escape `&`, `<`, and `>` before provider delivery and token estimation; normal history is trimmed first, while edited history preserves whitespace. `promptHistory` exposes raw turns for editing; `assemblePromptHistory` exposes escaped provider messages. History display concatenates escaped turn text; current-turn sections join without separators. Token estimates are `ceil(UTF-8 bytes / 4)` per section, summed for totals, excluding chat framing, not tokenizer counts.
@@ -71,6 +71,8 @@ The inspector shows System as a read-only textarea with no reset control. System
 
 ## Continue And Edit Flow
 
+Both actions accept optional `loreEntries` through the editor component and request builder. No lore routes or loading UI exist yet (GUZ-669); the default is no lore. Assembly removes `leave_out` before matching/budgeting, matches only the transmitted document window, then projects name, kind, visible text, and level into `lore`. The matcher itself still carries every level unchanged. Its default request budget is 65,536 UTF-16 units of name + visible text, overridable with `maxLoreCharacters`; pins can exceed it. The backend independently enforces 65,536 UTF-8 bytes including rendered labels/markers, so oversize requests can return 422. Hidden notes and matching metadata never leave the browser. The inspector shows the same escaped `<lore>` content and token estimate as the provider; derived Lore is read-only to preserve the non-reveal marker. `lore_prompt.test.ts`, the shared parity fixture, backend HTTP tests, and the mocked Continue browser test cover this path. The browser test supplies entries through the editor's React props without adding a production data source.
+
 `Continue`:
 
 - One right-rail control, with a visible "with thread" badge when saved or overridden history will be sent. No separate Resume or inline Continue control. While either AI stream runs, the same control shows Stop and uses the existing abort/cancellation/rollback path. The badge retains the active request's history state after request-local overrides reset. `shouldContinueWithThread` and `continueClickAction` provide pure decisions covered by unit tests; the browser smoke mocks a length-limited response and an abortable stream.
@@ -88,11 +90,11 @@ The inspector shows System as a read-only textarea with no reset control. System
 
 ## Cancellation And Failure Rules
 
-- While a run is active, the editor becomes read-only.
-- Local abort keeps already inserted text.
+- Edit and narrow-screen Continue make the editor read-only; desktop Continue permits concurrent author edits.
+- Desktop Continue abort, cancellation, failure, and premature EOF remove surviving AI-owned text while retaining author edits and logical selection.
 - Cancel before first inserted token restores the original selection.
 - Failed edits roll the original text back into place.
-- Failed generate runs keep any text already inserted.
+- Narrow-screen Continue retains partial AI output on abort/failure; failed Edit restores its original selection text.
 
 ## Stream Contract Expectations
 

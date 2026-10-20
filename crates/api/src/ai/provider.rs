@@ -510,6 +510,7 @@ mod tests {
         use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
 
         let input = GenerateInput {
+            lore: vec![],
             author_guidance: None,
             section_overrides: Default::default(),
             action: AiAction::Generate,

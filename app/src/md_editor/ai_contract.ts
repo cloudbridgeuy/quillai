@@ -1,9 +1,10 @@
 import type { DocumentWindow } from "./window";
 import { getApiBaseUrl } from "../api_config";
 import type { PromptSectionId } from "./prompt_sections";
+import { matchLoreEntries, type LoreMatchEntry } from "./lore_match";
 
 export type PromptHistoryMessage = { role: AiHistoryRole; text: string };
-export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "history" | "system" | "author_guidance">, string>> & {
+export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "history" | "system" | "author_guidance" | "lore">, string>> & {
   history?: PromptHistoryMessage[];
 };
 
@@ -52,6 +53,8 @@ export type AiHistoryMessage = {
 };
 
 type BuildAiRequestBase = {
+  loreEntries?: readonly LoreMatchEntry[];
+  maxLoreCharacters?: number;
   sectionOverrides?: PromptSectionOverrides;
   document: AiDocumentSlice;
   window: DocumentWindow;
@@ -75,6 +78,7 @@ export type BuildAiEditRequestInput = BuildAiRequestBase & {
 export type BuildAiRequestInput = BuildAiGenerateRequestInput | BuildAiEditRequestInput;
 
 export type AiGenerateRequest = {
+  lore?: AiLoreEntry[];
   sectionOverrides?: PromptSectionOverrides;
   action: AiAction;
   document: AiDocumentSlice;
@@ -90,6 +94,10 @@ export type AiRequestPreview = {
   request: AiGenerateRequest;
   window: DocumentWindow;
   absoluteSelection: AiSelection | null;
+};
+
+export type AiLoreEntry = Pick<LoreMatchEntry, "name" | "kind" | "visible_text"> & {
+  level: "include" | "known_dont_reveal";
 };
 
 export type AiFinishReason = "stop" | "length" | "unknown";
@@ -108,7 +116,16 @@ export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
     assertTextOnlySlice(selection, "selection");
   }
 
+  const lore = input.loreEntries && matchLoreEntries(
+    document.text,
+    input.loreEntries.filter(entry => entry.level !== "leave_out"),
+    input.maxLoreCharacters ?? 65_536,
+  ).flatMap(({ name, kind, visible_text, level }) =>
+    level === "leave_out" ? [] : [{ name, kind, visible_text, level }],
+  );
+
   return {
+    ...(lore ? { lore } : {}),
     ...(input.sectionOverrides && Object.keys(input.sectionOverrides).length > 0
       ? { sectionOverrides: { ...input.sectionOverrides } } : {}),
     action,

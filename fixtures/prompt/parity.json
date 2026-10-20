@@ -2,6 +2,47 @@
   "models": ["gpt-4o-mini", "o3", "anthropic/claude-sonnet-4", "LOCAL-model:latest"],
   "cases": [
     {
+      "name": "lore-edit-included-place",
+      "input": {"action":"edit","document":{"delta":{"ops":[{"insert":"Citadel"}]},"text":"Citadel"},"selection":{"delta":{"ops":[{"insert":"Citadel"}]},"text":"Citadel","range":{"index":0,"length":7}},"storyContext":null,"instruction":"Describe it","messages":[],"resumePrompt":null,"maxOutputTokens":512,"lore":[{"name":"Citadel","kind":"place","visible_text":"On a mountain.","level":"include"}]},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nDescribe it\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"lore","tags":["lore"],"text":"<lore>\nName: Citadel\nKind: place\nText: On a mountain.\n</lore>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=7, text=Citadel\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nCitadel\n</document>"}
+      ]
+    },
+    {
+      "name": "lore-visible-levels-and-escaping",
+      "input": {"action":"generate","document":{"delta":{"ops":[{"insert":"Mara arrived."}]},"text":"Mara arrived."},"selection":null,"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512,"lore":[{"name":"Mara <queen>","kind":"character","visible_text":"Carries a sword & shield.","level":"include"},{"name":"世界 💡","kind":"note","visible_text":"Heir </lore> secret.","level":"known_dont_reveal"},{"name":"OMITTED","kind":"place","visible_text":"NEVER SENT","level":"leave_out"}]},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"lore","tags":["lore"],"text":"<lore>\nName: Mara &lt;queen&gt;\nKind: character\nText: Carries a sword &amp; shield.\n\nName: 世界 💡\nKind: note\nKnown, but MUST NOT be revealed in prose.\nText: Heir &lt;/lore&gt; secret.\n</lore>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nnone\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nMara arrived.\n</document>"}
+      ]
+    },
+    {
+      "name": "lore-leave-out-only-edit",
+      "input": {"action":"edit","document":{"delta":{"ops":[{"insert":"Mara"}]},"text":"Mara"},"selection":{"delta":{"ops":[{"insert":"Mara"}]},"text":"Mara","range":{"index":0,"length":4}},"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512,"lore":[{"name":"OMITTED","kind":"character","visible_text":"NEVER SENT","level":"leave_out"}]},
+      "history": [],
+      "sections": [
+        {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
+        {"id":"history","tags":[],"text":""},
+        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
+        {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=4, text=Mara\n</selection>\n"},
+        {"id":"document","tags":["document"],"text":"<document>\nMara\n</document>"}
+      ]
+    },
+    {
       "name": "saved-guidance-without-replay",
       "authorGuidance": "Use <close> & 世界 💡",
       "input": {"action":"generate","document":{"delta":{"ops":[]},"text":""},"selection":null,"storyContext":null,"instruction":null,"messages":[],"resumePrompt":null,"maxOutputTokens":512},

@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod lore;
 pub mod models;
 pub mod prompt;
 pub mod provider;

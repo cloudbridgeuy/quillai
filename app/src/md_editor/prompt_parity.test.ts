@@ -13,7 +13,8 @@ for (const example of fixture.cases) {
       sections.map(({ id, text }) => ({ id, text })),
     );
     expect(sections.map(({ id }) => id)).toEqual([
-      "system", ...(guidance ? ["author_guidance" as const] : []), "history", "instruction", "story_context", "selection", "document",
+      "system", ...(guidance ? ["author_guidance" as const] : []), "history", "instruction", "story_context",
+      ...("lore" in input && input.lore?.some(entry => entry.level !== "leave_out") ? ["lore" as const] : []), "selection", "document",
     ]);
     for (const [index, section] of sections.entries()) {
       if (section.id !== "system" && section.id !== "history") {

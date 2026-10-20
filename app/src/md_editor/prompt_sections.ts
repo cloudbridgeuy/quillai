@@ -6,6 +6,7 @@ export type PromptSectionId =
   | "history"
   | "instruction"
   | "story_context"
+  | "lore"
   | "selection"
   | "document";
 
@@ -40,6 +41,9 @@ export function assemblePromptSections(input: AiGenerateRequest, authorGuidance 
     : escapePromptText(selectionText);
   const document = overrides.document ?? input.document.text;
   const system = "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.";
+  const lore = (input.lore ?? []).filter(entry => ["include", "known_dont_reveal"].includes(entry.level)).map(entry =>
+    `Name: ${entry.name}\nKind: ${entry.kind}\n${entry.level === "known_dont_reveal" ? "Known, but MUST NOT be revealed in prose.\n" : ""}Text: ${entry.visible_text}`,
+  ).join("\n\n");
 
   return [
     section("system", "System", escapePromptText(system), system),
@@ -48,6 +52,7 @@ export function assemblePromptSections(input: AiGenerateRequest, authorGuidance 
       promptHistory(input).map(({ text }) => text).join("")),
     section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),
     section("story_context", "Story context", `<story_context>\n${escapePromptText(storyContext)}\n</story_context>\n`, storyContext),
+    ...(lore === "" ? [] : [section("lore", "Lore", `<lore>\n${escapePromptText(lore)}\n</lore>\n`, lore)]),
     section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`, selectionText),
     section("document", "Document", `<document>\n${escapePromptText(document)}\n</document>`, document),
   ];

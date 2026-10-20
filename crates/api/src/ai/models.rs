@@ -1,3 +1,4 @@
+pub use super::lore::{LoreEntry, LoreLevel};
 pub use super::section_overrides::{PromptSectionId, SectionOverrides};
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +12,8 @@ pub const MAX_MAX_OUTPUT_TOKENS: usize = 4096;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerateRequest {
+    #[serde(default = "empty_lore")]
+    pub lore: serde_json::Value,
     #[serde(default = "empty_section_overrides")]
     pub section_overrides: serde_json::Value,
     pub action: String,
@@ -26,6 +29,10 @@ pub struct GenerateRequest {
 
 fn empty_section_overrides() -> serde_json::Value {
     serde_json::json!({})
+}
+
+fn empty_lore() -> serde_json::Value {
+    serde_json::json!([])
 }
 
 #[derive(Debug, Deserialize)]
@@ -121,6 +128,7 @@ pub struct SelectionSlice {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GenerateInput {
+    pub lore: Vec<LoreEntry>,
     pub author_guidance: Option<String>,
     pub section_overrides: SectionOverrides,
     pub action: AiAction,
@@ -261,6 +269,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
 
     fn try_from(request: GenerateRequest) -> Result<Self, Self::Error> {
         let GenerateRequest {
+            lore,
             section_overrides,
             action,
             document,
@@ -273,6 +282,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         } = request;
 
         let action = AiAction::try_from(action)?;
+        let lore = super::lore::parse_lore(lore)?;
         let section_overrides = SectionOverrides::try_from(section_overrides)?;
         let document = DocumentSlice::try_from(document)?;
         let selection = selection.map(SelectionSlice::try_from).transpose()?;
@@ -298,6 +308,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
 
         Ok(Self {
             action,
+            lore,
             author_guidance: None,
             document,
             selection,
@@ -479,6 +490,7 @@ mod tests {
     #[test]
     fn generate_request_parses_and_sanitizes() {
         let input = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
@@ -535,6 +547,7 @@ mod tests {
     #[test]
     fn edit_requires_non_empty_selection() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
@@ -553,6 +566,7 @@ mod tests {
     #[test]
     fn malformed_document_is_rejected_at_boundary() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
@@ -583,6 +597,7 @@ mod tests {
     #[test]
     fn selection_must_fit_sanitized_document_text_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
@@ -603,6 +618,7 @@ mod tests {
     #[test]
     fn selection_text_must_match_document_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
@@ -623,6 +639,7 @@ mod tests {
     #[test]
     fn selected_text_uses_selection_slice_text() {
         let input = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
@@ -641,6 +658,7 @@ mod tests {
     #[test]
     fn selection_delta_text_must_match_selection_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),
@@ -675,6 +693,7 @@ mod tests {
     #[test]
     fn document_text_must_match_sanitized_delta_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
@@ -705,6 +724,7 @@ mod tests {
     #[test]
     fn document_and_selection_slices_reject_embeds() {
         let document_err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: RawDocumentSlice {
@@ -732,6 +752,7 @@ mod tests {
             .contains("AI document slices currently support text inserts only"));
 
         let selection_err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello"),
@@ -766,6 +787,7 @@ mod tests {
     #[test]
     fn utf16_selection_indices_accept_emoji_spans() {
         let input = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hi 💡 there"),
@@ -804,6 +826,7 @@ mod tests {
     #[test]
     fn blank_message_content_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
@@ -827,6 +850,7 @@ mod tests {
     #[test]
     fn invalid_message_role_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
@@ -850,6 +874,7 @@ mod tests {
     #[test]
     fn token_limit_defaults_and_bounds_are_enforced() {
         let defaulted = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
@@ -865,6 +890,7 @@ mod tests {
         assert_eq!(defaulted.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
 
         let too_large = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
@@ -882,6 +908,7 @@ mod tests {
             .contains("maxOutputTokens must be at most"));
 
         let too_small = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
             document: text_document("Hello"),
@@ -902,6 +929,7 @@ mod tests {
     #[test]
     fn edit_requests_drop_generate_only_thread_fields() {
         let input = GenerateInput::try_from(GenerateRequest {
+            lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
             document: text_document("Hello world"),

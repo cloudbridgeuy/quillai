@@ -86,36 +86,29 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
             continue;
         }
         replayed += 1;
+        let has_lore = example.input["lore"]
+            .as_array()
+            .is_some_and(|entries| entries.iter().any(|entry| entry["level"] != "leave_out"));
+        let mut expected_ids = vec!["system"];
+        if example
+            .author_guidance
+            .as_ref()
+            .is_some_and(|text| !text.is_empty())
+        {
+            expected_ids.push("author_guidance");
+        }
+        expected_ids.extend(["history", "instruction", "story_context"]);
+        if has_lore {
+            expected_ids.push("lore");
+        }
+        expected_ids.extend(["selection", "document"]);
         assert_eq!(
             example
                 .sections
                 .iter()
                 .map(|s| s.id.as_str())
                 .collect::<Vec<_>>(),
-            if example
-                .author_guidance
-                .as_ref()
-                .is_some_and(|text| !text.is_empty())
-            {
-                vec![
-                    "system",
-                    "author_guidance",
-                    "history",
-                    "instruction",
-                    "story_context",
-                    "selection",
-                    "document",
-                ]
-            } else {
-                vec![
-                    "system",
-                    "history",
-                    "instruction",
-                    "story_context",
-                    "selection",
-                    "document",
-                ]
-            },
+            expected_ids,
             "{}: section ids",
             example.name
         );
