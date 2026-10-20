@@ -53,11 +53,11 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel();
 
     if !root.join("app/node_modules/@playwright/test").exists() {
-        let mut install = Command::new("bun");
+        let mut install = e2e_command("bun");
         install.arg("install").current_dir(root.join("app"));
         run_tool(install, &mut children, &tx, &rx, &shutdown)?;
     }
-    let mut build = Command::new("cargo");
+    let mut build = e2e_command("cargo");
     build.args(["build", "-p", "quillai_api", "--bin", "api"]);
     build.env("SQLX_OFFLINE", "true");
     run_tool(build, &mut children, &tx, &rx, &shutdown)?;
@@ -68,7 +68,7 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         "E2E sandbox: api={api_url} app={app_url} database={}",
         database.path().display()
     );
-    let mut api = Command::new("cargo");
+    let mut api = e2e_command("cargo");
     api.args(["run", "--quiet", "-p", "quillai_api", "--bin", "api", "--"]);
     api.env("SQLX_OFFLINE", "true");
     api.args(["--host", "127.0.0.1", "--port", &api_port.to_string()]);
@@ -79,7 +79,7 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .children
         .push(spawn_managed(Service::Api, api, tx.clone())?);
     drop(app_reservation);
-    let mut app = Command::new("bun");
+    let mut app = e2e_command("bun");
     app.arg("app/src/index.tsx")
         .env("PORT", app_port.to_string());
     children
@@ -88,7 +88,7 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     wait_ready(api_port, "/series", &mut children, &rx, &shutdown)?;
     wait_ready(app_port, "/", &mut children, &rx, &shutdown)?;
 
-    let mut playwright = Command::new("bun");
+    let mut playwright = e2e_command("bun");
     playwright
         .args([
             "--bun",
@@ -104,6 +104,17 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .env("QUILLAI_E2E_APP_URL", app_url);
     run_tool(playwright, &mut children, &tx, &rx, &shutdown)?;
     Ok(())
+}
+
+fn e2e_command(program: &str) -> Command {
+    let mut command = Command::new(program);
+    if !color_enabled() {
+        command
+            .env("NO_COLOR", "1")
+            .env("FORCE_COLOR", "0")
+            .env("CARGO_TERM_COLOR", "never");
+    }
+    command
 }
 
 fn drain_output(rx: &Receiver<SupervisorEvent>) {

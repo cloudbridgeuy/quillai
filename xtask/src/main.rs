@@ -3,7 +3,7 @@ use clap::Parser;
 use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGTERM};
 use signal_hook::flag;
 use std::error::Error;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, IsTerminal, Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -539,6 +539,9 @@ fn write_prefixed_line(service: Service, stream: StreamKind, line: &str) {
 
 fn format_prefix(service: Service, stream: StreamKind) -> String {
     let timestamp = Local::now().format("%H:%M:%S");
+    if !color_enabled() {
+        return format!("{timestamp} {:>3} │ ", service.label());
+    }
     let stream_color = match stream {
         StreamKind::Stdout => "",
         StreamKind::Stderr => STDERR_COLOR,
@@ -551,7 +554,15 @@ fn format_prefix(service: Service, stream: StreamKind) -> String {
     )
 }
 
+fn color_enabled() -> bool {
+    std::env::var_os("NO_COLOR").is_none() && std::io::stdout().is_terminal()
+}
+
 fn log_supervisor_line(line: String) {
     let timestamp = Local::now().format("%H:%M:%S");
-    println!("{DIM_COLOR}{timestamp}{RESET_COLOR} \x1b[32mdev{RESET_COLOR} │ {line}");
+    if color_enabled() {
+        println!("{DIM_COLOR}{timestamp}{RESET_COLOR} \x1b[32mdev{RESET_COLOR} │ {line}");
+    } else {
+        println!("{timestamp} dev │ {line}");
+    }
 }

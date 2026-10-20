@@ -38,6 +38,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
     let held = 0;
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
+    let passed = false;
     try {
       for (const [index, tab] of tabs.entries()) {
         tab.on("pageerror", (error) => {
@@ -150,15 +151,18 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
       }
       expect(failures).toEqual([]);
+      passed = testInfo.errors.length === 0;
     } finally {
       release();
       await Promise.all(recordings);
-      for (const [index, tab] of tabs.entries()) {
-        events.push({ tab: index, text: await tab.locator(".ql-editor").innerText().catch(String), statuses: await tab.getByRole("status").allTextContents() });
+      if (!passed) {
+        for (const [index, tab] of tabs.entries()) {
+          events.push({ tab: index, text: await tab.locator(".ql-editor").innerText().catch(String), statuses: await tab.getByRole("status").allTextContents() });
+        }
+        const diagnostics = JSON.stringify({ interleaving, failures, events }, null, 2);
+        console.log(diagnostics);
+        await testInfo.attach("emoji-sync-network", { body: diagnostics, contentType: "application/json" });
       }
-      const diagnostics = JSON.stringify({ interleaving, failures, events }, null, 2);
-      console.log(diagnostics);
-      await testInfo.attach("emoji-sync-network", { body: diagnostics, contentType: "application/json" });
     }
   });
 }
@@ -188,6 +192,7 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
     const events: unknown[] = [];
     const failures: string[] = [];
     const recordings: Promise<void>[] = [];
+    let passed = false;
     try {
       await Promise.all(tabs.map(async (tab, index) => {
         tab.on("pageerror", (error) => {
@@ -271,14 +276,17 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
         return texts.every((value) => value.trimEnd() === text.trimEnd());
       }).toBe(true);
       expect(failures).toEqual([]);
+      passed = testInfo.errors.length === 0;
     } finally {
       await Promise.all(recordings);
-      for (const [index, tab] of tabs.entries()) events.push({ tab: index, text: await tab.locator(".ql-editor").innerText().catch(String), statuses: await tab.getByRole("status").allTextContents(), recovery: await tab.evaluate(() => sessionStorage.getItem("quillai.chapter.recovery.v1")).catch(String) });
-      const saved = await request.get(chapterUrl);
-      events.push({ savedStatus: saved.status(), saved: await saved.text() });
-      const diagnostics = JSON.stringify({ seed, payload, pastesPerTab: 50, failures, events }, null, 2);
-      console.log(diagnostics);
-      await testInfo.attach(`emoji-paste-seed-${seed}`, { body: diagnostics, contentType: "application/json" });
+      if (!passed) {
+        for (const [index, tab] of tabs.entries()) events.push({ tab: index, text: await tab.locator(".ql-editor").innerText().catch(String), statuses: await tab.getByRole("status").allTextContents(), recovery: await tab.evaluate(() => sessionStorage.getItem("quillai.chapter.recovery.v1")).catch(String) });
+        const saved = await request.get(chapterUrl);
+        events.push({ savedStatus: saved.status(), saved: await saved.text() });
+        const diagnostics = JSON.stringify({ seed, payload, pastesPerTab: 50, failures, events }, null, 2);
+        console.log(diagnostics);
+        await testInfo.attach(`emoji-paste-seed-${seed}`, { body: diagnostics, contentType: "application/json" });
+      }
     }
   });
 }
