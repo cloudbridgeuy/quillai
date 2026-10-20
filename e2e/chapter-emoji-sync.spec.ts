@@ -61,7 +61,8 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         });
         await tab.goto(`/?${query}`);
         await expect(tab.locator(".ql-editor")).toHaveText(initial);
-        await expect(tab.getByRole("status").filter({ hasText: "Emoji chapter" })).toHaveText("Emoji chapter · Saved");
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
         await tab.route(`${chapterUrl}/deltas`, async (route) => {
           if (route.request().method() === "POST") {
             held++;
@@ -110,7 +111,8 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         ? ["Opening 😁🚀🌟"]
         : [initial, "A😀🦊", "B🚀🐋", ...(interleaving === "pending" ? ["C😁🌈", "D🪐🐙"] : [])];
       for (const tab of tabs) {
-        await expect(tab.getByRole("status").filter({ hasText: "Emoji chapter" })).toHaveText("Emoji chapter · Saved");
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
         for (const part of expectedParts) await expect(tab.locator(".ql-editor")).toContainText(part);
       }
       const converged = await page.locator(".ql-editor").innerText();
@@ -130,7 +132,8 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         for (const part of [...expectedParts, "E🦄🍀", "F🐬🎉"]) {
           await expect(tab.locator(".ql-editor")).toContainText(part);
         }
-        await expect(tab.getByRole("status").filter({ hasText: "Emoji chapter" })).toHaveText("Emoji chapter · Saved");
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
       }
       const finalText = await page.locator(".ql-editor").innerText();
       await expect(second.locator(".ql-editor")).toHaveText(finalText);
@@ -143,7 +146,8 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
       for (const tab of tabs) {
         await tab.reload();
         await expect(tab.locator(".ql-editor")).toHaveText(finalText);
-        await expect(tab.getByRole("status").filter({ hasText: "Emoji chapter" })).toHaveText("Emoji chapter · Saved");
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
       }
       expect(failures).toEqual([]);
     } finally {
@@ -211,7 +215,8 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
           await route.continue();
         });
         await tab.goto(`/?${query}`);
-        await expect(tab.getByRole("status").filter({ hasText: "Rapid emoji chapter" })).toHaveText("Rapid emoji chapter · Saved");
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Rapid emoji chapter", exact: true })).toBeVisible();
       }));
       await Promise.all(tabs.map(async (tab, index) => {
         const operations = await tab.locator(".ql-editor").evaluate(async (element, { seed, index, payload }) => {
@@ -251,7 +256,10 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
         }, { seed, index, payload });
         events.push({ tab: index, operations });
       }));
-      for (const tab of tabs) await expect(tab.getByRole("status").filter({ hasText: "Rapid emoji chapter" })).toHaveText("Rapid emoji chapter · Saved");
+      for (const tab of tabs) {
+        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expect(tab.getByRole("heading", { name: "Rapid emoji chapter", exact: true })).toBeVisible();
+      }
       await expect.poll(async () => {
         const savedResponse = await request.get(chapterUrl);
         expect(savedResponse.status()).toBe(200);

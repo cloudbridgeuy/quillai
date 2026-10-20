@@ -7,6 +7,19 @@ export function continueClickAction(state: AiRunState): "stop" | "generate" {
     : "generate";
 }
 
+export function getSavePresentation(status: string, title: string | null, blocked: boolean) {
+  const prefix = `${title} · `;
+  const label = title !== null && status.startsWith(prefix) ? status.slice(prefix.length) : status;
+  return {
+    label,
+    failed: blocked || /stopped|failed|unavailable|interrupted|retained|export/i.test(label),
+  };
+}
+
+export function canApplyEdit(busy: boolean, hasSelection: boolean, ready: boolean, blocked: boolean): boolean {
+  return !busy && hasSelection && ready && !blocked;
+}
+
 export type StatusPresentation = {
   tone: "idle" | "running" | "success" | "warning" | "error";
   label: string;

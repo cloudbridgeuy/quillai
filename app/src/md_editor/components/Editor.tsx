@@ -18,6 +18,8 @@ import {
 } from "../ai_contract";
 import {
   continueClickAction,
+  canApplyEdit,
+  getSavePresentation,
   getStatusPresentation,
   isTextOnlyDeltaDocument,
   rememberCursorRange,
@@ -242,7 +244,6 @@ export const Container = () => {
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
-  const [requestPreview, setRequestPreview] = useState<AiRequestPreview | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
   const [settingsClient] = useState(createSettingsClient);
@@ -360,24 +361,22 @@ export const Container = () => {
       const action = panelShortcut(event);
       if (action === null) return;
       if (action === "close") {
-        if (!panel && !requestPreview && !editBoxOpen) return;
+        if (!panel && !editBoxOpen) return;
         event.preventDefault();
         closePanels();
         return;
       }
-      if (requestPreview) return;
       event.preventDefault();
       togglePanel(action);
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [panel, requestPreview, editBoxOpen]);
+  }, [panel, editBoxOpen]);
 
   function closePanels() {
     setEditBoxOpen(false);
     setPanel(transitionPanel(panel, "close"));
-    setRequestPreview(null);
     const selection = lastCursorRangeRef.current;
     if (selection) {
       quillRef.current?.setSelection(selection.index, selection.length, "silent");
@@ -477,10 +476,6 @@ export const Container = () => {
     }
   }
 
-  function closeRequestPreview() {
-    setRequestPreview(null);
-  }
-
   function resetCurrentThread() {
     updateThreadState(resetThread(threadStateRef.current));
   }
@@ -543,32 +538,6 @@ export const Container = () => {
             : null,
           maxOutputTokens: threadState.settings.maxOutputTokens,
         });
-  }
-
-  function openGeneratePreview() {
-    const quill = quillRef.current;
-    if (!quill) {
-      setAiFailure(null, "Editor is not ready yet.");
-      return;
-    }
-
-    try {
-      const liveSelection = quill.getSelection() ?? range;
-      const currentSelection = liveSelection
-        ? { index: liveSelection.index, length: liveSelection.length }
-        : null;
-      const selection = resolveContinueSelection(currentSelection, lastCursorRangeRef.current);
-
-      setRequestPreview(
-        buildRequestPreview(
-          "generate",
-          quill,
-          selection ? { index: selection.index, length: selection.length } : null,
-        ),
-      );
-    } catch (error) {
-      setAiFailure("generate", getUnknownAiFailureMessage(error));
-    }
   }
 
   async function runAiAction(action: AiAction) {
@@ -927,7 +896,16 @@ export const Container = () => {
     else void runAiAction("generate");
   }
 
+  const editAvailable = canApplyEdit(isBusy, hasSelection, chapterSync.ready, chapterSync.blocked);
+
+  function applyEdit() {
+    if (!canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
+    setEditBoxOpen(false);
+    void runAiAction("edit");
+  }
+
   const statusPresentation = getStatusPresentation(aiRunState);
+  const savePresentation = getSavePresentation(chapterSync.status, chapterSync.title, chapterSync.blocked);
   const withThread = activeContinueWithThread ?? shouldContinueWithThread(
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
   );
@@ -939,16 +917,6 @@ export const Container = () => {
     normalizedInstructionText(),
     isResumingOutput,
   );
-  const requestPreviewThreadPresentation = requestPreview
-    ? getThreadPresentation(
-        threadState,
-        requestPreview.request.instruction,
-        requestPreview.request.messages.length > 0 && aiRunState.status === "continuing",
-      )
-    : threadPresentation;
-  const requestPreviewPayload = requestPreview
-    ? JSON.stringify(requestPreview.request, null, 2)
-    : "";
   const contextInspector = (() => {
     const quill = quillRef.current;
     if (!quill || !chapterSync.ready) return "Editor is not ready yet.";
@@ -1004,15 +972,14 @@ export const Container = () => {
           onKeyDown={(event) => {
             if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
             event.preventDefault();
-            setEditBoxOpen(false);
-            void runAiAction("edit");
+            applyEdit();
           }} />
         <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc cancels · Shift+Enter adds a line</p>
         <div className="editor-actions">
           <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Cancel edit</button>
           <button className="editor-button editor-button-primary editor-button-small" type="button"
-            onClick={() => { setEditBoxOpen(false); void runAiAction("edit"); }}
-            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}>Apply</button>
+            onClick={applyEdit}
+            disabled={!editAvailable}>Apply</button>
         </div>
       </div> : null}
       {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
@@ -1025,19 +992,18 @@ export const Container = () => {
         </div>
         <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+        <a className="editor-button" download="chapter-local.json"
+          href="#" onClick={(event) => {
+            event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
+          }}>
+          Export local chapter
+        </a>
       </aside> : null}
       <div className="editor-topbar">
         <div className="editor-heading">
           <h1>QuillAI</h1>
-          <p role="status">{chapterSync.status}</p>
           {chapterSync.needsChapter ? <button className="editor-button" type="button"
             onClick={() => void chapterSync.bootstrap()}>Create chapter</button> : null}
-          <a className="editor-button" download="chapter-local.json"
-            href="#" onClick={(event) => {
-              event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
-            }}>
-            Export local chapter
-          </a>
           {chapterSync.recovery ? <div role="alert">
             Previous unsaved work is available. Export it before closing this tab.
             <a download="chapter-recovery.json"
@@ -1046,104 +1012,11 @@ export const Container = () => {
             </a>
           </div> : null}
         </div>
-        <div className={`editor-status editor-status-${statusPresentation.tone}`}>
-          <span className="editor-status-label">Status</span>
-          <span>{statusPresentation.label}</span>
-        </div>
-      </div>
-
-      <div className="editor-controls-panel">
-        <label className="editor-field editor-field-full">
-          <span>Story Context</span>
-          <textarea
-            className="editor-textarea"
-            value={storyContext}
-            onChange={(event) => setStoryContext(event.target.value)}
-            placeholder="Series premise, tone, point of view, or scene notes"
-            rows={4}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          />
-        </label>
-
-        <div className="editor-controls-grid">
-          <label className="editor-field editor-field-grow">
-            <span>Instruction</span>
-            <textarea
-              className="editor-textarea editor-textarea-compact"
-              value={instruction}
-              onChange={(event) => setInstructionAndResetThread(event.target.value)}
-              placeholder="Continue the scene, tighten the selected paragraph, sharpen dialogue..."
-              rows={2}
-              disabled={isBusy}
-            />
-          </label>
-
-          <label className="editor-field editor-field-number">
-            <span>Window Size</span>
-            <input
-              className="editor-input"
-              type="number"
-              min="0"
-              step="1"
-              value={windowSize}
-              onChange={(event) => setWindowSize(event.target.value)}
-              disabled={isBusy}
-            />
-          </label>
-
-          <label className="editor-toggle">
-            <input
-              type="checkbox"
-              checked={windowMode === "document"}
-              onChange={(event) =>
-                setWindowMode(event.target.checked ? "document" : "window")
-              }
-              disabled={isBusy}
-            />
-            <span>Whole document</span>
-          </label>
-        </div>
-
-        <div className="editor-actions">
-          <button
-            className="editor-button"
-            type="button"
-            onClick={openGeneratePreview}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          >
-            Preview Context
-          </button>
-          <button
-            className="editor-button"
-            type="button"
-            onClick={() => setEditBoxOpen(true)}
-            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
-          >
-            Edit
-          </button>
-        </div>
-
-        <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
-          <div>
-            <span className="editor-thread-label">AI Thread</span>
-            <strong>{threadPresentation.label}</strong>
-            <span>{threadPresentation.detail}</span>
-          </div>
-          <button
-            className="editor-button editor-button-small"
-            type="button"
-            onClick={resetCurrentThread}
-            disabled={isBusy || !threadPresentation.canReset}
-          >
-            Reset Thread
-          </button>
-        </div>
-
-        <p className="editor-note">
-          Edit replaces the current selection as text arrives. Stop keeps text
-          that already landed, and failed edits roll back to the original
-          passage.
-        </p>
+        <p className={`editor-save-status${savePresentation.failed ? " editor-save-failed" : ""}`}
+          role="status" aria-label="Chapter save status" aria-live={savePresentation.failed ? "assertive" : "polite"}>{savePresentation.label}</p>
+        {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
+          <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
+        ) : null}
       </div>
 
       <div className="editor-workspace">
@@ -1195,6 +1068,96 @@ export const Container = () => {
               onMouseDown={(event) => event.preventDefault()}
               onClick={closePanels}>Close context</button>
           </div>
+        <label className="editor-field editor-field-full">
+          <span>Story Context</span>
+          <textarea
+            className="editor-textarea"
+            value={storyContext}
+            onChange={(event) => setStoryContext(event.target.value)}
+            placeholder="Series premise, tone, point of view, or scene notes"
+            rows={4}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+          />
+        </label>
+
+        <div className="editor-controls-grid">
+          <label className="editor-field editor-field-grow">
+            <span>Instruction</span>
+            <textarea
+              className="editor-textarea editor-textarea-compact"
+              value={instruction}
+              onChange={(event) => setInstructionAndResetThread(event.target.value)}
+              placeholder="Continue the scene, tighten the selected paragraph, sharpen dialogue..."
+              rows={2}
+              disabled={isBusy}
+            />
+          </label>
+
+          <label className="editor-field editor-field-number">
+            <span>Window Size</span>
+            <input
+              className="editor-input"
+              type="number"
+              min="0"
+              step="1"
+              value={windowSize}
+              onChange={(event) => setWindowSize(event.target.value)}
+              disabled={isBusy}
+            />
+          </label>
+
+          <label className="editor-toggle">
+            <input
+              type="checkbox"
+              checked={windowMode === "document"}
+              onChange={(event) =>
+                setWindowMode(event.target.checked ? "document" : "window")
+              }
+              disabled={isBusy}
+            />
+            <span>Whole document</span>
+          </label>
+        </div>
+
+        <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
+          <div>
+            <span className="editor-thread-label">AI Thread</span>
+            <strong>{threadPresentation.label}</strong>
+            <span>{threadPresentation.detail}</span>
+          </div>
+          <button
+            className="editor-button editor-button-small"
+            type="button"
+            onClick={resetCurrentThread}
+            disabled={isBusy || !threadPresentation.canReset}
+          >
+            Reset Thread
+          </button>
+        </div>
+
+        <p className="editor-note">
+          Edit replaces the current selection as text arrives. Stop keeps text
+          that already landed, and failed edits roll back to the original
+          passage.
+        </p>
+          <details className="editor-advanced-section">
+            <summary>Advanced AI controls</summary>
+            <label className="editor-field">
+              <span>Max Output Tokens</span>
+              <input className="editor-input" type="number" min="1" max="4096" step="1"
+                value={threadState.settings.maxOutputTokens} disabled={isBusy}
+                onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
+                  maxOutputTokens: Number(event.target.value),
+                }))} />
+            </label>
+            <label className="editor-field">
+              <span>Thread continuation prompt</span>
+              <textarea className="editor-textarea" rows={2} value={threadState.settings.resumePrompt} disabled={isBusy}
+                onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
+                  resumePrompt: event.target.value,
+                }))} />
+            </label>
+          </details>
           <label className="editor-field">
             <span>Author guidance</span>
             <StickyNote tone="yellow" aria-label="Author guidance" rows={5}
@@ -1291,197 +1254,6 @@ export const Container = () => {
         </aside>
       </div>
 
-      {requestPreview ? (
-        <div
-          className="editor-modal-backdrop"
-          role="presentation"
-          onClick={closeRequestPreview}
-        >
-          <div
-            className="editor-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="continuation-preview-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="editor-modal-header">
-              <div>
-                <h2 id="continuation-preview-title">Continuation Context Preview</h2>
-                <p>
-                  Snapshot of the exact request body for <code>/ai/generate</code>, plus
-                  the window metadata that explains it.
-                </p>
-              </div>
-              <button className="editor-button" type="button" onClick={closeRequestPreview}>
-                Close
-              </button>
-            </div>
-
-            <div className="editor-modal-body">
-              <div className="editor-preview-grid">
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Action</span>
-                  <strong>{requestPreview.request.action}</strong>
-                </div>
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Request URL</span>
-                  <code>{buildAiGenerateUrl()}</code>
-                </div>
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Window Mode</span>
-                  <strong>
-                    {windowMode === "document" ? "Whole document" : "Windowed slice"}
-                  </strong>
-                </div>
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Slice Range</span>
-                  <strong>
-                    {`${requestPreview.window.start}..${requestPreview.window.end} (${requestPreview.window.end - requestPreview.window.start} chars)`}
-                  </strong>
-                </div>
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Absolute Position</span>
-                  <strong>
-                    {requestPreview.absoluteSelection
-                      ? requestPreview.absoluteSelection.length === 0
-                        ? `Cursor at ${requestPreview.absoluteSelection.index}`
-                        : `${requestPreview.absoluteSelection.index}..${requestPreview.absoluteSelection.index + requestPreview.absoluteSelection.length} (${requestPreview.absoluteSelection.length} chars)`
-                      : "Append at document end"}
-                  </strong>
-                </div>
-                <div className="editor-preview-card">
-                  <span className="editor-preview-label">Relative Payload Range</span>
-                  <strong>
-                    {requestPreview.request.selection
-                      ? requestPreview.request.selection.range.length === 0
-                        ? `Cursor at ${requestPreview.request.selection.range.index}`
-                        : `${requestPreview.request.selection.range.index}..${requestPreview.request.selection.range.index + requestPreview.request.selection.range.length} (${requestPreview.request.selection.range.length} chars)`
-                      : "null"}
-                  </strong>
-                </div>
-              </div>
-
-              <section className={`editor-preview-section editor-thread-card editor-thread-${requestPreviewThreadPresentation.mode}`}>
-                <div>
-                  <span className="editor-thread-label">AI Thread</span>
-                  <strong>{requestPreviewThreadPresentation.label}</strong>
-                  <span>{requestPreviewThreadPresentation.detail}</span>
-                </div>
-                <button
-                  className="editor-button editor-button-small"
-                  type="button"
-                  onClick={resetCurrentThread}
-                  disabled={isBusy || !requestPreviewThreadPresentation.canReset}
-                >
-                  Reset Thread
-                </button>
-              </section>
-
-              <section className="editor-preview-section editor-advanced-section">
-                <div className="editor-preview-section-header">
-                  <h3>Advanced Settings</h3>
-                  <span>sticky</span>
-                </div>
-                <label className="editor-field">
-                  <span>Max Output Tokens</span>
-                  <input
-                    className="editor-input"
-                    type="number"
-                    min="1"
-                    max="4096"
-                    step="1"
-                    value={threadState.settings.maxOutputTokens}
-                    onChange={(event) =>
-                      updateThreadState(
-                        updateThreadSettings(threadStateRef.current, {
-                          maxOutputTokens: Number(event.target.value),
-                        }),
-                      )
-                    }
-                    disabled={isBusy}
-                  />
-                </label>
-                <label className="editor-field">
-                  <span>Thread continuation prompt</span>
-                  <textarea
-                    className="editor-textarea editor-textarea-compact"
-                    value={threadState.settings.resumePrompt}
-                    onChange={(event) =>
-                      updateThreadState(
-                        updateThreadSettings(threadStateRef.current, {
-                          resumePrompt: event.target.value,
-                        }),
-                      )
-                    }
-                    rows={2}
-                    disabled={isBusy}
-                  />
-                </label>
-              </section>
-
-              <section className="editor-preview-section">
-                <div className="editor-preview-section-header">
-                  <h3>Story Context</h3>
-                  <span>
-                    {requestPreview.request.storyContext === null ? "null" : "normalized"}
-                  </span>
-                </div>
-                <pre className="editor-preview-block">
-                  {requestPreview.request.storyContext ?? "null"}
-                </pre>
-              </section>
-
-              <section className="editor-preview-section">
-                <div className="editor-preview-section-header">
-                  <h3>Instruction</h3>
-                  <span>
-                    {requestPreview.request.instruction === null ? "null" : "normalized"}
-                  </span>
-                </div>
-                <pre className="editor-preview-block">
-                  {requestPreview.request.instruction ?? "null"}
-                </pre>
-              </section>
-
-              <section className="editor-preview-section">
-                <div className="editor-preview-section-header">
-                  <h3>Document Slice</h3>
-                  <span>{`${requestPreview.request.document.text.length} chars`}</span>
-                </div>
-                <pre className="editor-preview-block editor-preview-block-large">
-                  {requestPreview.request.document.text === ""
-                    ? "(empty)"
-                    : requestPreview.request.document.text}
-                </pre>
-              </section>
-
-              <section className="editor-preview-section">
-                <div className="editor-preview-section-header">
-                  <h3>Selection Text</h3>
-                  <span>{requestPreview.request.selection ? "relative to slice" : "null"}</span>
-                </div>
-                <pre className="editor-preview-block">
-                  {requestPreview.request.selection === null
-                    ? "null"
-                    : requestPreview.request.selection.text === ""
-                      ? "(cursor only)"
-                      : requestPreview.request.selection.text}
-                </pre>
-              </section>
-
-              <section className="editor-preview-section">
-                <div className="editor-preview-section-header">
-                  <h3>Raw JSON Payload</h3>
-                  <span>POST body</span>
-                </div>
-                <pre className="editor-preview-block editor-preview-block-large editor-modal-code">
-                  {requestPreviewPayload}
-                </pre>
-              </section>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };

@@ -5,7 +5,7 @@ Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/
 ## Scope
 
 - Desktop first: 1100px and wider. Below 1100px, open panels use the document flow between the rails, without covering the editor. Mobile visual design remains provisional.
-- Existing `context_inspector` (GUZ-664/665/666) is the right-hand drawer. The temporary fixed 184px side panels are removed; existing writing controls remain inline above the sheet.
+- Existing `context_inspector` (GUZ-664/665/666) is the right-hand drawer. The centre sheet contains only the chapter title, Quill toolbar, and manuscript text. There is no controls card above the sheet.
 
 ## Palette
 
@@ -48,7 +48,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 ## Writing surface
 
 - Centered sheet: `width: min(760px, 100vw - 400px)`; padding `72px 84px`; radius `2px 2px 0 0`; visible hairline edge plus `--sheet-shadow` on `--desk`.
-- At 1100px and wider, an open drawer reserves 356px on its side (56px rail plus 300px drawer) and 56px on the opposite side. The sheet, controls, and heading center in the remaining desk, with width `min(760px, 100% - 48px)`. Both sheet edges stay visible. At 1100px the sheet is 640px wide; at 1440px it is 760px wide. Closed-drawer layout is unchanged.
+- At 1100px and wider, an open drawer reserves 356px on its side (56px rail plus 300px drawer) and 56px on the opposite side. The sheet and header center in the remaining desk, with width `min(760px, 100% - 48px)`. Both sheet edges stay visible. At 1100px the sheet is 640px wide; at 1440px it is 760px wide. Closed-drawer layout is unchanged.
 - Infinite page: the sheet bottom border is removed and never shown.
 - Scrollbar hidden; scroll container is full viewport.
 - Caret color `--slate`.
@@ -73,6 +73,8 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.
+- The right drawer holds Story Context, Instruction, Window Size, Whole document, and the AI Thread bar with Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal. No Settings popover is added.
+- Export local chapter is in the left manuscript drawer. It remains available after a save failure.
 - Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer; Escape and drawer Close restore the remembered editor selection and focus. Hover changes only appearance.
 - Drawers and all descendants have square corners. Drawers use `--sheet-shadow`; buttons and the request picker stay flat, with no shadow or hover lift. Section boxes remain square. Below 1100px, drawers remain in document flow.
 - The manuscript drawer loads series → books → chapter summaries through the existing manuscript client, with loading, empty, error, and retry states. Selecting a chapter waits for the current save and any pending edits, then fetches that chapter once through the single-chapter GET. Editing and further switches pause until loading completes. Only a successful load changes the title, selected highlight, URL, and AI context. Save/load failures keep the current chapter and its text, show an error, and preserve recovery/export. Reopening refreshes the hierarchy.
@@ -84,7 +86,7 @@ Common: `.postit` textarea, full width, vertical resize, no border, radius 1px, 
 
 Author guidance uses the yellow post-it styling above, with owner-approved square corners and `--sheet-shadow` instead of the common radius and note shadow. Its focus ring is added to the sheet shadow; the yellow fill remains on focus.
 
-The shared `StickyNote` textarea provides both yellow guidance and pink Edit input. Guidance still saves only with Save author guidance. Both Edit controls open the focused pink note without sending a request. Enter applies through the existing Edit stream; Shift+Enter inserts a newline, and Esc cancels without changing manuscript text and restores the editor selection. Composing text does not submit. The note edits the existing shared Instruction value used by Continue and Edit.
+The shared `StickyNote` textarea provides both yellow guidance and pink Edit input. Guidance still saves only with Save author guidance. The right-rail Edit selection control opens the focused pink note without sending a request; there is no middle Edit button. Enter and Apply use the same selection, busy, chapter-ready, and blocked-save checks before invoking the existing Edit stream. Shift+Enter inserts a newline, and Esc cancels without changing manuscript text and restores the editor selection. Composing text does not submit. The note edits the existing shared Instruction value used by Continue and Edit.
 
 | Note | Fill | Appears | Where |
 |------|------|---------|-------|
@@ -115,8 +117,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Saves
 
-- Quiet status at top center: dot plus "Saved" / "Saving…", 12px `--graphite`, opacity .7.
-- Failed: red pill, `--alert` fill, white 13px text, "Save stopped" bold plus "latest changes are not saved, retrying", 8px white dot, padding `8px 18px`, full radius, fail shadow, opacity 1.
+- Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`; the chapter title is not repeated. Loading and switching messages remain visible.
+- Failed save: clearly visible red label with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The full failure/recovery message stays visible and is announced assertively. Existing uncertain-submission failures stop saving; the UI must not promise automatic retry. Export remains in the left drawer.
 
 ## Shortcuts (prototype)
 
@@ -125,7 +127,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 | Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
 | Ctrl/Cmd+] | Toggle context inspector | Implemented |
 | Alt+L | Open lore card for nearest in-window name | Intended for product |
-| Esc | Close panels, Edit note, and context preview; restore editor selection/focus | Implemented; lore/popovers remain future work |
+| Esc | Close panels and Edit note; restore editor selection/focus | Implemented; lore/popovers remain future work |
 | Enter (in edit note) | Apply edit; Shift+Enter inserts a newline | Implemented |
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |

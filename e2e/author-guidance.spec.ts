@@ -41,27 +41,43 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   const chapter = await chapterResponse.json();
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  await expect(page.getByRole("status").filter({ hasText: " · Saved" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await expect(editor).toBeEditable();
-  await expect(page.getByRole("status").filter({ hasText: " · Saved" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   const continueButton = page.locator(".editor-continue");
   await expect(page.getByRole("button", { name: /^Continue/ })).toHaveCount(1);
   await expect(continueButton).toHaveAccessibleName("Continue writing");
   await expect(continueButton.locator(".editor-thread-indicator")).toHaveCount(0);
+  await expect(page.locator(".editor-controls-panel")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Preview Context", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+  await expect(page.locator(".editor-page").getByRole("heading", { name: "Continue chapter", exact: true })).toBeVisible();
+  await expect(page.locator(".editor-page .ql-toolbar")).toBeVisible();
+  await expect(page.locator(".editor-page textarea, .editor-page input:not(.ql-tooltip input)")).toHaveCount(0);
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-755/idle-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+    await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
+    await page.screenshot({ path: `../target/guz-755/manuscript-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Close manuscript", exact: true }).click();
   }
   await continueButton.click();
   await expect(editor).toHaveText("A saved beginning.");
   await expect(continueButton).toHaveAccessibleName("Continue writing with thread");
   await expect(continueButton.getByText("with thread", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: " · Saved" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  const context = page.locator("#context-drawer");
+  await expect(context.getByRole("textbox", { name: "Story Context", exact: true })).toBeVisible();
+  await expect(context.getByRole("textbox", { name: "Instruction", exact: true })).toBeVisible();
+  await expect(context.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveValue("1200");
+  await expect(context.getByRole("checkbox", { name: "Whole document", exact: true })).not.toBeChecked();
+  await expect(context.getByRole("button", { name: "Reset Thread", exact: true })).toBeEnabled();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-755/with-thread-${width}.png`, fullPage: true });
   }
-  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(page.getByRole("option", { name: "Continue · with thread", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Close context", exact: true }).click();
   await continueButton.click();
@@ -139,7 +155,7 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
   const editor = page.locator(".ql-editor");
   await expect(editor).toBeEditable();
   await expect(editor).toHaveText("Opening line");
-  await expect(page.getByRole("status").filter({ hasText: " · Saved" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   let submissions = 0;
   await page.route(`${apiUrl}/ai/generate`, async (route) => {
     submissions++;
@@ -192,6 +208,30 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
   }
   await edit.click();
   await expect(note).toBeFocused();
+  await editor.click();
+  await page.keyboard.press("ArrowRight");
+  const apply = page.getByRole("button", { name: "Apply", exact: true });
+  await expect(apply).toBeDisabled();
+  await note.focus();
+  await note.press("Enter");
+  await expect(note).toBeVisible();
+  await expect(apply).toBeDisabled();
+  await expect(editor).toHaveText("Opening line");
+  expect(submissions).toBe(0);
+  await note.press("Escape");
+  await editor.evaluate((element) => {
+    const text = element.querySelector("p")?.firstChild;
+    if (!text) throw new Error("Missing chapter text");
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 7);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+  await expect(edit).toBeEnabled();
+  await edit.click();
+  await expect(note).toBeFocused();
+  await expect(apply).toBeEnabled();
   await note.press("Enter");
   await expect(note).toBeHidden();
   await expect(editor).toHaveText("Revised line");

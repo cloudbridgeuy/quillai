@@ -40,7 +40,8 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     await tab.goto(`/?${query}`);
     await expect(tab.locator(".ql-editor")).toHaveText("Opening line");
     await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
-    await expect(tab.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
+    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
   }
 
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -111,7 +112,8 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
 
   await page.locator(".ql-editor").fill("Page one writes");
   await expect(second.locator(".ql-editor")).toHaveText("Page one writes");
-  await expect(page.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
+  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expect(page.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
   const firstSaved = await request.get(chapterUrl);
   expect(firstSaved.ok()).toBe(true);
   const firstHead = (await firstSaved.json()).head_rev;
@@ -119,7 +121,8 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
 
   await second.locator(".ql-editor").fill("Page one writes; page two replies");
   await expect(page.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
-  await expect(second.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
+  await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expect(second.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.ok()).toBe(true);
   const saved = await savedResponse.json();
@@ -130,7 +133,8 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     await tab.reload();
     await expect(tab.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
     await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
-    await expect(tab.getByRole("status").filter({ hasText: "E2E chapter" })).toHaveText("E2E chapter · Saved");
+    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
   }
   expect(failures).toEqual([]);
 });
@@ -212,6 +216,12 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   await failing;
   releaseFailure();
   await expect(page.getByRole("status").filter({ hasText: "Chapter switch failed" })).toContainText("Save stopped");
+  const failedSave = page.getByRole("status", { name: "Chapter save status", exact: true });
+  await expect(failedSave).toBeVisible();
+  await expect(failedSave).toHaveAttribute("aria-live", "assertive");
+  await expect(failedSave).toHaveCSS("background-color", "rgb(180, 65, 47)");
+  await expect(failedSave).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
   await expect(editor).toHaveText("Second unsaved text retained");
   await expect(page.getByRole("heading", { name: "Switch second", exact: true })).toBeVisible();
   await expect(secondButton).toHaveAttribute("aria-pressed", "true");
