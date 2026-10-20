@@ -78,6 +78,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `index.html` | HTML shell, loads frontend.tsx |
 | `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
+| `components/StickyNote.tsx` | Shared native textarea with yellow guidance and pink Edit styling; forwards native props and ref. Guidance saves explicitly; the Edit box uses Enter to apply, Shift+Enter for a newline, and Esc to cancel. |
 | `frontend.tsx` | React root setup, CSS import, StrictMode |
 | `index.css` | Tailwind + editor shell layout, white paper/desk theme tokens and type, and responsive styling |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |

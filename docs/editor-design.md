@@ -82,6 +82,8 @@ Common: `.postit` textarea, full width, vertical resize, no border, radius 1px, 
 
 Author guidance uses the yellow post-it styling above, with owner-approved square corners and `--sheet-shadow` instead of the common radius and note shadow. Its focus ring is added to the sheet shadow; the yellow fill remains on focus.
 
+The shared `StickyNote` textarea provides both yellow guidance and pink Edit input. Guidance still saves only with Save author guidance. Both Edit controls open the focused pink note without sending a request. Enter applies through the existing Edit stream; Shift+Enter inserts a newline, and Esc cancels without changing manuscript text and restores the editor selection. Composing text does not submit. The note edits the existing shared Instruction value used by Continue and Edit.
+
 | Note | Fill | Appears | Where |
 |------|------|---------|-------|
 | Yellow, author guidance | `#F4E8B5` | Inspector drawer, always, 5 rows | Section "Author guidance" |
@@ -120,8 +122,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 | Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
 | Ctrl/Cmd+] | Toggle context inspector | Implemented |
 | Alt+L | Open lore card for nearest in-window name | Intended for product |
-| Esc | Close panels and context preview; restore editor selection/focus | Implemented; lore/popovers remain future work |
-| Enter (in edit note) | Apply edit | Intended for product |
+| Esc | Close panels, Edit note, and context preview; restore editor selection/focus | Implemented; lore/popovers remain future work |
+| Enter (in edit note) | Apply edit; Shift+Enter inserts a newline | Implemented |
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
 

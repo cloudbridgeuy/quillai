@@ -72,6 +72,7 @@ import { buildContextInspector } from "../context_inspector";
 import { createSettingsClient } from "../../settings/client";
 import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
+import { StickyNote } from "../../components/StickyNote";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -231,6 +232,8 @@ export const Container = () => {
 
   const [range, setRange] = useState<RangeT | null>(null);
   const [panel, setPanel] = useState<PanelState>(null);
+  const [editBoxOpen, setEditBoxOpen] = useState(false);
+  const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
   const [instruction, setInstruction] = useState(initialEditorState.instruction);
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
@@ -345,12 +348,16 @@ export const Container = () => {
   }, []);
 
   useEffect(() => {
+    if (editBoxOpen) editInstructionRef.current?.focus();
+  }, [editBoxOpen]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       const action = panelShortcut(event);
       if (action === null) return;
       if (action === "close") {
-        if (!panel && !requestPreview) return;
+        if (!panel && !requestPreview && !editBoxOpen) return;
         event.preventDefault();
         closePanels();
         return;
@@ -362,9 +369,10 @@ export const Container = () => {
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [panel, requestPreview]);
+  }, [panel, requestPreview, editBoxOpen]);
 
   function closePanels() {
+    setEditBoxOpen(false);
     setPanel(transitionPanel(panel, "close"));
     setRequestPreview(null);
     const selection = lastCursorRangeRef.current;
@@ -960,12 +968,34 @@ export const Container = () => {
         <button type="button" aria-label="Edit selection" title="Edit selection"
           disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => void runAiAction("edit")}>✎</button>
+          aria-controls="edit-instruction-box" aria-expanded={editBoxOpen}
+          onClick={() => setEditBoxOpen(true)}>✎</button>
         <button type="button" aria-label="Context inspector" title="Context inspector (Ctrl/Cmd+])"
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("context")}>◫</button>
       </nav>
+      {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
+        <div className="editor-edit-flag">Edit selection</div>
+        <StickyNote tone="pink" ref={editInstructionRef} aria-label="Edit instruction" rows={4}
+          disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+          aria-describedby="edit-instruction-hint" value={instruction}
+          placeholder="How should the selected text change?"
+          onChange={(event) => setInstructionAndResetThread(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            setEditBoxOpen(false);
+            void runAiAction("edit");
+          }} />
+        <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc cancels · Shift+Enter adds a line</p>
+        <div className="editor-actions">
+          <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Cancel edit</button>
+          <button className="editor-button editor-button-primary editor-button-small" type="button"
+            onClick={() => { setEditBoxOpen(false); void runAiAction("edit"); }}
+            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}>Apply</button>
+        </div>
+      </div> : null}
       {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
@@ -1075,7 +1105,7 @@ export const Container = () => {
           <button
             className="editor-button"
             type="button"
-            onClick={() => void runAiAction("edit")}
+            onClick={() => setEditBoxOpen(true)}
             disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           >
             Edit
@@ -1165,7 +1195,7 @@ export const Container = () => {
           </div>
           <label className="editor-field">
             <span>Author guidance</span>
-            <textarea className="editor-textarea" aria-label="Author guidance" rows={5}
+            <StickyNote tone="yellow" aria-label="Author guidance" rows={5}
               value={guidanceDraft} disabled={isBusy || guidancePending || !guidanceLoaded}
               onChange={(event) => setGuidanceDraft(event.target.value)} />
           </label>

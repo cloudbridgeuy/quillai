@@ -34,3 +34,80 @@ test("inspector locks System and saves author guidance across reload", async ({ 
   await expect(page.getByRole("textbox", { name: "Author guidance prompt section", exact: true })).toHaveCount(0);
   expect(await (await request.get(settingsUrl)).json()).toEqual({ text: "" });
 });
+
+test("sticky notes preserve selection on Escape and submit Edit on Enter", async ({ page, request }) => {
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run this smoke with cargo xtask e2e");
+  const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: "Sticky series", position: 0 } });
+  expect(seriesResponse.status()).toBe(201);
+  const series = await seriesResponse.json();
+  const bookResponse = await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Sticky book", position: 0 } });
+  expect(bookResponse.status()).toBe(201);
+  const book = await bookResponse.json();
+  const chapterResponse = await request.post(`${apiUrl}/series/${series.id}/books/${book.id}/chapters`, {
+    data: { title: "Sticky chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "Opening line\n" }] } },
+  });
+  expect(chapterResponse.status()).toBe(201);
+  const chapter = await chapterResponse.json();
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  await expect(editor).toBeEditable();
+  await expect(editor).toHaveText("Opening line");
+  await expect(page.getByRole("status").filter({ hasText: " · Saved" })).toBeVisible();
+  let submissions = 0;
+  await page.route(`${apiUrl}/ai/generate`, async (route) => {
+    submissions++;
+    const body = route.request().postDataJSON();
+    expect(body.action).toBe("edit");
+    expect(body.selection.text).toBe("Opening");
+    expect(body.instruction).toBe("Make it vivid\nKeep it short");
+    await route.fulfill({
+      contentType: "application/x-ndjson",
+      body: `${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "Revised" }] } })}\n${JSON.stringify({ type: "done", finishReason: "stop" })}\n`,
+    });
+  });
+  const note = page.getByRole("textbox", { name: "Edit instruction", exact: true });
+  const edit = page.getByRole("button", { name: "Edit selection", exact: true });
+  for (const width of [1100, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+    const guidance = page.getByRole("textbox", { name: "Author guidance", exact: true });
+    await expect(guidance).toBeEnabled();
+    await expect(guidance).toHaveCSS("background-color", "rgb(244, 232, 181)");
+    await guidance.focus();
+    await expect(guidance).toHaveCSS("border-radius", "0px");
+    await page.screenshot({ path: `../target/guz-754/guidance-${width}.png`, fullPage: true });
+    await editor.click();
+    await editor.evaluate((element) => {
+      const text = element.querySelector("p")?.firstChild;
+      if (!text) throw new Error("Missing chapter text");
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 7);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+    });
+    await expect(edit).toBeEnabled();
+    await edit.click();
+    await expect(note).toBeFocused();
+    await expect(note).toHaveCSS("background-color", "rgb(243, 214, 216)");
+    await note.fill("Make it vivid");
+    await note.press("Shift+Enter");
+    await note.pressSequentially("Keep it short");
+    await expect(note).toHaveValue("Make it vivid\nKeep it short");
+    expect(submissions).toBe(0);
+    await page.screenshot({ path: `../target/guz-754/edit-${width}.png`, fullPage: true });
+    await note.press("Escape");
+    await expect(note).toBeHidden();
+    await expect(editor).toHaveText("Opening line");
+    await expect(editor).toBeFocused();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
+    expect(submissions).toBe(0);
+  }
+  await edit.click();
+  await expect(note).toBeFocused();
+  await note.press("Enter");
+  await expect(note).toBeHidden();
+  await expect(editor).toHaveText("Revised line");
+  expect(submissions).toBe(1);
+});
