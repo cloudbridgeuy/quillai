@@ -173,6 +173,12 @@ pub enum StreamEvent {
     Delta {
         delta: DeltaDocument,
     },
+    Usage {
+        #[serde(rename = "promptTokens")]
+        prompt_tokens: u64,
+        #[serde(rename = "completionTokens")]
+        completion_tokens: u64,
+    },
     Done {
         #[serde(rename = "finishReason")]
         finish_reason: FinishReason,

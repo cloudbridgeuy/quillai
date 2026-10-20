@@ -46,7 +46,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
 | `prelude.rs` | Re-exports Error and Result |
-| `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming, and NDJSON event output. See [AI streaming context](.claude/context/ai-streaming.md) |
+| `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming with `stream_options.include_usage`, and NDJSON output that emits `usage` before `done` when the provider sends token counts. See [AI streaming context](.claude/context/ai-streaming.md) |
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 | `settings/` | Singleton author guidance models, UTF-8 byte validation, GET/PUT handlers, and shared server-side AI loading. |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |

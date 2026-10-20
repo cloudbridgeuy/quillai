@@ -306,6 +306,75 @@ async fn generate_returns_ndjson_delta_and_done_events() {
 }
 
 #[tokio::test]
+async fn generate_emits_usage_before_done_when_provider_sends_usage() {
+    let _guard = env_lock().lock().await;
+    let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel::<serde_json::Value>();
+    let provider = axum::Router::new()
+        .route(
+            "/chat/completions",
+            axum::routing::post(
+                |axum::extract::State(sender): axum::extract::State<
+                    tokio::sync::mpsc::UnboundedSender<serde_json::Value>,
+                >,
+                 axum::Json(body): axum::Json<serde_json::Value>| async move {
+                    sender.send(body).unwrap();
+                    concat!(
+                        "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n",
+                        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+                        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4,\"total_tokens\":15}}\n\n",
+                        "data: [DONE]\n\n",
+                    )
+                },
+            ),
+        )
+        .with_state(sender);
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base_url = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move { axum::serve(listener, provider).await.unwrap() });
+    std::env::set_var("QUILLAI_AI_API_KEY", "test-key");
+    std::env::set_var("QUILLAI_AI_MODEL", "test-model");
+    std::env::set_var("QUILLAI_AI_BASE_URL", &base_url);
+
+    let app = quillai_api::app(test_pool().await);
+    let response = app
+        .oneshot(json_request(
+            "POST",
+            "/ai/generate",
+            json!({
+                "action": "generate",
+                "document": document_slice("Opening line."),
+                "selection": null,
+                "storyContext": null,
+                "instruction": "continue"
+            }),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let lines: Vec<serde_json::Value> = response_body(response)
+        .await
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(
+        lines,
+        vec![
+            json!({"type":"delta","delta":{"ops":[{"insert":"Hello"}]}}),
+            json!({"type":"usage","promptTokens":11,"completionTokens":4}),
+            json!({"type":"done","finishReason":"stop"}),
+        ]
+    );
+    let request = receiver.recv().await.unwrap();
+    assert_eq!(request["stream_options"], json!({"include_usage": true}));
+
+    server.abort();
+    std::env::remove_var("QUILLAI_AI_API_KEY");
+    std::env::remove_var("QUILLAI_AI_MODEL");
+    std::env::remove_var("QUILLAI_AI_BASE_URL");
+}
+
+#[tokio::test]
 async fn edit_without_selection_returns_pre_stream_json_error() {
     let pool = test_pool().await;
     let app = quillai_api::app(pool);

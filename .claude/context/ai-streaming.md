@@ -90,17 +90,23 @@ The browser-facing response is `application/x-ndjson` with one event per line:
 
 ```json
 {"type":"delta","delta":{"ops":[{"insert":"New text"}]}}
-{"type":"done"}
+{"type":"usage","promptTokens":12,"completionTokens":34}
+{"type":"done","finishReason":"stop"}
 ```
 
 Supported event types:
 
 - `delta`
+- `usage`
 - `done`
 - `error`
 - `cancelled`
 
-The current provider implementation emits `delta`, `done`, and `error`. Browser cancellation is handled locally by aborting the request.
+`usage` carries non-negative integer `promptTokens` and `completionTokens`. The provider asks upstream for `stream_options: {"include_usage": true}` and emits `usage` only when the final usage chunk includes both `prompt_tokens` and `completion_tokens`. `total_tokens` is not forwarded. A missing, null, or incomplete usage object emits no `usage` event; the stream still ends with `done` or `error`. An earlier `finish_reason` is kept and written on `done` after usage is read. `[DONE]` or the end of the upstream body completes the response.
+
+The browser parser in `app/src/md_editor/ai_stream.ts` accepts `usage`. The editor does not display token counts. Its apply loop still treats any event other than `delta` or `error` as the end of the run, so a `usage` line stops it before `done` and the thread keeps `finishReason` `unknown`.
+
+The current provider implementation emits `delta`, `usage` when present, `done`, and `error`. Browser cancellation is handled locally by aborting the request.
 
 ## Local CORS Constraint
 

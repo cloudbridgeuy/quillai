@@ -1,5 +1,13 @@
 import type { AiStreamEvent, DeltaAttributes, DeltaDocument, DeltaInsert, DeltaOperation } from "./ai_contract";
 
+export type AiStreamUsageEvent = {
+  type: "usage";
+  promptTokens: number;
+  completionTokens: number;
+};
+
+type ParsedAiStreamEvent = AiStreamEvent | AiStreamUsageEvent;
+
 export type AiStreamParseError = {
   code: "invalid_json" | "invalid_event";
   message: string;
@@ -8,13 +16,13 @@ export type AiStreamParseError = {
 
 export type ParseAiStreamChunkSuccess = {
   ok: true;
-  events: AiStreamEvent[];
+  events: ParsedAiStreamEvent[];
   remainder: string;
 };
 
 export type ParseAiStreamChunkFailure = {
   ok: false;
-  events: AiStreamEvent[];
+  events: ParsedAiStreamEvent[];
   remainder: string;
   error: AiStreamParseError;
 };
@@ -30,7 +38,7 @@ export function parseAiStreamChunk(
   const combined = `${remainder}${chunk}`;
   const lines = combined.split("\n");
   const nextRemainder = lines.pop() ?? "";
-  const events: AiStreamEvent[] = [];
+  const events: ParsedAiStreamEvent[] = [];
 
   for (const rawLine of lines) {
     const parsedLine = parseLine(rawLine);
@@ -142,7 +150,7 @@ function parseLine(
 function toAiStreamEvent(
   value: unknown,
   line: string,
-): { ok: true; event: AiStreamEvent } | { ok: false; error: AiStreamParseError } {
+): { ok: true; event: ParsedAiStreamEvent } | { ok: false; error: AiStreamParseError } {
   if (!value || typeof value !== "object") {
     return invalidEvent("stream event must be an object", line);
   }
@@ -160,6 +168,19 @@ function toAiStreamEvent(
       }
 
       return { ok: true, event: { type: "delta", delta } };
+    }
+
+    case "usage": {
+      const promptTokens = (value as { promptTokens?: unknown }).promptTokens;
+      const completionTokens = (value as { completionTokens?: unknown }).completionTokens;
+      if (!isNonNegativeInteger(promptTokens) || !isNonNegativeInteger(completionTokens)) {
+        return invalidEvent(
+          "usage event must contain integer promptTokens and completionTokens",
+          line,
+        );
+      }
+
+      return { ok: true, event: { type: "usage", promptTokens, completionTokens } };
     }
 
     case "done": {
@@ -255,6 +276,10 @@ function isDeltaAttributes(value: unknown): value is DeltaAttributes {
       typeof attribute === "number" ||
       typeof attribute === "boolean",
   );
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
 function isPositiveInteger(value: unknown): value is number {

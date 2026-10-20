@@ -69,6 +69,21 @@ test("parseAiStreamChunk returns a typed parse failure for unsupported events", 
   expect(error.message).toContain("unsupported stream event type");
 });
 
+test("parseAiStreamChunk parses a usage event before done", () => {
+  const result = parseAiStreamChunk(
+    '{"type":"usage","promptTokens":11,"completionTokens":4}\n{"type":"done","finishReason":"stop"}\n',
+  );
+
+  expect(result).toEqual({
+    ok: true,
+    events: [
+      { type: "usage", promptTokens: 11, completionTokens: 4 },
+      { type: "done", finishReason: "stop" },
+    ],
+    remainder: "",
+  });
+});
+
 test("parseAiStreamChunk parses done error and cancelled variants", () => {
   const result = parseAiStreamChunk(
     '{"type":"done"}\n{"type":"error","error":"boom"}\n{"type":"cancelled"}\n',

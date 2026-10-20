@@ -100,6 +100,7 @@ impl AiProvider for OpenAiCompatibleProvider {
             let mut upstream = response.bytes_stream();
             let mut utf8_remainder = Vec::new();
             let mut sse_remainder = String::new();
+            let mut assembler = UpstreamAssembler::new();
 
             while let Some(next_chunk) = upstream.next().await {
                 let chunk = match next_chunk {
@@ -126,14 +127,12 @@ impl AiProvider for OpenAiCompatibleProvider {
                 let parsed = parse_sse_chunk(&sse_remainder, &text);
                 sse_remainder = parsed.remainder;
 
-                for payload in parsed.payloads {
-                    if let Some((event, should_stop)) = stream_event_from_payload(parse_stream_payload(&payload)) {
-                        yield event;
-
-                        if should_stop {
-                            return;
-                        }
-                    }
+                let (events, stop) = consume_payloads(&mut assembler, &parsed.payloads);
+                for event in events {
+                    yield event;
+                }
+                if stop {
+                    return;
                 }
             }
 
@@ -144,14 +143,20 @@ impl AiProvider for OpenAiCompatibleProvider {
                 return;
             }
 
-            for payload in finalize_sse_remainder(&sse_remainder).payloads {
-                if let Some((event, should_stop)) = stream_event_from_payload(parse_stream_payload(&payload)) {
-                    yield event;
+            let finalized = finalize_sse_remainder(&sse_remainder);
+            let (events, stop) = consume_payloads(&mut assembler, &finalized.payloads);
+            for event in events {
+                yield event;
+            }
+            if stop {
+                return;
+            }
 
-                    if should_stop {
-                        return;
-                    }
+            if let Some(events) = assembler.end_of_stream() {
+                for event in events {
+                    yield event;
                 }
+                return;
             }
 
             yield StreamEvent::Error {
@@ -162,9 +167,15 @@ impl AiProvider for OpenAiCompatibleProvider {
 }
 
 #[derive(Debug, Serialize)]
+struct StreamOptions {
+    include_usage: bool,
+}
+
+#[derive(Debug, Serialize)]
 struct ChatCompletionRequest {
     model: String,
     stream: bool,
+    stream_options: StreamOptions,
     max_tokens: usize,
     messages: Vec<ChatMessage>,
 }
@@ -175,6 +186,9 @@ impl ChatCompletionRequest {
         Self {
             model,
             stream: true,
+            stream_options: StreamOptions {
+                include_usage: true,
+            },
             max_tokens: input.max_output_tokens,
             messages: chat_messages(input, current_turn),
         }
@@ -236,12 +250,93 @@ struct ParsedSseChunk {
     remainder: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TokenUsage {
+    prompt_tokens: u64,
+    completion_tokens: u64,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum StreamPayload {
     Text(String),
+    Usage(TokenUsage),
+    Finish(FinishReason),
     Done(FinishReason),
     Skip,
     Error(String),
+}
+
+struct UpstreamAssembler {
+    pending_finish: Option<FinishReason>,
+    pending_usage: Option<TokenUsage>,
+}
+
+impl UpstreamAssembler {
+    fn new() -> Self {
+        Self {
+            pending_finish: None,
+            pending_usage: None,
+        }
+    }
+
+    fn push(&mut self, payload: StreamPayload) -> (Vec<StreamEvent>, bool) {
+        match payload {
+            StreamPayload::Text(text) => (
+                vec![StreamEvent::Delta {
+                    delta: into_delta(&TaggedText::generated(&text)),
+                }],
+                false,
+            ),
+            StreamPayload::Usage(usage) => {
+                self.pending_usage = Some(usage);
+                (Vec::new(), false)
+            }
+            StreamPayload::Finish(reason) => {
+                self.pending_finish = Some(reason);
+                (Vec::new(), false)
+            }
+            StreamPayload::Done(reason) => (self.completion(reason), true),
+            StreamPayload::Skip => (Vec::new(), false),
+            StreamPayload::Error(error) => (vec![StreamEvent::Error { error }], true),
+        }
+    }
+
+    fn end_of_stream(&mut self) -> Option<Vec<StreamEvent>> {
+        let finish = self.pending_finish.take()?;
+        Some(self.completion(finish))
+    }
+
+    fn completion(&mut self, fallback: FinishReason) -> Vec<StreamEvent> {
+        let finish = self.pending_finish.take().unwrap_or(fallback);
+        let mut events = Vec::new();
+        if let Some(usage) = self.pending_usage.take() {
+            events.push(StreamEvent::Usage {
+                prompt_tokens: usage.prompt_tokens,
+                completion_tokens: usage.completion_tokens,
+            });
+        }
+        events.push(StreamEvent::Done {
+            finish_reason: finish,
+        });
+        events
+    }
+}
+
+fn consume_payloads(
+    assembler: &mut UpstreamAssembler,
+    payloads: &[String],
+) -> (Vec<StreamEvent>, bool) {
+    let mut events = Vec::new();
+    for payload in payloads {
+        for item in parse_stream_payload(payload) {
+            let (next, stop) = assembler.push(item);
+            events.extend(next);
+            if stop {
+                return (events, true);
+            }
+        }
+    }
+    (events, false)
 }
 
 fn read_required_env(name: &str) -> Result<String, Error> {
@@ -319,45 +414,57 @@ fn parse_sse_event(event: &str) -> Option<String> {
     }
 }
 
-fn parse_stream_payload(payload: &str) -> StreamPayload {
+fn parse_stream_payload(payload: &str) -> Vec<StreamPayload> {
     if payload == "[DONE]" {
-        return StreamPayload::Done(FinishReason::Unknown);
+        return vec![StreamPayload::Done(FinishReason::Unknown)];
     }
 
     let value: Value = match serde_json::from_str(payload) {
         Ok(value) => value,
         Err(err) => {
-            return StreamPayload::Error(format!(
+            return vec![StreamPayload::Error(format!(
                 "AI provider returned an invalid stream payload: {err}"
-            ));
+            ))];
         }
     };
 
     if let Some(error) = extract_provider_error(&value) {
-        return StreamPayload::Error(error);
+        return vec![StreamPayload::Error(error)];
     }
 
-    match extract_chunk_text(&value) {
-        Some(text) if !text.is_empty() => StreamPayload::Text(text),
-        Some(_) => StreamPayload::Skip,
-        None => extract_finish_reason(&value)
-            .map(StreamPayload::Done)
-            .unwrap_or(StreamPayload::Skip),
+    let mut events = Vec::new();
+    if let Some(text) = extract_chunk_text(&value).filter(|text| !text.is_empty()) {
+        events.push(StreamPayload::Text(text));
     }
+    if let Some(usage) = extract_usage(&value) {
+        events.push(StreamPayload::Usage(usage));
+    }
+    if let Some(reason) = extract_finish_reason(&value) {
+        events.push(StreamPayload::Finish(reason));
+    }
+    if events.is_empty() {
+        events.push(StreamPayload::Skip);
+    }
+    events
 }
 
-fn stream_event_from_payload(payload: StreamPayload) -> Option<(StreamEvent, bool)> {
-    match payload {
-        StreamPayload::Text(text) => Some((
-            StreamEvent::Delta {
-                delta: into_delta(&TaggedText::generated(&text)),
-            },
-            false,
-        )),
-        StreamPayload::Done(finish_reason) => Some((StreamEvent::Done { finish_reason }, true)),
-        StreamPayload::Skip => None,
-        StreamPayload::Error(error) => Some((StreamEvent::Error { error }, true)),
+fn extract_usage(value: &Value) -> Option<TokenUsage> {
+    let usage = value.get("usage")?;
+    if usage.is_null() {
+        return None;
     }
+    let prompt_tokens = json_u64(usage.get("prompt_tokens")?)?;
+    let completion_tokens = json_u64(usage.get("completion_tokens")?)?;
+    Some(TokenUsage {
+        prompt_tokens,
+        completion_tokens,
+    })
+}
+
+fn json_u64(value: &Value) -> Option<u64> {
+    value
+        .as_u64()
+        .or_else(|| value.as_i64().and_then(|count| u64::try_from(count).ok()))
 }
 
 fn extract_provider_error(value: &Value) -> Option<String> {
@@ -476,7 +583,7 @@ mod tests {
     fn parse_stream_payload_extracts_text() {
         assert_eq!(
             parse_stream_payload("{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}"),
-            StreamPayload::Text("Hello".into())
+            vec![StreamPayload::Text("Hello".into())]
         );
     }
 
@@ -484,15 +591,113 @@ mod tests {
     fn parse_stream_payload_extracts_finish_reason() {
         assert_eq!(
             parse_stream_payload("{\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}"),
-            StreamPayload::Done(FinishReason::Length)
+            vec![StreamPayload::Finish(FinishReason::Length)]
         );
+    }
+
+    #[test]
+    fn parse_stream_payload_extracts_final_usage_chunk() {
+        assert_eq!(
+            parse_stream_payload(
+                "{\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4,\"total_tokens\":15}}"
+            ),
+            vec![StreamPayload::Usage(TokenUsage {
+                prompt_tokens: 11,
+                completion_tokens: 4,
+            })]
+        );
+    }
+
+    #[test]
+    fn parse_stream_payload_ignores_absent_or_incomplete_usage() {
+        assert_eq!(
+            parse_stream_payload(
+                "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":null}"
+            ),
+            vec![StreamPayload::Finish(FinishReason::Stop)]
+        );
+        assert_eq!(
+            parse_stream_payload("{\"choices\":[],\"usage\":{\"prompt_tokens\":\"11\"}}"),
+            vec![StreamPayload::Skip]
+        );
+    }
+
+    #[test]
+    fn assembler_emits_usage_before_done_and_omits_it_when_absent() {
+        let with_usage = collect_upstream(&[
+            "{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
+            "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}",
+            "{\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4,\"total_tokens\":15}}",
+            "[DONE]",
+        ]);
+        assert_eq!(event_types(&with_usage), vec!["delta", "usage", "done"]);
+        assert_eq!(
+            serde_json::to_value(&with_usage[1]).unwrap()["promptTokens"],
+            11
+        );
+        assert_eq!(
+            serde_json::to_value(&with_usage[1]).unwrap()["completionTokens"],
+            4
+        );
+        assert_eq!(
+            serde_json::to_value(&with_usage[2]).unwrap()["finishReason"],
+            "stop"
+        );
+
+        let without_usage = collect_upstream(&[
+            "{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
+            "{\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}",
+            "[DONE]",
+        ]);
+        assert_eq!(event_types(&without_usage), vec!["delta", "done"]);
+        assert_eq!(
+            serde_json::to_value(&without_usage[1]).unwrap()["finishReason"],
+            "length"
+        );
+    }
+
+    #[test]
+    fn assembler_flushes_buffered_usage_when_the_stream_ends_without_done_marker() {
+        let events = collect_upstream(&[
+            "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}",
+            "{\"choices\":[],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":3}}",
+        ]);
+        assert_eq!(event_types(&events), vec!["usage", "done"]);
+    }
+
+    fn collect_upstream(payloads: &[&str]) -> Vec<StreamEvent> {
+        let mut assembler = UpstreamAssembler::new();
+        let owned = payloads
+            .iter()
+            .map(|payload| (*payload).to_string())
+            .collect::<Vec<_>>();
+        let (mut events, stop) = consume_payloads(&mut assembler, &owned);
+        if !stop {
+            if let Some(rest) = assembler.end_of_stream() {
+                events.extend(rest);
+            }
+        }
+        events
+    }
+
+    fn event_types(events: &[StreamEvent]) -> Vec<&'static str> {
+        events
+            .iter()
+            .map(|event| match event {
+                StreamEvent::Delta { .. } => "delta",
+                StreamEvent::Usage { .. } => "usage",
+                StreamEvent::Done { .. } => "done",
+                StreamEvent::Error { .. } => "error",
+                StreamEvent::Cancelled => "cancelled",
+            })
+            .collect()
     }
 
     #[test]
     fn parse_stream_payload_recognizes_done_marker() {
         assert_eq!(
             parse_stream_payload("[DONE]"),
-            StreamPayload::Done(FinishReason::Unknown)
+            vec![StreamPayload::Done(FinishReason::Unknown)]
         );
     }
 
@@ -500,7 +705,7 @@ mod tests {
     fn parse_stream_payload_surfaces_provider_errors() {
         assert_eq!(
             parse_stream_payload("{\"error\":{\"message\":\"bad key\"}}"),
-            StreamPayload::Error("bad key".into())
+            vec![StreamPayload::Error("bad key".into())]
         );
     }
 
@@ -548,6 +753,7 @@ mod tests {
 
         assert_eq!(body["model"], "model-a");
         assert_eq!(body["stream"], true);
+        assert_eq!(body["stream_options"]["include_usage"], true);
         assert_eq!(body["max_tokens"], 777);
         assert_eq!(body["messages"][1]["role"], "user");
         assert_eq!(body["messages"][1]["content"], "previous prompt");
