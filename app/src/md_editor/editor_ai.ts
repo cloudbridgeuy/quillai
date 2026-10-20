@@ -10,10 +10,8 @@ export function continueClickAction(state: AiRunState): "stop" | "generate" {
 export function getSavePresentation(status: string, title: string | null, blocked: boolean) {
   const prefix = `${title} · `;
   const label = title !== null && status.startsWith(prefix) ? status.slice(prefix.length) : status;
-  return {
-    label,
-    failed: blocked || /stopped|failed|unavailable|interrupted|retained|export/i.test(label),
-  };
+  const failed = blocked || /stopped|failed|unavailable|interrupted|retained|export/i.test(label);
+  return failed ? { label: "Not saved", failed, detail: label } : { label, failed };
 }
 
 export function canApplyEdit(busy: boolean, hasSelection: boolean, ready: boolean, blocked: boolean): boolean {

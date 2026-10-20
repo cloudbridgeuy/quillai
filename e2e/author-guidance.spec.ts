@@ -325,7 +325,13 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   });
   await editor.click();
   await page.keyboard.type("Local work");
-  await expect(status).toContainText("Save stopped");
+  const failureDetail = "Save stopped: Save unavailable. Export local work before reload. Do not retry an uncertain submission.";
+  await expect(status.locator("span").first()).toHaveText("Not saved");
+  await expect(status).toHaveAttribute("title", failureDetail);
+  await expect(status).toHaveAccessibleDescription(failureDetail);
+  await expect(status.locator("#chapter-save-detail")).toHaveText(failureDetail);
+  await expect(status.locator("#chapter-save-detail")).toHaveCSS("position", "absolute");
+  await expect(status.locator("#chapter-save-detail")).toHaveCSS("width", "1px");
   await expect(status).toHaveClass(/editor-save-failed/);
   await expect(status).toHaveAttribute("aria-live", "assertive");
   await expect(status).toHaveCSS("background-color", "rgb(180, 65, 47)");

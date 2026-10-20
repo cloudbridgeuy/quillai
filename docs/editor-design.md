@@ -120,7 +120,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
-- Failed save: clearly visible red label with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The full failure/recovery message stays visible and is announced assertively. Existing uncertain-submission failures stop saving; the UI must not promise automatic retry. Export remains in the left drawer.
+- Failed save or recovery failure: a floating "Not saved" pill with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively. Existing uncertain-submission failures stop saving; the UI must not promise automatic retry. Export remains in the left drawer.
 
 ## Shortcuts (prototype)
 

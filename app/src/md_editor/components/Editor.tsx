@@ -1159,7 +1159,13 @@ export const Container = () => {
           </div> : null}
         </div>
         <p className={`editor-save-status${savePresentation.failed ? " editor-save-failed" : ""}`}
-          role="status" aria-label="Chapter save status" aria-live={savePresentation.failed ? "assertive" : "polite"}>{savePresentation.label}</p>
+          role="status" aria-label="Chapter save status" aria-live={savePresentation.failed ? "assertive" : "polite"}
+          title={savePresentation.detail} aria-describedby={savePresentation.failed ? "chapter-save-detail" : undefined}>
+          <span>{savePresentation.label}</span>
+          {savePresentation.failed ? <span id="chapter-save-detail" style={{
+            position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap",
+          }}>{savePresentation.detail}</span> : null}
+        </p>
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
