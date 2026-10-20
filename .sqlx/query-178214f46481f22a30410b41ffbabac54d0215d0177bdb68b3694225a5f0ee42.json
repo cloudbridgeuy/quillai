@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, series_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level FROM lore_entries WHERE series_id = ? AND id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "series_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "keywords: SqlJson<Vec<String>>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "aliases: SqlJson<Vec<String>>",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "pinned: bool",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "level",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "178214f46481f22a30410b41ffbabac54d0215d0177bdb68b3694225a5f0ee42"
+}

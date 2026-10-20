@@ -51,6 +51,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `settings/` | Singleton author guidance models, UTF-8 byte validation, GET/PUT handlers, and shared server-side AI loading. |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
+| `manuscripts/lore/` | Series-scoped author lore CRUD, field validation, JSON-array storage, and boolean pin mapping; HTTP coverage in `crates/api/tests/lore_test.rs` |
 | `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
 
 ### Rust — Logging (`crates/log/src/`)
@@ -105,7 +106,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `api_tester/components/APITester.tsx` | HTTP method selector + URL input + loading state + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
 | `api_tester/components/__tests__/APITester.test.ts` | Unit tests for `buttonLabel()` pure function |
 
-Lore HTTP loading/UI belongs to GUZ-669. Until then, the editor accepts a caller-supplied `loreEntries` list, defaulting to no lore; no browser/global storage source is added. Lore stays derived/read-only so request-local text overrides cannot remove its non-reveal marker. See [lore prompt contract](.claude/context/ai-streaming.md#injected-lore).
+Series-scoped author lore HTTP CRUD routes exist; frontend lore loading/UI is not built. The editor accepts a caller-supplied `loreEntries` list, defaulting to no lore; no browser/global storage source is added. Lore stays derived/read-only so request-local text overrides cannot remove its non-reveal marker. Hidden notes remain author data, not AI context. See [lore prompt contract](.claude/context/ai-streaming.md#injected-lore).
 
 ### Database
 
@@ -149,6 +150,11 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `GET /series/{id}/books/{book_id}` — Get book scoped to series (JSON or 404)
 - `PUT /series/{id}/books/{book_id}` — Partial update title and/or position, scoped to series (JSON, 404, or 422); omitted/null fields stay unchanged
 - `DELETE /series/{id}/books/{book_id}` — Delete book scoped to series and cascade chapters (204 or 404)
+- `GET /series/{id}/lore` — List author lore ordered by name, then ID, including hidden notes (200 JSON array or 404 for missing series)
+- `POST /series/{id}/lore` — Create lore with required kind (character/place/term/note) and nonblank name; optional fields retain migration defaults (201 + JSON, 404, or standard JSON 422 for invalid fields/types). Keywords/aliases are arrays of nonblank strings; pinned is boolean; level is include/known_dont_reveal/leave_out
+- `GET /series/{id}/lore/{lore_id}` — Get author lore scoped to series, including hidden notes (200 JSON or 404)
+- `PUT /series/{id}/lore/{lore_id}` — Partial lore update scoped to series (200 JSON, 404, or standard JSON 422); omitted/null fields unchanged, including pinned=false as an explicit update
+- `DELETE /series/{id}/lore/{lore_id}` — Delete lore scoped to series (204 or 404)
 - `GET /series/{id}/books/{book_id}/chapters` — List chapters ordered by position, then ID; default returns only id, title, position, kind, head_rev without reading content or revisions. `?content=true` returns full chapters with book_id and rebuilt head content; any other supplied content value, including false or empty, returns 422 (JSON array, 404, or 422)
 - `POST /series/{id}/books/{book_id}/chapters` — Create chapter with title, position, kind (chapter/prologue/epilogue), and optional Delta content; snapshot at revision zero (201 + JSON, 404, or 422). Delta input requires an object with an ops array and valid operations; omitted content defaults to an empty Delta
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}` — Get chapter rebuilt head content and head_rev, scoped to book and series (JSON or 404)
