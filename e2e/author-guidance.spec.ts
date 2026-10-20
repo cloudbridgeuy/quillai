@@ -291,6 +291,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   await expect(page.locator("#context-drawer")).toBeHidden();
   await page.locator(".editor-chapter-title").click();
   await expect(settings).toBeHidden();
+  const savedSheetTops = new Map<number, number>();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -298,6 +299,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     const sheet = await page.locator(".editor-page").boundingBox();
     const label = await status.boundingBox();
     if (!sheet || !label) throw new Error("Missing sheet or status");
+    savedSheetTops.set(width, sheet.y);
     expect(label.y + label.height).toBeLessThan(sheet.y);
     expect(Math.abs(label.x + label.width / 2 - sheet.x - sheet.width / 2)).toBeLessThan(1);
     await page.screenshot({ path: `../target/guz-758/saved-${width}.png` });
@@ -334,7 +336,13 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     const sheet = await page.locator(".editor-page").boundingBox();
     const pill = await status.boundingBox();
     if (!sheet || !pill) throw new Error("Missing sheet or failure pill");
+    const savedTop = savedSheetTops.get(width);
+    if (savedTop === undefined) throw new Error("Missing saved sheet top");
+    expect(Math.abs(sheet.y - savedTop)).toBeLessThanOrEqual(1);
+    console.log(JSON.stringify({ width, savedSheetTop: savedTop, failedSheetTop: sheet.y }));
     expect(pill.y + pill.height).toBeLessThan(sheet.y);
+    expect(pill.x).toBeGreaterThanOrEqual(56);
+    expect(pill.x + pill.width).toBeLessThanOrEqual(width - 56);
     await page.screenshot({ path: `../target/guz-758/failed-${width}.png` });
   }
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();

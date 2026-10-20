@@ -894,8 +894,14 @@ button {
   }
 
   .editor-topbar .editor-save-failed {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    position: absolute;
+    grid-column: auto;
+    grid-row: auto;
+    top: 0;
+    left: 50%;
+    width: max-content;
+    max-width: 100%;
+    transform: translateX(-50%);
   }
 
   .editor-run-status {
