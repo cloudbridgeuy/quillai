@@ -114,6 +114,8 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 
 `migrations/20261019000002_author_guidance.up.sql` adds a singleton `author_guidance` table (id constrained to 1, text capped at 65,536 UTF-8 bytes). Missing row and empty text both mean no guidance. PUT upserts the one row; the down migration drops only this table.
 
+`migrations/20261020000000_lore_entries.up.sql` adds series-scoped `lore_entries` with cascading deletion and a series index: kind (`character`, `place`, `term`, `note`), nonblank name, keywords/aliases as JSON-array text (default `[]`), visible text and hidden notes (default empty), pinned (0/1, default 0), and AI-request level (`include`, `known_dont_reveal`, `leave_out`, default `include`). The down migration drops only `lore_entries`; `crates/api/tests/lore_schema_test.rs` covers storage, defaults, constraints, cascades, and rollback/reapply.
+
 ## Tech Stack
 
 | Layer | Technology |
