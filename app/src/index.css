@@ -596,26 +596,49 @@ button {
 
   .editor-shell {
     width: 100%;
-    padding: 2rem 0 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-    align-items: start;
-    gap: 1rem;
+    padding: 0;
+    display: flow-root;
   }
 
   .editor-topbar {
-    grid-column: 1 / -1;
-    width: min(1068px, calc(100% - 2rem));
-    margin: 0 auto;
+    position: absolute;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(760px, calc(100vw - 400px));
+  }
+
+  .editor-controls-panel,
+  .editor-context-inspector {
+    position: fixed;
+    top: 1rem;
+    bottom: 1rem;
+    width: 184px;
+    max-height: none;
+    overflow: auto;
+    overflow-wrap: anywhere;
   }
 
   .editor-controls-panel {
-    width: min(648px, calc(100% - 1rem));
-    justify-self: end;
+    left: 8px;
+  }
+
+  .editor-controls-panel > *,
+  .editor-context-inspector > * {
+    flex-shrink: 0;
   }
 
   .editor-controls-grid {
-    grid-template-columns: minmax(0, 1fr) 120px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-thread-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .editor-actions .editor-button {
+    width: 100%;
   }
 
   .editor-workspace {
@@ -623,13 +646,10 @@ button {
   }
 
   .editor-context-inspector {
-    grid-column: 2;
-    grid-row: 2;
-    width: min(404px, calc(100% - 1rem));
+    right: 8px;
   }
 
   .editor-page {
-    grid-column: 1 / -1;
     width: min(760px, calc(100vw - 400px));
     margin: 50vh auto 0;
     min-height: 100vh;
