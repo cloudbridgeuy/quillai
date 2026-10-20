@@ -41,6 +41,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 | Body (sheet) | Georgia, Iowan Old Style, Palatino; 21px / 1.75 |
 | Chapter title | sans 600 13px, 0.22em tracking, uppercase, `--slate`, centered |
 | UI | system sans (-apple-system, Segoe UI, Helvetica) |
+| Desktop app label (QuillAI) | sans 500 16px / 1.5, muted `--graphite`; chapter title remains the sheet heading |
 | Panel/popover headings | sans 600 12px, 0.2em tracking, uppercase, `--slate` |
 | Inspector text | mono 12px / 1.6, `--graphite` |
 
@@ -68,6 +69,7 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - Left rail (56px): navigation (manuscript tree panel, 300px, opens at `left: 56px`).
 - Right rail (56px): Continue, Edit selection, Context inspector, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
 - Rails are muted: opacity .35, .95 on hover/focus-within; buttons 36px, radius 10px, `--graphite`.
+- At 1100px and wider, both rails have zero top padding; their first button starts at the viewport top, aligned with the drawer top edge.
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.

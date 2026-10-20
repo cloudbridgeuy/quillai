@@ -796,6 +796,17 @@ button {
     width: min(760px, calc(100vw - 400px));
   }
 
+  .editor-topbar h1 {
+    color: var(--graphite);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .editor-rail {
+    padding-top: 0;
+  }
+
   .editor-drawer {
     position: fixed;
     z-index: 8;
