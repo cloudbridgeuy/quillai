@@ -585,6 +585,92 @@ button {
   grid-column: 1 / -1;
 }
 
+@media (min-width: 1100px) {
+  html {
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  .editor-shell {
+    width: 100%;
+    padding: 2rem 0 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  .editor-topbar {
+    grid-column: 1 / -1;
+    width: min(1068px, calc(100% - 2rem));
+    margin: 0 auto;
+  }
+
+  .editor-controls-panel {
+    width: min(648px, calc(100% - 1rem));
+    justify-self: end;
+  }
+
+  .editor-controls-grid {
+    grid-template-columns: minmax(0, 1fr) 120px;
+  }
+
+  .editor-workspace {
+    display: contents;
+  }
+
+  .editor-context-inspector {
+    grid-column: 2;
+    grid-row: 2;
+    width: min(404px, calc(100% - 1rem));
+  }
+
+  .editor-page {
+    grid-column: 1 / -1;
+    width: min(760px, calc(100vw - 400px));
+    margin: 50vh auto 0;
+    min-height: 100vh;
+    padding: 72px 84px 0;
+    border: var(--sheet-edge);
+    border-bottom: 0;
+    border-radius: 2px 2px 0 0;
+    background: var(--paper);
+    box-shadow: var(--sheet-shadow);
+    clip-path: inset(-40px -40px 0);
+  }
+
+  .editor-canvas {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .editor-host .ql-container.ql-snow {
+    height: auto;
+    min-height: 0;
+  }
+
+  .editor-host .ql-editor {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 0 0 calc(50vh - 14px);
+  }
+
+  .editor-host .ql-editor p {
+    margin: 0 0 1em;
+  }
+
+  .editor-host .ql-toolbar.ql-snow {
+    margin-bottom: 1em;
+    padding: 0 0 8px;
+  }
+}
+
 @media (max-width: 800px) {
   .editor-workspace {
     grid-template-columns: 1fr;
