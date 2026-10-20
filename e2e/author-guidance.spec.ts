@@ -325,7 +325,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   });
   await editor.click();
   await page.keyboard.type("Local work");
-  const failureDetail = "Save stopped: Save unavailable. Export local work before reload. Do not retry an uncertain submission.";
+  const failureDetail = "Save stopped: Save unavailable. Local work retained; polling will retry.";
   await expect(status.locator("span").first()).toHaveText("Not saved");
   await expect(status).toHaveAttribute("title", failureDetail);
   await expect(status).toHaveAccessibleDescription(failureDetail);
@@ -355,5 +355,5 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "Export local chapter", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("chapter-local.json");
-  expect(saveAttempts).toBe(1);
+  expect(saveAttempts).toBeGreaterThanOrEqual(1);
 });

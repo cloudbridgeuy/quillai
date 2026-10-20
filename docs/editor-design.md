@@ -124,7 +124,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
-- Failed save or recovery failure: a floating "Not saved" pill with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively. Existing uncertain-submission failures stop saving; the UI must not promise automatic retry. Export remains in the left drawer.
+- Failed save or recovery failure: a floating "Not saved" pill with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
 
 ## Shortcuts (prototype)
 
@@ -155,7 +155,7 @@ The same spec checks visual-only name/alias/keyword underlines, hover cards with
 
 Run with `cargo xtask e2e`. Existing `e2e/continue-stream.spec.ts` covers concurrent typing before and inside AI text, caret and selection preservation, Stop and server-error rollback that retains author inserts, server cancellation, completion tint fade, persisted tint preference, saved-selection deletion/replacement transforms, and the narrow-screen locking boundary. Existing `e2e/author-guidance.spec.ts` covers Settings persistence and idle dismissal, forced-503 save failure, accessible recovery details, export, and failure-pill geometry without sheet movement or prose overlap at 1100px and 1440px.
 
-`e2e/desktop-edge-cases.spec.ts` adds Escape and outside-click Settings dismissal during Continue, disabled window controls, live tint changes, continued streaming and author typing after dismissal, plus transport disconnection and premature EOF after author typing inside AI text. Each case runs at 1100px and 1440px and checks saved text after reload. Failed submissions intentionally block later saves; no automatic retry or pill-clearing promise is tested. Recentering remains outside this coverage.
+`e2e/desktop-edge-cases.spec.ts` adds Escape and outside-click Settings dismissal during Continue, disabled window controls, live tint changes, continued streaming and author typing after dismissal, plus transport disconnection and premature EOF after author typing inside AI text. Each case runs at 1100px and 1440px and checks saved text after reload. Recentering remains outside this coverage. `e2e/save-recovery.spec.ts` forces a chapter delta POST failure, waits for the red Not saved pill, releases the route, and checks a later poll saves text typed before and during the failure.
 
 ## Known gaps
 

@@ -29,20 +29,77 @@ test("serializes polling and posting while retaining edits made during the reque
   expect(gets).toBe(1);
 });
 
-test("lost POST response blocks retry and retains flight plus new pending for export", async () => {
+test("failed POST recovers on the next tick when history does not contain it", async () => {
   let posts = 0;
+  const stored: Revision[] = [];
   let error: string | null = null;
   const session = createChapterSession({
-    postDelta: async () => { posts++; throw new TypeError("offline"); },
-    getDeltas: async () => [],
+    postDelta: async (_scope, input) => {
+      posts++;
+      if (posts === 1) throw new Error("Save unavailable");
+      const revision = { rev: stored.length + 1, delta: input.delta };
+      stored.push(revision);
+      return revision;
+    },
+    getDeltas: async (_scope, since) => stored.filter((revision) => revision.rev > since),
+  }, scope, chapter, (_document, _dirty, problem) => { error = problem?.message ?? null; });
+  session.edit(new Delta().insert("Atext\n"));
+  await session.tick();
+  expect(posts).toBe(1);
+  expect(error).toContain("Save stopped");
+  expect(error).toContain("polling will retry");
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  await session.tick();
+  expect(posts).toBe(2);
+  expect(stored).toEqual([{ rev: 1, delta: { ops: [{ insert: "A" }] } }]);
+  expect(error).toBeNull();
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  expect(session.canStartAi()).toBe(true);
+});
+
+test("lost POST response acknowledges the applied revision and does not resend", async () => {
+  let posts = 0;
+  let submitted: Revision["delta"] | null = null;
+  let error: string | null = "unset";
+  const session = createChapterSession({
+    postDelta: async (_scope, input) => {
+      posts++;
+      submitted = input.delta;
+      throw new TypeError("offline");
+    },
+    getDeltas: async () => submitted === null ? [] : [{ rev: 1, delta: submitted }],
   }, scope, chapter, (_document, _dirty, problem) => { error = problem?.message ?? null; });
   session.edit(new Delta().insert("Atext\n"));
   await session.tick();
   await session.tick();
   expect(posts).toBe(1);
-  expect(error).toContain("Do not retry");
+  expect(error).toBeNull();
   expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
-  expect(session.canStartAi()).toBe(false);
+  expect(session.canStartAi()).toBe(true);
+});
+
+test("lost POST response acknowledges a server-transformed revision without resending", async () => {
+  let posts = 0;
+  let submitted: Revision["delta"] | null = null;
+  const remote = new Delta().insert("R");
+  const session = createChapterSession({
+    postDelta: async (_scope, input) => {
+      posts++;
+      submitted = input.delta;
+      throw new TypeError("offline");
+    },
+    getDeltas: async () => {
+      if (submitted === null) return [];
+      const stored = remote.transform(new Delta(submitted.ops), true);
+      return [{ rev: 1, delta: parseDelta(remote) }, { rev: 2, delta: parseDelta(stored) }];
+    },
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Ltext\n"));
+  await session.tick();
+  await session.tick();
+  expect(posts).toBe(1);
+  expect(session.document().ops).toEqual([{ insert: "RLtext\n" }]);
+  expect(session.canStartAi()).toBe(true);
 });
 
 test("GET network failure after POST retries only history, not the submission", async () => {
@@ -218,16 +275,17 @@ test("flush awaits the active save and then saves edits queued during that reque
   expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
 });
 
-test("failed flush retains the current document and rejects without resubmitting", async () => {
+test("failed flush retains the document and a later flush retries without a stored duplicate", async () => {
   let posts = 0;
   const session = createChapterSession({
     postDelta: async () => { posts++; throw new TypeError("offline"); },
     getDeltas: async () => [],
   }, scope, chapter, () => {});
   session.edit(new Delta().insert("Atext\n"));
-  await expect(session.flush()).rejects.toThrow("Save stopped");
-  await expect(session.flush()).rejects.toThrow("Do not retry");
+  await expect(session.flush()).rejects.toThrow("offline");
   expect(posts).toBe(1);
+  await expect(session.flush()).rejects.toThrow("offline");
+  expect(posts).toBe(2);
   expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
 });
 

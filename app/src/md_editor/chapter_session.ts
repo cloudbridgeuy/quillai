@@ -1,7 +1,8 @@
 import Delta from "quill-delta";
 import type { createManuscriptClient } from "../manuscripts/client";
-import type { Chapter, ChapterScope, Revision } from "../manuscripts/contract";
-import { editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
+import { parseDelta, type Chapter, type ChapterScope, type Revision } from "../manuscripts/contract";
+import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
+import { diffDocuments } from "./document_diff";
 
 type Client = ReturnType<typeof createManuscriptClient>;
 export type SyncProblem = { kind: "retrying" | "blocked"; message: string };
@@ -52,27 +53,92 @@ export function createChapterSession(
   let state = startChapterSync(chapter.content, chapter.head_rev);
   let running: Promise<void> | null = null;
   let stopped = false;
-  let failure: string | null = null;
+  let problem: SyncProblem | null = null;
   let lastError: string | null = null;
   let acknowledgement: Revision | null = null;
-  const notify = () => publish(syncDocument(state), hasLocalChanges(state), failure ? { kind: "blocked", message: failure } : null);
+  const notify = () => publish(syncDocument(state), hasLocalChanges(state), problem);
 
   function tick(): Promise<void> {
     if (running) return Promise.resolve();
-    if (stopped || failure) return Promise.resolve();
+    if (stopped || problem?.kind === "blocked") return Promise.resolve();
     running = synchronize().finally(() => { running = null; });
     return running;
+  }
+
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : "Unknown synchronization error";
+  }
+
+  function rememberFailure(error: unknown, uncertainPost: boolean) {
+    const message = errorMessage(error);
+    lastError = message;
+    problem = uncertainPost || !(error instanceof TypeError)
+      ? { kind: "blocked", message: `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.` }
+      : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` };
+    notify();
+  }
+
+  function flightMatches(revision: Revision): boolean {
+    const flight = state.flight;
+    if (flight === null) return false;
+    const remote = chapterDelta(revision.delta);
+    if (JSON.stringify(parseDelta(flight)) !== JSON.stringify(parseDelta(remote))) return false;
+    return diffDocuments(state.server.compose(flight), state.server.compose(remote)).ops.length === 0;
+  }
+
+  function collapseFlight() {
+    if (state.flight === null) return;
+    state = { rev: state.rev, server: state.server, flight: null, pending: state.flight.compose(state.pending) };
+  }
+
+  async function recoverFlight() {
+    const revisions = await client.getDeltas(scope, state.rev);
+    if (stopped) return;
+    let acknowledged = false;
+    for (const revision of revisions) {
+      if (!acknowledged && flightMatches(revision)) {
+        state = receiveRevisions(state, [revision], revision);
+        acknowledged = true;
+      } else {
+        state = receiveRevisions(state, [revision], null);
+      }
+    }
+    if (stopped) return;
+    if (acknowledged) {
+      lastError = null;
+      problem = null;
+      notify();
+      return;
+    }
+    collapseFlight();
+    problem = {
+      kind: "retrying",
+      message: `Save stopped: ${lastError ?? "Unknown synchronization error"}. Local work retained; polling will retry.`,
+    };
+    notify();
   }
 
   async function synchronize() {
     let posting = false;
     try {
+      if (acknowledgement === null && state.flight !== null) {
+        await recoverFlight();
+        return;
+      }
       if (acknowledgement === null) {
         const submission = sendChapter(state);
         if (submission) {
           state = submission.state;
           posting = true;
-          acknowledgement = await client.postDelta(scope, submission.request);
+          try {
+            acknowledgement = await client.postDelta(scope, submission.request);
+          } catch (error) {
+            if (stopped) return;
+            posting = false;
+            lastError = errorMessage(error);
+            await recoverFlight();
+            return;
+          }
           posting = false;
         }
       }
@@ -82,23 +148,17 @@ export function createChapterSession(
       state = receiveRevisions(state, revisions, acknowledgement);
       acknowledgement = null;
       lastError = null;
+      problem = null;
       notify();
     } catch (error) {
       if (stopped) return;
-      const message = error instanceof Error ? error.message : "Unknown synchronization error";
-      lastError = message;
-      if (posting || !(error instanceof TypeError)) {
-        failure = `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.`;
-      }
-      publish(syncDocument(state), hasLocalChanges(state), failure
-        ? { kind: "blocked", message: failure }
-        : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` });
+      rememberFailure(error, posting);
     }
   }
 
   return {
     document: () => syncDocument(state),
-    canStartAi: () => !running && !stopped && !failure && !hasLocalChanges(state),
+    canStartAi: () => !running && !stopped && problem?.kind !== "blocked" && !hasLocalChanges(state),
     stop: () => { stopped = true; },
     edit(document: Delta) {
       if (stopped) return;
@@ -109,12 +169,12 @@ export function createChapterSession(
     async flush() {
       if (running) {
         await running;
-        if (lastError) throw new Error(failure ?? lastError);
+        if (lastError) throw new Error(problem?.message ?? lastError);
       }
-      if (stopped || failure) throw new Error(failure ?? "Chapter session stopped.");
+      if (stopped || problem?.kind === "blocked") throw new Error(problem?.message ?? "Chapter session stopped.");
       while (hasLocalChanges(state)) {
         await tick();
-        if (stopped || lastError) throw new Error(failure ?? lastError ?? "Chapter session stopped.");
+        if (stopped || lastError) throw new Error(problem?.message ?? lastError ?? "Chapter session stopped.");
       }
     },
   };
