@@ -143,6 +143,12 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - Lore card opens on hover after 600ms. It is a card, not a panel, so the "hover never opens panels" rule holds, but note it.
 - Failed save is a loud red pill in the prototype (not faint grey), so no gap there.
 
+## Product browser coverage
+
+Run with `cargo xtask e2e`. Existing `e2e/continue-stream.spec.ts` covers concurrent typing before and inside AI text, caret and selection preservation, Stop and server-error rollback that retains author inserts, server cancellation, completion tint fade, persisted tint preference, saved-selection deletion/replacement transforms, and the narrow-screen locking boundary. Existing `e2e/author-guidance.spec.ts` covers Settings persistence and idle dismissal, forced-503 save failure, accessible recovery details, export, and failure-pill geometry without sheet movement or prose overlap at 1100px and 1440px.
+
+`e2e/desktop-edge-cases.spec.ts` adds Escape and outside-click Settings dismissal during Continue, disabled window controls, live tint changes, continued streaming and author typing after dismissal, plus transport disconnection and premature EOF after author typing inside AI text. Each case runs at 1100px and 1440px and checks saved text after reload. Failed submissions intentionally block later saves; no automatic retry or pill-clearing promise is tested. Recentering remains outside this coverage.
+
 ## Known gaps
 
 - Prototype "Saved" label overlaps the first line of text; the product uses a separate flowing header above the sheet.
