@@ -77,6 +77,8 @@ import { buildContextInspector } from "../context_inspector";
 import { createSettingsClient } from "../../settings/client";
 import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
+import { LorePanel } from "./LorePanel";
+import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../components/StickyNote";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
@@ -231,7 +233,7 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 
 Component.displayName = "EditorComponent";
 
-export const Container = ({ loreEntries }: { loreEntries?: readonly LoreMatchEntry[] }) => {
+export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: readonly LoreMatchEntry[] }) => {
   const initialEditorStateRef = useRef<PersistedEditorState | null>(null);
   if (initialEditorStateRef.current === null) {
     initialEditorStateRef.current = getStoredEditorState();
@@ -313,6 +315,9 @@ export const Container = ({ loreEntries }: { loreEntries?: readonly LoreMatchEnt
       setRange(quillRef.current?.getSelection() ?? null);
       updateThreadState(resetThread(threadStateRef.current));
     });
+
+  const lore = useLore(chapterSync.scope?.seriesId ?? null);
+  const loreEntries = suppliedLoreEntries ?? lore.entries;
 
   function persistEditorState() {
     if (typeof window === "undefined") {
@@ -1160,6 +1165,8 @@ export const Container = ({ loreEntries }: { loreEntries?: readonly LoreMatchEnt
         </div>
         <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+        {chapterSync.scope ? <LorePanel key={chapterSync.scope.seriesId} seriesId={chapterSync.scope.seriesId}
+          lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Select a chapter to manage series lore.</p>}
         <a className="editor-button" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;

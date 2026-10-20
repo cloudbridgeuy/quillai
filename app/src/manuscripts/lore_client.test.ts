@@ -1,0 +1,53 @@
+import { expect, test } from "bun:test";
+import { ManuscriptApiError } from "./client";
+import { createLoreClient, parseLoreEntry } from "./lore_client";
+import { newLoreDraft } from "./lore_panel";
+
+const entry = { ...newLoreDraft(), id: 1, series_id: 2, name: "Mira", hidden_notes: "Author secret" };
+
+test("parses author lore without losing fields", () => {
+  expect(parseLoreEntry(entry)).toEqual(entry);
+});
+
+test("rejects malformed lore fields", () => {
+  for (const patch of [{ id: 0 }, { series_id: 1.5 }, { name: " " }, { pinned: 1 }, { kind: "person" },
+    { level: "unknown" }, { keywords: [""] }, { aliases: "M" }, { hidden_notes: null }, { visible_text: 1 }]) {
+    expect(() => parseLoreEntry({ ...entry, ...patch })).toThrow();
+  }
+});
+
+test("lore client uses scoped CRUD paths, bodies and statuses", async () => {
+  const calls: [string, RequestInit | undefined][] = [];
+  const client = createLoreClient({ baseUrl: "http://localhost:2908/", fetch: async (url, init) => {
+    calls.push([url, init]);
+    if (init?.method === "DELETE") return new Response(null, { status: 204 });
+    return Response.json(init?.method === "GET" && url.endsWith("/lore") ? [entry] : entry,
+      { status: init?.method === "POST" ? 201 : 200 });
+  } });
+  expect(await client.list({ seriesId: 2 })).toEqual([entry]);
+  expect(await client.get({ seriesId: 2, loreId: 1 })).toEqual(entry);
+  expect(await client.create({ seriesId: 2 }, { ...newLoreDraft(), name: "Mira" })).toEqual(entry);
+  await client.update({ seriesId: 2, loreId: 1 }, { pinned: false });
+  await client.delete({ seriesId: 2, loreId: 1 });
+  expect(calls.map(([url, init]) => [url, init?.method])).toEqual([
+    ["http://localhost:2908/series/2/lore", "GET"], ["http://localhost:2908/series/2/lore/1", "GET"],
+    ["http://localhost:2908/series/2/lore", "POST"], ["http://localhost:2908/series/2/lore/1", "PUT"],
+    ["http://localhost:2908/series/2/lore/1", "DELETE"],
+  ]);
+  expect(JSON.parse(String(calls[3]?.[1]?.body))).toEqual({ pinned: false });
+});
+
+test("lore client reports structured HTTP and invalid-response errors", async () => {
+  for (const [response, kind, code] of [
+    [Response.json({ error: "Missing lore", code: "NOT_FOUND" }, { status: 404 }), "http", "NOT_FOUND"],
+    [new Response("broken", { status: 500 }), "invalid_response", "INVALID_RESPONSE"],
+    [Response.json({}), "invalid_response", "INVALID_RESPONSE"],
+    [Response.json([], { status: 201 }), "invalid_response", "INVALID_RESPONSE"],
+  ] as const) {
+    const client = createLoreClient({ fetch: async () => response });
+    try { await client.list({ seriesId: 2 }); throw new Error("Expected failure"); } catch (error) {
+      expect(error).toBeInstanceOf(ManuscriptApiError);
+      expect(error).toMatchObject({ status: response.status, kind, code });
+    }
+  }
+});

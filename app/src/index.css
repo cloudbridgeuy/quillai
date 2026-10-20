@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+.editor-lore-panel { border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 16px; }
+.editor-lore-panel h3 { color: var(--slate); font-size: 12px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+.editor-lore-panel fieldset { border: 0; padding: 0; margin-top: 16px; min-width: 0; }
+.editor-lore-panel .editor-field { margin: 12px 0; }
+
 :root {
   --paper: #FFFFFF;
   --desk: #F1EEE7;

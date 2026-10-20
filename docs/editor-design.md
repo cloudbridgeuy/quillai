@@ -106,6 +106,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Lore
 
+- The left manuscript drawer includes Series lore for the current chapter's series, with loading, empty, error, and retry states. New lore and entry buttons open a square inline form for kind, name, newline-separated keywords/aliases, visible AI context, author-only hidden notes, request level, and pin. Save and Delete persist through the series-scoped API; Cancel discards the draft. Author-only notes never enter AI requests. Series changes clear previous entries and drafts. This management form does not implement the planned in-prose lore cards below.
+
 - Names inside the displayed window get a dotted lavender underline; hover shows `--pi-lav` background. Hover for 600ms (or Alt+L for the nearest name) opens a 300px lore card; Esc closes.
 - Card: name, matched alias, "In AI requests" radios (Include | Known, don't reveal | Leave out), "Lore as of" book and chapter selects (story-point level gating what enters the completion), green note, "Ignore this match".
 - Underline style per level: include dotted lavender; known-don't-reveal dashed tan; leave out dotted pencil.
@@ -144,6 +146,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - Failed save is a loud red pill in the prototype (not faint grey), so no gap there.
 
 ## Product browser coverage
+
+`e2e/lore.spec.ts` creates and updates a character through the left drawer, matches near the caret in the inspector, reloads persisted lore and chapter text, verifies Continue and Edit request bodies omit hidden notes, and deletes the entry. Desktop captures at 1100px and 1440px are stored in `target/guz-671/`.
 
 Run with `cargo xtask e2e`. Existing `e2e/continue-stream.spec.ts` covers concurrent typing before and inside AI text, caret and selection preservation, Stop and server-error rollback that retains author inserts, server cancellation, completion tint fade, persisted tint preference, saved-selection deletion/replacement transforms, and the narrow-screen locking boundary. Existing `e2e/author-guidance.spec.ts` covers Settings persistence and idle dismissal, forced-503 save failure, accessible recovery details, export, and failure-pill geometry without sheet movement or prose overlap at 1100px and 1440px.
 

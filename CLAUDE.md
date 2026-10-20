@@ -106,7 +106,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | `api_tester/components/APITester.tsx` | HTTP method selector + URL input + loading state + structured error parsing. See [error handling context](.claude/context/error-handling.md) |
 | `api_tester/components/__tests__/APITester.test.ts` | Unit tests for `buttonLabel()` pure function |
 
-Series-scoped author lore HTTP CRUD routes exist; frontend lore loading/UI is not built. The editor accepts a caller-supplied `loreEntries` list, defaulting to no lore; no browser/global storage source is added. Lore stays derived/read-only so request-local text overrides cannot remove its non-reveal marker. Hidden notes remain author data, not AI context. See [lore prompt contract](.claude/context/ai-streaming.md#injected-lore).
+The editor loads series-scoped lore through `manuscripts/lore_client.ts` and `use_lore.ts`. The left manuscript drawer's `LorePanel.tsx` lists, creates, edits, and deletes author lore, including levels and pins. `lore_panel.ts` contains pure draft, term, and list helpers. Series changes clear stale entries; failed loads offer retry. A caller-supplied `loreEntries` list remains available for isolated tests. Lore stays derived/read-only so request-local text overrides cannot remove its non-reveal marker. Hidden notes remain author data, not AI context. See [lore prompt contract](.claude/context/ai-streaming.md#injected-lore).
 
 ### Database
 

@@ -2,7 +2,7 @@ import { defineConfig } from "../app/node_modules/@playwright/test/index.js";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["chapter-sync.spec.ts", "chapter-emoji-sync.spec.ts", "author-guidance.spec.ts", "continue-stream.spec.ts", "desktop-edge-cases.spec.ts", "continue-window.spec.ts"],
+  testMatch: ["chapter-sync.spec.ts", "chapter-emoji-sync.spec.ts", "author-guidance.spec.ts", "continue-stream.spec.ts", "desktop-edge-cases.spec.ts", "continue-window.spec.ts", "lore.spec.ts"],
   outputDir: "../target/xtask-e2e/results",
   reporter: "list",
   workers: 1,
