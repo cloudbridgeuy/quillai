@@ -803,8 +803,12 @@ button {
     line-height: 1.5;
   }
 
-  .editor-rail {
-    padding-top: 0;
+  .editor-rail-left {
+    padding-top: 26px;
+  }
+
+  .editor-rail-right {
+    padding-top: 4px;
   }
 
   .editor-drawer {
