@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to run database migrations")?;
 
-    let app = quillai_api::app(pool);
+    let app = quillai_api::app_with_cors(pool, args.cors_origin);
 
     let mut listenfd = ListenFd::from_env();
     let listener = match listenfd.take_tcp_listener(0)? {

@@ -25,13 +25,13 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
 | Lint and tests (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
-| Isolated two-page chapter sync smoke | `cargo xtask e2e` | `xtask/src/e2e.rs`, `e2e/chapter-sync.spec.ts` |
+| Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`) | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
 API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
 Set the frontend URL's `apiBaseUrl` query parameter to configure both AI and manuscript requests, e.g. `http://localhost:3001/?apiBaseUrl=http%3A%2F%2F127.0.0.1%3A49152`. The default is `http://127.0.0.1:2908`. No browser-side `process.env` or rebuild is needed. Only loopback hosts (`127.0.0.1`, `localhost`, `[::1]`) over HTTP(S) with any port are accepted; malformed or non-loopback values fall back to the default without throwing (`app/src/api_config.ts`).
-The override does not change CORS: the API only allows `localhost:3001` / `127.0.0.1:3001`, so the frontend must still be served on port `3001`.
+The override does not change CORS: the API defaults to allowing `http://localhost:3001` / `http://127.0.0.1:3001`. Repeat `--cors-origin <origin>` on the API CLI to replace this allow-list. E2E supplies its chosen frontend origin; `cargo xtask dev` defaults stay unchanged.
 
 ## Source Index
 
@@ -65,7 +65,7 @@ The override does not change CORS: the API only allows `localhost:3001` / `127.0
 | File | Purpose |
 |------|---------|
 | `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks with short output (logs in `target/xtask-lint/`) |
-| `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API port, frontend port 3001, HTTP readiness, managed Playwright runner, process-group and database cleanup. Pass Playwright flags directly, e.g. `cargo xtask e2e --headed --trace on`. |
+| `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API and frontend ports, HTTP readiness, managed Playwright runner, process-group and database cleanup. Set the frontend port with `--port 3107` before Playwright arguments. Remaining arguments pass directly, e.g. `cargo xtask e2e --headed --trace on`. The runner sets API `--cors-origin` and Playwright `QUILLAI_E2E_APP_URL` for the chosen frontend. |
 
 ### Browser Smoke (`e2e/`)
 

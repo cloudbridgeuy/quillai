@@ -12,12 +12,17 @@ use axum::Router;
 use sqlx::sqlite::SqlitePool;
 use tower_http::cors::{Any, CorsLayer};
 
-fn local_dev_cors() -> CorsLayer {
-    CorsLayer::new()
-        .allow_origin([
+fn cors(origins: Vec<HeaderValue>) -> CorsLayer {
+    let origins = if origins.is_empty() {
+        vec![
             HeaderValue::from_static("http://localhost:3001"),
             HeaderValue::from_static("http://127.0.0.1:3001"),
-        ])
+        ]
+    } else {
+        origins
+    };
+    CorsLayer::new()
+        .allow_origin(origins)
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -30,6 +35,10 @@ fn local_dev_cors() -> CorsLayer {
 }
 
 pub fn app(pool: SqlitePool) -> Router {
+    app_with_cors(pool, Vec::new())
+}
+
+pub fn app_with_cors(pool: SqlitePool, origins: Vec<HeaderValue>) -> Router {
     let user_routes = users::routes(pool.clone());
 
     Router::new()
@@ -37,5 +46,5 @@ pub fn app(pool: SqlitePool) -> Router {
         .merge(manuscripts::routes(pool.clone()))
         .merge(settings::routes(pool.clone()))
         .merge(ai::routes(pool))
-        .layer(local_dev_cors())
+        .layer(cors(origins))
 }

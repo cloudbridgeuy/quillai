@@ -43,17 +43,9 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .parent()
         .ok_or("xtask has no workspace directory")?;
     std::env::set_current_dir(root)?;
-    for address in ["127.0.0.1:3001", "[::1]:3001"] {
-        if TcpStream::connect_timeout(&address.parse()?, Duration::from_millis(100)).is_ok() {
-            return Err(format!(
-                "E2E requires frontend port 3001; stop its current listener at {address}"
-            )
-            .into());
-        }
-    }
-    let app_reservation = TcpListener::bind("127.0.0.1:3001").map_err(|error| {
-        format!("E2E requires frontend port 3001; stop its current listener: {error}")
-    })?;
+    let app_reservation = TcpListener::bind(("127.0.0.1", args.port.unwrap_or(0)))?;
+    let app_port = app_reservation.local_addr()?.port();
+    let app_url = format!("http://127.0.0.1:{app_port}");
     let shutdown = Arc::new(AtomicBool::new(false));
     install_shutdown_signal_handlers(Arc::clone(&shutdown))?;
     let database = SandboxDatabase::create()?;
@@ -73,13 +65,14 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     let api_port = TcpListener::bind("127.0.0.1:0")?.local_addr()?.port();
     let api_url = format!("http://127.0.0.1:{api_port}");
     println!(
-        "E2E sandbox: api={api_url} app=http://127.0.0.1:3001 database={}",
+        "E2E sandbox: api={api_url} app={app_url} database={}",
         database.path().display()
     );
     let mut api = Command::new("cargo");
     api.args(["run", "--quiet", "-p", "quillai_api", "--bin", "api", "--"]);
     api.env("SQLX_OFFLINE", "true");
     api.args(["--host", "127.0.0.1", "--port", &api_port.to_string()]);
+    api.args(["--cors-origin", &app_url]);
     api.arg("--db-url")
         .arg(format!("sqlite://{}", database.path().display()));
     children
@@ -87,12 +80,13 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .push(spawn_managed(Service::Api, api, tx.clone())?);
     drop(app_reservation);
     let mut app = Command::new("bun");
-    app.arg("app/src/index.tsx").env("PORT", "3001");
+    app.arg("app/src/index.tsx")
+        .env("PORT", app_port.to_string());
     children
         .children
         .push(spawn_managed(Service::App, app, tx.clone())?);
     wait_ready(api_port, "/series", &mut children, &rx, &shutdown)?;
-    wait_ready(3001, "/", &mut children, &rx, &shutdown)?;
+    wait_ready(app_port, "/", &mut children, &rx, &shutdown)?;
 
     let mut playwright = Command::new("bun");
     playwright
@@ -106,7 +100,8 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         ])
         .args(args.playwright_args)
         .current_dir(root.join("app"))
-        .env("QUILLAI_E2E_API_URL", api_url);
+        .env("QUILLAI_E2E_API_URL", api_url)
+        .env("QUILLAI_E2E_APP_URL", app_url);
     run_tool(playwright, &mut children, &tx, &rx, &shutdown)?;
     Ok(())
 }
@@ -219,4 +214,22 @@ fn http_ready(port: u16, path: &str) -> bool {
         Ok(status)
     })();
     response.is_ok_and(|status| status.starts_with("HTTP/1.1 200 "))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frontend_port_and_playwright_arguments() {
+        let args = E2eArgs::try_parse_from(["e2e", "--port", "3107", "--headed", "--trace", "on"])
+            .unwrap();
+        assert_eq!(args.port, Some(3107));
+        assert_eq!(args.playwright_args, ["--headed", "--trace", "on"]);
+        let args = E2eArgs::try_parse_from(["e2e", "chapter-sync.spec.ts", "--list"]).unwrap();
+        assert_eq!(args.port, None);
+        assert_eq!(args.playwright_args, ["chapter-sync.spec.ts", "--list"]);
+        assert!(E2eArgs::try_parse_from(["e2e", "--port", "0"]).is_err());
+        assert!(E2eArgs::try_parse_from(["e2e", "--port", "65536"]).is_err());
+    }
 }
