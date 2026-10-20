@@ -1,5 +1,52 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 
+test("lore remains usable without the Custom Highlight API", async ({ page, request }) => {
+  const api = process.env.QUILLAI_E2E_API_URL;
+  if (!api) throw new Error("Run with cargo xtask e2e");
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(CSS, "highlights");
+    Reflect.deleteProperty(window, "Highlight");
+  });
+  const series = await (await request.post(`${api}/series`, { data: { title: "Lore fallback", position: 0 } })).json();
+  const base = `${api}/series/${series.id}`;
+  const book = await (await request.post(`${base}/books`, { data: { title: "Book", position: 0 } })).json();
+  const chapter = await (await request.post(`${base}/books/${book.id}/chapters`, { data: {
+    title: "No highlights", position: 0, kind: "chapter", content: { ops: [{ insert: "Mira arrived.\n" }] },
+  } })).json();
+  expect((await request.post(`${base}/lore`, { data: {
+    kind: "character", name: "Mira", visible_text: "The navigator.", hidden_notes: "FALLBACK_SECRET", level: "known_dont_reveal",
+  } })).status()).toBe(201);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  await expect(editor).toBeEditable();
+  expect(await page.evaluate(() => typeof Highlight === "undefined" && CSS.highlights === undefined)).toBe(true);
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  const list = page.getByRole("region", { name: "Lore in window", exact: true });
+  await expect(list).toContainText("Mira");
+  await expect(list).toContainText("1 matches");
+  await list.getByRole("button", { name: /Mira/ }).click();
+  const card = page.getByRole("dialog", { name: "Lore match", exact: true });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("The navigator.");
+  await expect(card).not.toContainText("FALLBACK_SECRET");
+  await page.keyboard.press("Escape");
+  await expect(card).not.toBeVisible();
+  await editor.click();
+  await page.keyboard.press("Alt+l");
+  await expect(card).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(card).not.toBeVisible();
+  await page.setViewportSize({ width: 1099, height: 1000 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  await expect(list).toContainText("Mira");
+  expect(errors).toEqual([]);
+});
+
 for (const width of [1100, 1440]) {
   test(`desktop lore highlights, cards and Continue window are visual only at ${width}px`, async ({ page, request }) => {
     const api = process.env.QUILLAI_E2E_API_URL;

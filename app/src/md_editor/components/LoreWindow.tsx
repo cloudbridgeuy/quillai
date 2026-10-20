@@ -6,6 +6,10 @@ import type { buildInjectedLore } from "../context_inspector";
 type Lore = ReturnType<typeof buildInjectedLore>;
 type Mark = { entry: Lore["matches"][number]; start: number; range: globalThis.Range };
 
+export function supportsLoreHighlights(css: { highlights?: unknown } | undefined, highlight: unknown): boolean {
+  return css?.highlights != null && typeof highlight === "function";
+}
+
 function loreLevel(level: string) {
   return level === "known_dont_reveal" ? "Known, don't reveal" : level === "leave_out" ? "Leave out" : "Include";
 }
@@ -27,7 +31,11 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
   const selected = marks.find(mark => mark.entry.id === active?.id && mark.start === active.start);
 
   useLayoutEffect(() => {
-    if (typeof Highlight !== "undefined" && CSS.highlights) {
+    const highlightsSupported = supportsLoreHighlights(
+      typeof CSS === "undefined" ? undefined : CSS,
+      typeof Highlight === "undefined" ? undefined : Highlight,
+    );
+    if (highlightsSupported) {
       for (const level of ["include", "known_dont_reveal", "leave_out"]) {
         CSS.highlights.set(`quillai-lore-${level}`, new Highlight(...marks.filter(mark => mark.entry.level === level).map(mark => mark.range)));
       }
@@ -68,7 +76,7 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
       window.removeEventListener("keydown", key);
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
-      if (typeof CSS !== "undefined" && CSS.highlights) {
+      if (highlightsSupported) {
         for (const level of ["include", "known_dont_reveal", "leave_out"]) CSS.highlights.delete(`quillai-lore-${level}`);
         CSS.highlights.delete("quillai-lore-hover");
       }
