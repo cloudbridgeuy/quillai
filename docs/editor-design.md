@@ -69,7 +69,7 @@ Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - Left rail (56px): navigation (manuscript tree panel, 300px, opens at `left: 56px`).
 - Right rail (56px): Continue, Edit selection, Context inspector, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
 - Rails are muted: opacity .35, .95 on hover/focus-within; buttons 36px, radius 10px, `--graphite`.
-- At 1100px and wider, both rails have zero top padding; their first button starts at the viewport top, aligned with the drawer top edge.
+- At 1100px and wider, both rails have 4px top padding; the first buttons and the QuillAI label share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, and context inspector. Settings is not implemented in this slice.
