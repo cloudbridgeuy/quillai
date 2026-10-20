@@ -79,6 +79,7 @@ import { ManuscriptTree } from "./ManuscriptTree";
 import { StickyNote } from "../../components/StickyNote";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
+import { ContinueWindow } from "./ContinueWindow";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -246,6 +247,7 @@ export const Container = () => {
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiTextTint, setAiTextTint] = useState(initialEditorState.aiTextTint);
+  const [showContinueWindow, setShowContinueWindow] = useState(initialEditorState.showContinueWindow);
   const [desktop, setDesktop] = useState(() => window.matchMedia("(min-width: 1100px)").matches);
   const continueStreamRef = useRef<ContinueStream | null>(null);
   const applyingContinueRef = useRef(false);
@@ -326,6 +328,7 @@ export const Container = () => {
           windowSize,
           windowMode,
           aiTextTint,
+          showContinueWindow,
           threadState: threadStateRef.current,
         }),
       );
@@ -360,7 +363,7 @@ export const Container = () => {
 
   useEffect(() => {
     persistEditorState();
-  }, [storyContext, instruction, windowSize, windowMode, threadState, aiTextTint]);
+  }, [storyContext, instruction, windowSize, windowMode, threadState, aiTextTint, showContinueWindow]);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1100px)");
@@ -1064,8 +1067,20 @@ export const Container = () => {
     </label>
   </>;
 
+  const markerQuill = quillRef.current;
+  const markerDocumentLength = Math.max((markerQuill?.getLength() ?? 1) - 1, 0);
+  const markerSelection = markerQuill ? resolveContinueSelection(markerQuill.getSelection() ?? range, lastCursorRangeRef.current) : null;
+  const markerWindow = calculateDocumentWindow({
+    documentLength: markerDocumentLength,
+    selection: markerSelection,
+    windowSize: Number(windowSize),
+    mode: windowMode,
+  });
+
   return (
     <div className="editor-shell">
+      {desktop && showContinueWindow && chapterSync.ready && markerQuill ? <ContinueWindow
+        quill={markerQuill} start={markerWindow.start} end={markerWindow.end} /> : null}
       <nav className="editor-rail editor-rail-left" aria-label="Navigation">
         <button type="button" aria-label="Manuscript" title="Manuscript (Ctrl/Cmd+[)"
           aria-controls="manuscript-drawer" aria-expanded={panel === "manuscript"}
@@ -1103,6 +1118,10 @@ export const Container = () => {
           <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Close settings</button>
         </div>
         {windowSettings}
+        <label className="editor-toggle">
+          <input type="checkbox" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
+          <span>Show Continue window</span>
+        </label>
         <label className="editor-toggle">
           <input type="checkbox" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
           <span>Tint AI text</span>

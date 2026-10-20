@@ -20,6 +20,7 @@ const persistedState: PersistedEditorState = {
   windowSize: "2400",
   windowMode: "document",
   aiTextTint: false,
+  showContinueWindow: false,
   threadState: {
     settings: {
       maxOutputTokens: 900,
@@ -44,6 +45,7 @@ test("parsePersistedEditorState falls back for missing or malformed storage", ()
   expect(parsePersistedEditorState("not json")).toEqual(fallback);
   expect(parsePersistedEditorState(JSON.stringify([]))).toEqual(fallback);
   expect(parsePersistedEditorState('{"aiTextTint":"false"}').aiTextTint).toBe(true);
+  expect(parsePersistedEditorState('{"showContinueWindow":"false"}').showContinueWindow).toBe(true);
 });
 
 test("persisted editor state round trips document, controls, and thread history", () => {

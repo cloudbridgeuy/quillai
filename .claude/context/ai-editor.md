@@ -24,6 +24,7 @@ The frontend split is deliberate.
 
 **Imperative Shell**:
 - `components/Editor.tsx` — owns Quill, DOM refs, browser `fetch`, `AbortController`, streamed delta application, and UI state wiring.
+- `components/ContinueWindow.tsx` — at 1100px and wider, renders one blue gutter bracket from the existing `calculateDocumentWindow` start to end, with the lower cap at the end index's line bottom, including context after the caret. Whole document spans the full calculated document length. Saved history adds no second or lavender marker. The calculator, request builder, and transmitted slice remain unchanged. Quill bounds, resize observation, editor changes, and scroll events track author typing, concurrent Continue fragments/author edits, and layout changes. An off-screen start shows the top-viewport button `Continue window / starts ↑ N pages up`, with viewport-height distance rounded to an integer, or `just above` below one viewport height; only clicking it scrolls to the start, without moving selection. Settings persists `showContinueWindow` under the same localStorage key as Tint AI text, default true; disabling hides both bracket and flag. Both are absent below 1100px.
 - `components/ManuscriptTree.tsx` — loads the ordered series/books/chapter-summary outline through the existing manuscript client when opened, with loading, empty, error, and retry states. Selection requests a save-before-switch and highlights only the open chapter. Reopening refreshes the outline.
 - `chapter_session.ts` — hierarchy selection/bootstrap and serialized POST/GET orchestration.
 - `use_chapter_sync.ts` — Quill synchronization, one-second polling, save status, unload warning, and per-tab sessionStorage recovery/export.
@@ -51,6 +52,8 @@ Set the frontend URL's `apiBaseUrl` query parameter to override the API URL, e.g
 The current backend CORS setup still assumes the frontend is served from port `3001`; API port configuration does not change that restriction.
 
 ## Browser Smoke Sandbox
+
+`continue-window.spec.ts` is in the explicit Playwright allowlist. At 1100px and 1440px it checks exact start-to-end DOM geometry, Whole document full length, blue stroke dimensions, unchanged transmitted slices, saved history's single marker with no lavender, integer flag distance and the one-screen threshold, scroll navigation, persisted visibility, and hiding below the desktop breakpoint. It verifies marker movement during idle author typing and concurrent Continue fragments/author edits. Four screenshots are saved to `target/guz-757/` (`1100-flag-hidden.png`, `1100-flag-visible.png`, `1440-flag-hidden.png`, `1440-flag-visible.png`); hidden-flag screenshots show the full bracket using a small window selected through Settings.
 
 Run `cargo xtask e2e` from the workspace. On first use, install Chromium with `cd app && bun --bun x playwright install chromium`. The runner installs app dependencies if Playwright is missing, builds the API, creates a temporary on-disk SQLite database, and starts the API on a random loopback port. Frontend port 3001 is mandatory for existing CORS; an occupied port fails before startup. No CORS configuration changes are made.
 

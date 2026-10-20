@@ -20,6 +20,7 @@ export type PersistedEditorState = {
   windowSize: string;
   windowMode: DocumentWindowMode;
   aiTextTint: boolean;
+  showContinueWindow: boolean;
   threadState: AiThreadState;
 };
 
@@ -31,6 +32,7 @@ export function initialPersistedEditorState(): PersistedEditorState {
     windowSize: "1200",
     windowMode: "window",
     aiTextTint: true,
+    showContinueWindow: true,
     threadState: initialAiThreadState(DEFAULT_MAX_OUTPUT_TOKENS),
   };
 }
@@ -54,6 +56,7 @@ export function parsePersistedEditorState(raw: string | null): PersistedEditorSt
       windowSize: typeof parsed.windowSize === "string" ? parsed.windowSize : fallback.windowSize,
       windowMode: parseWindowMode(parsed.windowMode, fallback.windowMode),
       aiTextTint: typeof parsed.aiTextTint === "boolean" ? parsed.aiTextTint : fallback.aiTextTint,
+      showContinueWindow: typeof parsed.showContinueWindow === "boolean" ? parsed.showContinueWindow : fallback.showContinueWindow,
       threadState: parseThreadState(parsed.threadState, fallback.threadState),
     };
   } catch {

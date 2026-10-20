@@ -75,7 +75,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, context inspector, and a bottom-pinned desktop Settings gear.
 - The right drawer holds Story Context, Instruction, and the AI Thread bar with Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal.
-- At 1100px and wider, Settings opens a 280px popover at right 72px, bottom 18px, outside the prose. It holds Window Size, Whole document, and Tint AI text, using the existing persisted local preferences. Window controls remain disabled during AI runs. Opening it closes either drawer; opening a drawer closes Settings. Click outside dismisses it; Escape and Close settings restore the remembered editor selection/focus. Narrow screens retain the window controls in the context drawer. Prototype-only recentering, extra text effects, window markers, and save-failure simulation are not exposed.
+- At 1100px and wider, Settings opens a 280px popover at right 72px, bottom 18px, outside the prose. It holds Window Size, Whole document, Show Continue window, and Tint AI text, using persisted local preferences. Window controls remain disabled during AI runs; marker visibility and tint remain available. Opening it closes either drawer; opening a drawer closes Settings. Click outside dismisses it; Escape and Close settings restore the remembered editor selection/focus. Narrow screens retain the window controls in the context drawer. Prototype-only recentering, extra text effects, and save-failure simulation are not exposed.
 - Export local chapter is in the left manuscript drawer. It remains available after a save failure.
 - Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer; Escape and drawer Close restore the remembered editor selection and focus. Hover changes only appearance.
 - Drawers and all descendants have square corners. Drawers use `--sheet-shadow`; buttons and the request picker stay flat, with no shadow or hover lift. Section boxes remain square. Below 1100px, drawers remain in document flow.
@@ -96,13 +96,13 @@ The shared `StickyNote` textarea provides both yellow guidance and pink Edit inp
 | Pink, Edit instruction | `#F3D6D8` | Edit click with a non-empty selection; Enter applies, Esc cancels | Edit box, right 72px, top 96px, 280px wide |
 | Green, lore note | `#D7E6D0` | In the lore card, 2 rows, per-match note for the AI | Lore card |
 
-Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit box ("Edit selection", pink), the lore card ("Lore match", lavender), and the window markers.
+Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit box ("Edit selection", pink), the lore card ("Lore match", lavender), and an off-screen Continue window start. The Continue bracket itself is a gutter stroke, not a flag.
 
 ## Context window
 
-- One blue Continue bracket in the left gutter marks the document slice sent: 9px wide, 2px stroke, opacity .6, at `left: -24px`. It runs from window start to the caret. Saved thread history does not create a second document window.
-- When the window start is off-screen, a flag sits at the top of the viewport reading `starts ↑ N pages up` (or "just above"); clicking scrolls to the start.
-- Intended setting: Show Continue window. Window markers remain prototype-only.
+- At 1100px and wider, one blue Continue bracket in the left gutter marks the exact live `calculateDocumentWindow` start-to-end range: 9px wide, 2px `#7C9BB0` stroke, opacity .6, at `left: -24px`. The lower cap reaches the end index's line bottom, which can be after the caret. Whole document spans the full calculated document length. The calculator and transmitted slice are unchanged. Saved thread history does not create a second document window or lavender bracket.
+- When the window start is above the viewport, a flag sits at the top reading `Continue window / starts ↑ N pages up`. N is the distance in viewport heights rounded to an integer; less than one viewport height reads `starts ↑ just above`. Clicking scrolls to the start.
+- Settings includes a persisted Show Continue window checkbox, enabled by default, alongside Tint AI text. It hides both bracket and off-screen flag. Markers follow selection, author typing, concurrent Continue fragments and author edits, window controls, layout changes, and scrolling without moving the caret or recentering the viewport; only clicking the flag scrolls to the start. Below 1100px both markers are absent.
 
 ## Lore
 
