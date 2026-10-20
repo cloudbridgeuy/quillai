@@ -47,15 +47,13 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 ## Writing surface
 
 - Centered sheet: `width: min(760px, 100vw - 400px)`; padding `72px 84px`; radius `2px 2px 0 0`; visible hairline edge plus `--sheet-shadow` on `--desk`.
-- Infinite page: wrapper has `50vh` top margin and the page has `50vh - 14px` bottom padding, so any line can sit mid-screen. The sheet bottom border is removed and never shown.
+- Infinite page: the sheet bottom border is removed and never shown.
 - Scrollbar hidden; scroll container is full viewport.
 - Caret color `--slate`.
 
 ## Caret and scroll
 
-- Recenter the caret vertically only on typing (`input` event); not on click or arrow-key moves.
-- Dead zone 80px around vertical center; smooth scroll when exceeded.
-- Settings: Recenter = while typing | never.
+Caret placement is tracked in GUZ-763 (E7 · Smooth writing).
 - While AI streams, the caret does not move and the author can keep typing. Streamed text is inserted as a new paragraph after the caret paragraph and grows below.
 
 ## AI text
