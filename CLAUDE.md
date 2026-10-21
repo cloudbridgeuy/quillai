@@ -70,6 +70,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 ### Browser Smoke (`e2e/`)
 
+`emoji-cursor-remote.spec.ts` checks caret/selection surrogate boundaries during remote insert/delete, subsequent typing, HTTP errors, and exact two-tab/server convergence at 1100px, including adjacent 😀😃 and a deliberately requested mid-surrogate caret.
+
 `reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.
 
 `offline-stale-base.spec.ts` holds one tab's delta submission offline while the other commits three edits, then verifies HTTP 200 for the stale base and exact convergence of both tabs and server with all in-flight and pending edits at 1100px.

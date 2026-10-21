@@ -55,6 +55,8 @@ Backend CORS defaults to `http://localhost:3001` and `http://127.0.0.1:3001`. Re
 
 ## Browser Smoke Sandbox
 
+`emoji-cursor-remote.spec.ts` exercises before/after/spanning/mid-surrogate selections and neighbouring 😀😃 at 1100px; remote insert/delete must preserve safe endpoints, subsequent typing must preserve emojis, and both tabs must exactly match server content without HTTP errors.
+
 `reload-in-flight.spec.ts` holds a delta POST across reload, checks exact server text and full recovery JSON, then verifies normal saving resumes at 1100px without API errors.
 
 `offline-stale-base.spec.ts` holds tab A's delta POST and fails its delta GETs while tab B commits three edits at 1100px. Releasing A verifies stale-base HTTP 200, polling/rebase of both in-flight and pending edits, exact editor/server content equality, and five new revisions. Retained stale history is transformed, not rejected with 409.
