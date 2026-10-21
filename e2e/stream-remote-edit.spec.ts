@@ -85,7 +85,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       await expect(editor.locator("p").first()).toHaveText("OpeAUTHORning paragraph");
 
       const remoteSave = second.waitForResponse(response => response.url() === `${chapterUrl}/deltas` && response.request().method() === "POST");
-      await placeCaret(remoteEditor, 1, 0);
+      await placeCaret(remoteEditor, 1, 6);
       await second.keyboard.type("REMOTE ");
       expect((await remoteSave).status()).toBe(200);
       await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
@@ -93,7 +93,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       expect(stream.writableEnded).toBe(false);
       const duringResponse = await request.get(chapterUrl);
       expect(duringResponse.status()).toBe(200);
-      expect((await duringResponse.json()).content).toEqual({ ops: [{ insert: "Opening paragraph\nREMOTE Later paragraph\n" }] });
+      expect((await duringResponse.json()).content).toEqual({ ops: [{ insert: "Opening paragraph\nLater REMOTE paragraph\n" }] });
       await expect(editor.locator("p")).toHaveText(["OpeAUTHORning paragraph", "AI first", "Later paragraph"]);
       expect(failures).toEqual([]);
 
@@ -106,9 +106,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
         await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
       }
       await expect(stop).toBeHidden();
-      const paragraphs = outcome === "Finish"
-        ? ["OpeAUTHORning paragraph", "REMOTE AI first tail", "Later paragraph"]
-        : ["OpeAUTHORning paragraph", "REMOTE Later paragraph"];
+      const paragraphs = ["OpeAUTHORning paragraph", ...(outcome === "Finish" ? ["AI first tail"] : []), "Later REMOTE paragraph"];
       const expectedText = `${paragraphs.join("\n")}\n`;
       for (const tab of [page, second]) {
         await expect(tab.locator(".ql-editor p")).toHaveText(paragraphs);

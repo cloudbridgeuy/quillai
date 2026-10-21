@@ -54,7 +54,7 @@ Set the frontend URL's `apiBaseUrl` query parameter to override the API URL, e.g
 Backend CORS defaults to `http://localhost:3001` and `http://127.0.0.1:3001`. Repeat the API's `--cors-origin <origin>` flag to replace the allow-list for another frontend origin. API port configuration alone does not change CORS; `cargo xtask dev` defaults are unchanged.
 
 ## Browser Smoke Sandbox
-`stream-remote-edit.spec.ts` routes Continue to a controlled loopback NDJSON stream at 1100px; a second tab must save during streaming, then Finish/Stop must converge both editors and server exactly, preserve both authors' edits, remove AI text on Stop only, and produce no API errors.
+`stream-remote-edit.spec.ts` routes Continue to a controlled loopback NDJSON stream at 1100px; a second tab edits inside its original paragraph, away from the AI insertion point, then Finish/Stop must converge both editors and server exactly, preserve both authors' edits, remove AI text on Stop only, and produce no API errors; the real generation API is outside this test's coverage (the default runner fixes its upstream to loopback port 9).
 
 `emoji-cursor-remote.spec.ts` exercises before/after/spanning/mid-surrogate selections and neighbouring 😀😃 at 1100px; remote insert/delete must preserve safe endpoints, subsequent typing must preserve emojis, and both tabs must exactly match server content without HTTP errors.
 
