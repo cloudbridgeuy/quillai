@@ -152,6 +152,7 @@ Pure helper coverage currently lives in:
 - `editor_controls.test.ts` — shared Enter/Apply availability and quiet save labels with prominent failure/recovery messages.
 - `editor_panels.test.ts` — drawer toggle/switch/close and shortcut modifier/composition handling. The chapter browser smoke checks Ctrl and Cmd inspector shortcuts, hover/click behavior, manuscript loading, and Escape selection/focus restoration, including from the guidance field.
 - `chapter_sync.test.ts`
+- `chapter_sync.property.test.ts` — 12 fixed seeds, 400 codepoint-safe edits per run, including emoji and formatting/removal retains. A dependency-free RNG interleaves two real sync cores with a server-priority simulator matching `chapters/sync.rs`. Covers pending composition, remote revisions during a flight, and late acknowledgements; own revisions wait for acknowledgement identity. Drained clients must exactly equal the server Delta. Failures print seed, step, trace, and documents. Replay: `QUILLAI_SYNC_SEED=729 bun test --cwd app src/md_editor/chapter_sync.property.test.ts` (unsigned 32-bit seed).
 - `chapter_session.test.ts`
 
 The second `chapter-sync.spec.ts` browser test seeds two chapters, checks save-before-switch ordering and the single detail GET, then checks failed-save text, current scope/highlight, and recovery retention.
