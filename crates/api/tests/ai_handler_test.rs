@@ -107,7 +107,10 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
                 >,
                  axum::Json(body): axum::Json<serde_json::Value>| async move {
                     sender.send(body).unwrap();
-                    "data: [DONE]\n\n"
+                    concat!(
+                        "data: {\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4}}\n\n",
+                        "data: [DONE]\n\n"
+                    )
                 },
             ),
         )
@@ -157,10 +160,16 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-        assert!(response_body(response).await.contains("done"));
+        let events = response_body(response).await;
+        assert!(events.contains("done"));
+        assert_eq!(events.contains("usage"), action == "generate");
         let body = receiver.recv().await.unwrap();
         assert_eq!(body["model"], format!("{action}-model"));
-        assert_eq!(body["stream_options"]["include_usage"], true);
+        if action == "generate" {
+            assert_eq!(body["stream_options"]["include_usage"], true);
+        } else {
+            assert!(body.get("stream_options").is_none());
+        }
         assert_eq!(
             body["messages"][0],
             json!({"role": "system", "content": "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."})
@@ -395,6 +404,122 @@ async fn generate_emits_usage_before_done_when_provider_sends_usage() {
     let request = receiver.recv().await.unwrap();
     assert_eq!(request["stream_options"], json!({"include_usage": true}));
 
+    server.abort();
+    std::env::remove_var("QUILLAI_AI_API_KEY");
+    std::env::remove_var("QUILLAI_AI_MODEL");
+    std::env::remove_var("QUILLAI_AI_BASE_URL");
+}
+
+#[tokio::test]
+async fn generate_handles_provider_usage_order_and_null_errors() {
+    let _guard = env_lock().lock().await;
+    let delta = json!({"type":"delta","delta":{"ops":[{"insert":"Hello"}]}});
+    let usage = json!({"type":"usage","promptTokens":11,"completionTokens":4});
+    let done = json!({"type":"done","finishReason":"stop"});
+    for (body, expected) in [
+        (
+            concat!(
+                "data: {\"error\":null,\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n",
+                "data: {\"error\":null}\n\n",
+                "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            vec![delta.clone(), done.clone()],
+        ),
+        (
+            concat!(
+                "data: {\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4}}\n\n",
+                "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            vec![delta.clone(), usage.clone(), done.clone()],
+        ),
+        (
+            concat!(
+                "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: [DONE]\n\n",
+                "data: {\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4}}\n\n"
+            ),
+            vec![delta.clone(), done.clone()],
+        ),
+        (
+            concat!(
+                "data: {\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2}}\n\n",
+                "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: {\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4}}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            vec![delta.clone(), usage.clone(), done.clone()],
+        ),
+        (
+            "data: {\"error\":{\"message\":\"stream failed\"}}\n\n",
+            vec![json!({"type":"error","error":"stream failed"})],
+        ),
+        (
+            "data: {\"error\":\"stream failed\"}\n\n",
+            vec![json!({"type":"error","error":"AI provider request failed"})],
+        ),
+    ] {
+        let base_url = spawn_mock_provider(200, "text/event-stream", body).await;
+        std::env::set_var("QUILLAI_AI_API_KEY", "test-key");
+        std::env::set_var("QUILLAI_AI_MODEL", "test-model");
+        std::env::set_var("QUILLAI_AI_BASE_URL", base_url);
+        let response = quillai_api::app(test_pool().await)
+            .oneshot(json_request(
+                "POST",
+                "/ai/generate",
+                json!({"action":"generate","document":document_slice("Hello")}),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let events: Vec<serde_json::Value> = response_body(response)
+            .await
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(events, expected, "{body}");
+    }
+    std::env::remove_var("QUILLAI_AI_API_KEY");
+    std::env::remove_var("QUILLAI_AI_MODEL");
+    std::env::remove_var("QUILLAI_AI_BASE_URL");
+}
+
+#[tokio::test]
+async fn generate_surfaces_provider_rejection_of_stream_options() {
+    let _guard = env_lock().lock().await;
+    let provider = axum::Router::new().route(
+        "/chat/completions",
+        axum::routing::post(
+            |axum::Json(body): axum::Json<serde_json::Value>| async move {
+                assert_eq!(body["stream_options"], json!({"include_usage":true}));
+                (
+                    StatusCode::BAD_REQUEST,
+                    axum::Json(json!({"error":{"message":"stream_options is not supported"}})),
+                )
+            },
+        ),
+    );
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base_url = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move { axum::serve(listener, provider).await.unwrap() });
+    std::env::set_var("QUILLAI_AI_API_KEY", "test-key");
+    std::env::set_var("QUILLAI_AI_MODEL", "test-model");
+    std::env::set_var("QUILLAI_AI_BASE_URL", base_url);
+    let response = quillai_api::app(test_pool().await)
+        .oneshot(json_request(
+            "POST",
+            "/ai/generate",
+            json!({"action":"generate","document":document_slice("Hello")}),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["content-type"], "application/x-ndjson");
+    assert_eq!(
+        json_body(response).await,
+        json!({"type":"error","error":"stream_options is not supported"})
+    );
     server.abort();
     std::env::remove_var("QUILLAI_AI_API_KEY");
     std::env::remove_var("QUILLAI_AI_MODEL");

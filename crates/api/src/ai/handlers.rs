@@ -20,13 +20,17 @@ pub async fn generate(
     let Json(request) = payload.map_err(Error::from_json_rejection)?;
     let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
-    let config = match catalog {
+    let (config, include_usage) = match catalog {
         Some(axum::Extension(catalog)) => {
-            OpenAiCompatibleConfig::from_env_with_model(catalog.resolve(input.action).id.clone())?
+            let model = catalog.resolve(input.action);
+            (
+                OpenAiCompatibleConfig::from_env_with_model(model.id.clone())?,
+                model.include_usage,
+            )
         }
-        None => OpenAiCompatibleConfig::from_env()?,
+        None => (OpenAiCompatibleConfig::from_env()?, true),
     };
-    let provider = OpenAiCompatibleProvider::new(config)?;
+    let provider = OpenAiCompatibleProvider::new(config)?.with_include_usage(include_usage);
     let body_stream = provider
         .stream(input)
         .map(|event| Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event))));

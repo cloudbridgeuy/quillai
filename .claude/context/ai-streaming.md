@@ -103,7 +103,7 @@ Supported event types:
 - `error`
 - `cancelled`
 
-`usage` carries non-negative integer `promptTokens` and `completionTokens`. The provider asks upstream for `stream_options: {"include_usage": true}` and emits `usage` only when the final usage chunk includes both `prompt_tokens` and `completion_tokens`. `total_tokens` is not forwarded. A missing, null, or incomplete usage object emits no `usage` event; the stream still ends with `done` or `error`. An earlier `finish_reason` is kept and written on `done` after usage is read. `[DONE]` or the end of the upstream body completes the response.
+`usage` carries non-negative integer `promptTokens` and `completionTokens`. With per-model `include_usage` enabled (default), the provider asks upstream for `stream_options: {"include_usage": true}`. Disabled models omit `stream_options` entirely and emit no `usage` event, even if upstream sends counts. Both `prompt_tokens` and `completion_tokens` are required; the last complete usage chunk before `[DONE]` wins, including usage received before `finish_reason`. `total_tokens` is not forwarded. Missing, null, or incomplete usage objects are ignored. An earlier `finish_reason` is kept and written on `done` after usage is read. `[DONE]` completes the response and ignores later chunks; EOF completes only after a finish reason. Upstream `"error": null` is ignored; non-null errors end the stream with the existing NDJSON error event. HTTP failures, including providers rejecting `stream_options` with 400, use that same error event without retry.
 
 The browser parser in `app/src/md_editor/ai_stream.ts` accepts `usage`. The editor shell ignores it and does not display token counts. The run still ends on `done`, `error`, `cancelled`, or EOF, so `finishReason` on `done` is kept.
 
@@ -145,7 +145,7 @@ Set `QUILLAI_AI_MODELS_FILE` (or API `--ai-models`) to a JSON catalog:
 
 Prices are per 1M tokens in provider currency. Prices must be finite and non-negative; IDs must be unique, IDs/labels nonblank, and both defaults must name catalog entries. Unknown fields, missing required fields, invalid JSON, and unreadable files fail startup with the file path. An explicitly configured missing file is an error, not a fallback. The file takes precedence over `QUILLAI_AI_MODEL` and is loaded once before database setup. Restart to reload it. Base URL and API key remain shared across all models and are read per request.
 
-`include_usage` is an optional boolean, default true. It is parsed and stored only, reserved for GUZ-786. It does not change request building yet: upstream requests still always send `stream_options.include_usage: true`.
+`include_usage` is an optional boolean, default true. The selected action's model controls upstream usage requests and downstream usage emission. Set false for providers that reject `stream_options`.
 
 With no catalog file, `QUILLAI_AI_MODEL` becomes a one-entry catalog, with its ID as label, zero price placeholders (not known/free pricing), and both action defaults set to it. If neither is configured, the server still starts for non-AI use; AI requests report missing provider configuration. `cargo xtask dev --ai-models models.json` and `cargo xtask e2e --ai-models models.json` pass the file path to the API; the environment variable is also inherited. On `e2e`, put this option before Playwright arguments.
 

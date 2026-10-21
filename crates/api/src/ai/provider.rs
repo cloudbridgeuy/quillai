@@ -47,6 +47,7 @@ impl OpenAiCompatibleConfig {
 pub struct OpenAiCompatibleProvider {
     client: Client,
     config: OpenAiCompatibleConfig,
+    include_usage: bool,
 }
 
 impl OpenAiCompatibleProvider {
@@ -57,7 +58,16 @@ impl OpenAiCompatibleProvider {
     pub fn new(config: OpenAiCompatibleConfig) -> Result<Self, Error> {
         let client = shared_http_client().clone();
 
-        Ok(Self { client, config })
+        Ok(Self {
+            client,
+            config,
+            include_usage: true,
+        })
+    }
+
+    pub fn with_include_usage(mut self, include_usage: bool) -> Self {
+        self.include_usage = include_usage;
+        self
     }
 }
 
@@ -71,9 +81,10 @@ impl AiProvider for OpenAiCompatibleProvider {
     fn stream(&self, input: GenerateInput) -> EventStream {
         let client = self.client.clone();
         let config = self.config.clone();
+        let include_usage = self.include_usage;
 
         Box::pin(stream! {
-            let request_body = ChatCompletionRequest::from_input(config.model.clone(), &input);
+            let request_body = ChatCompletionRequest::from_input(config.model.clone(), include_usage, &input);
             let response = match client
                 .post(format!("{}/chat/completions", config.base_url))
                 .bearer_auth(config.api_key)
@@ -104,7 +115,7 @@ impl AiProvider for OpenAiCompatibleProvider {
             let mut upstream = response.bytes_stream();
             let mut utf8_remainder = Vec::new();
             let mut sse_remainder = String::new();
-            let mut assembler = UpstreamAssembler::new();
+            let mut assembler = UpstreamAssembler::new(include_usage);
 
             while let Some(next_chunk) = upstream.next().await {
                 let chunk = match next_chunk {
@@ -179,20 +190,21 @@ struct StreamOptions {
 struct ChatCompletionRequest {
     model: String,
     stream: bool,
-    stream_options: StreamOptions,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_options: Option<StreamOptions>,
     max_tokens: usize,
     messages: Vec<ChatMessage>,
 }
 
 impl ChatCompletionRequest {
-    fn from_input(model: String, input: &GenerateInput) -> Self {
+    fn from_input(model: String, include_usage: bool, input: &GenerateInput) -> Self {
         let current_turn = build_prompt(input);
         Self {
             model,
             stream: true,
-            stream_options: StreamOptions {
+            stream_options: include_usage.then_some(StreamOptions {
                 include_usage: true,
-            },
+            }),
             max_tokens: input.max_output_tokens,
             messages: chat_messages(input, current_turn),
         }
@@ -271,13 +283,15 @@ enum StreamPayload {
 }
 
 struct UpstreamAssembler {
+    include_usage: bool,
     pending_finish: Option<FinishReason>,
     pending_usage: Option<TokenUsage>,
 }
 
 impl UpstreamAssembler {
-    fn new() -> Self {
+    fn new(include_usage: bool) -> Self {
         Self {
+            include_usage,
             pending_finish: None,
             pending_usage: None,
         }
@@ -292,7 +306,9 @@ impl UpstreamAssembler {
                 false,
             ),
             StreamPayload::Usage(usage) => {
-                self.pending_usage = Some(usage);
+                if self.include_usage {
+                    self.pending_usage = Some(usage);
+                }
                 (Vec::new(), false)
             }
             StreamPayload::Finish(reason) => {
@@ -472,7 +488,7 @@ fn json_u64(value: &Value) -> Option<u64> {
 }
 
 fn extract_provider_error(value: &Value) -> Option<String> {
-    let error = value.get("error")?;
+    let error = value.get("error").filter(|error| !error.is_null())?;
     let message = error
         .get("message")
         .and_then(Value::as_str)
@@ -670,7 +686,7 @@ mod tests {
     }
 
     fn collect_upstream(payloads: &[&str]) -> Vec<StreamEvent> {
-        let mut assembler = UpstreamAssembler::new();
+        let mut assembler = UpstreamAssembler::new(true);
         let owned = payloads
             .iter()
             .map(|payload| (*payload).to_string())
@@ -751,9 +767,12 @@ mod tests {
             max_output_tokens: 777,
         };
 
-        let body =
-            serde_json::to_value(ChatCompletionRequest::from_input("model-a".into(), &input))
-                .unwrap();
+        let body = serde_json::to_value(ChatCompletionRequest::from_input(
+            "model-a".into(),
+            true,
+            &input,
+        ))
+        .unwrap();
 
         assert_eq!(body["model"], "model-a");
         assert_eq!(body["stream"], true);
