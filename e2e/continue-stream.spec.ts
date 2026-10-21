@@ -1,4 +1,5 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expectEditorReady } from "./editor-ready";
 import type Quill from "../app/node_modules/quill";
 import type { LoreMatchEntry } from "../app/src/md_editor/lore_match";
 
@@ -173,7 +174,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await select(0, 3);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await page.keyboard.type("AUTHOR");
   await fragment("AI first");
   await expect(editor.locator("p").nth(1)).toHaveText("AI first");
@@ -252,7 +253,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await page.setViewportSize({ width: 1100, height: 1000 });
   await expect(editor).toHaveAttribute("contenteditable", "false");
   await page.getByRole("button", { name: "Stop AI", exact: true }).click();
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
 });
 
 for (const outcome of [

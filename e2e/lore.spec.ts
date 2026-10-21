@@ -1,4 +1,5 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expectEditorReady } from "./editor-ready";
 
 test("lore remains usable without the Custom Highlight API", async ({ page, request }) => {
   const api = process.env.QUILLAI_E2E_API_URL;
@@ -22,7 +23,7 @@ test("lore remains usable without the Custom Highlight API", async ({ page, requ
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   expect(await page.evaluate(() => typeof Highlight === "undefined" && CSS.highlights === undefined)).toBe(true);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const list = page.getByRole("region", { name: "Lore in window", exact: true });
@@ -70,7 +71,7 @@ for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
-    await expect(editor).toBeEditable();
+    await expectEditorReady(editor);
     await expect(editor).toHaveText(text.trim());
     await expect.poll(() => page.evaluate(() => {
       const highlights = CSS.highlights.get("quillai-lore-known_dont_reveal");
@@ -156,7 +157,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   const lore = page.getByRole("region", { name: "Series lore", exact: true });
   await lore.getByRole("button", { name: "New lore", exact: true }).click();

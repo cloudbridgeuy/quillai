@@ -1,4 +1,5 @@
 import { expect, test, type Page, type APIRequestContext } from "../app/node_modules/@playwright/test/index.js";
+import { expectEditorReady } from "./editor-ready";
 
 async function continueControlTest({ page, request }: { page: Page; request: APIRequestContext }) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -42,7 +43,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   const continueButton = page.locator(".editor-continue");
   await expect(page.getByRole("button", { name: /^Continue/ })).toHaveCount(1);
@@ -86,7 +87,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expect(editor).toContainText("More words.");
   await continueButton.click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await expect(editor).toHaveText("A saved beginning.");
   await expect(continueButton).toHaveAccessibleName("Continue writing");
   await expect(continueButton.locator(".editor-thread-indicator")).toHaveCount(0);
@@ -112,7 +113,7 @@ test("inspector locks System and saves author guidance across reload", async ({ 
   await expect(create).toBeVisible();
   await create.click();
   await page.waitForURL((url) => url.searchParams.has("chapterId"));
-  await expect(page.locator(".ql-editor")).toBeEditable();
+  await expectEditorReady(page.locator(".ql-editor"));
   await page.keyboard.press("Control+]");
   const system = page.getByRole("textbox", { name: "System prompt section", exact: true });
   await expect(system).toHaveAttribute("readonly", "");
@@ -153,7 +154,7 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
   const chapter = await chapterResponse.json();
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await expect(editor).toHaveText("Opening line");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   let submissions = 0;
@@ -258,7 +259,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   const gear = page.getByRole("button", { name: "Settings", exact: true });
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await expect(status).toHaveText("Saved");
-  await expect(editor).toBeEditable();
+  await expectEditorReady(editor);
   await editor.click();
   await editor.evaluate((element) => {
     const text = element.querySelector("p")?.firstChild;

@@ -86,6 +86,7 @@ import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
 import { getApiBaseUrl } from "../../api_config";
 import { parseModelCatalog, resolveModelChoice, type ModelCatalog } from "../model_catalog";
+import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -301,6 +302,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   }
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog | null>(null);
+  const inspectorRunId = useRef(0);
+  const [inspectorRuns, setInspectorRuns] = useState<Record<AiAction, InspectorRun | null>>({ generate: null, edit: null });
   const [modelsPending, setModelsPending] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
@@ -738,6 +741,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
 
       const preparedRequest = buildRequestPreview(action, quill, normalizedSelection);
       const request = preparedRequest.request;
+      const runId = ++inspectorRunId.current;
+      const inspectorRun = beginInspectorRun(runId, modelCatalog, request.model);
+      setInspectorRuns(current => ({ ...current, [action]: inspectorRun }));
       if (action === "generate") {
         setActiveContinueWithThread(buildContextInspector(request).history.length > 0);
       }
@@ -812,6 +818,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           }
 
           if (event.type === "usage") {
+            if (isActiveEditor()) setInspectorRuns(current => ({
+              ...current, [action]: recordInspectorUsage(current[action], runId, event),
+            }));
             continue;
           }
 
@@ -1081,6 +1090,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
       return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
     }
   })();
+
+  const inspectorCost = buildInspectorCost(modelCatalog,
+    resolveModelChoice(modelCatalog, inspectorAction, inspectorAction === "edit" ? threadState.settings.editModel : threadState.settings.continueModel),
+    typeof contextInspector === "string" ? null : contextInspector.totalTokens, inspectorRuns[inspectorAction]);
 
   const windowSettings = <>
     <label className="editor-field">
@@ -1383,6 +1396,21 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           <p className="editor-note">
             Edit content for the next selected request. Tagged content is escaped; section tags and selection ranges stay fixed. History keeps separate speaker turns. Overrides reset after accepted sends or chapter changes. Limits: 65,536 UTF-8 bytes per section, 262,144 total.
           </p>
+          <section className="editor-inspector-cost" aria-label="Model and cost">
+            <h3>Pending estimate</h3>
+            <dl>
+              <dt>Model</dt><dd>{inspectorCost.model}</dd>
+              <dt>Estimated input cost</dt><dd>{inspectorCost.estimate}</dd>
+              <dt>Output rate</dt><dd>{inspectorCost.outputRate}</dd>
+            </dl>
+            <h3>Most recent run · actual</h3>
+            <dl>
+              <dt>Request model</dt><dd>{inspectorCost.actualModel}</dd>
+              <dt>Observed usage</dt><dd>{inspectorCost.usage}</dd>
+              <dt>Actual cost</dt><dd>{inspectorCost.actual}</dd>
+            </dl>
+            <p className="editor-note">Observed usage only, not a final bill. No cache discount assumed.</p>
+          </section>
           {typeof contextInspector === "string" ? (
             <p className="editor-note">{contextInspector}</p>
           ) : (

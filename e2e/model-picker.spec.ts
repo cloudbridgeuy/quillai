@@ -1,4 +1,5 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expectEditorReady } from "./editor-ready";
 
 for (const available of [true, false]) {
   test(`per-action models ${available ? "persist and reach requests" : "fail safely without model"}`, async ({ page, request }) => {
@@ -15,7 +16,7 @@ for (const available of [true, false]) {
     await page.route(`${apiUrl}/ai/generate`, async (route) => {
       bodies.push(route.request().postDataJSON());
       await route.fulfill({ contentType: "application/x-ndjson", body:
-        `${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "Revised" }] } })}\n${JSON.stringify({ type: "done", finishReason: "stop" })}\n` });
+        `${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "Revised" }] } })}\n${JSON.stringify({ type: "usage", promptTokens: 1000, completionTokens: 500 })}\n${JSON.stringify({ type: "done", finishReason: "stop" })}\n` });
     });
     const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: "Models series", position: 0 } });
     expect(seriesResponse.status()).toBe(201);
@@ -42,7 +43,7 @@ for (const available of [true, false]) {
       await drawer.getByText("Advanced AI controls", { exact: true }).click();
     }
     await expect(status).toHaveText("Saved");
-    await expect(editor).toBeEditable();
+    await expectEditorReady(editor);
     await openModels();
     if (available) {
       await expect(continueModel).toHaveValue(models[0]!.id);
@@ -167,6 +168,12 @@ for (const available of [true, false]) {
     await page.locator(".editor-continue").click();
     await expect(editor).toContainText("Revised");
     await expect(status).toHaveText("Saved");
+    await contextButton.click();
+    const cost = drawer.getByRole("region", { name: "Model and cost", exact: true });
+    await cost.scrollIntoViewIfNeeded();
+    await expect(cost.getByText("1000 input · 500 output tokens", { exact: true })).toBeVisible();
+    await expect(cost.locator("dd").last()).toHaveText(available ? "$0.005" : "unknown — unresolved model");
+    await contextButton.click();
     await editor.click();
     await editor.evaluate((element) => {
       const text = element.querySelector("p")?.firstChild;
@@ -193,6 +200,17 @@ for (const available of [true, false]) {
       expect(bodies.map(({ model }) => model)).toEqual([models[1]!.id, models[0]!.id]);
     } else {
       for (const body of bodies) expect(body).not.toHaveProperty("model");
+    }
+    await contextButton.click();
+    await drawer.getByRole("combobox", { name: "Request to inspect", exact: true }).selectOption("edit");
+    for (const width of [1100, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await cost.scrollIntoViewIfNeeded();
+      await expect(cost.getByRole("heading", { name: "Pending estimate", exact: true })).toBeVisible();
+      await expect(cost.getByRole("heading", { name: "Most recent run · actual", exact: true })).toBeVisible();
+      await expect(cost.getByText("1000 input · 500 output tokens", { exact: true })).toBeVisible();
+      await expect(cost.locator("dd").last()).toHaveText(available ? "$0.001" : "unknown — unresolved model");
+      await page.screenshot({ path: `../target/guz-681/${available ? "cost" : "unknown"}-${width}.png` });
     }
   });
 }

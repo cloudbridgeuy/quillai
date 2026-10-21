@@ -1,4 +1,5 @@
 import { expect, test, type Page, type APIRequestContext } from "../app/node_modules/@playwright/test/index.js";
+import { expectEditorReady } from "./editor-ready";
 
 async function openChapter(page: Page, request: APIRequestContext) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -101,7 +102,7 @@ for (const width of [1100, 1440]) {
       }
       await expect(settings).toBeHidden();
       await expect(stop).toBeVisible();
-      await expect(editor).toBeEditable();
+      await expectEditorReady(editor);
       await select(page, 2, 5);
       await page.keyboard.type(" AUTHOR");
       await send(page, { type: "delta", delta: { ops: [{ insert: " tail" }] } });
@@ -134,7 +135,7 @@ for (const width of [1100, 1440]) {
       await send(page, { type: failure.type });
       await expect(page.getByText(failure.message, { exact: true })).toBeVisible();
       await expect(stop).toBeHidden();
-      await expect(editor).toBeEditable();
+      await expectEditorReady(editor);
       await expect(editor).toHaveText("Opening paragraphKEPTLater paragraph");
       expect(await page.evaluate(() => CSS.highlights.get("quillai-stream")?.size)).toBe(0);
       await page.keyboard.type(" MORE");

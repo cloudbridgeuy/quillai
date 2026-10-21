@@ -55,6 +55,8 @@ Backend CORS defaults to `http://localhost:3001` and `http://127.0.0.1:3001`. Re
 
 ## Browser Smoke Sandbox
 
+Quill readiness checks use `e2e/editor-ready.ts`: await `contenteditable="true"` before asserting editable. During chapter load Quill is disabled; Playwright's editable assertion can reject that state immediately rather than poll. Keep default assertion timeouts and retain the final editable check.
+
 `model-picker.spec.ts` is in the Playwright allowlist. It mocks GET /ai/models and POST /ai/generate, selects different Continue/Edit IDs, reloads to prove persistence, and checks both request bodies. The HTTP failure case checks disabled selects and omitted `model` for both actions. Screenshots at 1100px and 1440px go to `target/guz-680/`.
 
 The right drawer uses two font sizes: 12px labels, small-caps eyebrows, and existing mono prompt text; 13px body, controls, help, summaries, and note placeholders. Story Context, Instruction, Thread continuation prompt, and author guidance reuse the yellow `StickyNote`; read-only prompt fields remain plain. Desktop drawers span the viewport with internal scrolling and contained scroll chaining. Browser coverage checks typography, shared note styling, and top/bottom geometry before and after internal scrolling at 1100px and 1440px. `drawer-top-*.png` and `drawer-bottom-*.png` capture the viewport, not a full document image that extends below a fixed drawer.
@@ -108,18 +110,20 @@ Both actions use series lore loaded by `manuscripts/use_lore.ts` through the par
 
 ## Stream Contract Expectations
 
-The frontend expects NDJSON events with Quill-delta payloads, but the editor shell currently accepts text inserts only from streamed `delta` events. Non-text embed inserts are rejected at the shell boundary, and request slices containing embeds are rejected before `fetch` starts. `ai_stream.ts` accepts a `usage` event with integer `promptTokens` and `completionTokens`. Continue and Edit ignore it and do not display token counts. The run still ends only on `done`, `error`, `cancelled`, or EOF, so `finishReason` on the following `done` is kept.
+The frontend expects NDJSON events with Quill-delta payloads, but the editor shell currently accepts text inserts only from streamed `delta` events. Non-text embed inserts are rejected at the shell boundary, and request slices containing embeds are rejected before `fetch` starts. `ai_stream.ts` accepts a `usage` event with integer `promptTokens` and `completionTokens`. Continue and Edit retain the latest usage for their most recent request. The run still ends only on `done`, `error`, `cancelled`, or EOF, so `finishReason` on the following `done` is kept.
 
 ## Actual Usage Cost Policy
 
-`cost.ts` is a pure helper, not connected to the editor UI. Call `snapshotCostPricing(catalog, identity)` at request time, then pass that snapshot and the request's observed parsed events to `calculateActualCost`. Keep events scoped to one request.
+`cost.ts` remains the pure actual-cost helper. The editor takes `snapshotCostPricing(catalog, identity)` at request time and the inspector passes that snapshot and the request's latest observed usage to `calculateActualCost`. Each action retains only its most recent run; a new run clears its prior actual, and unique run IDs reject stale usage. Catalog-resolved defaults are sent explicitly; catalog failure leaves `model` omitted and model/cost unknown.
+
+The inspector separates Pending estimate from Most recent run · actual. Pending cost is estimated input tokens times input price, labelled ≈ and input only; output is a per-million rate, never a guessed count. Estimates never enter actual calculation. Actual retains the request's model label and prices even when pending settings change. Display rounds exact USD to four decimal places, with `<$0.0001` for tiny nonzero amounts; unknown includes a short reason, never zero. Observed usage is not a final bill. `inspector_cost.test.ts` covers estimates, all cost unknown reasons, snapshot isolation, zero, rounding, and stale-run rejection. `model-picker.spec.ts` emits usage before done and checks both actions and catalog failure, with `target/guz-681/{cost,unknown}-{1100,1440}.png` screenshots.
 
 1. Missing usage means `unknown`, not zero. Explicit valid zero counts or free prices produce known zero. Counts must be nonnegative safe integers, at most 1 billion per direction: a conservative per-request sanity ceiling, not a provider limit.
 2. USD is an exact reduced bigint `numerator / denominator`, not a floating dollar field. Prices use canonical `Number.toString()` decimal values, including scientific notation; input and output are summed without rounding. Precision already lost before catalog parsing cannot be recovered. Round only at a future display boundary; bigint needs explicit conversion for JSON.
 3. Identity must name the model actually sent or authoritatively resolved. Omitted server-default requests remain `server-default-unresolved`; never infer identity from mutable catalog defaults. Missing models/catalogs and invalid prices return explicit unknown reasons. The snapshot copies both prices, so later catalog edits cannot reprice a request.
 4. Usage events are cumulative snapshots: last usage wins, never sum them. An invalid latest snapshot makes cost unknown, even after valid earlier usage.
 5. Stop, cancellation, error, premature EOF, and length completion do not invent or remove usage. Known cost always has `coverage: observed-usage`, including normal completion; it is not a final provider invoice or proof of complete billing coverage.
-6. Only usage-tagged actual counts enter calculation; untagged prompt estimates cannot satisfy its event type. Apply the catalog's standard input/output prices. Current contracts expose no cache-token breakdown or cache rates, so no cache discount is assumed. No estimates, API changes, or UI behavior are added.
+6. Only usage-tagged actual counts enter calculation; untagged prompt estimates cannot satisfy its event type. Apply the catalog's standard input/output prices. Current contracts expose no cache-token breakdown or cache rates, so no cache discount is assumed. Pending estimates remain separate UI-only values; no API changes.
 
 `cost.test.ts` covers all six rules and decimal/scientific extremes, count bounds, invalid rates, snapshot isolation, and exact aggregation.
 

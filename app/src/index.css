@@ -518,6 +518,26 @@ button {
   color: var(--slate);
 }
 
+.editor-inspector-cost {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.editor-inspector-cost h3,
+.editor-inspector-cost dt {
+  font-size: 12px;
+}
+
+.editor-inspector-cost dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 6px 12px;
+}
+
+.editor-inspector-cost dd {
+  margin: 0;
+}
+
 .editor-context-inspector {
   grid-row: 1;
   font: 13px/1.5 var(--sans);
