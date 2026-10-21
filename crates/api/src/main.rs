@@ -13,6 +13,10 @@ async fn main() -> Result<()> {
 
     quillai_log::init_simple_logger(args.log_level)?;
 
+    let fallback_model = std::env::var("QUILLAI_AI_MODEL").ok();
+    let catalog =
+        quillai_api::ai::catalog::load(args.ai_models.as_deref(), fallback_model.as_deref())?;
+
     let options = args
         .db_url
         .parse::<SqliteConnectOptions>()?
@@ -27,6 +31,10 @@ async fn main() -> Result<()> {
         .context("Failed to run database migrations")?;
 
     let app = quillai_api::app_with_cors(pool, args.cors_origin);
+    let app = match catalog {
+        Some(catalog) => app.layer(axum::Extension(std::sync::Arc::new(catalog))),
+        None => app,
+    };
 
     let mut listenfd = ListenFd::from_env();
     let listener = match listenfd.take_tcp_listener(0)? {

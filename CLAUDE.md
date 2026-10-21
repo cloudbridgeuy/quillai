@@ -27,6 +27,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 | Lint and tests (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
 | Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`) | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
+| AI model catalog | `cargo xtask dev --ai-models models.json` (also `e2e` and API `--ai-models`; env `QUILLAI_AI_MODELS_FILE`) | `crates/api/src/ai/catalog.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
 API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
@@ -46,7 +47,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
 | `prelude.rs` | Re-exports Error and Result |
-| `ai/` | Rich AI request parsing, prompt building, OpenAI-compatible SSE streaming with `stream_options.include_usage`, and NDJSON output that emits `usage` before `done` when the provider sends token counts. See [AI streaming context](.claude/context/ai-streaming.md) |
+| `ai/` | Startup JSON model catalog with per-action defaults and legacy `QUILLAI_AI_MODEL` fallback (`catalog.rs`), rich request parsing, prompt building, OpenAI-compatible SSE streaming with `stream_options.include_usage`, and NDJSON usage before done. Catalog `include_usage` is stored only, reserved for GUZ-786. See [AI streaming context](.claude/context/ai-streaming.md) |
 | `users/` | Users CRUD module — models, handlers, route wiring. See [users CRUD context](.claude/context/users-crud.md) |
 | `settings/` | Singleton author guidance models, UTF-8 byte validation, GET/PUT handlers, and shared server-side AI loading. |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |

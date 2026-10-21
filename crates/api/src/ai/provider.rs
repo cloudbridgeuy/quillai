@@ -30,9 +30,13 @@ pub struct OpenAiCompatibleConfig {
 
 impl OpenAiCompatibleConfig {
     pub fn from_env() -> Result<Self, Error> {
+        Self::from_env_with_model(read_required_env("QUILLAI_AI_MODEL")?)
+    }
+
+    pub fn from_env_with_model(model: String) -> Result<Self, Error> {
         Ok(Self {
             api_key: read_required_env("QUILLAI_AI_API_KEY")?,
-            model: read_required_env("QUILLAI_AI_MODEL")?,
+            model,
             base_url: read_optional_env("QUILLAI_AI_BASE_URL")
                 .unwrap_or_else(|| DEFAULT_OPENAI_BASE_URL.into()),
         })

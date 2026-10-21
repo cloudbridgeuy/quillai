@@ -7,18 +7,26 @@ use axum::response::Response;
 use axum::Json;
 use futures_util::StreamExt;
 
+use super::catalog::ModelCatalog;
 use super::models::{event_to_ndjson_line, GenerateInput, GenerateRequest};
-use super::provider::{AiProvider, OpenAiCompatibleProvider};
+use super::provider::{AiProvider, OpenAiCompatibleConfig, OpenAiCompatibleProvider};
 use crate::error::Error;
 
 pub async fn generate(
     axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,
+    catalog: Option<axum::Extension<std::sync::Arc<ModelCatalog>>>,
     payload: Result<Json<GenerateRequest>, JsonRejection>,
 ) -> Result<Response, Error> {
     let Json(request) = payload.map_err(Error::from_json_rejection)?;
     let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
-    let provider = OpenAiCompatibleProvider::from_env()?;
+    let config = match catalog {
+        Some(axum::Extension(catalog)) => {
+            OpenAiCompatibleConfig::from_env_with_model(catalog.resolve(input.action).id.clone())?
+        }
+        None => OpenAiCompatibleConfig::from_env()?,
+    };
+    let provider = OpenAiCompatibleProvider::new(config)?;
     let body_stream = provider
         .stream(input)
         .map(|event| Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event))));

@@ -73,6 +73,9 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     api.env("SQLX_OFFLINE", "true");
     api.args(["--host", "127.0.0.1", "--port", &api_port.to_string()]);
     api.args(["--cors-origin", &app_url]);
+    if let Some(path) = args.ai_models {
+        api.arg("--ai-models").arg(path);
+    }
     api.arg("--db-url")
         .arg(format!("sqlite://{}", database.path().display()));
     children
@@ -240,6 +243,10 @@ mod tests {
         let args = E2eArgs::try_parse_from(["e2e", "chapter-sync.spec.ts", "--list"]).unwrap();
         assert_eq!(args.port, None);
         assert_eq!(args.playwright_args, ["chapter-sync.spec.ts", "--list"]);
+        let args =
+            E2eArgs::try_parse_from(["e2e", "--ai-models", "models.json", "--headed"]).unwrap();
+        assert_eq!(args.ai_models, Some(PathBuf::from("models.json")));
+        assert_eq!(args.playwright_args, ["--headed"]);
         assert!(E2eArgs::try_parse_from(["e2e", "--port", "0"]).is_err());
         assert!(E2eArgs::try_parse_from(["e2e", "--port", "65536"]).is_err());
     }

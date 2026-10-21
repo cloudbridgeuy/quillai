@@ -10,6 +10,7 @@ The feature follows Functional Core and Imperative Shell.
 
 **Functional Core**:
 - `models.rs` parses request JSON into typed `GenerateInput` values.
+- `catalog.rs` parses JSON model catalogs and resolves each action to a configured model without I/O.
 - `prompt.rs` builds the provider prompt from the document text, selection text, story context, injected lore, and instruction.
 - `segments.rs` owns the minimal Quill-delta contract and sanitization rules.
 - provider parsing helpers in `provider.rs` decode UTF-8 chunks, split SSE events, and extract text deltas.
@@ -126,10 +127,27 @@ The current provider uses direct `reqwest` HTTP instead of `rig` so the code kee
 - UTF-8 chunk boundaries
 - cancellation and error translation
 
-Required env vars:
+Required provider env var:
 
 - `QUILLAI_AI_API_KEY`
-- `QUILLAI_AI_MODEL`
+
+Set `QUILLAI_AI_MODELS_FILE` (or API `--ai-models`) to a JSON catalog:
+
+```json
+{
+  "models": [
+    {"id": "fast-model", "label": "Fast", "input_price_per_million": 0.1, "output_price_per_million": 0.2},
+    {"id": "edit-model", "label": "Edit", "input_price_per_million": 1, "output_price_per_million": 2, "include_usage": false}
+  ],
+  "defaults": {"generate": "fast-model", "edit": "edit-model"}
+}
+```
+
+Prices are per 1M tokens in provider currency. Prices must be finite and non-negative; IDs must be unique, IDs/labels nonblank, and both defaults must name catalog entries. Unknown fields, missing required fields, invalid JSON, and unreadable files fail startup with the file path. An explicitly configured missing file is an error, not a fallback. The file takes precedence over `QUILLAI_AI_MODEL` and is loaded once before database setup. Restart to reload it. Base URL and API key remain shared across all models and are read per request.
+
+`include_usage` is an optional boolean, default true. It is parsed and stored only, reserved for GUZ-786. It does not change request building yet: upstream requests still always send `stream_options.include_usage: true`.
+
+With no catalog file, `QUILLAI_AI_MODEL` becomes a one-entry catalog, with its ID as label, zero price placeholders (not known/free pricing), and both action defaults set to it. If neither is configured, the server still starts for non-AI use; AI requests report missing provider configuration. `cargo xtask dev --ai-models models.json` and `cargo xtask e2e --ai-models models.json` pass the file path to the API; the environment variable is also inherited. On `e2e`, put this option before Playwright arguments.
 
 Optional env var:
 

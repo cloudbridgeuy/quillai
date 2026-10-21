@@ -44,6 +44,9 @@ pub enum Commands {
 
 #[derive(Debug, Parser)]
 pub struct E2eArgs {
+    #[arg(long)]
+    ai_models: Option<std::path::PathBuf>,
+
     #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
     port: Option<u16>,
 
@@ -67,6 +70,9 @@ pub struct DevArgs {
 
     #[clap(long)]
     ai_model: Option<String>,
+
+    #[clap(long)]
+    ai_models: Option<std::path::PathBuf>,
 
     #[clap(long)]
     ai_base_url: Option<String>,
@@ -306,6 +312,7 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
     children.children.push(spawn_api(
         args.api_port,
         args.ai_model.as_deref(),
+        args.ai_models.as_deref(),
         args.ai_base_url.as_deref(),
         tx.clone(),
     )?);
@@ -347,6 +354,7 @@ fn ensure_app_dependencies() -> Result<(), Box<dyn Error>> {
 fn spawn_api(
     port: u16,
     ai_model: Option<&str>,
+    ai_models: Option<&std::path::Path>,
     ai_base_url: Option<&str>,
     tx: Sender<SupervisorEvent>,
 ) -> Result<ManagedChild, Box<dyn Error>> {
@@ -364,6 +372,10 @@ fn spawn_api(
 
     if let Some(model) = ai_model {
         command.env("QUILLAI_AI_MODEL", model);
+    }
+
+    if let Some(path) = ai_models {
+        command.arg("--ai-models").arg(path);
     }
 
     if let Some(base_url) = ai_base_url {

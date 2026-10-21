@@ -95,7 +95,7 @@ async fn spawn_mock_provider(
 }
 
 #[tokio::test]
-async fn saved_guidance_and_lore_reach_provider_escaped_after_locked_system() {
+async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_lore() {
     let _guard = env_lock().lock().await;
     let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel::<serde_json::Value>();
     let provider = axum::Router::new()
@@ -116,9 +116,17 @@ async fn saved_guidance_and_lore_reach_provider_escaped_after_locked_system() {
     let base_url = format!("http://{}", listener.local_addr().unwrap());
     let server = tokio::spawn(async move { axum::serve(listener, provider).await.unwrap() });
     std::env::set_var("QUILLAI_AI_API_KEY", "test-key");
-    std::env::set_var("QUILLAI_AI_MODEL", "test-model");
+    std::env::remove_var("QUILLAI_AI_MODEL");
     std::env::set_var("QUILLAI_AI_BASE_URL", base_url);
-    let app = quillai_api::app(test_pool().await);
+    let catalog = quillai_api::ai::catalog::ModelCatalog::parse(&json!({
+        "models": [
+            {"id":"generate-model","label":"Generate","input_price_per_million":0.1,"output_price_per_million":0.2},
+            {"id":"edit-model","label":"Edit","input_price_per_million":1,"output_price_per_million":2,"include_usage":false}
+        ],
+        "defaults":{"generate":"generate-model","edit":"edit-model"}
+    }).to_string()).unwrap();
+    let app =
+        quillai_api::app(test_pool().await).layer(axum::Extension(std::sync::Arc::new(catalog)));
     let saved = app
         .clone()
         .oneshot(json_request(
@@ -151,6 +159,8 @@ async fn saved_guidance_and_lore_reach_provider_escaped_after_locked_system() {
         assert_eq!(response.status(), StatusCode::OK);
         assert!(response_body(response).await.contains("done"));
         let body = receiver.recv().await.unwrap();
+        assert_eq!(body["model"], format!("{action}-model"));
+        assert_eq!(body["stream_options"]["include_usage"], true);
         assert_eq!(
             body["messages"][0],
             json!({"role": "system", "content": "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."})
@@ -169,6 +179,23 @@ async fn saved_guidance_and_lore_reach_provider_escaped_after_locked_system() {
         assert!(!prompt.contains("OMITTED"));
         assert!(!prompt.contains("NEVER SENT"));
         assert_eq!(body["messages"].as_array().unwrap().len(), 3);
+    }
+    std::env::set_var("QUILLAI_AI_MODEL", "legacy-model");
+    let legacy_model = std::env::var("QUILLAI_AI_MODEL").unwrap();
+    let fallback = quillai_api::ai::catalog::load(None, Some(&legacy_model))
+        .unwrap()
+        .unwrap();
+    let app =
+        quillai_api::app(test_pool().await).layer(axum::Extension(std::sync::Arc::new(fallback)));
+    for action in ["generate", "edit"] {
+        let response = app.clone().oneshot(json_request(
+            "POST",
+            "/ai/generate",
+            json!({"action":action,"document":document_slice("Hello"),"selection":selection_slice("Hello",0,5)}),
+        )).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response_body(response).await.contains("done"));
+        assert_eq!(receiver.recv().await.unwrap()["model"], "legacy-model");
     }
     server.abort();
     std::env::remove_var("QUILLAI_AI_API_KEY");
