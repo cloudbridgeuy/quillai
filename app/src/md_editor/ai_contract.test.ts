@@ -12,6 +12,45 @@ const documentSlice = {
   text: "Opening line.",
 };
 
+test("buildAiRequest includes a supplied model unchanged for both actions", () => {
+  for (const action of ["generate", "edit"] as const) {
+    for (const model of ["alternate-model", "", " alternate-model "]) {
+      const request = buildAiRequest({
+        action,
+        model,
+        document: documentSlice,
+        window: { start: 0, end: 13 },
+        selection: {
+          delta: { ops: [{ insert: "Opening" }] },
+          text: "Opening",
+          range: { index: 0, length: 7 },
+        },
+      });
+      expect(request).toHaveProperty("model", model);
+      expect(JSON.parse(JSON.stringify(request))).toHaveProperty("model", model);
+    }
+  }
+});
+
+test("buildAiRequest omits absent or undefined model for both actions", () => {
+  for (const action of ["generate", "edit"] as const) {
+    const input = {
+      action,
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: {
+        delta: { ops: [{ insert: "Opening" }] },
+        text: "Opening",
+        range: { index: 0, length: 7 },
+      },
+    };
+    for (const request of [buildAiRequest(input), buildAiRequest({ ...input, model: undefined })]) {
+      expect(request).not.toHaveProperty("model");
+      expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty("model");
+    }
+  }
+});
+
 test("buildAiRequest creates a generate payload with null optional fields", () => {
   expect(
     buildAiRequest({

@@ -54,6 +54,7 @@ export type AiHistoryMessage = {
 };
 
 type BuildAiRequestBase = {
+  model?: string;
   loreEntries?: readonly LoreMatchEntry[];
   maxLoreCharacters?: number;
   sectionOverrides?: PromptSectionOverrides;
@@ -79,6 +80,7 @@ export type BuildAiEditRequestInput = BuildAiRequestBase & {
 export type BuildAiRequestInput = BuildAiGenerateRequestInput | BuildAiEditRequestInput;
 
 export type AiGenerateRequest = {
+  model?: string;
   lore?: AiLoreEntry[];
   sectionOverrides?: PromptSectionOverrides;
   action: AiAction;
@@ -126,6 +128,7 @@ export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
   );
 
   return {
+    ...(input.model !== undefined ? { model: input.model } : {}),
     ...(lore ? { lore } : {}),
     ...(input.sectionOverrides && Object.keys(input.sectionOverrides).length > 0
       ? { sectionOverrides: { ...input.sectionOverrides } } : {}),

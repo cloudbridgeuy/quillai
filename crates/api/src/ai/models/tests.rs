@@ -535,3 +535,28 @@ fn ndjson_line_serializes_done_finish_reason_in_camel_case() {
     let value: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
     assert_eq!(value, json!({ "type": "done", "finishReason": "length" }));
 }
+
+#[test]
+fn generate_request_parses_model_without_validation() {
+    let mut request = json!({
+        "action": "generate",
+        "document": {"delta": {"ops": [{"insert": "Hello"}]}, "text": "Hello"},
+    });
+    let parsed: GenerateRequest = serde_json::from_value(request.clone()).unwrap();
+    assert_eq!(parsed.model, None);
+
+    for model in [
+        json!("alternate-model"),
+        json!(" alternate-model "),
+        json!(""),
+        json!(null),
+        json!(42),
+        json!(true),
+        json!([]),
+        json!({"id": "alternate-model"}),
+    ] {
+        request["model"] = model.clone();
+        let parsed: GenerateRequest = serde_json::from_value(request.clone()).unwrap();
+        assert_eq!(parsed.model, Some(model));
+    }
+}
