@@ -514,6 +514,7 @@ button {
 
 .editor-context-inspector {
   grid-row: 1;
+  font: 13px/1.5 var(--sans);
 }
 
 .editor-context-inspector .editor-thread-card {
@@ -820,6 +821,24 @@ button {
   color: var(--graphite);
 }
 
+.editor-context-inspector :is(.editor-input, .editor-button, .editor-note, .editor-thread-card, summary) {
+  font-size: 13px;
+}
+
+.editor-context-inspector .editor-field > span,
+.editor-context-inspector .editor-thread-label,
+.editor-context-inspector .editor-preview-section-header > span,
+.editor-context-inspector small {
+  font-size: 12px;
+}
+
+.editor-context-inspector :is(h2, h3, h4, .editor-thread-label) {
+  font: 600 12px var(--sans);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
 .editor-advanced-section {
   display: grid;
   grid-template-columns: minmax(9rem, 0.35fr) minmax(0, 1fr);
@@ -963,8 +982,10 @@ button {
     top: 0;
     bottom: 0;
     width: 300px;
+    height: 100dvh;
     max-height: none;
     overflow: auto;
+    overscroll-behavior-y: contain;
     overflow-wrap: anywhere;
   }
 

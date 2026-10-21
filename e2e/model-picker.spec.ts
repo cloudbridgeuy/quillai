@@ -65,10 +65,42 @@ for (const available of [true, false]) {
     }
     for (const width of [1100, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
+      await expect(drawer).toHaveCSS("overflow-y", "auto");
+      await expect(drawer).toHaveCSS("overscroll-behavior-y", "contain");
+      for (const name of ["Story Context", "Instruction", "Thread continuation prompt", "Author guidance"]) {
+        const note = drawer.getByRole("textbox", { name, exact: true });
+        await expect(note).toHaveClass(/editor-sticky-note/);
+        await expect(note).toHaveCSS("background-color", "rgb(244, 232, 181)");
+        await expect(note).toHaveCSS("border-top-width", "0px");
+        await expect(note).toHaveCSS("font-size", "13px");
+        expect(await note.evaluate(node => getComputedStyle(node, "::placeholder").fontSize)).toBe("13px");
+      }
+      for (const name of ["Story Context", "Instruction", "Continue model", "Max Output Tokens"]) {
+        await expect(drawer.locator(".editor-field > span").filter({ hasText: new RegExp(`^${name}$`) }))
+          .toHaveCSS("font-size", "12px");
+      }
+      const sizes = await drawer.evaluate(element => [...new Set([...element.querySelectorAll("*")]
+        .filter(node => node.getClientRects().length > 0 && (node.matches("input, select, textarea") ||
+          [...node.childNodes].some(child => child.nodeType === Node.TEXT_NODE && child.textContent?.trim())))
+        .map(node => getComputedStyle(node).fontSize))].sort());
+      expect(sizes).toEqual(["12px", "13px"]);
+      await expect(drawer.getByRole("textbox", { name: "System prompt section", exact: true })).toHaveAttribute("readonly", "");
+      await expect(drawer.getByRole("textbox", { name: "System prompt section", exact: true })).not.toHaveClass(/editor-sticky-note/);
+      await drawer.evaluate(node => { node.scrollTop = 0; });
+      expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom })))
+        .toEqual({ top: 0, bottom: 1000 });
+      if (available) await page.screenshot({ path: `../target/guz-680/drawer-top-${width}.png` });
       await drawer.locator(".editor-advanced-section").scrollIntoViewIfNeeded();
       await expect(continueModel).toBeInViewport();
       await expect(editModel).toBeInViewport();
-      await page.screenshot({ path: `../target/guz-680/${available ? "models" : "unavailable"}-${width}.png`, fullPage: true });
+      await page.screenshot({ path: `../target/guz-680/${available ? "models" : "unavailable"}-${width}.png` });
+      const pageScroll = await page.evaluate(() => window.scrollY);
+      await drawer.evaluate(node => { node.scrollTop = node.scrollHeight; });
+      expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom,
+        atBottom: Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop) <= 1 })))
+        .toEqual({ top: 0, bottom: 1000, atBottom: true });
+      expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
+      if (available) await page.screenshot({ path: `../target/guz-680/drawer-bottom-${width}.png` });
     }
     await page.getByRole("button", { name: "Close context", exact: true }).click();
     await editor.click();

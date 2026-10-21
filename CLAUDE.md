@@ -82,9 +82,9 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `index.html` | HTML shell, loads frontend.tsx |
 | `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
-| `components/StickyNote.tsx` | Shared native textarea with yellow guidance and pink Edit styling; forwards native props and ref. Only the rail Edit selection control opens the pink note. Enter and Apply share selection/readiness checks; Shift+Enter adds a newline and Esc cancels. Guidance saves explicitly. |
+| `components/StickyNote.tsx` | Shared native textarea with yellow Story Context, Instruction, Thread continuation prompt, and author guidance styling; pink remains the rail Edit note. Forwards native props and ref. Enter and Apply share selection/readiness checks; Shift+Enter adds a newline and Esc cancels. Guidance saves explicitly. |
 | `frontend.tsx` | React root setup, CSS import, StrictMode |
-| `index.css` | Tailwind + editor shell layout, white paper/desk theme tokens and type, and responsive styling |
+| `index.css` | Tailwind + editor shell layout, white paper/desk theme tokens and responsive styling. Right drawer uses 12px labels/eyebrows and 13px body/controls/placeholders, retaining 12px mono prompt text. Desktop drawers span 100dvh with contained internal scrolling. |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/ai_contract.ts` | Pure AI request contract with optional model ID pass-through (absent when omitted), visible-only matched lore assembly, and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
 | `md_editor/model_catalog.ts` | Pure public catalog parsing and per-action model resolution. The right drawer's Advanced AI controls offer persisted Continue/Edit selects from GET /ai/models; missing/unknown IDs use server action defaults. Failed/empty catalogs disable selects and omit model from requests. |

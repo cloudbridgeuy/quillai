@@ -1282,8 +1282,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}
         <label className="editor-field editor-field-full">
           <span>Story Context</span>
-          <textarea
-            className="editor-textarea"
+          <StickyNote
+            tone="yellow"
             value={storyContext}
             onChange={(event) => setStoryContext(event.target.value)}
             placeholder="Series premise, tone, point of view, or scene notes"
@@ -1295,8 +1295,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         <div className="editor-controls-grid">
           <label className="editor-field editor-field-grow">
             <span>Instruction</span>
-            <textarea
-              className="editor-textarea editor-textarea-compact"
+            <StickyNote
+              tone="yellow"
               value={instruction}
               onChange={(event) => setInstructionAndResetThread(event.target.value)}
               placeholder="Continue the scene, tighten the selected paragraph, sharpen dialogue..."
@@ -1357,7 +1357,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
             </label>
             <label className="editor-field">
               <span>Thread continuation prompt</span>
-              <textarea className="editor-textarea" rows={2} value={threadState.settings.resumePrompt} disabled={isBusy}
+              <StickyNote tone="yellow" rows={2} value={threadState.settings.resumePrompt} disabled={isBusy}
                 onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                   resumePrompt: event.target.value,
                 }))} />
