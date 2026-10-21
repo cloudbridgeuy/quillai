@@ -33,6 +33,7 @@ for (const available of [true, false]) {
     const status = page.getByRole("status", { name: "Chapter save status", exact: true });
     const editor = page.locator(".ql-editor");
     const drawer = page.locator("#context-drawer");
+    const scrollArea = drawer.locator(".editor-context-body");
     const continueModel = drawer.getByRole("combobox", { name: "Continue model", exact: true });
     const editModel = drawer.getByRole("combobox", { name: "Edit model", exact: true });
     async function openModels() {
@@ -65,8 +66,10 @@ for (const available of [true, false]) {
     }
     for (const width of [1100, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
-      await expect(drawer).toHaveCSS("overflow-y", "auto");
+      await expect(drawer).toHaveCSS("overflow-y", "hidden");
       await expect(drawer).toHaveCSS("overscroll-behavior-y", "contain");
+      await expect(scrollArea).toHaveCSS("overflow-y", "auto");
+      await expect(scrollArea).toHaveCSS("overscroll-behavior-y", "contain");
       for (const name of ["Story Context", "Instruction", "Thread continuation prompt", "Author guidance"]) {
         const note = drawer.getByRole("textbox", { name, exact: true });
         await expect(note).toHaveClass(/editor-sticky-note/);
@@ -86,20 +89,52 @@ for (const available of [true, false]) {
       expect(sizes).toEqual(["12px", "13px"]);
       await expect(drawer.getByRole("textbox", { name: "System prompt section", exact: true })).toHaveAttribute("readonly", "");
       await expect(drawer.getByRole("textbox", { name: "System prompt section", exact: true })).not.toHaveClass(/editor-sticky-note/);
-      await drawer.evaluate(node => { node.scrollTop = 0; });
+      await scrollArea.evaluate(node => { node.scrollTop = 0; });
       expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom })))
         .toEqual({ top: 0, bottom: 1000 });
+      const header = drawer.locator(":scope > .editor-drawer-header");
+      const heading = drawer.getByRole("heading", { name: "Live Prompt Context", exact: true });
+      const close = drawer.getByRole("button", { name: "Close context", exact: true });
+      await expect(header).toHaveCSS("background-color", "rgb(255, 255, 255)");
+      await expect(header).toHaveCSS("border-bottom-width", "1px");
+      await expect(header).toHaveCSS("border-bottom-color", "rgb(237, 227, 211)");
+      const headerOffsets = await header.evaluate(node => ({ top: node.getBoundingClientRect().top,
+        height: node.getBoundingClientRect().height,
+        headingTop: node.querySelector("h2")!.getBoundingClientRect().top,
+        closeTop: node.querySelector("button")!.getBoundingClientRect().top }));
+      const centers = await page.evaluate(() => ["#context-inspector-title", ".editor-topbar h1", ".editor-continue > span:first-child"]
+        .map(selector => {
+          const rect = document.querySelector(selector)!.getBoundingClientRect();
+          return rect.top + rect.height / 2;
+        }));
+      expect(Math.max(...centers) - Math.min(...centers)).toBeLessThanOrEqual(2);
+      expect(await scrollArea.evaluate(node => node.getBoundingClientRect().top))
+        .toBe(headerOffsets.top + headerOffsets.height);
+      console.log(JSON.stringify({ width, catalogAvailable: available, fixedHeader: headerOffsets, headingCenters: centers }));
       if (available) await page.screenshot({ path: `../target/guz-680/drawer-top-${width}.png` });
       await drawer.locator(".editor-advanced-section").scrollIntoViewIfNeeded();
       await expect(continueModel).toBeInViewport();
       await expect(editModel).toBeInViewport();
       await page.screenshot({ path: `../target/guz-680/${available ? "models" : "unavailable"}-${width}.png` });
       const pageScroll = await page.evaluate(() => window.scrollY);
-      await drawer.evaluate(node => { node.scrollTop = node.scrollHeight; });
-      expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom,
-        atBottom: Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop) <= 1 })))
-        .toEqual({ top: 0, bottom: 1000, atBottom: true });
+      await scrollArea.evaluate(node => { node.scrollTop = node.scrollHeight; });
+      expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom })))
+        .toEqual({ top: 0, bottom: 1000 });
+      expect(await scrollArea.evaluate(node => Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop) <= 1)).toBe(true);
       expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
+      await expect(heading).toBeInViewport({ ratio: 1 });
+      await expect(close).toBeInViewport({ ratio: 1 });
+      expect(await header.evaluate(node => ({ top: node.getBoundingClientRect().top,
+        height: node.getBoundingClientRect().height,
+        headingTop: node.querySelector("h2")!.getBoundingClientRect().top,
+        closeTop: node.querySelector("button")!.getBoundingClientRect().top }))).toEqual(headerOffsets);
+      expect(await scrollArea.evaluate(node => node.getBoundingClientRect().top))
+        .toBe(headerOffsets.top + headerOffsets.height);
+      expect(await header.evaluate(node => {
+        const rect = node.getBoundingClientRect();
+        return [0.05, 0.5, 0.95].every(x => [0.05, 0.5, 0.95].every(y =>
+          node.contains(document.elementFromPoint(rect.left + rect.width * x, rect.top + rect.height * y))));
+      })).toBe(true);
       if (available) await page.screenshot({ path: `../target/guz-680/drawer-bottom-${width}.png` });
     }
     await page.getByRole("button", { name: "Close context", exact: true }).click();

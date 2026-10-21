@@ -1279,6 +1279,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
               onMouseDown={(event) => event.preventDefault()}
               onClick={closePanels}>Close context</button>
           </div>
+          <div className="editor-context-body">
           {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}
         <label className="editor-field editor-field-full">
           <span>Story Context</span>
@@ -1472,6 +1473,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
               ))}
             </>
           )}
+          </div>
         </aside>
       </div>
 
