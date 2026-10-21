@@ -285,7 +285,7 @@ for (const outcome of [
     await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     await editor.evaluate((element) => (element as HTMLElement).blur());
     expect((await editor.evaluate(quillSnapshot, { edit: outcome.edit })).text).toBe(`Before\nAI\n${outcome.remainder}\nAfter\n`);
-    await page.getByRole("button", { name: "Close context", exact: true }).click();
+    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     expect((await editor.evaluate(quillSnapshot, {})).selection).toEqual(outcome.selection);
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
     await send({ type: "delta", delta: { ops: [{ insert: " tail" }] } });

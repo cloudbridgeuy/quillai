@@ -119,7 +119,7 @@ for (const width of [1100, 1440]) {
     await expect(list).toContainText("Always");
     await expect(list.getByRole("button", { name: /Mira/ })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => CSS.highlights.get("quillai-lore-known_dont_reveal")?.size ?? 0)).toBe(0);
-    await page.getByRole("button", { name: "Close context", exact: true }).click();
+    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByRole("checkbox", { name: "Whole document", exact: true }).check();
     await page.keyboard.press("Escape");
@@ -203,7 +203,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
     await injected.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `../target/guz-671/inspector-${width}.png`, fullPage: true });
   }
-  await page.getByRole("button", { name: "Close context", exact: true }).click();
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const bodies: string[] = [];
   await page.route("**/ai/generate", async route => {
     bodies.push(route.request().postData() ?? "");

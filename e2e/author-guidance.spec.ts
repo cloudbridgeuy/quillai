@@ -79,7 +79,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
     await page.screenshot({ path: `../target/guz-755/with-thread-${width}.png`, fullPage: true });
   }
   await expect(page.getByRole("option", { name: "Continue · with thread", exact: true })).toHaveCount(1);
-  await page.getByRole("button", { name: "Close context", exact: true }).click();
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await continueButton.click();
   await expect(continueButton).toHaveAccessibleName("Stop AI");
   await expect(continueButton.getByText("with thread", { exact: true })).toBeVisible();

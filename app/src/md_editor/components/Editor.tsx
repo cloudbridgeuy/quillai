@@ -1275,9 +1275,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           className="editor-drawer editor-drawer-right editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <div className="editor-drawer-header">
             <h2 id="context-inspector-title">Live Prompt Context</h2>
-            <button className="editor-button editor-button-small" type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={closePanels}>Close context</button>
           </div>
           <div className="editor-context-body">
           {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}

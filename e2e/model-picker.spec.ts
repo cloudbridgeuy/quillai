@@ -34,6 +34,7 @@ for (const available of [true, false]) {
     const editor = page.locator(".ql-editor");
     const drawer = page.locator("#context-drawer");
     const scrollArea = drawer.locator(".editor-context-body");
+    const contextButton = page.getByRole("button", { name: "Context inspector", exact: true });
     const continueModel = drawer.getByRole("combobox", { name: "Continue model", exact: true });
     const editModel = drawer.getByRole("combobox", { name: "Edit model", exact: true });
     async function openModels() {
@@ -66,6 +67,33 @@ for (const available of [true, false]) {
     }
     for (const width of [1100, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
+      await expect(page.getByRole("button", { name: "Close context", exact: true })).toHaveCount(0);
+      await expect(contextButton).toHaveAttribute("aria-expanded", "true");
+      await editor.focus();
+      await page.mouse.move(500, 300);
+      await expect(page.locator(".editor-rail-right")).toHaveCSS("opacity", "0.95");
+      await expect(contextButton).toHaveCSS("color", "rgb(31, 41, 51)");
+      await expect(contextButton).toHaveCSS("background-color", "rgb(215, 230, 208)");
+      await contextButton.click();
+      await expect(drawer).toBeHidden();
+      await expect(contextButton).toHaveAttribute("aria-expanded", "false");
+      await expect(editor).toBeFocused();
+      await page.mouse.move(500, 300);
+      await expect(page.locator(".editor-rail-right")).toHaveCSS("opacity", "0.35");
+      await contextButton.click();
+      await expect(drawer).toBeVisible();
+      await expect(contextButton).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Escape");
+      await expect(drawer).toBeHidden();
+      await expect(contextButton).toHaveAttribute("aria-expanded", "false");
+      await expect(editor).toBeFocused();
+      await page.keyboard.press(width === 1100 ? "Control+]" : "Meta+]");
+      await expect(drawer).toBeVisible();
+      await expect(contextButton).toHaveAttribute("aria-expanded", "true");
+      await page.mouse.move(500, 300);
+      await expect(page.locator(".editor-rail-right")).toHaveCSS("opacity", "0.95");
+      await expect(contextButton).toHaveCSS("color", "rgb(31, 41, 51)");
+      await expect(contextButton).toHaveCSS("background-color", "rgb(215, 230, 208)");
       await expect(drawer).toHaveCSS("overflow-y", "hidden");
       await expect(drawer).toHaveCSS("overscroll-behavior-y", "contain");
       await expect(scrollArea).toHaveCSS("overflow-y", "auto");
@@ -94,14 +122,12 @@ for (const available of [true, false]) {
         .toEqual({ top: 0, bottom: 1000 });
       const header = drawer.locator(":scope > .editor-drawer-header");
       const heading = drawer.getByRole("heading", { name: "Live Prompt Context", exact: true });
-      const close = drawer.getByRole("button", { name: "Close context", exact: true });
       await expect(header).toHaveCSS("background-color", "rgb(255, 255, 255)");
       await expect(header).toHaveCSS("border-bottom-width", "1px");
       await expect(header).toHaveCSS("border-bottom-color", "rgb(237, 227, 211)");
       const headerOffsets = await header.evaluate(node => ({ top: node.getBoundingClientRect().top,
         height: node.getBoundingClientRect().height,
-        headingTop: node.querySelector("h2")!.getBoundingClientRect().top,
-        closeTop: node.querySelector("button")!.getBoundingClientRect().top }));
+        headingTop: node.querySelector("h2")!.getBoundingClientRect().top }));
       const centers = await page.evaluate(() => ["#context-inspector-title", ".editor-topbar h1", ".editor-continue > span:first-child"]
         .map(selector => {
           const rect = document.querySelector(selector)!.getBoundingClientRect();
@@ -112,6 +138,7 @@ for (const available of [true, false]) {
         .toBe(headerOffsets.top + headerOffsets.height);
       console.log(JSON.stringify({ width, catalogAvailable: available, fixedHeader: headerOffsets, headingCenters: centers }));
       if (available) await page.screenshot({ path: `../target/guz-680/drawer-top-${width}.png` });
+      if (available) await page.screenshot({ path: `../target/guz-680/rail-active-${width}.png` });
       await drawer.locator(".editor-advanced-section").scrollIntoViewIfNeeded();
       await expect(continueModel).toBeInViewport();
       await expect(editModel).toBeInViewport();
@@ -123,11 +150,9 @@ for (const available of [true, false]) {
       expect(await scrollArea.evaluate(node => Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop) <= 1)).toBe(true);
       expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
       await expect(heading).toBeInViewport({ ratio: 1 });
-      await expect(close).toBeInViewport({ ratio: 1 });
       expect(await header.evaluate(node => ({ top: node.getBoundingClientRect().top,
         height: node.getBoundingClientRect().height,
-        headingTop: node.querySelector("h2")!.getBoundingClientRect().top,
-        closeTop: node.querySelector("button")!.getBoundingClientRect().top }))).toEqual(headerOffsets);
+        headingTop: node.querySelector("h2")!.getBoundingClientRect().top }))).toEqual(headerOffsets);
       expect(await scrollArea.evaluate(node => node.getBoundingClientRect().top))
         .toBe(headerOffsets.top + headerOffsets.height);
       expect(await header.evaluate(node => {
@@ -137,7 +162,7 @@ for (const available of [true, false]) {
       })).toBe(true);
       if (available) await page.screenshot({ path: `../target/guz-680/drawer-bottom-${width}.png` });
     }
-    await page.getByRole("button", { name: "Close context", exact: true }).click();
+    await contextButton.click();
     await editor.click();
     await page.locator(".editor-continue").click();
     await expect(editor).toContainText("Revised");

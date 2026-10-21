@@ -418,12 +418,18 @@ button {
   background: var(--pi-green);
 }
 
+.editor-rail-right button[aria-controls="context-drawer"][aria-expanded="true"] {
+  color: var(--ink);
+  background: var(--pi-green);
+}
+
 .editor-rail button:disabled {
   cursor: not-allowed;
   opacity: .5;
 }
 
-.editor-rail-right:has(.editor-thread-indicator) {
+.editor-rail-right:has(.editor-thread-indicator),
+.editor-rail-right:has(button[aria-controls="context-drawer"][aria-expanded="true"]) {
   opacity: .95;
 }
 
