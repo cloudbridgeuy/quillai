@@ -21,6 +21,8 @@ The feature follows Functional Core and Imperative Shell.
 
 ## Request Contract
 
+`GET /ai/models` returns the startup catalog as `{models: [{id, label, input_price_per_million, output_price_per_million}], defaults: {generate, edit}}`. `generate` is the Continue action. Models retain catalog order. Only these fields are exposed: API keys, base URLs, provider configuration, and `include_usage` are never serialized. The route reads the startup catalog without calling a provider or reloading environment/file configuration, and requires no API key. The `QUILLAI_AI_MODEL` fallback returns one entry with its ID as label, zero prices, and both defaults set to its ID. Zero fallback prices are unknown-price placeholders. No configured catalog returns the standard 500 `AI_PROVIDER_CONFIG_ERROR` JSON response.
+
 `POST /ai/generate` accepts:
 
 ```json

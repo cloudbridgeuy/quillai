@@ -8,9 +8,35 @@ use axum::Json;
 use futures_util::StreamExt;
 
 use super::catalog::ModelCatalog;
-use super::models::{event_to_ndjson_line, GenerateInput, GenerateRequest};
+use super::models::{event_to_ndjson_line, AiAction, GenerateInput, GenerateRequest};
 use super::provider::{AiProvider, OpenAiCompatibleConfig, OpenAiCompatibleProvider};
 use crate::error::Error;
+
+pub async fn models(
+    catalog: Option<axum::Extension<std::sync::Arc<ModelCatalog>>>,
+) -> Result<Json<serde_json::Value>, Error> {
+    let axum::Extension(catalog) =
+        catalog.ok_or_else(|| Error::AiProviderConfig("model catalog is not configured".into()))?;
+    let models: Vec<_> = catalog
+        .models()
+        .iter()
+        .map(|model| {
+            serde_json::json!({
+                "id": model.id,
+                "label": model.label,
+                "input_price_per_million": model.input_price_per_million,
+                "output_price_per_million": model.output_price_per_million,
+            })
+        })
+        .collect();
+    Ok(Json(serde_json::json!({
+        "models": models,
+        "defaults": {
+            "generate": catalog.resolve(AiAction::Generate).id,
+            "edit": catalog.resolve(AiAction::Edit).id,
+        },
+    })))
+}
 
 pub async fn generate(
     axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,

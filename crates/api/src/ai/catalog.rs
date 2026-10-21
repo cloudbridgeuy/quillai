@@ -103,6 +103,10 @@ impl ModelCatalog {
         })
     }
 
+    pub fn models(&self) -> &[CatalogModel] {
+        &self.models
+    }
+
     pub fn resolve(&self, action: AiAction) -> &CatalogModel {
         &self.models[match action {
             AiAction::Generate => self.generate,

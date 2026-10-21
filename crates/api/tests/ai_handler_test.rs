@@ -95,6 +95,102 @@ async fn spawn_mock_provider(
 }
 
 #[tokio::test]
+async fn models_returns_startup_catalog_and_env_fallback_without_provider_config() {
+    let _guard = env_lock().lock().await;
+    std::env::set_var("QUILLAI_AI_API_KEY", "catalog-secret-key");
+    std::env::set_var("QUILLAI_AI_BASE_URL", "https://private-provider.invalid/v1");
+    std::env::set_var("QUILLAI_AI_MODEL", " legacy-model ");
+    let configured = json!({
+        "models": [
+            {"id":"continue-model","label":"Continue","input_price_per_million":0.1,"output_price_per_million":0.2},
+            {"id":"edit-model","label":"Edit","input_price_per_million":1.0,"output_price_per_million":2.0,"include_usage":false}
+        ],
+        "defaults":{"generate":"continue-model","edit":"edit-model"}
+    });
+    let mut expected = configured.clone();
+    expected["models"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("include_usage");
+    let legacy_model = std::env::var("QUILLAI_AI_MODEL").unwrap();
+    for (catalog, expected) in [
+        (
+            quillai_api::ai::catalog::ModelCatalog::parse(&configured.to_string()).unwrap(),
+            expected,
+        ),
+        (
+            quillai_api::ai::catalog::load(None, Some(&legacy_model))
+                .unwrap()
+                .unwrap(),
+            json!({
+                "models": [{"id":"legacy-model","label":"legacy-model","input_price_per_million":0.0,"output_price_per_million":0.0}],
+                "defaults":{"generate":"legacy-model","edit":"legacy-model"}
+            }),
+        ),
+    ] {
+        let app = quillai_api::app(test_pool().await)
+            .layer(axum::Extension(std::sync::Arc::new(catalog)));
+        std::env::set_var("QUILLAI_AI_MODEL", "changed-after-startup");
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/ai/models")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "application/json");
+        let body = response_body(response).await;
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&body).unwrap(),
+            expected
+        );
+        for private in [
+            "api_key",
+            "apiKey",
+            "base_url",
+            "baseUrl",
+            "include_usage",
+            "includeUsage",
+            "catalog-secret-key",
+            "private-provider.invalid",
+            "changed-after-startup",
+        ] {
+            assert!(
+                !body.contains(private),
+                "unexpected private data: {private}"
+            );
+        }
+    }
+    std::env::remove_var("QUILLAI_AI_API_KEY");
+    std::env::remove_var("QUILLAI_AI_BASE_URL");
+    std::env::remove_var("QUILLAI_AI_MODEL");
+}
+
+#[tokio::test]
+async fn models_without_catalog_returns_configuration_error() {
+    let response = quillai_api::app(test_pool().await)
+        .oneshot(
+            Request::builder()
+                .uri("/ai/models")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        json_body(response).await,
+        json!({
+            "error": "AI provider configuration error: model catalog is not configured",
+            "code": "AI_PROVIDER_CONFIG_ERROR"
+        })
+    );
+}
+
+#[tokio::test]
 async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_lore() {
     let _guard = env_lock().lock().await;
     let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel::<serde_json::Value>();
