@@ -182,7 +182,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-671/lore-panel-${width}.png`, fullPage: true });
   }
-  await page.getByRole("button", { name: "Close manuscript", exact: true }).click();
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await editor.click();
   await page.keyboard.type("Mira studied the compass.");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");

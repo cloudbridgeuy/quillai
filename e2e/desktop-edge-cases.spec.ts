@@ -68,6 +68,58 @@ async function send(page: Page, detail: unknown) {
 }
 
 for (const width of [1100, 1440]) {
+  test(`Manuscript rail toggles active state and restores selection at ${width}px`, async ({ page, request }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await openChapter(page, request);
+    const editor = page.locator(".ql-editor");
+    const manuscript = page.getByRole("button", { name: "Manuscript", exact: true });
+    const drawer = page.locator("#manuscript-drawer");
+    const rail = page.locator(".editor-rail-left");
+    await expectEditorReady(editor);
+    await select(page, 0, 0, 7);
+    await expect(manuscript).toHaveAttribute("aria-controls", "manuscript-drawer");
+    await expect(manuscript).toHaveAttribute("aria-expanded", "false");
+    await manuscript.click();
+    await expect(drawer).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close manuscript", exact: true })).toHaveCount(0);
+    await expect(manuscript).toHaveAttribute("aria-expanded", "true");
+    await expect(editor).toBeFocused();
+    await page.mouse.move(500, 300);
+    await expect(rail).toHaveCSS("opacity", "0.95");
+    await expect(manuscript).toHaveCSS("color", "rgb(31, 41, 51)");
+    await expect(manuscript).toHaveCSS("background-color", "rgb(215, 230, 208)");
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
+    await page.screenshot({ path: `../target/guz-798/manuscript-open-${width}.png` });
+    await editor.evaluate(element => (element as HTMLElement).blur());
+    await manuscript.click();
+    await expect(drawer).toBeHidden();
+    await expect(manuscript).toHaveAttribute("aria-expanded", "false");
+    await expect(editor).toBeFocused();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
+    await page.mouse.move(500, 300);
+    await expect(rail).toHaveCSS("opacity", "0.35");
+    await expect(manuscript).toHaveCSS("color", "rgb(111, 117, 124)");
+    await expect(manuscript).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await page.screenshot({ path: `../target/guz-798/manuscript-closed-${width}.png` });
+    for (const modifier of ["Control", "Meta"]) {
+      await page.keyboard.press(`${modifier}+[`);
+      await expect(drawer).toBeVisible();
+      await expect(manuscript).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press(`${modifier}+[`);
+      await expect(drawer).toBeHidden();
+      await expect(manuscript).toHaveAttribute("aria-expanded", "false");
+      await expect(editor).toBeFocused();
+      expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
+    }
+    await manuscript.click();
+    await expect(drawer).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    await expect(manuscript).toHaveAttribute("aria-expanded", "false");
+    await expect(editor).toBeFocused();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
+  });
+
   for (const dismissal of ["Escape", "outside click"]) {
     test(`Settings ${dismissal} preserves an active Continue at ${width}px`, async ({ page, request }) => {
       await page.setViewportSize({ width, height: 1000 });

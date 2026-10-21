@@ -1202,9 +1202,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
           <h2 id="manuscript-title">Manuscript</h2>
-          <button className="editor-button editor-button-small" type="button"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={closePanels}>Close manuscript</button>
         </div>
         <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           onSelect={(scope) => void chapterSync.switchChapter(scope)} />

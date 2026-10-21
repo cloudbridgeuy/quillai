@@ -61,7 +61,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
     await page.screenshot({ path: `../target/guz-755/manuscript-${width}.png`, fullPage: true });
-    await page.getByRole("button", { name: "Close manuscript", exact: true }).click();
+    await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   }
   await continueButton.click();
   await expect(editor).toHaveText("A saved beginning.");

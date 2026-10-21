@@ -418,6 +418,7 @@ button {
   background: var(--pi-green);
 }
 
+.editor-rail-left button[aria-controls="manuscript-drawer"][aria-expanded="true"],
 .editor-rail-right button[aria-controls="context-drawer"][aria-expanded="true"] {
   color: var(--ink);
   background: var(--pi-green);
@@ -428,6 +429,7 @@ button {
   opacity: .5;
 }
 
+.editor-rail-left:has(button[aria-controls="manuscript-drawer"][aria-expanded="true"]),
 .editor-rail-right:has(.editor-thread-indicator),
 .editor-rail-right:has(button[aria-controls="context-drawer"][aria-expanded="true"]) {
   opacity: .95;
