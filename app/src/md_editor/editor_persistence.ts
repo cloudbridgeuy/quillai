@@ -109,7 +109,12 @@ function parseThreadState(value: unknown, fallback: AiThreadState): AiThreadStat
 
   return {
     thread,
-    settings: { maxOutputTokens, resumePrompt },
+    settings: {
+      maxOutputTokens,
+      resumePrompt,
+      continueModel: typeof value.settings.continueModel === "string" ? value.settings.continueModel : null,
+      editModel: typeof value.settings.editModel === "string" ? value.settings.editModel : null,
+    },
   };
 }
 

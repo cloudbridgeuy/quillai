@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "id": "e2e-continue",
+      "label": "E2E Continue",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
+      "id": "e2e-edit",
+      "label": "E2E Edit",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    }
+  ],
+  "defaults": {
+    "generate": "e2e-continue",
+    "edit": "e2e-edit"
+  }
+}

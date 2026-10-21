@@ -84,6 +84,8 @@ import { appendContinueFragment, createContinueStream, transformContinueSelectio
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
+import { getApiBaseUrl } from "../../api_config";
+import { parseModelCatalog, resolveModelChoice, type ModelCatalog } from "../model_catalog";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -298,6 +300,17 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     }
   }
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
+  const [modelCatalog, setModelCatalog] = useState<ModelCatalog | null>(null);
+  const [modelsPending, setModelsPending] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${getApiBaseUrl()}/ai/models`, { signal: controller.signal })
+      .then(async (response) => response.ok ? parseModelCatalog(await response.json()) : null)
+      .then((catalog) => { if (!controller.signal.aborted) setModelCatalog(catalog); })
+      .catch(() => { if (!controller.signal.aborted) setModelCatalog(null); })
+      .finally(() => { if (!controller.signal.aborted) setModelsPending(false); });
+    return () => controller.abort();
+  }, []);
   const [, setContextRevision] = useState(0);
 
   const quillRef = useRef<Quill | null>(null);
@@ -600,6 +613,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     return action === "edit"
       ? buildAiRequestPreview({
           action: "edit",
+          model: resolveModelChoice(modelCatalog, "edit", threadState.settings.editModel),
           loreEntries,
           sectionOverrides: sectionOverrides.edit,
           document: documentSlice,
@@ -611,6 +625,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         })
       : buildAiRequestPreview({
           action: "generate",
+          model: resolveModelChoice(modelCatalog, "generate", threadState.settings.continueModel),
           loreEntries,
           sectionOverrides: sectionOverrides.generate,
           document: documentSlice,
@@ -1316,6 +1331,22 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         </p>
           <details className="editor-advanced-section">
             <summary>Advanced AI controls</summary>
+            {(["generate", "edit"] as const).map((action) => {
+              const setting = action === "generate" ? "continueModel" : "editModel";
+              return <label className="editor-field" key={action}>
+                <span>{action === "generate" ? "Continue model" : "Edit model"}</span>
+                <select className="editor-input"
+                  value={resolveModelChoice(modelCatalog, action, threadState.settings[setting]) ?? ""}
+                  disabled={isBusy || !modelCatalog}
+                  onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
+                    [setting]: event.target.value,
+                  }))}>
+                  {!modelCatalog ? <option value="">Unavailable</option> : modelCatalog.models.map((model) =>
+                    <option key={model.id} value={model.id}>{model.label}</option>)}
+                </select>
+              </label>;
+            })}
+            {!modelCatalog ? <p className="editor-note">{modelsPending ? "Loading models…" : "Models unavailable. Using server defaults."}</p> : null}
             <label className="editor-field">
               <span>Max Output Tokens</span>
               <input className="editor-input" type="number" min="1" max="4096" step="1"

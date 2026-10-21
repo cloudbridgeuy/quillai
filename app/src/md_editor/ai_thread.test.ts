@@ -21,12 +21,16 @@ test("initialAiThreadState keeps sticky default settings", () => {
     settings: {
       maxOutputTokens: 512,
       resumePrompt: DEFAULT_RESUME_PROMPT,
+      continueModel: null,
+      editModel: null,
     },
   });
 
   expect(updateThreadSettings(base, { maxOutputTokens: 900 }).settings).toEqual({
     maxOutputTokens: 900,
     resumePrompt: DEFAULT_RESUME_PROMPT,
+    continueModel: null,
+    editModel: null,
   });
 });
 

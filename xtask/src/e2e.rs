@@ -1,10 +1,32 @@
 use super::*;
 use std::fs::{self, OpenOptions};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 struct SandboxDatabase(PathBuf);
+
+struct E2eModelCatalog {
+    path: PathBuf,
+    test_provider: bool,
+}
+
+fn resolve_model_catalog(
+    root: &Path,
+    explicit: Option<PathBuf>,
+    environment: Option<PathBuf>,
+) -> E2eModelCatalog {
+    match explicit.or(environment) {
+        Some(path) => E2eModelCatalog {
+            path,
+            test_provider: false,
+        },
+        None => E2eModelCatalog {
+            path: root.join("e2e/fixtures/ai-models.json"),
+            test_provider: true,
+        },
+    }
+}
 
 impl SandboxDatabase {
     fn create() -> Result<Self, Box<dyn Error>> {
@@ -73,8 +95,15 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     api.env("SQLX_OFFLINE", "true");
     api.args(["--host", "127.0.0.1", "--port", &api_port.to_string()]);
     api.args(["--cors-origin", &app_url]);
-    if let Some(path) = args.ai_models {
-        api.arg("--ai-models").arg(path);
+    let catalog = resolve_model_catalog(
+        root,
+        args.ai_models,
+        std::env::var_os("QUILLAI_AI_MODELS_FILE").map(PathBuf::from),
+    );
+    api.arg("--ai-models").arg(catalog.path);
+    if catalog.test_provider {
+        api.env("QUILLAI_AI_BASE_URL", "http://127.0.0.1:9/v1")
+            .env("QUILLAI_AI_API_KEY", "quillai-e2e-fake-key-not-a-secret");
     }
     api.arg("--db-url")
         .arg(format!("sqlite://{}", database.path().display()));
@@ -233,6 +262,33 @@ fn http_ready(port: u16, path: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn model_catalog_defaults_to_workspace_fixture_and_preserves_overrides() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let default = resolve_model_catalog(root, None, None);
+        assert_eq!(default.path, root.join("e2e/fixtures/ai-models.json"));
+        assert!(default.path.is_absolute());
+        assert!(default.path.is_file());
+        assert!(default.test_provider);
+        for (explicit, environment, expected) in [
+            (
+                Some("explicit.json"),
+                Some("environment.json"),
+                "explicit.json",
+            ),
+            (Some("explicit.json"), None, "explicit.json"),
+            (None, Some("environment.json"), "environment.json"),
+        ] {
+            let catalog = resolve_model_catalog(
+                root,
+                explicit.map(PathBuf::from),
+                environment.map(PathBuf::from),
+            );
+            assert_eq!(catalog.path, PathBuf::from(expected));
+            assert!(!catalog.test_provider);
+        }
+    }
 
     #[test]
     fn frontend_port_and_playwright_arguments() {
