@@ -69,6 +69,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API and frontend ports, HTTP readiness, managed Playwright runner, process-group and database cleanup. Catalog precedence: `--ai-models` > `QUILLAI_AI_MODELS_FILE` > workspace-root `e2e/fixtures/ai-models.json`; only the default fixture overrides provider URL/key with loopback port 9 and a fake key. Set the frontend port with `--port 3107` before Playwright arguments. Remaining arguments pass directly, e.g. `cargo xtask e2e --headed --trace on`. The runner sets API `--cors-origin` and Playwright `QUILLAI_E2E_APP_URL` for the chosen frontend. With `NO_COLOR` present or non-terminal stdout, prefixes are plain and all children receive `NO_COLOR=1`, `FORCE_COLOR=0`, and `CARGO_TERM_COLOR=never`. |
 
 ### Browser Smoke (`e2e/`)
+`stream-remote-edit.spec.ts` checks exact two-tab/server convergence after Finish or Stop during desktop Continue at 1100px, preserving author and remote edits, retaining AI text only on Finish, and rejecting API errors.
 
 `emoji-cursor-remote.spec.ts` checks caret/selection surrogate boundaries during remote insert/delete, subsequent typing, HTTP errors, and exact two-tab/server convergence at 1100px, including adjacent 😀😃 and a deliberately requested mid-surrogate caret.
 
