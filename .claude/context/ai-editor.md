@@ -55,6 +55,8 @@ Backend CORS defaults to `http://localhost:3001` and `http://127.0.0.1:3001`. Re
 
 ## Browser Smoke Sandbox
 
+`offline-stale-base.spec.ts` holds tab A's delta POST and fails its delta GETs while tab B commits three edits at 1100px. Releasing A verifies stale-base HTTP 200, polling/rebase of both in-flight and pending edits, exact editor/server content equality, and five new revisions. Retained stale history is transformed, not rejected with 409.
+
 Quill readiness checks use `e2e/editor-ready.ts`: await `contenteditable="true"` before asserting editable. During chapter load Quill is disabled; Playwright's editable assertion can reject that state immediately rather than poll. Keep default assertion timeouts and retain the final editable check.
 
 `model-picker.spec.ts` is in the Playwright allowlist. It mocks GET /ai/models and POST /ai/generate, selects different Continue/Edit IDs, reloads to prove persistence, and checks both request bodies. The HTTP failure case checks disabled selects and omitted `model` for both actions. Screenshots at 1100px and 1440px go to `target/guz-680/`.
