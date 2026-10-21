@@ -70,6 +70,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 ### Browser Smoke (`e2e/`)
 
+`reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.
+
 `offline-stale-base.spec.ts` holds one tab's delta submission offline while the other commits three edits, then verifies HTTP 200 for the stale base and exact convergence of both tabs and server with all in-flight and pending edits at 1100px.
 
 `model-picker.spec.ts` also runs in the explicit allowlist. It mocks the model catalog, checks persisted per-action choices in Continue/Edit requests, and checks omitted `model` after catalog failure. Screenshots at 1100px and 1440px go to `target/guz-680/`.

@@ -55,6 +55,8 @@ Backend CORS defaults to `http://localhost:3001` and `http://127.0.0.1:3001`. Re
 
 ## Browser Smoke Sandbox
 
+`reload-in-flight.spec.ts` holds a delta POST across reload, checks exact server text and full recovery JSON, then verifies normal saving resumes at 1100px without API errors.
+
 `offline-stale-base.spec.ts` holds tab A's delta POST and fails its delta GETs while tab B commits three edits at 1100px. Releasing A verifies stale-base HTTP 200, polling/rebase of both in-flight and pending edits, exact editor/server content equality, and five new revisions. Retained stale history is transformed, not rejected with 409.
 
 Quill readiness checks use `e2e/editor-ready.ts`: await `contenteditable="true"` before asserting editable. During chapter load Quill is disabled; Playwright's editable assertion can reject that state immediately rather than poll. Keep default assertion timeouts and retain the final editable check.
