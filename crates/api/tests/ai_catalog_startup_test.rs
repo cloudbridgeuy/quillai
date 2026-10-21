@@ -1,16 +1,23 @@
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::PathBuf,
+    process::Command,
+    sync::atomic::{AtomicUsize, Ordering},
+};
+
+static NEXT_CATALOG: AtomicUsize = AtomicUsize::new(0);
 
 struct CatalogFile(PathBuf);
 
 impl CatalogFile {
     fn new(contents: &str) -> Self {
         let path = std::env::temp_dir().join(format!(
-            "quillai-catalog-{}-{}.json",
+            "quillai-catalog-{}-{}-{}.json",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            NEXT_CATALOG.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::write(&path, contents).unwrap();
         Self(path)
