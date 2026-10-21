@@ -163,7 +163,7 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `DELETE /series/{id}/books/{book_id}/chapters/{chapter_id}` — Delete chapter scoped to book and series (204 or 404)
 - `POST /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas` — Submit `{baseRev, delta}`; transform against later retained revisions with server priority, append atomically, return `{rev, delta}` (200, 404, 409 unavailable/future history, or 422 malformed JSON/Delta or compose failure)
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas?since=rev` — Return missed revisions ordered ascending as `[{rev, delta}]`; current head returns `[]` (200, 404, 409 unavailable/future history, or 422 invalid query)
-- `POST /ai/generate` — Stream AI delta fragments as NDJSON. See [AI streaming context](.claude/context/ai-streaming.md)
+- `POST /ai/generate` — Stream AI delta fragments as NDJSON; optional `model` must exactly match a startup catalog ID (422 if invalid); omission uses the action default. See [AI streaming context](.claude/context/ai-streaming.md)
 - `GET /ai/models` — Return startup catalog model IDs, labels, input/output prices per million tokens, and `defaults.generate` (Continue) / `defaults.edit` IDs. No provider configuration or `include_usage`; missing catalog returns the standard 500 configuration error.
 - `GET /settings/author-guidance` — Return `{text: string}`; missing row returns empty text (200).
 - `PUT /settings/author-guidance` — Save `{text: string}` and return saved text (200); empty clears guidance, more than 65,536 UTF-8 bytes returns 422. Invalid JSON/types return the standard 400 JSON error.

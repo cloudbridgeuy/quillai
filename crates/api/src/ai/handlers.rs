@@ -43,12 +43,22 @@ pub async fn generate(
     catalog: Option<axum::Extension<std::sync::Arc<ModelCatalog>>>,
     payload: Result<Json<GenerateRequest>, JsonRejection>,
 ) -> Result<Response, Error> {
-    let Json(request) = payload.map_err(Error::from_json_rejection)?;
+    let Json(mut request) = payload.map_err(Error::from_json_rejection)?;
+    let requested_model = request.model.take();
+    let selected_model = requested_model
+        .as_ref()
+        .map(|value| {
+            value
+                .as_str()
+                .and_then(|id| catalog.as_ref()?.0.find(id))
+                .ok_or_else(|| Error::Validation("model must match a configured model id".into()))
+        })
+        .transpose()?;
     let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
-    let (config, include_usage) = match catalog {
+    let (config, include_usage) = match catalog.as_ref() {
         Some(axum::Extension(catalog)) => {
-            let model = catalog.resolve(input.action);
+            let model = selected_model.unwrap_or_else(|| catalog.resolve(input.action));
             (
                 OpenAiCompatibleConfig::from_env_with_model(model.id.clone())?,
                 model.include_usage,

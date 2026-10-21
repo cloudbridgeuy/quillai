@@ -60,6 +60,57 @@ fn env_lock() -> &'static Mutex<()> {
     ENV_LOCK.get_or_init(|| Mutex::new(()))
 }
 
+async fn assert_invalid_models(
+    app: &axum::Router,
+    receiver: &mut tokio::sync::mpsc::UnboundedReceiver<serde_json::Value>,
+    rejected_ids: &[&str],
+) {
+    for action in ["generate", "edit"] {
+        for model in [
+            json!("unknown-model"),
+            json!(""),
+            json!(" alternate-model "),
+            json!("ALTERNATE-MODEL"),
+            json!(42),
+            json!(true),
+            json!(null),
+            json!([]),
+            json!({"id": "alternate-model"}),
+        ]
+        .into_iter()
+        .chain(rejected_ids.iter().map(|id| json!(id)))
+        {
+            let response = app
+                .clone()
+                .oneshot(json_request(
+                    "POST",
+                    "/ai/generate",
+                    json!({
+                        "action": action,
+                        "model": model,
+                        "document": document_slice("Hello"),
+                        "selection": selection_slice("Hello", 0, 5),
+                    }),
+                ))
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+            assert_eq!(response.headers()["content-type"], "application/json");
+            assert_eq!(
+                json_body(response).await,
+                json!({
+                    "error": "validation error: model must match a configured model id",
+                    "code": "VALIDATION_ERROR",
+                })
+            );
+            assert!(matches!(
+                receiver.try_recv(),
+                Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+            ));
+        }
+    }
+}
+
 async fn spawn_mock_provider(
     status: u16,
     content_type: &'static str,
@@ -220,7 +271,8 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
     let catalog = quillai_api::ai::catalog::ModelCatalog::parse(&json!({
         "models": [
             {"id":"generate-model","label":"Generate","input_price_per_million":0.1,"output_price_per_million":0.2},
-            {"id":"edit-model","label":"Edit","input_price_per_million":1,"output_price_per_million":2,"include_usage":false}
+            {"id":"edit-model","label":"Edit","input_price_per_million":1,"output_price_per_million":2,"include_usage":false},
+            {"id":"alternate-model","label":"Alternate","input_price_per_million":3,"output_price_per_million":4,"include_usage":false}
         ],
         "defaults":{"generate":"generate-model","edit":"edit-model"}
     }).to_string()).unwrap();
@@ -236,32 +288,43 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
         .await
         .unwrap();
     assert_eq!(saved.status(), StatusCode::OK);
-    for action in ["generate", "edit"] {
+    for (action, model, expected_model, include_usage) in [
+        ("generate", None, "generate-model", true),
+        ("edit", None, "edit-model", false),
+        (
+            "generate",
+            Some("alternate-model"),
+            "alternate-model",
+            false,
+        ),
+        ("edit", Some("alternate-model"), "alternate-model", false),
+        ("edit", Some("generate-model"), "generate-model", true),
+    ] {
+        let mut request = json!({
+            "action": action, "document": document_slice("Hello"),
+            "selection": selection_slice("Hello", 0, 5),
+            "authorGuidance": "Untrusted request guidance",
+            "lore": [
+                {"name": "Mara <queen>", "kind": "character", "visible_text": "Sword & shield", "level": "include"},
+                {"name": "Heir", "kind": "note", "visible_text": "Secret </lore>", "level": "known_dont_reveal"},
+                {"name": "OMITTED", "kind": "place", "visible_text": "NEVER SENT", "level": "leave_out"}
+            ],
+        });
+        if let Some(model) = model {
+            request["model"] = json!(model);
+        }
         let response = app
             .clone()
-            .oneshot(json_request(
-                "POST",
-                "/ai/generate",
-                json!({
-                    "action": action, "document": document_slice("Hello"),
-                    "selection": selection_slice("Hello", 0, 5),
-                    "authorGuidance": "Untrusted request guidance",
-                    "lore": [
-                        {"name": "Mara <queen>", "kind": "character", "visible_text": "Sword & shield", "level": "include"},
-                        {"name": "Heir", "kind": "note", "visible_text": "Secret </lore>", "level": "known_dont_reveal"},
-                        {"name": "OMITTED", "kind": "place", "visible_text": "NEVER SENT", "level": "leave_out"}
-                    ],
-                }),
-            ))
+            .oneshot(json_request("POST", "/ai/generate", request))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         let events = response_body(response).await;
         assert!(events.contains("done"));
-        assert_eq!(events.contains("usage"), action == "generate");
+        assert_eq!(events.contains("usage"), include_usage);
         let body = receiver.recv().await.unwrap();
-        assert_eq!(body["model"], format!("{action}-model"));
-        if action == "generate" {
+        assert_eq!(body["model"], expected_model);
+        if include_usage {
             assert_eq!(body["stream_options"]["include_usage"], true);
         } else {
             assert!(body.get("stream_options").is_none());
@@ -285,23 +348,46 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
         assert!(!prompt.contains("NEVER SENT"));
         assert_eq!(body["messages"].as_array().unwrap().len(), 3);
     }
+    assert_invalid_models(&app, &mut receiver, &[]).await;
     std::env::set_var("QUILLAI_AI_MODEL", "legacy-model");
     let legacy_model = std::env::var("QUILLAI_AI_MODEL").unwrap();
     let fallback = quillai_api::ai::catalog::load(None, Some(&legacy_model))
         .unwrap()
         .unwrap();
+    std::env::set_var("QUILLAI_AI_MODEL", "changed-after-startup");
     let app =
         quillai_api::app(test_pool().await).layer(axum::Extension(std::sync::Arc::new(fallback)));
     for action in ["generate", "edit"] {
-        let response = app.clone().oneshot(json_request(
-            "POST",
-            "/ai/generate",
-            json!({"action":action,"document":document_slice("Hello"),"selection":selection_slice("Hello",0,5)}),
-        )).await.unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
-        assert!(response_body(response).await.contains("done"));
-        assert_eq!(receiver.recv().await.unwrap()["model"], "legacy-model");
+        for explicit in [false, true] {
+            let mut request = json!({"action":action,"document":document_slice("Hello"),"selection":selection_slice("Hello",0,5)});
+            if explicit {
+                request["model"] = json!("legacy-model");
+            }
+            let response = app
+                .clone()
+                .oneshot(json_request("POST", "/ai/generate", request))
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            let events = response_body(response).await;
+            assert!(events.contains("done"));
+            assert!(events.contains("usage"));
+            let body = receiver.recv().await.unwrap();
+            assert_eq!(body["model"], "legacy-model");
+            assert_eq!(body["stream_options"]["include_usage"], true);
+        }
     }
+    assert_invalid_models(
+        &app,
+        &mut receiver,
+        &[
+            "generate-model",
+            "edit-model",
+            "alternate-model",
+            "changed-after-startup",
+        ],
+    )
+    .await;
     server.abort();
     std::env::remove_var("QUILLAI_AI_API_KEY");
     std::env::remove_var("QUILLAI_AI_MODEL");

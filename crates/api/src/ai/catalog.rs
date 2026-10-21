@@ -107,6 +107,10 @@ impl ModelCatalog {
         &self.models
     }
 
+    pub fn find(&self, id: &str) -> Option<&CatalogModel> {
+        self.models.iter().find(|model| model.id == id)
+    }
+
     pub fn resolve(&self, action: AiAction) -> &CatalogModel {
         &self.models[match action {
             AiAction::Generate => self.generate,

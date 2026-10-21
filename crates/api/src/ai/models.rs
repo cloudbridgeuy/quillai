@@ -12,6 +12,8 @@ pub const MAX_MAX_OUTPUT_TOKENS: usize = 4096;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerateRequest {
+    #[serde(default, deserialize_with = "deserialize_model")]
+    pub model: Option<serde_json::Value>,
     #[serde(default = "empty_lore")]
     pub lore: serde_json::Value,
     #[serde(default = "empty_section_overrides")]
@@ -25,6 +27,13 @@ pub struct GenerateRequest {
     pub messages: Vec<RawConversationMessage>,
     pub resume_prompt: Option<String>,
     pub max_output_tokens: Option<usize>,
+}
+
+fn deserialize_model<'de, D>(deserializer: D) -> Result<Option<serde_json::Value>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    serde_json::Value::deserialize(deserializer).map(Some)
 }
 
 fn empty_section_overrides() -> serde_json::Value {
@@ -275,6 +284,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
 
     fn try_from(request: GenerateRequest) -> Result<Self, Self::Error> {
         let GenerateRequest {
+            model: _,
             lore,
             section_overrides,
             action,
@@ -496,6 +506,7 @@ mod tests {
     #[test]
     fn generate_request_parses_and_sanitizes() {
         let input = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -553,6 +564,7 @@ mod tests {
     #[test]
     fn edit_requires_non_empty_selection() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -572,6 +584,7 @@ mod tests {
     #[test]
     fn malformed_document_is_rejected_at_boundary() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -603,6 +616,7 @@ mod tests {
     #[test]
     fn selection_must_fit_sanitized_document_text_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -624,6 +638,7 @@ mod tests {
     #[test]
     fn selection_text_must_match_document_span() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -645,6 +660,7 @@ mod tests {
     #[test]
     fn selected_text_uses_selection_slice_text() {
         let input = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -664,6 +680,7 @@ mod tests {
     #[test]
     fn selection_delta_text_must_match_selection_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -699,6 +716,7 @@ mod tests {
     #[test]
     fn document_text_must_match_sanitized_delta_text() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -730,6 +748,7 @@ mod tests {
     #[test]
     fn document_and_selection_slices_reject_embeds() {
         let document_err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -758,6 +777,7 @@ mod tests {
             .contains("AI document slices currently support text inserts only"));
 
         let selection_err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -793,6 +813,7 @@ mod tests {
     #[test]
     fn utf16_selection_indices_accept_emoji_spans() {
         let input = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),
@@ -832,6 +853,7 @@ mod tests {
     #[test]
     fn blank_message_content_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -856,6 +878,7 @@ mod tests {
     #[test]
     fn invalid_message_role_is_rejected() {
         let err = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -880,6 +903,7 @@ mod tests {
     #[test]
     fn token_limit_defaults_and_bounds_are_enforced() {
         let defaulted = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -896,6 +920,7 @@ mod tests {
         assert_eq!(defaulted.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
 
         let too_large = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -914,6 +939,7 @@ mod tests {
             .contains("maxOutputTokens must be at most"));
 
         let too_small = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "generate".into(),
@@ -935,6 +961,7 @@ mod tests {
     #[test]
     fn edit_requests_drop_generate_only_thread_fields() {
         let input = GenerateInput::try_from(GenerateRequest {
+            model: None,
             lore: empty_lore(),
             section_overrides: empty_section_overrides(),
             action: "edit".into(),

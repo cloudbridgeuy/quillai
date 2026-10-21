@@ -38,6 +38,8 @@ The feature follows Functional Core and Imperative Shell.
 }
 ```
 
+Optional `model` must be a string that exactly matches a startup catalog ID. It selects the provider model and all per-model settings, including `include_usage`. Omission uses the action default: Continue → `generate`, Edit → `edit`. Unknown IDs, empty strings, and non-strings (including null) return standard JSON 422 `VALIDATION_ERROR` before any provider call, without exposing catalog entries or provider configuration. The environment fallback accepts only its single startup ID. NDJSON events are unchanged.
+
 `edit` requests send a non-null `selection` slice:
 
 ```json
@@ -147,7 +149,7 @@ Set `QUILLAI_AI_MODELS_FILE` (or API `--ai-models`) to a JSON catalog:
 
 Prices are per 1M tokens in provider currency. Prices must be finite and non-negative; IDs must be unique, IDs/labels nonblank, and both defaults must name catalog entries. Unknown fields, missing required fields, invalid JSON, and unreadable files fail startup with the file path. An explicitly configured missing file is an error, not a fallback. The file takes precedence over `QUILLAI_AI_MODEL` and is loaded once before database setup. Restart to reload it. Base URL and API key remain shared across all models and are read per request.
 
-`include_usage` is an optional boolean, default true. The selected action's model controls upstream usage requests and downstream usage emission. Set false for providers that reject `stream_options`.
+`include_usage` is an optional boolean, default true. The selected model (explicit or action default) controls upstream usage requests and downstream usage emission. Set false for providers that reject `stream_options`.
 
 With no catalog file, `QUILLAI_AI_MODEL` becomes a one-entry catalog, with its ID as label, zero price placeholders (not known/free pricing), and both action defaults set to it. If neither is configured, the server still starts for non-AI use; AI requests report missing provider configuration. `cargo xtask dev --ai-models models.json` and `cargo xtask e2e --ai-models models.json` pass the file path to the API; the environment variable is also inherited. On `e2e`, put this option before Playwright arguments.
 
