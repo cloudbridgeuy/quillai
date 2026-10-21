@@ -110,6 +110,19 @@ Both actions use series lore loaded by `manuscripts/use_lore.ts` through the par
 
 The frontend expects NDJSON events with Quill-delta payloads, but the editor shell currently accepts text inserts only from streamed `delta` events. Non-text embed inserts are rejected at the shell boundary, and request slices containing embeds are rejected before `fetch` starts. `ai_stream.ts` accepts a `usage` event with integer `promptTokens` and `completionTokens`. Continue and Edit ignore it and do not display token counts. The run still ends only on `done`, `error`, `cancelled`, or EOF, so `finishReason` on the following `done` is kept.
 
+## Actual Usage Cost Policy
+
+`cost.ts` is a pure helper, not connected to the editor UI. Call `snapshotCostPricing(catalog, identity)` at request time, then pass that snapshot and the request's observed parsed events to `calculateActualCost`. Keep events scoped to one request.
+
+1. Missing usage means `unknown`, not zero. Explicit valid zero counts or free prices produce known zero. Counts must be nonnegative safe integers, at most 1 billion per direction: a conservative per-request sanity ceiling, not a provider limit.
+2. USD is an exact reduced bigint `numerator / denominator`, not a floating dollar field. Prices use canonical `Number.toString()` decimal values, including scientific notation; input and output are summed without rounding. Precision already lost before catalog parsing cannot be recovered. Round only at a future display boundary; bigint needs explicit conversion for JSON.
+3. Identity must name the model actually sent or authoritatively resolved. Omitted server-default requests remain `server-default-unresolved`; never infer identity from mutable catalog defaults. Missing models/catalogs and invalid prices return explicit unknown reasons. The snapshot copies both prices, so later catalog edits cannot reprice a request.
+4. Usage events are cumulative snapshots: last usage wins, never sum them. An invalid latest snapshot makes cost unknown, even after valid earlier usage.
+5. Stop, cancellation, error, premature EOF, and length completion do not invent or remove usage. Known cost always has `coverage: observed-usage`, including normal completion; it is not a final provider invoice or proof of complete billing coverage.
+6. Only usage-tagged actual counts enter calculation; untagged prompt estimates cannot satisfy its event type. Apply the catalog's standard input/output prices. Current contracts expose no cache-token breakdown or cache rates, so no cache discount is assumed. No estimates, API changes, or UI behavior are added.
+
+`cost.test.ts` covers all six rules and decimal/scientific extremes, count bounds, invalid rates, snapshot isolation, and exact aggregation.
+
 ## Tests
 
 ```sh
