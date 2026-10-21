@@ -5,6 +5,7 @@ import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEdi
 import type { Chapter, ChapterScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
+import { selectionBoundary } from "./selection_boundary";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -84,8 +85,9 @@ export function useChapterSync(
           applyingRef.current = true;
           quill.updateContents(change, "api");
           if (selection) {
-            const index = change.transformPosition(selection.index, true);
-            const end = change.transformPosition(selection.index + selection.length, true);
+            const text = quill.getText();
+            const index = selectionBoundary(text, change.transformPosition(selection.index, true));
+            const end = selectionBoundary(text, change.transformPosition(selection.index + selection.length, true));
             quill.setSelection(index, Math.max(0, end - index), "silent");
           }
           applyingRef.current = false;
