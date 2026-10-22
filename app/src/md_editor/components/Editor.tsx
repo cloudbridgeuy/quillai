@@ -1236,8 +1236,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         <div className="editor-drawer-header">
           <h2 id="manuscript-title">Manuscript</h2>
         </div>
-        <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+        <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
+          <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+        </div>
         {chapterSync.scope ? <LorePanel key={chapterSync.scope.seriesId} seriesId={chapterSync.scope.seriesId}
           lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Select a chapter to manage series lore.</p>}
         <a className="editor-button" download="chapter-local.json"

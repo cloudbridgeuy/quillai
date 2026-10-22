@@ -1059,6 +1059,36 @@ button {
 
   .editor-drawer-left {
     left: 56px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .editor-drawer-left > .editor-drawer-header,
+  .editor-drawer-left > .editor-button {
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  .editor-manuscript-outline {
+    flex: 0 0 min(320px, 40dvh);
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .editor-drawer-left > .editor-lore-panel {
+    flex: 1;
+    min-height: 0;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 20px;
+    margin-bottom: 16px;
+    overflow: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+    background:
+      linear-gradient(var(--paper), var(--paper)) bottom / 100% 16px local no-repeat,
+      linear-gradient(transparent, rgba(31, 41, 51, .08)) bottom / 100% 12px scroll no-repeat;
   }
 
   .editor-drawer-right {
