@@ -24,7 +24,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 | What | Command | File |
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
-| Lint and tests (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
+| Lint, tests, and project tsc (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
 | Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`) | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | AI model catalog | `cargo xtask dev --ai-models models.json` (also `e2e` and API `--ai-models`; env `QUILLAI_AI_MODELS_FILE`) | `crates/api/src/ai/catalog.rs` |
@@ -65,7 +65,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks with short output (logs in `target/xtask-lint/`) |
+| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, plus the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, with short output (logs in `target/xtask-lint/`) |
 | `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API and frontend ports, HTTP readiness, managed Playwright runner, process-group and database cleanup. Catalog precedence: `--ai-models` > `QUILLAI_AI_MODELS_FILE` > workspace-root `e2e/fixtures/ai-models.json`; only the default fixture starts managed Bun TypeScript `e2e/fake-ai-provider.ts`, sets API `QUILLAI_AI_BASE_URL` to its random loopback `/v1` URL with a fake key, and supplies Playwright `QUILLAI_E2E_FAKE_AI_URL`. The fixture immediately rejects and counts unarmed requests; only `real-route-stream.spec.ts` arms a one-use model/document identity for real `/ai/generate` Finish/Stop convergence at 1100px, with request/fragment/finish controls and actual upstream-close observation. Set the frontend port with `--port 3107` before Playwright arguments. Remaining arguments pass directly, e.g. `cargo xtask e2e --headed --trace on`. The runner sets API `--cors-origin` and Playwright `QUILLAI_E2E_APP_URL` for the chosen frontend. With `NO_COLOR` present or non-terminal stdout, prefixes are plain and all children receive `NO_COLOR=1`, `FORCE_COLOR=0`, and `CARGO_TERM_COLOR=never`. |
 
 ### Browser Smoke (`e2e/`)

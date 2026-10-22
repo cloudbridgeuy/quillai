@@ -3,6 +3,7 @@ import Delta from "quill-delta";
 import { createManuscriptClient } from "../manuscripts/client";
 import { parseDelta, type Chapter, type Revision } from "../manuscripts/contract";
 import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter } from "./chapter_session";
+import { chapterDelta } from "./chapter_sync";
 
 const scope = { seriesId: 1, bookId: 2, chapterId: 3 };
 const chapter: Chapter = { id: 3, book_id: 2, title: "Chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "text\n" }] }, head_rev: 0 };
@@ -90,7 +91,7 @@ test("lost POST response acknowledges a server-transformed revision without rese
     },
     getDeltas: async () => {
       if (submitted === null) return [];
-      const stored = remote.transform(new Delta(submitted.ops), true);
+      const stored = remote.transform(chapterDelta(submitted), true);
       return [{ rev: 1, delta: parseDelta(remote) }, { rev: 2, delta: parseDelta(stored) }];
     },
   }, scope, chapter, () => {});

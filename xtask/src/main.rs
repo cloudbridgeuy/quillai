@@ -213,12 +213,32 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
         ),
         ("dependencies", "cargo", &["rail", "unify", "--check"], "."),
         ("bun-test", "bun", &["test"], "app"),
+        (
+            "tsc",
+            "app/node_modules/typescript/bin/tsc",
+            &["--noEmit", "-p", "app"],
+            ".",
+        ),
     ];
     let mut failed = 0;
     for (name, program, command_args, directory) in checks {
         let path = logs.join(format!("{name}.log"));
         let mut log = std::fs::File::create(&path)?;
-        let result = Command::new(program)
+        let executable = if program.contains('/') {
+            root.join(program)
+        } else {
+            std::path::PathBuf::from(program)
+        };
+        if program.contains('/') && !executable.is_file() {
+            writeln!(
+                log,
+                "missing {program}: run `bun install` in app so the project TypeScript compiler is available"
+            )?;
+            report_lint_check(name, false, &path, args.verbose)?;
+            failed += 1;
+            continue;
+        }
+        let result = Command::new(&executable)
             .args(*command_args)
             .current_dir(root.join(directory))
             .env("CARGO_TERM_COLOR", "never")
