@@ -358,6 +358,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/failed-${width}.png` });
   }
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+  await expect(page.getByText("Opening a chapter saves current changes first.", { exact: true })).toBeVisible();
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "Export local chapter", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("chapter-local.json");
