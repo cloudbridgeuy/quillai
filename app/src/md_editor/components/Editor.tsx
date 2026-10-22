@@ -257,6 +257,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   const [showContinueWindow, setShowContinueWindow] = useState(initialEditorState.showContinueWindow);
   const [desktop, setDesktop] = useState(() => window.matchMedia("(min-width: 1100px)").matches);
   const continueStreamRef = useRef<ContinueStream | null>(null);
+  const desktopContinueWaitingRef = useRef(false);
   const applyingContinueRef = useRef(false);
   const tintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tintEnabledRef = useRef(aiTextTint);
@@ -647,10 +648,19 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   }
 
   async function runAiAction(action: AiAction) {
-    if (!chapterSync.canStartAi()) {
+    const reservation = action === "generate" ? chapterSync.reserveAi() : null;
+    if (action === "generate" ? !reservation : !chapterSync.canStartAi()) {
       setAiFailure(action, "Wait for chapter saving and polling to finish before starting AI.");
       return;
     }
+    try {
+      await runReservedAiAction(action, reservation);
+    } finally {
+      reservation?.release();
+    }
+  }
+
+  async function runReservedAiAction(action: AiAction, reservation: ReturnType<typeof chapterSync.reserveAi>) {
     const quill = quillRef.current;
     if (!quill) {
       setAiFailure(null, "Editor is not ready yet.");
@@ -676,6 +686,30 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     if (!started.ok) {
       setAiFailure(null, started.reason);
       return;
+    }
+
+    const controller = new AbortController();
+    if (reservation) {
+      desktopContinueWaitingRef.current = desktop;
+      abortControllerRef.current = controller;
+      updateAiRunState(started.state);
+      try {
+        await reservation.wait(controller.signal);
+        if (!isMountedRef.current || quillRef.current !== quill) return;
+      } catch (error) {
+        if (isMountedRef.current) {
+          if (controller.signal.aborted) {
+            const finished = finishRun(aiRunStateRef.current, "cancelled");
+            if (finished.ok) updateAiRunState(finished.state);
+          } else {
+            setAiFailure(action, getUnknownAiFailureMessage(error));
+          }
+        }
+        return;
+      } finally {
+        desktopContinueWaitingRef.current = false;
+        abortControllerRef.current = null;
+      }
     }
 
     const liveSelection = quill.getSelection() ?? range;
@@ -709,7 +743,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     const originalSelectionDelta =
       deleteLength > 0 ? new Delta(quill.getContents(anchor, deleteLength).ops) : null;
     let didDeleteSelection = false;
-    const controller = new AbortController();
     const concurrentContinue = action === "generate" && desktop;
     clearContinueTint();
     if (concurrentContinue) {
@@ -1246,7 +1279,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           <div className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={(isBusy && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
+              readOnly={(isBusy && !(desktop && aiRunState.status === "continuing" && (continueStreamRef.current !== null || desktopContinueWaitingRef.current))) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);

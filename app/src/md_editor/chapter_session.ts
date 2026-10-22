@@ -52,6 +52,7 @@ export function createChapterSession(
 ) {
   let state = startChapterSync(chapter.content, chapter.head_rev);
   let running: Promise<void> | null = null;
+  let aiReserved = false;
   let stopped = false;
   let problem: SyncProblem | null = null;
   let lastError: string | null = null;
@@ -60,7 +61,7 @@ export function createChapterSession(
 
   function tick(): Promise<void> {
     if (running) return Promise.resolve();
-    if (stopped || problem?.kind === "blocked") return Promise.resolve();
+    if (aiReserved || stopped || problem?.kind === "blocked") return Promise.resolve();
     running = synchronize().finally(() => { running = null; });
     return running;
   }
@@ -156,10 +157,39 @@ export function createChapterSession(
     }
   }
 
+  const clean = () => !stopped && problem?.kind !== "blocked" && !hasLocalChanges(state);
+
   return {
     document: () => syncDocument(state),
-    canStartAi: () => !running && !stopped && problem?.kind !== "blocked" && !hasLocalChanges(state),
-    stop: () => { stopped = true; },
+    canStartAi: () => !running && !aiReserved && clean(),
+    reserveAi() {
+      if (aiReserved || !clean()) return null;
+      aiReserved = true;
+      let released = false;
+      return {
+        async wait(signal: AbortSignal) {
+          signal.throwIfAborted();
+          let abort!: () => void;
+          const cancelled = new Promise<never>((_resolve, reject) => {
+            abort = () => reject(signal.reason);
+            signal.addEventListener("abort", abort, { once: true });
+          });
+          try {
+            await Promise.race([running, cancelled]);
+            signal.throwIfAborted();
+            if (released || !clean()) throw new Error("Wait for chapter saving and polling to finish before starting AI.");
+          } finally {
+            signal.removeEventListener("abort", abort);
+          }
+        },
+        release() {
+          if (released) return;
+          released = true;
+          aiReserved = false;
+        },
+      };
+    },
+    stop: () => { stopped = true; aiReserved = false; },
     edit(document: Delta) {
       if (stopped) return;
       state = editChapter(state, document);

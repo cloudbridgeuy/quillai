@@ -181,6 +181,19 @@ export function useChapterSync(
       }
     },
     canStartAi: () => !switchingRef.current && (sessionRef.current?.canStartAi() ?? false),
+    reserveAi() {
+      const session = sessionRef.current;
+      if (switchingRef.current || !session) return null;
+      const reservation = session.reserveAi();
+      if (!reservation) return null;
+      return {
+        async wait(signal: AbortSignal) {
+          await reservation.wait(signal);
+          if (switchingRef.current || sessionRef.current !== session) throw new Error("Chapter session changed before starting AI.");
+        },
+        release: reservation.release,
+      };
+    },
     documentChanged() {
       if (!applyingRef.current && quillRef.current) {
         sessionRef.current?.edit(quillRef.current.getContents());
