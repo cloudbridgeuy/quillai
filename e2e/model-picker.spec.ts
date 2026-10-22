@@ -138,12 +138,12 @@ for (const available of [true, false]) {
       expect(await scrollArea.evaluate(node => node.getBoundingClientRect().top))
         .toBe(headerOffsets.top + headerOffsets.height);
       console.log(JSON.stringify({ width, catalogAvailable: available, fixedHeader: headerOffsets, headingCenters: centers }));
-      if (available) await page.screenshot({ path: `../target/guz-680/drawer-top-${width}.png` });
-      if (available) await page.screenshot({ path: `../target/guz-680/rail-active-${width}.png` });
+      if (available) await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/drawer-top-${width}.png` });
+      if (available) await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/rail-active-${width}.png` });
       await drawer.locator(".editor-advanced-section").scrollIntoViewIfNeeded();
       await expect(continueModel).toBeInViewport();
       await expect(editModel).toBeInViewport();
-      await page.screenshot({ path: `../target/guz-680/${available ? "models" : "unavailable"}-${width}.png` });
+      await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/${available ? "models" : "unavailable"}-${width}.png` });
       const pageScroll = await page.evaluate(() => window.scrollY);
       await scrollArea.evaluate(node => { node.scrollTop = node.scrollHeight; });
       expect(await drawer.evaluate(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom })))
@@ -161,7 +161,7 @@ for (const available of [true, false]) {
         return [0.05, 0.5, 0.95].every(x => [0.05, 0.5, 0.95].every(y =>
           node.contains(document.elementFromPoint(rect.left + rect.width * x, rect.top + rect.height * y))));
       })).toBe(true);
-      if (available) await page.screenshot({ path: `../target/guz-680/drawer-bottom-${width}.png` });
+      if (available) await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/drawer-bottom-${width}.png` });
     }
     await contextButton.click();
     await editor.click();
@@ -210,7 +210,7 @@ for (const available of [true, false]) {
       await expect(cost.getByRole("heading", { name: "Most recent run · actual", exact: true })).toBeVisible();
       await expect(cost.getByText("1000 input · 500 output tokens", { exact: true })).toBeVisible();
       await expect(cost.locator("dd").last()).toHaveText(available ? "$0.001" : "unknown — unresolved model");
-      await page.screenshot({ path: `../target/guz-681/${available ? "cost" : "unknown"}-${width}.png` });
+      await page.screenshot({ path: `../target/guz-681/${test.info().project.name}/${available ? "cost" : "unknown"}-${width}.png` });
     }
   });
 }

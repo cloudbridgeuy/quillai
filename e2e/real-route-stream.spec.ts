@@ -67,13 +67,13 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     const generationResponse = page.waitForResponse(response => response.url() === `${apiUrl}/ai/generate` && response.request().method() === "POST");
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
-    expect((await generationResponse).status()).toBe(200);
     const recorded = await request.get(`${providerUrl}/control/${before}/request`);
     expect(recorded.status()).toBe(200);
     const upstream = await recorded.json();
     expect(upstream).toEqual({ id: before, identity, model: "e2e-continue", stream: true, closed: false, completed: false });
     const controlUrl = `${providerUrl}/control/${upstream.id}`;
     expect((await request.post(`${controlUrl}/fragment`, { data: { text: "AI first" } })).status()).toBe(200);
+    expect((await generationResponse).status()).toBe(200);
     await expect(stop).toBeVisible();
     await expect(editor.locator("p").nth(1)).toHaveText("AI first");
     await placeCaret(editor, 0, 3);

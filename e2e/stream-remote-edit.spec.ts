@@ -57,10 +57,17 @@ for (const outcome of ["Finish", "Stop"] as const) {
     const streaming = new Promise<ServerResponse>(resolve => { openStream = resolve; });
     const server = createServer((incoming, response) => {
       incoming.resume();
-      response.writeHead(200, {
-        "Content-Type": "application/x-ndjson",
+      const cors = {
         "Access-Control-Allow-Origin": new URL(page.url()).origin,
-      });
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST",
+      };
+      if (incoming.method === "OPTIONS") {
+        response.writeHead(204, cors);
+        response.end();
+        return;
+      }
+      response.writeHead(200, { ...cors, "Content-Type": "application/x-ndjson" });
       response.flushHeaders();
       openStream(response);
     });

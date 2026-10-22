@@ -23,7 +23,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     const apiUrl = process.env.QUILLAI_E2E_API_URL;
     const providerUrl = process.env.QUILLAI_E2E_FAKE_AI_URL;
     if (!apiUrl || !providerUrl) throw new Error("Run with cargo xtask e2e and its default catalog");
-    const directory = resolve(import.meta.dir, "../target/guz-806");
+    const directory = resolve(import.meta.dir, "../target/guz-806", test.info().project.name);
     mkdirSync(directory, { recursive: true });
     const identity = `GUZ807-${outcome}-${crypto.randomUUID()}`;
     const opening = `Opening paragraph ${identity}`;
@@ -77,13 +77,13 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     const generationResponse = page.waitForResponse(response => response.url() === `${apiUrl}/ai/generate` && response.request().method() === "POST");
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
-    expect((await generationResponse).status()).toBe(200);
     const recorded = await request.get(`${providerUrl}/control/${before}/request`);
     expect(recorded.status()).toBe(200);
     const upstream = await recorded.json();
     expect(upstream).toEqual({ id: before, identity, model: "e2e-continue", stream: true, closed: false, completed: false });
     const controlUrl = `${providerUrl}/control/${upstream.id}`;
     expect((await request.post(`${controlUrl}/fragment`, { data: { text: "AI first" } })).status()).toBe(200);
+    expect((await generationResponse).status()).toBe(200);
     await expect(stop).toBeVisible();
     await expect(editor.locator("p")).toHaveText([opening, "AI first", "Later paragraph"]);
     const remoteSave = second.waitForResponse(response => response.url() === `${chapterUrl}/deltas` && response.request().method() === "POST");

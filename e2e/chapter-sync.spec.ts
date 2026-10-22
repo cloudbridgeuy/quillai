@@ -17,7 +17,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   const chaptersUrl = `${apiUrl}/series/${series.id}/books/${book.id}/chapters`;
   const chapterResponse = await request.post(chaptersUrl, {
     data: {
-      title: "E2E chapter", position: 0, kind: "chapter",
+      title: `E2E chapter ${test.info().project.name}`, position: 0, kind: "chapter",
       content: { ops: [{ insert: "Opening line\n" }] },
     },
   });
@@ -39,13 +39,13 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     });
     await tab.goto(`/?${query}`);
     await expect(tab.locator(".ql-editor")).toHaveText("Opening line");
-    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+    await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
     await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+    await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   }
 
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const title = page.getByRole("heading", { name: "E2E chapter", exact: true });
+  const title = page.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true });
   await expect(title).toHaveCSS("font-size", "13px");
   await expect(title).toHaveCSS("font-weight", "600");
   await expect(title).toHaveCSS("letter-spacing", "2.86px");
@@ -87,14 +87,14 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+[");
   await expect(page.getByRole("heading", { name: "Manuscript", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "E2E chapter", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+]");
   await page.getByRole("textbox", { name: "Author guidance", exact: true }).focus();
   await page.keyboard.press("Escape");
   await expect(editor).toBeFocused();
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
-  await page.screenshot({ path: "../target/guz-750/editor-desktop.png", fullPage: true });
+  await page.screenshot({ path: `../target/guz-750/${test.info().project.name}/editor-desktop.png`, fullPage: true });
   for (const width of [768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.keyboard.press("Control+]");
@@ -113,7 +113,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   await page.locator(".ql-editor").fill("Page one writes");
   await expect(second.locator(".ql-editor")).toHaveText("Page one writes");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-  await expect(page.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   const firstSaved = await request.get(chapterUrl);
   expect(firstSaved.ok()).toBe(true);
   const firstHead = (await firstSaved.json()).head_rev;
@@ -122,7 +122,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   await second.locator(".ql-editor").fill("Page one writes; page two replies");
   await expect(page.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
   await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-  await expect(second.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+  await expect(second.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.ok()).toBe(true);
   const saved = await savedResponse.json();
@@ -132,9 +132,9 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   for (const tab of [page, second]) {
     await tab.reload();
     await expect(tab.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
-    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+    await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
     await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-    await expect(tab.getByRole("heading", { name: "E2E chapter", exact: true })).toBeVisible();
+    await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   }
   expect(failures).toEqual([]);
 });
@@ -150,7 +150,7 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   const book = await bookResponse.json();
   const chaptersUrl = `${apiUrl}/series/${series.id}/books/${book.id}/chapters`;
   const chapters = [];
-  for (const [position, title, text] of [[0, "Switch first", "First opening\n"], [1, "Switch second", "Second opening\n"]] as const) {
+  for (const [position, title, text] of [[0, `Switch first ${test.info().project.name}`, "First opening\n"], [1, `Switch second ${test.info().project.name}`, "Second opening\n"]] as const) {
     const response = await request.post(chaptersUrl, {
       data: { title, position, kind: "chapter", content: { ops: [{ insert: text }] } },
     });
@@ -171,8 +171,8 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   const editor = page.locator(".ql-editor");
   await expect(editor).toHaveText("First opening");
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-  const firstButton = page.getByRole("button", { name: "Switch first", exact: true });
-  const secondButton = page.getByRole("button", { name: "Switch second", exact: true });
+  const firstButton = page.getByRole("button", { name: `Switch first ${test.info().project.name}`, exact: true });
+  const secondButton = page.getByRole("button", { name: `Switch second ${test.info().project.name}`, exact: true });
   await expect(firstButton).toHaveAttribute("aria-pressed", "true");
   let releaseSave!: () => void;
   const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
@@ -189,11 +189,11 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   await saving;
   await expect(secondButton).toBeDisabled();
   await expect(editor).toHaveAttribute("contenteditable", "false");
-  await expect(page.getByRole("heading", { name: "Switch first", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `Switch first ${test.info().project.name}`, exact: true })).toBeVisible();
   expect(secondGets).toBe(0);
   releaseSave();
   await expect(editor).toHaveText("Second opening");
-  await expect(page.getByRole("heading", { name: "Switch second", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `Switch second ${test.info().project.name}`, exact: true })).toBeVisible();
   await expect(secondButton).toHaveAttribute("aria-pressed", "true");
   await expect(firstButton).toHaveAttribute("aria-pressed", "false");
   await expect(page).toHaveURL(new RegExp(`chapterId=${second.id}(?:&|$)`));
@@ -223,7 +223,7 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   await expect(failedSave).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
   await expect(editor).toHaveText("Second unsaved text retained");
-  await expect(page.getByRole("heading", { name: "Switch second", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `Switch second ${test.info().project.name}`, exact: true })).toBeVisible();
   await expect(secondButton).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(new RegExp(`chapterId=${second.id}(?:&|$)`));
   expect(firstGets).toBe(1);

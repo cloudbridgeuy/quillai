@@ -89,7 +89,7 @@ for (const width of [1100, 1440]) {
     await expect(manuscript).toHaveCSS("color", "rgb(31, 41, 51)");
     await expect(manuscript).toHaveCSS("background-color", "rgb(215, 230, 208)");
     expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Opening");
-    await page.screenshot({ path: `../target/guz-798/manuscript-open-${width}.png` });
+    await page.screenshot({ path: `../target/guz-798/${test.info().project.name}/manuscript-open-${width}.png` });
     await editor.evaluate(element => (element as HTMLElement).blur());
     await manuscript.click();
     await expect(drawer).toBeHidden();
@@ -100,7 +100,7 @@ for (const width of [1100, 1440]) {
     await expect(rail).toHaveCSS("opacity", "0.35");
     await expect(manuscript).toHaveCSS("color", "rgb(111, 117, 124)");
     await expect(manuscript).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    await page.screenshot({ path: `../target/guz-798/manuscript-closed-${width}.png` });
+    await page.screenshot({ path: `../target/guz-798/${test.info().project.name}/manuscript-closed-${width}.png` });
     for (const modifier of ["Control", "Meta"]) {
       await page.keyboard.press(`${modifier}+[`);
       await expect(drawer).toBeVisible();

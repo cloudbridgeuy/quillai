@@ -94,7 +94,7 @@ for (const width of [1100, 1440]) {
     expect(visibleBounds!.y + visibleBounds!.height).toBeLessThan(1000);
     const flag = page.getByRole("button", { name: /Continue window starts ↑/ });
     await expect(flag).toBeHidden();
-    await page.screenshot({ path: `../target/guz-757/${width}-flag-hidden.png` });
+    await page.screenshot({ path: `../target/guz-757/${test.info().project.name}/${width}-flag-hidden.png` });
     const typedText = "An author revises the harbour. ";
     await page.keyboard.type(typedText);
     const sourceText = await documentText(page);
@@ -109,7 +109,9 @@ for (const width of [1100, 1440]) {
     expect(documentWindow.start).toBeGreaterThan(0);
     await expectGeometry(page, documentWindow.start, documentWindow.end);
     for (const [distance, label] of [[750, "just above"], [999, "just above"], [1000, "1 pages up"], [1250, "1 pages up"], [1750, "2 pages up"]] as const) {
-      await page.locator(".editor-continue-window").evaluate((node, distance) => window.scrollBy(0, node.getBoundingClientRect().top + distance), distance);
+      await page.locator(".editor-continue-window").evaluate((node, distance) => window.scrollTo(0, Math.ceil(window.scrollY + node.getBoundingClientRect().top + distance)), distance);
+      await expect.poll(() => page.locator(".editor-continue-window").evaluate((node) => -node.getBoundingClientRect().top)).toBeGreaterThanOrEqual(distance);
+      expect(await page.locator(".editor-continue-window").evaluate((node) => -node.getBoundingClientRect().top)).toBeLessThan(distance + 1);
       await expect(flag).toHaveText(`Continue windowstarts ↑ ${label}`);
     }
     await flag.click();
@@ -136,7 +138,7 @@ for (const width of [1100, 1440]) {
       const pages = await page.locator(".editor-continue-window").evaluate((node) => Math.round(-node.getBoundingClientRect().top / window.innerHeight));
       return (await flag.textContent()) === `Continue windowstarts ↑ ${pages} pages up`;
     }).toBe(true);
-    await page.screenshot({ path: `../target/guz-757/${width}-flag-visible.png` });
+    await page.screenshot({ path: `../target/guz-757/${test.info().project.name}/${width}-flag-visible.png` });
     await flag.click();
     await expect(flag).toBeHidden();
     await expect.poll(() => page.locator(".editor-continue-window").evaluate((node) => Math.abs(node.getBoundingClientRect().top - 24))).toBeLessThan(1);

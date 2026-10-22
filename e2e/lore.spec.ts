@@ -91,7 +91,7 @@ for (const width of [1100, 1440]) {
     await expect(card).toContainText("character · Known, don't reveal");
     await expect(card).toContainText("The ship's navigator.");
     await expect(card).not.toContainText(secret);
-    await page.screenshot({ path: `../target/guz-759/hover-${width}.png` });
+    await page.screenshot({ path: `../target/guz-759/${test.info().project.name}/hover-${width}.png` });
     await page.keyboard.press("Escape");
     await expect(card).not.toBeVisible();
     await page.getByRole("button", { name: "Context inspector", exact: true }).click();
@@ -105,7 +105,7 @@ for (const width of [1100, 1440]) {
     await expect(page.locator("body")).not.toContainText(secret);
     await list.getByRole("button", { name: /Mira/ }).click();
     await expect(card).toBeVisible();
-    await page.screenshot({ path: `../target/guz-759/window-${width}.png` });
+    await page.screenshot({ path: `../target/guz-759/${test.info().project.name}/window-${width}.png` });
     await page.keyboard.press("Escape");
     const after = await (await request.get(chapterUrl)).json();
     expect(after.content).toEqual(before.content);
@@ -180,7 +180,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await lore.getByRole("button", { name: "Save lore", exact: true }).click();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.screenshot({ path: `../target/guz-671/lore-panel-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-671/${test.info().project.name}/lore-panel-${width}.png`, fullPage: true });
   }
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await editor.click();
@@ -202,7 +202,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await injected.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `../target/guz-671/inspector-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-671/${test.info().project.name}/inspector-${width}.png`, fullPage: true });
   }
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const bodies: string[] = [];

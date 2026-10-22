@@ -193,7 +193,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   expect(tintText).toContain("AI first second tail");
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.screenshot({ path: `../target/guz-756/during-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-756/${test.info().project.name}/during-${width}.png`, fullPage: true });
   }
   await page.getByRole("button", { name: "Stop AI", exact: true }).click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
@@ -226,7 +226,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expect(editor).not.toHaveAttribute("data-ai-tint", "fading");
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.screenshot({ path: `../target/guz-756/after-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-756/${test.info().project.name}/after-${width}.png`, fullPage: true });
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();

@@ -57,10 +57,10 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expect(page.locator(".editor-page textarea, .editor-page input:not(.ql-tooltip input)")).toHaveCount(0);
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.screenshot({ path: `../target/guz-755/idle-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/idle-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
-    await page.screenshot({ path: `../target/guz-755/manuscript-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/manuscript-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   }
   await continueButton.click();
@@ -77,7 +77,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expect(context.getByRole("button", { name: "Reset Thread", exact: true })).toBeEnabled();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.screenshot({ path: `../target/guz-755/with-thread-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/with-thread-${width}.png`, fullPage: true });
   }
   await expect(page.getByRole("option", { name: "Continue · with thread", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
@@ -108,11 +108,16 @@ test("inspector locks System and saves author guidance across reload", async ({ 
   if (!apiUrl) throw new Error("Run this smoke with cargo xtask e2e");
   const settingsUrl = `${apiUrl}/settings/author-guidance`;
   expect((await request.put(settingsUrl, { data: { text: "" } })).status()).toBe(200);
-  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl })}`);
-  const create = page.getByRole("button", { name: "Create chapter", exact: true });
-  await expect(create).toBeVisible();
-  await create.click();
-  await page.waitForURL((url) => url.searchParams.has("chapterId"));
+  const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: `Inspector ${test.info().project.name}`, position: 0 } });
+  expect(seriesResponse.status()).toBe(201);
+  const series = await seriesResponse.json();
+  const bookResponse = await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Inspector book", position: 0 } });
+  expect(bookResponse.status()).toBe(201);
+  const book = await bookResponse.json();
+  const chapterResponse = await request.post(`${apiUrl}/series/${series.id}/books/${book.id}/chapters`, { data: { title: "Inspector chapter", position: 0, kind: "chapter" } });
+  expect(chapterResponse.status()).toBe(201);
+  const chapter = await chapterResponse.json();
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
   await page.keyboard.press("Control+]");
   const system = page.getByRole("textbox", { name: "System prompt section", exact: true });
@@ -179,7 +184,7 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
     await expect(guidance).toHaveCSS("background-color", "rgb(244, 232, 181)");
     await guidance.focus();
     await expect(guidance).toHaveCSS("border-radius", "0px");
-    await page.screenshot({ path: `../target/guz-754/guidance-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-754/${test.info().project.name}/guidance-${width}.png`, fullPage: true });
     await editor.click();
     await editor.evaluate((element) => {
       const text = element.querySelector("p")?.firstChild;
@@ -199,7 +204,7 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
     await note.pressSequentially("Keep it short");
     await expect(note).toHaveValue("Make it vivid\nKeep it short");
     expect(submissions).toBe(0);
-    await page.screenshot({ path: `../target/guz-754/edit-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `../target/guz-754/${test.info().project.name}/edit-${width}.png`, fullPage: true });
     await note.press("Escape");
     await expect(note).toBeHidden();
     await expect(editor).toHaveText("Opening line");
@@ -303,7 +308,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     savedSheetTops.set(width, sheet.y);
     expect(label.y + label.height).toBeLessThan(sheet.y);
     expect(Math.abs(label.x + label.width / 2 - sheet.x - sheet.width / 2)).toBeLessThan(1);
-    await page.screenshot({ path: `../target/guz-758/saved-${width}.png` });
+    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/saved-${width}.png` });
     await gear.click();
     await expect(settings).toBeVisible();
     await expect(status).toBeInViewport();
@@ -311,7 +316,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     const popover = await settings.boundingBox();
     if (!prose || !popover) throw new Error("Missing prose or settings");
     expect(prose.x + prose.width).toBeLessThan(popover.x);
-    await page.screenshot({ path: `../target/guz-758/gear-${width}.png` });
+    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/gear-${width}.png` });
     await page.getByRole("button", { name: "Close settings", exact: true }).click();
   }
   await page.evaluate(() => window.scrollTo(0, 400));
@@ -350,7 +355,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     expect(pill.y + pill.height).toBeLessThan(sheet.y);
     expect(pill.x).toBeGreaterThanOrEqual(56);
     expect(pill.x + pill.width).toBeLessThanOrEqual(width - 56);
-    await page.screenshot({ path: `../target/guz-758/failed-${width}.png` });
+    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/failed-${width}.png` });
   }
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   const download = page.waitForEvent("download");
