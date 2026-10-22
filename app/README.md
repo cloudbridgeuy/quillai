@@ -54,10 +54,10 @@ Run the frontend tests:
 bun test
 ```
 
-Run a TypeScript check:
+Run a TypeScript check with the project compiler (the lockfile's TypeScript, not `bunx tsc`). Run it from the repo root; `cargo xtask lint` runs it too:
 
 ```sh
-bunx tsc --noEmit
+app/node_modules/typescript/bin/tsc --noEmit -p app
 ```
 
 Build the production bundle:
