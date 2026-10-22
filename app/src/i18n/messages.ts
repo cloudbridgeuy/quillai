@@ -65,7 +65,9 @@ function isMessageKey(key: string): key is MessageKey {
 }
 
 export function resolveLocale(locale: string): Locale {
-  return locale === "es" ? "es" : defaultLocale;
+  const tag = locale.trim().toLowerCase();
+  if (tag === "es" || tag.startsWith("es-")) return "es";
+  return defaultLocale;
 }
 
 function lookup(catalog: MessageCatalog, locale: Locale, key: string): string | PluralMessage | undefined {

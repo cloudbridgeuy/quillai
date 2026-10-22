@@ -58,9 +58,16 @@ test("a bad currency code throws", () => {
   expect(() => formatMessage("en", "edit.summary", { when, price: { amount: 1, currency: "nope" } })).toThrow();
 });
 
+test("regional spanish tags use the es table and es formatting", () => {
+  expect(formatMessage("es-MX", "draft.words", { count: 1234.5 })).toBe("1234,5 palabras");
+  expect(formatMessage("es-ES", "action.save")).toBe("Guardar");
+  expect(formatMessage("es-419", "action.save")).toBe("Guardar");
+  expect(formatMessage("ES", "action.save")).toBe("Guardar");
+});
+
 test("unknown locale uses the english table and english number format", () => {
   expect(formatMessage("fr", "action.save")).toBe("Save");
-  expect(formatMessage("es-MX", "draft.words", { count: 1234.5 })).toBe("1,234.5 words");
+  expect(formatMessage("en-US", "draft.words", { count: 1234.5 })).toBe("1,234.5 words");
 });
 
 test("spanish table has the same keys as english", () => {
