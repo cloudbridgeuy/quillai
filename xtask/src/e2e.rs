@@ -76,7 +76,9 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
 
     if !root.join("app/node_modules/@playwright/test").exists() {
         let mut install = e2e_command("bun");
-        install.arg("install").current_dir(root.join("app"));
+        install
+            .args(["install", "--frozen-lockfile"])
+            .current_dir(root.join("app"));
         run_tool(install, &mut children, &tx, &rx, &shutdown)?;
     }
     let mut build = e2e_command("cargo");
@@ -101,9 +103,35 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         std::env::var_os("QUILLAI_AI_MODELS_FILE").map(PathBuf::from),
     );
     api.arg("--ai-models").arg(catalog.path);
+    let mut provider_url = None;
     if catalog.test_provider {
-        api.env("QUILLAI_AI_BASE_URL", "http://127.0.0.1:9/v1")
+        let readiness = database.0.join("provider-port");
+        let mut provider = e2e_command("bun");
+        provider
+            .arg(root.join("e2e/fake-ai-provider.ts"))
+            .arg(&readiness);
+        children
+            .children
+            .push(spawn_managed(Service::E2e, provider, tx.clone())?);
+        let deadline = Instant::now() + Duration::from_secs(120);
+        let port = loop {
+            drain_output(&rx);
+            check_services(&mut children, &shutdown)?;
+            match fs::read_to_string(&readiness) {
+                Ok(value) => break value.trim().parse::<u16>()?,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+            if Instant::now() >= deadline {
+                return Err("E2E provider readiness timed out".into());
+            }
+            thread::sleep(Duration::from_millis(50));
+        };
+        wait_ready(port, "/control", &mut children, &rx, &shutdown)?;
+        let url = format!("http://127.0.0.1:{port}");
+        api.env("QUILLAI_AI_BASE_URL", format!("{url}/v1"))
             .env("QUILLAI_AI_API_KEY", "quillai-e2e-fake-key-not-a-secret");
+        provider_url = Some(url);
     }
     api.arg("--db-url")
         .arg(format!("sqlite://{}", database.path().display()));
@@ -133,7 +161,11 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .args(args.playwright_args)
         .current_dir(root.join("app"))
         .env("QUILLAI_E2E_API_URL", api_url)
-        .env("QUILLAI_E2E_APP_URL", app_url);
+        .env("QUILLAI_E2E_APP_URL", app_url)
+        .env_remove("QUILLAI_E2E_FAKE_AI_URL");
+    if let Some(url) = provider_url {
+        playwright.env("QUILLAI_E2E_FAKE_AI_URL", url);
+    }
     run_tool(playwright, &mut children, &tx, &rx, &shutdown)?;
     Ok(())
 }
