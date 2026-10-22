@@ -137,7 +137,11 @@ export function createChapterSession(
             if (stopped) return;
             posting = false;
             lastError = errorMessage(error);
-            await recoverFlight();
+            problem = {
+              kind: "retrying",
+              message: `Save stopped: ${lastError}. Local work retained; polling will retry.`,
+            };
+            notify();
             return;
           }
           posting = false;
@@ -202,8 +206,10 @@ export function createChapterSession(
         if (lastError) throw new Error(problem?.message ?? lastError);
       }
       if (stopped || problem?.kind === "blocked") throw new Error(problem?.message ?? "Chapter session stopped.");
+      if (lastError && acknowledgement === null && state.flight !== null) throw new Error(problem?.message ?? lastError);
       while (hasLocalChanges(state)) {
-        await tick();
+        if (aiReserved) throw new Error("Cannot save chapter while AI has reserved the session.");
+        await (running ?? tick());
         if (stopped || lastError) throw new Error(problem?.message ?? lastError ?? "Chapter session stopped.");
       }
     },

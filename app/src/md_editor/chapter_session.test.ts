@@ -30,8 +30,10 @@ test("serializes polling and posting while retaining edits made during the reque
   expect(gets).toBe(1);
 });
 
-test("failed POST recovers on the next tick when history does not contain it", async () => {
+test("failed POST waits for the next 1000 ms poll tick to recover before resubmitting", async () => {
   let posts = 0;
+  let pollTime = 1000;
+  const historyTimes: number[] = [];
   const stored: Revision[] = [];
   let error: string | null = null;
   const session = createChapterSession({
@@ -42,20 +44,75 @@ test("failed POST recovers on the next tick when history does not contain it", a
       stored.push(revision);
       return revision;
     },
-    getDeltas: async (_scope, since) => stored.filter((revision) => revision.rev > since),
+    getDeltas: async (_scope, since) => {
+      historyTimes.push(pollTime);
+      return stored.filter((revision) => revision.rev > since);
+    },
   }, scope, chapter, (_document, _dirty, problem) => { error = problem?.message ?? null; });
   session.edit(new Delta().insert("Atext\n"));
   await session.tick();
   expect(posts).toBe(1);
+  expect(historyTimes).toEqual([]);
   expect(error).toContain("Save stopped");
   expect(error).toContain("polling will retry");
   expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  session.edit(new Delta().insert("ABtext\n"));
+  pollTime += 1000;
+  await session.tick();
+  expect(historyTimes).toEqual([2000]);
+  expect(posts).toBe(1);
+  expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
+  pollTime += 1000;
   await session.tick();
   expect(posts).toBe(2);
-  expect(stored).toEqual([{ rev: 1, delta: { ops: [{ insert: "A" }] } }]);
+  expect(stored).toEqual([{ rev: 1, delta: { ops: [{ insert: "AB" }] } }]);
   expect(error).toBeNull();
-  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
   expect(session.canStartAi()).toBe(true);
+});
+
+test("recovery network failure on the next tick still reports interruption and retains local work", async () => {
+  let gets = 0;
+  let error: unknown = null;
+  let dirty = false;
+  const session = createChapterSession({
+    postDelta: async () => { throw new TypeError("POST offline"); },
+    getDeltas: async () => {
+      gets++;
+      if (gets === 1) throw new TypeError("GET offline");
+      return [ack];
+    },
+  }, scope, chapter, (_document, local, problem) => { dirty = local; error = problem; });
+  session.edit(new Delta().insert("Atext\n"));
+  await session.tick();
+  expect(gets).toBe(0);
+  await session.tick();
+  expect(gets).toBe(1);
+  expect(error).toEqual({ kind: "retrying", message: "Connection interrupted: GET offline. Local work retained; polling will retry." });
+  expect(dirty).toBe(true);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  await session.tick();
+  expect(gets).toBe(2);
+  expect(error).toBeNull();
+  expect(dirty).toBe(false);
+});
+
+test("stopping after a failed POST before the next tick prevents recovery", async () => {
+  let gets = 0;
+  let publications = 0;
+  const session = createChapterSession({
+    postDelta: async () => { throw new TypeError("offline"); },
+    getDeltas: async () => { gets++; return [ack]; },
+  }, scope, chapter, () => { publications++; });
+  session.edit(new Delta().insert("Atext\n"));
+  await session.tick();
+  expect(gets).toBe(0);
+  session.stop();
+  const beforeTick = publications;
+  await session.tick();
+  expect(gets).toBe(0);
+  expect(publications).toBe(beforeTick);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
 });
 
 test("lost POST response acknowledges the applied revision and does not resend", async () => {
@@ -276,18 +333,45 @@ test("flush awaits the active save and then saves edits queued during that reque
   expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
 });
 
-test("failed flush retains the document and a later flush retries without a stored duplicate", async () => {
+test("failed flush cannot bypass the next background recovery tick", async () => {
   let posts = 0;
+  let gets = 0;
   const session = createChapterSession({
     postDelta: async () => { posts++; throw new TypeError("offline"); },
-    getDeltas: async () => [],
+    getDeltas: async () => { gets++; return []; },
   }, scope, chapter, () => {});
   session.edit(new Delta().insert("Atext\n"));
   await expect(session.flush()).rejects.toThrow("offline");
   expect(posts).toBe(1);
   await expect(session.flush()).rejects.toThrow("offline");
+  expect(posts).toBe(1);
+  expect(gets).toBe(0);
+  await session.tick();
+  expect(gets).toBe(1);
+  expect(posts).toBe(1);
+  await expect(session.flush()).rejects.toThrow("offline");
   expect(posts).toBe(2);
+  expect(gets).toBe(1);
   expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+});
+
+test("flush awaiting a failed active POST does not start recovery", async () => {
+  let rejectPost!: (error: Error) => void;
+  let gets = 0;
+  const session = createChapterSession({
+    postDelta: async () => new Promise<Revision>((_resolve, reject) => { rejectPost = reject; }),
+    getDeltas: async () => { gets++; return [ack]; },
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Atext\n"));
+  const posting = session.tick();
+  const flushing = session.flush();
+  rejectPost(new TypeError("offline"));
+  await expect(flushing).rejects.toThrow("offline");
+  await posting;
+  expect(gets).toBe(0);
+  await session.tick();
+  expect(gets).toBe(1);
+  expect(session.canStartAi()).toBe(true);
 });
 
 test("flush rejects failed acknowledgement history and retries only history on the next attempt", async () => {
@@ -303,5 +387,84 @@ test("flush rejects failed acknowledgement history and retries only history on t
   await session.flush();
   expect(posts).toBe(1);
   expect(gets).toBe(2);
+  expect(session.canStartAi()).toBe(true);
+});
+
+test("flush rejects dirty work in a reserved session and saves after release", async () => {
+  let posts = 0;
+  let gets = 0;
+  const session = createChapterSession({
+    postDelta: async () => { posts++; return ack; },
+    getDeltas: async () => { gets++; return [ack]; },
+  }, scope, chapter, () => {});
+  const reservation = session.reserveAi();
+  expect(reservation).not.toBeNull();
+  session.edit(new Delta().insert("Atext\n"));
+  await expect(session.flush()).rejects.toThrow("AI has reserved the session");
+  expect(posts).toBe(0);
+  expect(gets).toBe(0);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  reservation!.release();
+  await session.flush();
+  expect(posts).toBe(1);
+  expect(gets).toBe(1);
+  expect(session.canStartAi()).toBe(true);
+});
+
+test("chapter switch boundary flush succeeds and loads the selected target after recovery", async () => {
+  let posts = 0;
+  let gets = 0;
+  let dirty = false;
+  const session = createChapterSession({
+    postDelta: async () => { posts++; throw new TypeError("offline"); },
+    getDeltas: async () => { gets++; return [ack]; },
+  }, scope, chapter, (_document, local) => { dirty = local; });
+  const target = { ...scope, chapterId: 4 };
+  const urls: string[] = [];
+  const client = createManuscriptClient({ baseUrl: "http://api", fetch: async (url) => {
+    urls.push(url);
+    return Response.json({ ...chapter, id: target.chapterId });
+  } });
+  session.edit(new Delta().insert("Atext\n"));
+  await session.tick();
+  await expect(session.flush()).rejects.toThrow("offline");
+  expect(dirty).toBe(true);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  expect(posts).toBe(1);
+  expect(gets).toBe(0);
+  expect(urls).toEqual([]);
+  await session.tick();
+  expect(dirty).toBe(false);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  await session.flush();
+  expect(posts).toBe(1);
+  expect(gets).toBe(1);
+  expect(canSwitchChapter(scope, target, false)).toBe(true);
+  const loaded = await loadEditorChapter(client, "?seriesId=1&bookId=2&chapterId=4");
+  expect(loaded.scope).toEqual(target);
+  expect(loaded.chapter.id).toBe(target.chapterId);
+  expect(urls).toEqual(["http://api/series/1/books/2/chapters/4"]);
+});
+
+test("Continue reservation rejects dirty and unrecovered work then waits successfully after recovery", async () => {
+  let posts = 0;
+  let gets = 0;
+  const session = createChapterSession({
+    postDelta: async () => { posts++; throw new TypeError("offline"); },
+    getDeltas: async () => { gets++; return [ack]; },
+  }, scope, chapter, () => {});
+  session.edit(new Delta().insert("Atext\n"));
+  expect(session.reserveAi()).toBeNull();
+  await session.tick();
+  expect(session.reserveAi()).toBeNull();
+  expect(gets).toBe(0);
+  await session.tick();
+  const reservation = session.reserveAi();
+  expect(reservation).not.toBeNull();
+  await expect(reservation!.wait(new AbortController().signal)).resolves.toBeUndefined();
+  expect(posts).toBe(1);
+  expect(gets).toBe(1);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+  reservation!.release();
   expect(session.canStartAi()).toBe(true);
 });
