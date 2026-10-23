@@ -255,6 +255,7 @@ async fn chat_completion_request_uses_per_action_model_and_escaped_guidance_and_
                  axum::Json(body): axum::Json<serde_json::Value>| async move {
                     sender.send(body).unwrap();
                     concat!(
+                        "data: {\"choices\":[{\"delta\":{\"content\":\"<replacement>Hi</replacement>\"}}]}\n\n",
                         "data: {\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4}}\n\n",
                         "data: [DONE]\n\n"
                     )
@@ -743,7 +744,9 @@ async fn edit_with_valid_selection_returns_ndjson_delta_and_done_events() {
         200,
         "text/event-stream",
         concat!(
-            "data: {\"choices\":[{\"delta\":{\"content\":\"Sharper phrasing.\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Note <replacement>Sharper \"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"phrasing.</repla\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"cement> This fixes it.\"}}]}\n\n",
             "data: [DONE]\n\n"
         ),
     )
@@ -784,6 +787,14 @@ async fn edit_with_valid_selection_returns_ndjson_delta_and_done_events() {
 
     assert_eq!(first["type"], "delta");
     assert_eq!(last["type"], "done");
+    let inserted: String = lines
+        .iter()
+        .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+        .filter(|event| event["type"] == "delta")
+        .flat_map(|event| event["delta"]["ops"].as_array().unwrap().clone())
+        .map(|op| op["insert"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(inserted, "Sharper phrasing.");
 
     std::env::remove_var("QUILLAI_AI_API_KEY");
     std::env::remove_var("QUILLAI_AI_MODEL");
@@ -797,7 +808,7 @@ async fn edit_with_utf16_emoji_selection_returns_ndjson_delta_and_done_events() 
         200,
         "text/event-stream",
         concat!(
-            "data: {\"choices\":[{\"delta\":{\"content\":\"Bright idea.\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"<replacement>Bright idea.</replacement>\\n\\nMore story.\"}}]}\n\n",
             "data: [DONE]\n\n"
         ),
     )
@@ -831,6 +842,14 @@ async fn edit_with_utf16_emoji_selection_returns_ndjson_delta_and_done_events() 
 
     assert_eq!(first["type"], "delta");
     assert_eq!(last["type"], "done");
+    let inserted: String = lines
+        .iter()
+        .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+        .filter(|event| event["type"] == "delta")
+        .flat_map(|event| event["delta"]["ops"].as_array().unwrap().clone())
+        .map(|op| op["insert"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(inserted, "Bright idea.");
 
     std::env::remove_var("QUILLAI_AI_API_KEY");
     std::env::remove_var("QUILLAI_AI_MODEL");

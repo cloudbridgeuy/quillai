@@ -4,6 +4,7 @@ pub mod lore;
 pub mod models;
 pub mod prompt;
 pub mod provider;
+pub mod replacement;
 pub mod section_overrides;
 pub mod segments;
 pub mod tagged_text;

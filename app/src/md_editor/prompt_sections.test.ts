@@ -109,7 +109,7 @@ describe("assemblePromptSections", () => {
     expect(sections.map(({ text }) => text)).toEqual([
       "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.",
       "",
-      "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\ntighten &amp; &lt;polish&gt;\n</instruction>\n",
+      "You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\ntighten &amp; &lt;polish&gt;\n</instruction>\n",
       "<story_context>\nnotes &lt;/story_context&gt; &amp;amp;\n</story_context>\n",
       "<selection>\nindex=3, length=5, text=💡 世界\n</selection>\n",
       "<document>\nHi 💡 世界 &amp; &lt;end&gt;\n\n</document>",
@@ -173,9 +173,9 @@ describe("token estimates", () => {
         expect(section.tokens).toBe(estimateTokens(section.text));
       }
       expect(sections.map(({ tokens }) => tokens)).toEqual([
-        21, 0, action === "generate" ? 43 : 42, 11, 14, 7,
+        21, 0, action === "generate" ? 43 : 127, 11, 14, 7,
       ]);
-      expect(totalEstimatedTokens(sections)).toBe(action === "generate" ? 96 : 95);
+      expect(totalEstimatedTokens(sections)).toBe(action === "generate" ? 96 : 180);
       expect(totalEstimatedTokens(sections)).toBe(sections.reduce((sum, { tokens }) => sum + tokens, 0));
     }
     expect(totalEstimatedTokens([])).toBe(0);

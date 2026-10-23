@@ -1,7 +1,7 @@
 use axum::{extract::State, routing::post, Json, Router};
 use futures_util::StreamExt;
 use quillai_api::ai::{
-    models::{GenerateInput, GenerateRequest},
+    models::{AiAction, GenerateInput, GenerateRequest},
     prompt::build_prompt,
     provider::{AiProvider, OpenAiCompatibleConfig, OpenAiCompatibleProvider},
 };
@@ -38,7 +38,10 @@ async fn capture_request(
     Json(body): Json<Value>,
 ) -> &'static str {
     sender.send(body).expect("fixture receiver is open");
-    "data: [DONE]\n\n"
+    concat!(
+        "data: {\"choices\":[{\"delta\":{\"content\":\"Note <replacement>Fixed</replacement> more\"}}]}\n\n",
+        "data: [DONE]\n\n"
+    )
 }
 
 #[tokio::test]
@@ -179,9 +182,13 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
                 .await
                 .expect("fixture provider responds")
                 .expect("completion event");
+            let inserted = match input.action {
+                AiAction::Generate => "Note <replacement>Fixed</replacement> more",
+                AiAction::Edit => "Fixed",
+            };
             assert_eq!(
                 serde_json::to_value(event).unwrap(),
-                json!({"type":"done", "finishReason":"unknown"})
+                json!({"type":"delta", "delta":{"ops":[{"insert":inserted}]}})
             );
             let body = receiver.try_recv().expect("captured provider request");
             assert_eq!(
@@ -191,7 +198,13 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
                 example.name
             );
             assert_eq!(body["model"], *model, "{}: model passthrough", example.name);
-            assert_eq!(body["max_tokens"], input.max_output_tokens);
+            let expected_max_tokens = match (input.action, &input.selection) {
+                (AiAction::Edit, Some(selection)) => input
+                    .max_output_tokens
+                    .min(128 + selection.text.chars().count()),
+                _ => input.max_output_tokens,
+            };
+            assert_eq!(body["max_tokens"], expected_max_tokens);
             assert_eq!(body["stream"], true);
         }
     }

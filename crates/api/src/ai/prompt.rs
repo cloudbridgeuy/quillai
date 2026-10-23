@@ -1,4 +1,13 @@
-use super::models::{GenerateInput, LoreEntry, LoreLevel, PromptSectionId};
+use super::models::{AiAction, GenerateInput, LoreEntry, LoreLevel, PromptSectionId};
+
+const GENERATE_RULES: &str = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. ";
+const EDIT_RULES: &str = concat!(
+    "You are editing a passage of fiction. Rewrite only the selected text, following the instruction. ",
+    "Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. ",
+    "Do not add new paragraphs unless the selected text already has them. ",
+    "Do not add commentary, explanations, notes, or text before or after the selection. ",
+    "Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. "
+);
 
 pub fn build_prompt(input: &GenerateInput) -> String {
     let instruction = escape_prompt_text(section_text(
@@ -26,8 +35,7 @@ pub fn build_prompt(input: &GenerateInput) -> String {
 
     format!(
         concat!(
-            "You are helping with a fiction-writing task. ",
-            "Respond with plain text only, and do not exceed two sentences. ",
+            "{}",
             "<action>{}</action>\n",
             "<instruction>\n{}\n</instruction>\n",
             "<story_context>\n{}\n</story_context>\n",
@@ -35,6 +43,10 @@ pub fn build_prompt(input: &GenerateInput) -> String {
             "<selection>\n{}\n</selection>\n",
             "<document>\n{}\n</document>"
         ),
+        match input.action {
+            AiAction::Generate => GENERATE_RULES,
+            AiAction::Edit => EDIT_RULES,
+        },
         input.action.as_str(),
         instruction,
         story_context,
@@ -138,7 +150,10 @@ mod tests {
         assert!(prompt.contains("<story_context>\nfantasy\n</story_context>"));
         assert!(prompt.contains("<selection>\nnone\n</selection>"));
         assert!(prompt.contains("<document>\nHello\n</document>"));
-        assert!(prompt.contains("do not exceed two sentences"));
+        assert!(prompt.starts_with(
+            "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n"
+        ));
+        assert!(!prompt.contains("replacement"));
     }
 
     #[test]
@@ -184,6 +199,11 @@ mod tests {
         let prompt = build_prompt(&input);
 
         assert!(prompt.contains("<selection>\nindex=6, length=5, text=world\n</selection>"));
+        assert!(prompt.starts_with(&format!("{EDIT_RULES}<action>edit</action>\n")));
+        assert!(prompt.contains("wrapped in <replacement></replacement>"));
+        assert!(prompt.contains("Change only what the instruction asks"));
+        assert!(prompt.contains("Do not add commentary"));
+        assert!(!prompt.contains("two sentences"));
     }
 
     #[test]

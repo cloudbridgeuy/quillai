@@ -12,6 +12,7 @@ The feature follows Functional Core and Imperative Shell.
 - `models.rs` parses request JSON into typed `GenerateInput` values.
 - `catalog.rs` parses JSON model catalogs and resolves each action to a configured model without I/O.
 - `prompt.rs` builds the provider prompt from the document text, selection text, story context, injected lore, and instruction.
+- `replacement.rs` keeps only Edit text inside `<replacement>` tags across chunk splits and reports missing or unclosed tags.
 - `segments.rs` owns the minimal Quill-delta contract and sanitization rules.
 - provider parsing helpers in `provider.rs` decode UTF-8 chunks, split SSE events, and extract text deltas.
 
@@ -86,6 +87,14 @@ Validation failures return the normal JSON error contract:
 ## Prompt Assembly
 
 `prompt.rs` builds a plain-text provider prompt with action, instruction, story context, optional lore, selection details when present, and document text. Section overrides replace editable content, not tags, lore policy, or selection range metadata.
+
+### Edit replacement contract
+
+Continue keeps its original rules text, including the two-sentence cap. Edit uses separate rules before `<action>edit</action>`: rewrite only the selected text, change only what the instruction asks, keep other wording and paragraph breaks, add no paragraphs the selection lacks, add no commentary, and reply with only the replacement wrapped in `<replacement></replacement>`. `prompt_sections.ts` mirrors both rule texts; `fixtures/prompt/parity.json` pins them.
+
+For Edit only, `replacement.rs` filters provider text: text before `<replacement>` and after `</replacement>` is dropped, and inside text streams as it arrives. Either tag may be split across any number of upstream chunks; the extractor holds back only a possible tag prefix. After the close tag, the provider stream is still read to the end for usage and finish reason. A missing open tag or a missing close tag at completion turns the final `done` into an `error` event (after any `usage`), so the editor's existing failed-Edit rollback restores the selection. Models that ignore the tag instruction therefore fail visibly instead of writing extra text.
+
+Edit `max_tokens` = `min(maxOutputTokens, 128 + selected characters)` (`GenerateInput::provider_max_tokens`, constants `EDIT_OUTPUT_TOKENS_BASE` and `EDIT_OUTPUT_TOKENS_PER_SELECTED_CHAR` in `models.rs`). Selected characters are Unicode scalar values of the selection text. One token per character is about four times typical English token density, which leaves room for longer rewrites, the tags, and short selections. It never exceeds the user setting, so the default 512 already governs selections over 384 characters. A rewrite that hits the limit before `</replacement>` fails and rolls back. Providers that count reasoning tokens toward `max_tokens` lower the effective room. Continue still sends `maxOutputTokens` unchanged.
 
 All user-controlled text inserted into tagged sections, including overrides, escapes `&`, `<`, and `>` so strings like `</document>` cannot break the prompt frame. Normal and edited history now use the same escaping, while staying in separate chat messages without section tags. For example, history `</document> &` reaches the provider as `&lt;/document&gt; &amp;`.
 

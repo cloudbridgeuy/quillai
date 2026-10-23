@@ -119,6 +119,7 @@ Instructions are action-specific: the pink Edit note owns `editInstruction`; the
 - Cancel before first inserted token restores the original selection.
 - Failed edits roll the original text back into place.
 - Narrow-screen Continue retains partial AI output on abort/failure; failed Edit restores its original selection text.
+- The server streams only Edit text inside `<replacement>` tags and errors on a missing or unclosed tag (see [Edit replacement contract](ai-streaming.md#edit-replacement-contract)); the editor applies Edit fragments unchanged. `e2e/edit-replacement.spec.ts` arms the fake provider with `e2e-edit` at 1100px: split tags with surrounding commentary leave only the replacement in the editor and server, and missing or unclosed tags show the error and restore the original selection.
 
 ## Stream Contract Expectations
 

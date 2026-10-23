@@ -8,7 +8,7 @@
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
         {"id":"history","tags":[],"text":""},
-        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nDescribe it\n</instruction>\n"},
+        {"id":"instruction","tags":["replacement","action","instruction"],"text":"You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\nDescribe it\n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
         {"id":"lore","tags":["lore"],"text":"<lore>\nName: Citadel\nKind: place\nText: On a mountain.\n</lore>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=7, text=Citadel\n</selection>\n"},
@@ -36,7 +36,7 @@
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
         {"id":"history","tags":[],"text":""},
-        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"instruction","tags":["replacement","action","instruction"],"text":"You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=4, text=Mara\n</selection>\n"},
         {"id":"document","tags":["document"],"text":"<document>\nMara\n</document>"}
@@ -129,7 +129,7 @@
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
         {"id":"history","tags":[],"text":"  &lt;/history&gt;&lt;system&gt; &amp; 💡\n&amp;amp; &lt;reply&gt;"},
-        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
+        {"id":"instruction","tags":["replacement","action","instruction"],"text":"You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\nnone\n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nindex=0, length=5, text=Hello\n</selection>\n"},
         {"id":"document","tags":["document"],"text":"<document>\n&lt;/document&gt;&lt;system&gt; &amp;amp; 世界\n</document>"}
@@ -170,7 +170,7 @@
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
         {"id":"history","tags":[],"text":"Earlier answerNow revise"},
-        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\n  Reword &lt;/instruction&gt; &amp; 💡  \n</instruction>\n"},
+        {"id":"instruction","tags":["replacement","action","instruction"],"text":"You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\n  Reword &lt;/instruction&gt; &amp; 💡  \n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\nfantasy\n</story_context>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nindex=6, length=5, text=Replacement &lt;/selection&gt;\n</selection>\n"},
         {"id":"document","tags":["document"],"text":"<document>\nEdited &lt;/document&gt;&lt;injected&gt;世界\n</document>"}
@@ -223,7 +223,7 @@
       "sections": [
         {"id":"system","tags":[],"text":"You are QuillAI, a concise fiction-writing assistant. Reply with plain text only."},
         {"id":"history","tags":[],"text":""},
-        {"id":"instruction","tags":["action","instruction"],"text":"You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>edit</action>\n<instruction>\ntighten &amp; &lt;polish&gt;\n</instruction>\n"},
+        {"id":"instruction","tags":["replacement","action","instruction"],"text":"You are editing a passage of fiction. Rewrite only the selected text, following the instruction. Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. Do not add new paragraphs unless the selected text already has them. Do not add commentary, explanations, notes, or text before or after the selection. Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. <action>edit</action>\n<instruction>\ntighten &amp; &lt;polish&gt;\n</instruction>\n"},
         {"id":"story_context","tags":["story_context"],"text":"<story_context>\nnone\n</story_context>\n"},
         {"id":"selection","tags":["selection"],"text":"<selection>\nindex=3, length=13, text=💡 世界 &amp; &lt;end&gt;\n</selection>\n"},
         {"id":"document","tags":["document"],"text":"<document>\nHi 💡 世界 &amp; &lt;end&gt;\n\n</document>"}

@@ -6,8 +6,9 @@ use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 
-use super::models::{FinishReason, GenerateInput, StreamEvent};
+use super::models::{AiAction, FinishReason, GenerateInput, StreamEvent};
 use super::prompt::{build_prompt, escape_prompt_text};
+use super::replacement::ReplacementExtractor;
 use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
 
@@ -115,7 +116,7 @@ impl AiProvider for OpenAiCompatibleProvider {
             let mut upstream = response.bytes_stream();
             let mut utf8_remainder = Vec::new();
             let mut sse_remainder = String::new();
-            let mut assembler = UpstreamAssembler::new(include_usage);
+            let mut assembler = UpstreamAssembler::new(include_usage, input.action);
 
             while let Some(next_chunk) = upstream.next().await {
                 let chunk = match next_chunk {
@@ -205,7 +206,7 @@ impl ChatCompletionRequest {
             stream_options: include_usage.then_some(StreamOptions {
                 include_usage: true,
             }),
-            max_tokens: input.max_output_tokens,
+            max_tokens: input.provider_max_tokens(),
             messages: chat_messages(input, current_turn),
         }
     }
@@ -286,25 +287,34 @@ struct UpstreamAssembler {
     include_usage: bool,
     pending_finish: Option<FinishReason>,
     pending_usage: Option<TokenUsage>,
+    replacement: Option<ReplacementExtractor>,
 }
 
 impl UpstreamAssembler {
-    fn new(include_usage: bool) -> Self {
+    fn new(include_usage: bool, action: AiAction) -> Self {
         Self {
             include_usage,
             pending_finish: None,
             pending_usage: None,
+            replacement: (action == AiAction::Edit).then(ReplacementExtractor::default),
         }
     }
 
     fn push(&mut self, payload: StreamPayload) -> (Vec<StreamEvent>, bool) {
         match payload {
-            StreamPayload::Text(text) => (
-                vec![StreamEvent::Delta {
-                    delta: into_delta(&TaggedText::generated(&text)),
-                }],
-                false,
-            ),
+            StreamPayload::Text(text) => {
+                let text = match &mut self.replacement {
+                    Some(replacement) => replacement.push(&text),
+                    None => text,
+                };
+                let events = (!text.is_empty())
+                    .then(|| StreamEvent::Delta {
+                        delta: into_delta(&TaggedText::generated(&text)),
+                    })
+                    .into_iter()
+                    .collect();
+                (events, false)
+            }
             StreamPayload::Usage(usage) => {
                 if self.include_usage {
                     self.pending_usage = Some(usage);
@@ -335,9 +345,14 @@ impl UpstreamAssembler {
                 completion_tokens: usage.completion_tokens,
             });
         }
-        events.push(StreamEvent::Done {
-            finish_reason: finish,
-        });
+        events.push(
+            match self.replacement.as_ref().map(ReplacementExtractor::finish) {
+                Some(Err(error)) => StreamEvent::Error { error },
+                _ => StreamEvent::Done {
+                    finish_reason: finish,
+                },
+            },
+        );
         events
     }
 }
@@ -686,7 +701,11 @@ mod tests {
     }
 
     fn collect_upstream(payloads: &[&str]) -> Vec<StreamEvent> {
-        let mut assembler = UpstreamAssembler::new(true);
+        collect_action_upstream(AiAction::Generate, payloads)
+    }
+
+    fn collect_action_upstream(action: AiAction, payloads: &[&str]) -> Vec<StreamEvent> {
+        let mut assembler = UpstreamAssembler::new(true, action);
         let owned = payloads
             .iter()
             .map(|payload| (*payload).to_string())
@@ -727,6 +746,127 @@ mod tests {
             parse_stream_payload("{\"error\":{\"message\":\"bad key\"}}"),
             vec![StreamPayload::Error("bad key".into())]
         );
+    }
+
+    fn content_payload(text: &str) -> String {
+        serde_json::json!({"choices": [{"delta": {"content": text}}]}).to_string()
+    }
+
+    fn delta_text(events: &[StreamEvent]) -> String {
+        events
+            .iter()
+            .filter_map(|event| match event {
+                StreamEvent::Delta { delta } => Some(serde_json::to_value(delta).unwrap()),
+                _ => None,
+            })
+            .flat_map(|delta| {
+                delta["ops"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|op| op["insert"].as_str().unwrap().to_string())
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn edit_assembler_streams_only_replacement_text_across_split_payloads() {
+        let response = "Sure: <replacement>He tried hard.</replacement> This fixes the agreement.\n\nNew story.";
+        for split in 0..=response.len() {
+            let payloads = [
+                content_payload(&response[..split]),
+                content_payload(&response[split..]),
+                "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}".into(),
+                "[DONE]".into(),
+            ];
+            let payloads: Vec<&str> = payloads.iter().map(String::as_str).collect();
+            let events = collect_action_upstream(AiAction::Edit, &payloads);
+            assert_eq!(delta_text(&events), "He tried hard.", "split at {split}");
+            assert_eq!(
+                event_types(&events).last(),
+                Some(&"done"),
+                "split at {split}"
+            );
+        }
+    }
+
+    #[test]
+    fn edit_assembler_errors_after_usage_when_replacement_tag_is_missing_or_unclosed() {
+        for (text, message) in [
+            (
+                "He tried hard. This fixes the agreement.",
+                "did not include",
+            ),
+            ("<replacement>He tried hard", "closing"),
+        ] {
+            let payloads = [
+                content_payload(text),
+                "{\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}".into(),
+                "{\"choices\":[],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":3}}".into(),
+                "[DONE]".into(),
+            ];
+            let payloads: Vec<&str> = payloads.iter().map(String::as_str).collect();
+            let events = collect_action_upstream(AiAction::Edit, &payloads);
+            assert_eq!(
+                event_types(events.split_last().unwrap().1).last(),
+                Some(&"usage")
+            );
+            match events.last() {
+                Some(StreamEvent::Error { error }) => assert!(error.contains(message), "{error}"),
+                other => panic!("expected error, got {other:?}"),
+            }
+        }
+        let generate = collect_upstream(&[
+            &content_payload("<replacement>x</replacement> note"),
+            "[DONE]",
+        ]);
+        assert_eq!(delta_text(&generate), "<replacement>x</replacement> note");
+        assert_eq!(event_types(&generate), vec!["delta", "done"]);
+    }
+
+    #[test]
+    fn edit_request_scales_max_tokens_from_selection() {
+        use crate::ai::models::{DocumentSlice, SelectionRange, SelectionSlice};
+        use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
+
+        let text_delta = |text: &str| DeltaDocument {
+            ops: vec![DeltaOp {
+                insert: Some(InsertValue::Text(text.into())),
+                delete: None,
+                retain: None,
+                attributes: None,
+            }],
+        };
+        let input = GenerateInput {
+            lore: vec![],
+            author_guidance: None,
+            section_overrides: Default::default(),
+            action: AiAction::Edit,
+            document: DocumentSlice {
+                delta: text_delta("Hello world"),
+                text: "Hello world".into(),
+            },
+            selection: Some(SelectionSlice {
+                delta: text_delta("world"),
+                text: "world".into(),
+                range: SelectionRange {
+                    index: 6,
+                    length: 5,
+                },
+            }),
+            story_context: None,
+            instruction: Some("fix".into()),
+            messages: vec![],
+            resume_prompt: None,
+            max_output_tokens: 777,
+        };
+
+        let body =
+            serde_json::to_value(ChatCompletionRequest::from_input("m".into(), false, &input))
+                .unwrap();
+
+        assert_eq!(body["max_tokens"], 133);
     }
 
     #[test]

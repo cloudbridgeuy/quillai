@@ -18,6 +18,13 @@ export type PromptSection = {
   tokens: number;
 };
 
+const GENERATE_RULES = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. ";
+const EDIT_RULES = "You are editing a passage of fiction. Rewrite only the selected text, following the instruction. "
+  + "Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. "
+  + "Do not add new paragraphs unless the selected text already has them. "
+  + "Do not add commentary, explanations, notes, or text before or after the selection. "
+  + "Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. ";
+
 export const TOKEN_ESTIMATE_LABEL = "Estimated tokens (UTF-8 bytes ÷ 4, rounded up per section; excludes chat framing)";
 
 export function estimateTokens(text: string): number {
@@ -50,7 +57,7 @@ export function assemblePromptSections(input: AiGenerateRequest, authorGuidance 
     ...(authorGuidance === "" ? [] : [section("author_guidance", "Author guidance", `<author_guidance>\n${escapePromptText(authorGuidance)}\n</author_guidance>`, authorGuidance)]),
     section("history", "History", assemblePromptHistory(input).map(({ content }) => content).join(""),
       promptHistory(input).map(({ text }) => text).join("")),
-    section("instruction", "Instruction", `You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),
+    section("instruction", "Instruction", `${input.action === "edit" ? EDIT_RULES : GENERATE_RULES}<action>${input.action}</action>\n<instruction>\n${escapePromptText(instruction)}\n</instruction>\n`, instruction),
     section("story_context", "Story context", `<story_context>\n${escapePromptText(storyContext)}\n</story_context>\n`, storyContext),
     ...(lore === "" ? [] : [section("lore", "Lore", `<lore>\n${escapePromptText(lore)}\n</lore>\n`, lore)]),
     section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`, selectionText),

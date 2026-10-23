@@ -45,7 +45,9 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && request.url === "/control/arm") {
       const input: { identity?: unknown; model?: unknown } = JSON.parse(body);
-      if (typeof input.identity !== "string" || !/^GUZ807-(Finish|Stop)-[a-f0-9-]{36}$/.test(input.identity) || input.model !== "e2e-continue") {
+      const continueIdentity = typeof input.identity === "string" && /^GUZ807-(Finish|Stop)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
+      const editIdentity = typeof input.identity === "string" && /^GUZ865-(commentary|missing|unclosed)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-edit";
+      if (typeof input.identity !== "string" || !(continueIdentity || editIdentity)) {
         response.writeHead(422).end();
         return;
       }
