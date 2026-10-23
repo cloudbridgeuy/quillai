@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, test, type Locator } from "../app/node_modules/@playwright/test/index.js";
+import { expect, test, type Locator, type Response } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
 async function placeCaret(editor: Locator, paragraph: number, offset: number) {
@@ -31,7 +31,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     const failures: string[] = [];
     const observations: Promise<void>[] = [];
     const submissions: Array<{ tab: string; submitted: unknown; returned: unknown }> = [];
-    context.on("response", response => {
+    const observe = (response: Response) => {
       if (response.url().startsWith(apiUrl) && response.status() >= 400) {
         failures.push(`${response.status()} ${response.request().method()} ${response.url()}`);
       }
@@ -42,7 +42,8 @@ for (const outcome of ["Finish", "Stop"] as const) {
           if (response.request().method() === "POST") submissions.push(observed);
         })());
       }
-    });
+    };
+    context.on("response", observe);
     const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: `GUZ-806 ${outcome}`, position: 0 } });
     expect(seriesResponse.status()).toBe(201);
     const series = await seriesResponse.json();
@@ -124,6 +125,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       expect(savedResponse.status()).toBe(200);
       const saved = await savedResponse.json();
       record({ finalServer: saved });
+      context.off("response", observe);
       await Promise.all(observations);
       expect(saved.content).toEqual({ ops: [{ insert: expectedText }] });
     }
