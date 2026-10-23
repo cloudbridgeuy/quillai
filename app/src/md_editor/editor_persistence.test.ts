@@ -16,7 +16,8 @@ const persistedState: PersistedEditorState = {
     ],
   },
   storyContext: "Gothic mystery in close third.",
-  instruction: "Continue with restrained dread.",
+  editInstruction: "Tighten the selected prose.",
+  continueInstruction: "Continue with restrained dread.",
   windowSize: "2400",
   windowMode: "document",
   aiTextTint: false,
@@ -54,6 +55,30 @@ test("persisted editor state round trips document, controls, and thread history"
   const serialized = serializePersistedEditorState(persistedState);
 
   expect(parsePersistedEditorState(serialized)).toEqual(persistedState);
+  expect(JSON.parse(serialized)).not.toHaveProperty("instruction");
+});
+
+test("legacy instruction migrates only to Continue", () => {
+  const parsed = parsePersistedEditorState(JSON.stringify({ instruction: "Legacy guidance" }));
+  expect(parsed.continueInstruction).toBe("Legacy guidance");
+  expect(parsed.editInstruction).toBe("");
+});
+
+test("separate instructions take precedence over legacy instruction", () => {
+  const parsed = parsePersistedEditorState(JSON.stringify({ ...persistedState, instruction: "Legacy guidance" }));
+  expect(parsed).toEqual(persistedState);
+  expect(parsePersistedEditorState('{"continueInstruction":"","instruction":"Legacy guidance"}').continueInstruction).toBe("");
+});
+
+test("invalid instructions fall back to defaults", () => {
+  for (const value of [null, 12, [], {}]) {
+    const parsed = parsePersistedEditorState(JSON.stringify({
+      editInstruction: value, continueInstruction: value, instruction: "Legacy guidance",
+    }));
+    expect(parsed.editInstruction).toBe("");
+    expect(parsed.continueInstruction).toBe("");
+    expect(parsePersistedEditorState(JSON.stringify({ instruction: value })).continueInstruction).toBe("");
+  }
 });
 
 test("invalid nested thread state falls back safely", () => {

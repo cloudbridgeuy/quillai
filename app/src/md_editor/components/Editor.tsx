@@ -250,7 +250,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
-  const [instruction, setInstruction] = useState(initialEditorState.instruction);
+  const [editInstruction, setEditInstruction] = useState(initialEditorState.editInstruction);
+  const [continueInstruction, setContinueInstruction] = useState(initialEditorState.continueInstruction);
   const [windowSize, setWindowSize] = useState(initialEditorState.windowSize);
   const [windowMode, setWindowMode] = useState<DocumentWindowMode>(initialEditorState.windowMode);
   const [aiTextTint, setAiTextTint] = useState(initialEditorState.aiTextTint);
@@ -348,7 +349,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         serializePersistedEditorState({
           document: { ops: [] },
           storyContext,
-          instruction,
+          editInstruction,
+          continueInstruction,
           windowSize,
           windowMode,
           aiTextTint,
@@ -387,7 +389,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
 
   useEffect(() => {
     persistEditorState();
-  }, [storyContext, instruction, windowSize, windowMode, threadState, aiTextTint, showContinueWindow]);
+  }, [storyContext, editInstruction, continueInstruction, windowSize, windowMode, threadState, aiTextTint, showContinueWindow]);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1100px)");
@@ -559,12 +561,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   }
 
   function normalizedInstructionText(): string | null {
-    const trimmed = instruction.trim();
+    const trimmed = continueInstruction.trim();
     return trimmed === "" ? null : trimmed;
   }
 
-  function setInstructionAndResetThread(nextInstruction: string) {
-    setInstruction(nextInstruction);
+  function setContinueInstructionAndResetThread(nextInstruction: string) {
+    setContinueInstruction(nextInstruction);
     updateThreadState(resetThreadOnInstructionChange(threadStateRef.current, nextInstruction.trim() || null));
   }
 
@@ -624,7 +626,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           window: documentWindow,
           selection: selectionSlice!,
           storyContext,
-          instruction,
+          instruction: editInstruction,
           maxOutputTokens: threadState.settings.maxOutputTokens,
         })
       : buildAiRequestPreview({
@@ -636,7 +638,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           window: documentWindow,
           selection: selectionSlice,
           storyContext,
-          instruction,
+          instruction: continueInstruction,
           messages: shouldUseResumeThread(threadStateRef.current, normalizedInstructionText())
             ? historyForResume(threadStateRef.current)
             : [],
@@ -1215,9 +1217,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
         <div className="editor-edit-flag">Edit selection</div>
         <StickyNote tone="pink" ref={editInstructionRef} aria-label="Edit instruction" rows={4}
           disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          aria-describedby="edit-instruction-hint" value={instruction}
+          aria-describedby="edit-instruction-hint" value={editInstruction}
           placeholder="How should the selected text change?"
-          onChange={(event) => setInstructionAndResetThread(event.target.value)}
+          onChange={(event) => setEditInstruction(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
             event.preventDefault();
@@ -1337,12 +1339,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
 
         <div className="editor-controls-grid">
           <label className="editor-field editor-field-grow">
-            <span>Instruction</span>
+            <span>Continue instruction</span>
             <StickyNote
               tone="yellow"
-              value={instruction}
-              onChange={(event) => setInstructionAndResetThread(event.target.value)}
-              placeholder="Continue the scene, tighten the selected paragraph, sharpen dialogue..."
+              value={continueInstruction}
+              onChange={(event) => setContinueInstructionAndResetThread(event.target.value)}
+              placeholder="Continue the scene, build suspense, introduce a new obstacle..."
               rows={2}
               disabled={isBusy}
             />

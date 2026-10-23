@@ -16,7 +16,8 @@ export type PersistedDeltaDocument = {
 export type PersistedEditorState = {
   document: PersistedDeltaDocument;
   storyContext: string;
-  instruction: string;
+  editInstruction: string;
+  continueInstruction: string;
   windowSize: string;
   windowMode: DocumentWindowMode;
   aiTextTint: boolean;
@@ -28,7 +29,8 @@ export function initialPersistedEditorState(): PersistedEditorState {
   return {
     document: { ops: [] },
     storyContext: "",
-    instruction: "",
+    editInstruction: "",
+    continueInstruction: "",
     windowSize: "1200",
     windowMode: "window",
     aiTextTint: true,
@@ -52,7 +54,12 @@ export function parsePersistedEditorState(raw: string | null): PersistedEditorSt
     return {
       document: parseDeltaDocument(parsed.document, fallback.document),
       storyContext: typeof parsed.storyContext === "string" ? parsed.storyContext : fallback.storyContext,
-      instruction: typeof parsed.instruction === "string" ? parsed.instruction : fallback.instruction,
+      editInstruction: typeof parsed.editInstruction === "string" ? parsed.editInstruction : fallback.editInstruction,
+      continueInstruction: typeof parsed.continueInstruction === "string"
+        ? parsed.continueInstruction
+        : parsed.continueInstruction === undefined && typeof parsed.instruction === "string"
+          ? parsed.instruction
+          : fallback.continueInstruction,
       windowSize: typeof parsed.windowSize === "string" ? parsed.windowSize : fallback.windowSize,
       windowMode: parseWindowMode(parsed.windowMode, fallback.windowMode),
       aiTextTint: typeof parsed.aiTextTint === "boolean" ? parsed.aiTextTint : fallback.aiTextTint,

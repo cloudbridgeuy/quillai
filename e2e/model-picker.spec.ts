@@ -99,7 +99,7 @@ for (const available of [true, false]) {
       await expect(drawer).toHaveCSS("overscroll-behavior-y", "contain");
       await expect(scrollArea).toHaveCSS("overflow-y", "auto");
       await expect(scrollArea).toHaveCSS("overscroll-behavior-y", "contain");
-      for (const name of ["Story Context", "Instruction", "Thread continuation prompt", "Author guidance"]) {
+      for (const name of ["Story Context", "Continue instruction", "Thread continuation prompt", "Author guidance"]) {
         const note = drawer.getByRole("textbox", { name, exact: true });
         await expect(note).toHaveClass(/editor-sticky-note/);
         await expect(note).toHaveCSS("background-color", "rgb(244, 232, 181)");
@@ -107,7 +107,7 @@ for (const available of [true, false]) {
         await expect(note).toHaveCSS("font-size", "13px");
         expect(await note.evaluate(node => getComputedStyle(node, "::placeholder").fontSize)).toBe("13px");
       }
-      for (const name of ["Story Context", "Instruction", "Continue model", "Max Output Tokens"]) {
+      for (const name of ["Story Context", "Continue instruction", "Continue model", "Max Output Tokens"]) {
         await expect(drawer.locator(".editor-field > span").filter({ hasText: new RegExp(`^${name}$`) }))
           .toHaveCSS("font-size", "12px");
       }

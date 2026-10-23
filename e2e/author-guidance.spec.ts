@@ -71,7 +71,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const context = page.locator("#context-drawer");
   await expect(context.getByRole("textbox", { name: "Story Context", exact: true })).toBeVisible();
-  await expect(context.getByRole("textbox", { name: "Instruction", exact: true })).toBeVisible();
+  await expect(context.getByRole("textbox", { name: "Continue instruction", exact: true })).toBeVisible();
   await expect(context.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveCount(0);
   await expect(context.getByRole("checkbox", { name: "Whole document", exact: true })).toHaveCount(0);
   await expect(context.getByRole("button", { name: "Reset Thread", exact: true })).toBeEnabled();
@@ -245,6 +245,75 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
 });
 
 test("single Continue indicates thread history and stops an active stream", continueControlTest);
+
+test("Edit and Continue send only their own instructions", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  const apiUrl = process.env.QUILLAI_E2E_API_URL;
+  if (!apiUrl) throw new Error("Run this smoke with cargo xtask e2e");
+  const seriesResponse = await request.post(`${apiUrl}/series`, { data: { title: "Instruction isolation", position: 0 } });
+  expect(seriesResponse.status()).toBe(201);
+  const series = await seriesResponse.json();
+  const bookResponse = await request.post(`${apiUrl}/series/${series.id}/books`, { data: { title: "Instructions", position: 0 } });
+  expect(bookResponse.status()).toBe(201);
+  const book = await bookResponse.json();
+  const chapterResponse = await request.post(`${apiUrl}/series/${series.id}/books/${book.id}/chapters`, {
+    data: { title: "Separate instructions", position: 0, kind: "chapter", content: { ops: [{ insert: "Opening line\n" }] } },
+  });
+  expect(chapterResponse.status()).toBe(201);
+  const chapter = await chapterResponse.json();
+  const bodies: Array<Record<string, unknown>> = [];
+  await page.route(`${apiUrl}/ai/generate`, async (route) => {
+    const body = route.request().postDataJSON();
+    bodies.push(body);
+    await route.fulfill({
+      contentType: "application/x-ndjson",
+      body: `${JSON.stringify({ type: "delta", delta: { ops: [{ insert: body.action === "edit" ? "Revised" : "The story continues." }] } })}\n${JSON.stringify({ type: "done", finishReason: "stop" })}\n`,
+    });
+  });
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
+  const editor = page.locator(".ql-editor");
+  const saved = page.getByRole("status", { name: "Chapter save status", exact: true });
+  await expectEditorReady(editor);
+  await expect(editor).toHaveText("Opening line");
+  await expect(saved).toHaveText("Saved");
+  const contextToggle = page.getByRole("button", { name: "Context inspector", exact: true });
+  await contextToggle.click();
+  const continueNote = page.getByRole("textbox", { name: "Continue instruction", exact: true });
+  await continueNote.fill("Introduce a mysterious visitor");
+  await contextToggle.click();
+  await editor.click();
+  await editor.evaluate((element) => {
+    const text = element.querySelector("p")?.firstChild;
+    if (!text) throw new Error("Missing chapter text");
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 7);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+  await page.getByRole("button", { name: "Edit selection", exact: true }).click();
+  const editNote = page.getByRole("textbox", { name: "Edit instruction", exact: true });
+  await expect(editNote).toHaveValue("");
+  await editNote.fill("Replace passive verbs with active verbs");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(editNote).toBeHidden();
+  await expect(editor).toHaveText("Revised line");
+  await expect(saved).toHaveText("Saved");
+  expect(bodies).toHaveLength(1);
+  expect(bodies[0]?.action).toBe("edit");
+  expect(bodies[0]?.instruction).toBe("Replace passive verbs with active verbs");
+  expect(JSON.stringify(bodies[0])).not.toContain("Introduce a mysterious visitor");
+  await contextToggle.click();
+  await expect(continueNote).toHaveValue("Introduce a mysterious visitor");
+  await contextToggle.click();
+  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await expect(editor).toContainText("The story continues.");
+  await expect(saved).toHaveText("Saved");
+  expect(bodies).toHaveLength(2);
+  expect(bodies[1]?.action).toBe("generate");
+  expect(bodies[1]?.instruction).toBe("Introduce a mysterious visitor");
+  expect(JSON.stringify(bodies[1])).not.toContain("Replace passive verbs with active verbs");
+});
 
 test("settings persist outside the sheet and failed saves show the red recovery pill", async ({ page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
