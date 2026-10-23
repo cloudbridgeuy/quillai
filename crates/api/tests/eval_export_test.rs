@@ -113,12 +113,19 @@ async fn export_writes_rebuilt_chapters_in_api_order() {
     assert_eq!(fixture.chapters[1].text, "Oh. Hi 😀end\n");
 
     let cases = parse_cases(
-        &json!([{"chapter": fixture.chapters[1].id, "offset": 9, "action": "edit", "instruction": "Fix"}])
+        &json!([{"chapter": fixture.chapters[1].id, "start": 10, "end": 13, "action": "edit", "instruction": "Fix"}])
             .to_string(),
         &fixture,
     )
     .unwrap();
-    assert_eq!(cases[0].action, Action::Edit);
+    assert_eq!(
+        cases[0].action,
+        Action::Edit {
+            start: 10,
+            end: 13,
+            instruction: "Fix".into()
+        }
+    );
 }
 
 #[tokio::test]

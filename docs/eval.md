@@ -29,21 +29,21 @@ The exporter runs `git check-ignore` on `--out` before any request. It refuses a
 
 ## Case file
 
-A JSON array. Each case is a cut point in one chapter of the fixture:
+A JSON array. Each case is a cut point or a range in one chapter of the fixture:
 
 ```json
 [
   {"chapter": 7, "offset": 3, "action": "continue"},
-  {"chapter": 7, "offset": 5, "action": "edit", "instruction": "Tighten the prose."}
+  {"chapter": 7, "start": 5, "end": 11, "action": "edit", "instruction": "Tighten the prose."}
 ]
 ```
 
-| Field | Type | Rule |
-|-------|------|------|
-| `chapter` | integer | Chapter `id` in `book.json` |
-| `offset` | integer | UTF-16 offset into that chapter's `text`; `0` through its length, never inside a surrogate pair |
-| `action` | string | `continue` or `edit` |
-| `instruction` | string | Optional; defaults to empty |
+| Action | Fields | Rule |
+|--------|--------|------|
+| `continue` | `chapter`, `offset` | `0 <= offset <= length`; `start`, `end` and `instruction` are rejected |
+| `edit` | `chapter`, `start`, `end`, `instruction` | `start < end <= length`; instruction is non-empty after trim; `offset` is rejected |
+
+`chapter` is a chapter `id` in `book.json`. Positions are Quill editor indices into the chapter's `content`: a text insert counts its UTF-16 length and an embed counts 1. No position may fall inside a surrogate pair. `text` is for reading only; it drops embeds, so its indices differ from editor indices after an embed (`"One "` + image + `"two\n"` has length 9, and offset 5 sits before `t`).
 
 Unknown fields are rejected. Check a case file against a fixture:
 
