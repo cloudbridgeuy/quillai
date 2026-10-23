@@ -27,3 +27,5 @@
 *.db
 .mcptools/atlas/index.db
 .claude
+
+/eval-fixtures/

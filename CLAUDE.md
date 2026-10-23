@@ -54,6 +54,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
 | `manuscripts/lore/` | Series-scoped author lore CRUD, field validation, JSON-array storage, and boolean pin mapping; HTTP coverage in `crates/api/tests/lore_test.rs` |
 | `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
+| `eval/`, `bin/eval.rs` | Eval set CLI (`cargo run -p quillai_api --bin eval -- export\|check`): exports one book via the chapter API to a gitignored `eval-fixtures/` fixture (refuses paths git does not ignore) and parses typed UTF-16 cut-point case files. See [eval](docs/eval.md) |
 
 ### Rust — Logging (`crates/log/src/`)
 

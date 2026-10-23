@@ -2,6 +2,7 @@ pub mod ai;
 pub mod chapter_revisions;
 pub mod database;
 pub mod error;
+pub mod eval;
 pub mod manuscripts;
 pub mod prelude;
 pub mod settings;

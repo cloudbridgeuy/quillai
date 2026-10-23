@@ -14,6 +14,10 @@ license.workspace = true
 name = "api"
 path = "src/main.rs"
 
+[[bin]]
+name = "eval"
+path = "src/bin/eval.rs"
+
 [dependencies]
 quillai_delta = { workspace = true }
 quillai_log = { workspace = true }
