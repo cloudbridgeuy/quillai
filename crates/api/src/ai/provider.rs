@@ -206,7 +206,7 @@ impl ChatCompletionRequest {
             stream_options: include_usage.then_some(StreamOptions {
                 include_usage: true,
             }),
-            max_tokens: input.provider_max_tokens(),
+            max_tokens: input.max_output_tokens,
             messages: chat_messages(input, current_turn),
         }
     }
@@ -826,7 +826,7 @@ mod tests {
     }
 
     #[test]
-    fn edit_request_scales_max_tokens_from_selection() {
+    fn edit_request_uses_max_output_tokens_unchanged() {
         use crate::ai::models::{DocumentSlice, SelectionRange, SelectionSlice};
         use crate::ai::segments::{DeltaDocument, DeltaOp, InsertValue};
 
@@ -866,7 +866,7 @@ mod tests {
             serde_json::to_value(ChatCompletionRequest::from_input("m".into(), false, &input))
                 .unwrap();
 
-        assert_eq!(body["max_tokens"], 133);
+        assert_eq!(body["max_tokens"], 777);
     }
 
     #[test]

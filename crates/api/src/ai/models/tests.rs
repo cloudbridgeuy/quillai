@@ -560,32 +560,3 @@ fn generate_request_parses_model_without_validation() {
         assert_eq!(parsed.model, Some(model));
     }
 }
-
-#[test]
-fn edit_provider_max_tokens_scales_from_selected_chars_and_never_exceeds_setting() {
-    let request = |action: &str, text: &str, max_output_tokens: usize| {
-        let document = format!("Hi {text}");
-        GenerateInput::try_from(GenerateRequest {
-            model: None,
-            lore: empty_lore(),
-            section_overrides: empty_section_overrides(),
-            action: action.into(),
-            document: text_document(&document),
-            selection: Some(text_selection(text, 3, text.encode_utf16().count())),
-            story_context: None,
-            instruction: Some("fix".into()),
-            messages: vec![],
-            resume_prompt: None,
-            max_output_tokens: Some(max_output_tokens),
-        })
-        .unwrap()
-        .provider_max_tokens()
-    };
-
-    assert_eq!(request("edit", "world", 512), 133);
-    assert_eq!(request("edit", "😀😀", 512), 130);
-    assert_eq!(request("edit", &"a".repeat(384), 512), 512);
-    assert_eq!(request("edit", &"a".repeat(1000), 512), 512);
-    assert_eq!(request("edit", "world", 100), 100);
-    assert_eq!(request("generate", "world", 512), 512);
-}

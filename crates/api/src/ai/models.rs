@@ -8,8 +8,6 @@ use crate::error::Error;
 pub const DEFAULT_MAX_OUTPUT_TOKENS: usize = 512;
 pub const MIN_MAX_OUTPUT_TOKENS: usize = 1;
 pub const MAX_MAX_OUTPUT_TOKENS: usize = 4096;
-pub const EDIT_OUTPUT_TOKENS_BASE: usize = 128;
-pub const EDIT_OUTPUT_TOKENS_PER_SELECTED_CHAR: usize = 1;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -166,16 +164,6 @@ impl GenerateInput {
                 .as_deref()
                 .or(self.instruction.as_deref()),
             AiAction::Edit => self.instruction.as_deref(),
-        }
-    }
-
-    pub fn provider_max_tokens(&self) -> usize {
-        match (self.action, &self.selection) {
-            (AiAction::Edit, Some(selection)) => self.max_output_tokens.min(
-                EDIT_OUTPUT_TOKENS_BASE
-                    + EDIT_OUTPUT_TOKENS_PER_SELECTED_CHAR * selection.text.chars().count(),
-            ),
-            _ => self.max_output_tokens,
         }
     }
 }

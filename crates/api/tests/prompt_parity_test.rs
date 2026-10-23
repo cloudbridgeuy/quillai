@@ -198,13 +198,7 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
                 example.name
             );
             assert_eq!(body["model"], *model, "{}: model passthrough", example.name);
-            let expected_max_tokens = match (input.action, &input.selection) {
-                (AiAction::Edit, Some(selection)) => input
-                    .max_output_tokens
-                    .min(128 + selection.text.chars().count()),
-                _ => input.max_output_tokens,
-            };
-            assert_eq!(body["max_tokens"], expected_max_tokens);
+            assert_eq!(body["max_tokens"], input.max_output_tokens);
             assert_eq!(body["stream"], true);
         }
     }
