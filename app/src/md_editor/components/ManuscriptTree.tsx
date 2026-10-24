@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Button } from "../../ui/Button";
 import { ListButton } from "../../ui/ListButton";
+import { TextField } from "../../ui/TextField";
+import { Alert } from "../../ui/Alert";
 import { createManuscriptClient } from "../../manuscripts/client";
-import type { Book, ChapterScope, ChapterSummary, Series } from "../../manuscripts/contract";
+import type { ChapterScope } from "../../manuscripts/contract";
+import { createTitle, draftTransition, targetPosition, type CreateTarget, type ManuscriptSeries } from "../../manuscripts/create_draft";
 
-type ManuscriptSeries = Series & { books: (Book & { chapters: ChapterSummary[] })[] };
 type TreeState =
   | { status: "loading" }
   | { status: "failed"; message: string }
@@ -18,6 +20,60 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   const [client] = useState(createManuscriptClient);
   const [state, setState] = useState<TreeState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
+  const [draft, dispatch] = useReducer(draftTransition, null);
+  const submitting = useRef(false);
+
+  async function create() {
+    if (!draft || disabled || submitting.current || state.status !== "ready") return;
+    const title = createTitle(draft.title);
+    dispatch({ type: "submit" });
+    if (!title) return;
+    submitting.current = true;
+    try {
+      const target = draft.target;
+      const input = { title, position: targetPosition(state.series, target) };
+      if (target.kind === "series") {
+        const series = await client.createSeries(input);
+        setState({ status: "ready", series: [...state.series, { ...series, books: [] }] });
+      } else if (target.kind === "book") {
+        const book = await client.createBook(target, input);
+        setState({ status: "ready", series: state.series.map(series => series.id === target.seriesId
+          ? { ...series, books: [...series.books, { ...book, chapters: [] }] } : series) });
+      } else {
+        const chapter = await client.createChapter(target, { ...input, kind: "chapter" });
+        setState({ status: "ready", series: state.series.map(series => series.id === target.seriesId
+          ? { ...series, books: series.books.map(book => book.id === target.bookId
+            ? { ...book, chapters: [...book.chapters, chapter] } : book) } : series) });
+        onSelect({ seriesId: target.seriesId, bookId: target.bookId, chapterId: chapter.id });
+      }
+      dispatch({ type: "created" });
+    } catch (error) {
+      dispatch({ type: "failed", message: error instanceof Error ? error.message : "Could not create manuscript item." });
+    } finally {
+      submitting.current = false;
+    }
+  }
+
+  function createAction(target: CreateTarget) {
+    const active = draft && JSON.stringify(draft.target) === JSON.stringify(target);
+    const label = target.kind[0]!.toUpperCase() + target.kind.slice(1);
+    return active ? <form data-manuscript-draft onSubmit={event => { event.preventDefault(); void create(); }}
+      onKeyDown={event => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          dispatch({ type: "cancel" });
+        }
+        if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault();
+      }}>
+      <TextField square autoFocus aria-label={`${label} title`} placeholder={`${label} title`} value={draft.title}
+        disabled={disabled || draft.pending} aria-invalid={Boolean(draft.error)}
+        onChange={event => dispatch({ type: "title", title: event.target.value })} />
+      {draft.error ? <Alert tone="inline">{draft.error}</Alert> : null}
+      {draft.pending ? <p role="status">Creating {target.kind}…</p> : null}
+    </form> : <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+      onClick={() => dispatch({ type: "start", target })}>+ {label}</ListButton>;
+  }
 
   useEffect(() => {
     let active = true;
@@ -51,7 +107,9 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
 
   return <>
     <p className="editor-note">Opening a chapter saves current changes first.</p>
-    {state.series.length === 0 ? <p>No series yet.</p> : <ul className="editor-manuscript-tree">
+    <div className="editor-manuscript-tree">
+    {createAction({ kind: "series" })}
+    {state.series.length === 0 ? <p>No series yet.</p> : <ul>
       {state.series.map((series) => <li key={series.id}>
         <details open>
           <summary>{series.title}</summary>
@@ -61,16 +119,19 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
                 <summary>{book.title}</summary>
                 {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
                   {book.chapters.map((chapter) => <li key={chapter.id}>
-                    <ListButton tone="tree" disabled={disabled}
+                    <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
                       pressed={selectedChapter?.seriesId === series.id && selectedChapter.bookId === book.id && selectedChapter.chapterId === chapter.id}
                       onClick={() => onSelect({ seriesId: series.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
                   </li>)}
                 </ul>}
+                {createAction({ kind: "chapter", seriesId: series.id, bookId: book.id })}
               </details>
             </li>)}
           </ul>}
+          {createAction({ kind: "book", seriesId: series.id })}
         </details>
       </li>)}
     </ul>}
+    </div>
   </>;
 }

@@ -78,6 +78,22 @@ test("chapter creation preserves explicit content", async () => {
   await client.createChapter(scope, { ...createChapter, content: chapter.content });
 });
 
+test("all create methods parse responses and preserve structured failures", async () => {
+  const cases: Array<[(client: Client) => Promise<unknown>, unknown]> = [
+    [(c) => c.createSeries(metadata), series],
+    [(c) => c.createBook(scope, metadata), book],
+    [(c) => c.createChapter(scope, { ...metadata, kind: "chapter" }), chapter],
+  ];
+  for (const [call, resource] of cases) {
+    const valid = createManuscriptClient({ fetch: async () => Response.json(resource, { status: 201 }) });
+    expect(await call(valid)).toEqual(resource);
+    const malformed = createManuscriptClient({ fetch: async () => Response.json({ ...resource as object, title: " " }, { status: 201 }) });
+    await expect(call(malformed)).rejects.toMatchObject({ status: 201, kind: "invalid_response", code: "INVALID_RESPONSE" });
+    const rejected = createManuscriptClient({ fetch: async () => Response.json({ error: "Invalid title", code: "VALIDATION_ERROR" }, { status: 422 }) });
+    await expect(call(rejected)).rejects.toMatchObject({ status: 422, kind: "http", code: "VALIDATION_ERROR", message: "Invalid title" });
+  }
+});
+
 test("parses all supported Delta operations without dropping nested attributes or embeds", () => {
   const delta = { ops: [
     { insert: "" }, { insert: { image: "url" }, attributes: { nested: { x: [1, null] } } },

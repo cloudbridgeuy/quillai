@@ -434,6 +434,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+      if (event.key === "Escape" && event.target instanceof Element && event.target.closest("[data-manuscript-draft]")) return;
       const action = panelShortcut(event);
       if (action === null) return;
       if (action === "close") {
@@ -1239,8 +1240,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           <h2 id="manuscript-title">Manuscript</h2>
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-            onSelect={(scope) => void chapterSync.switchChapter(scope)} />
+          <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
+            onSelect={(scope) => {
+              if (chapterSync.needsChapter) {
+                const url = new URL(window.location.href);
+                for (const [key, value] of Object.entries(scope)) url.searchParams.set(key, String(value));
+                window.location.assign(url);
+              } else void chapterSync.switchChapter(scope);
+            }} />
         </div>
         {chapterSync.scope ? <LorePanel key={chapterSync.scope.seriesId} seriesId={chapterSync.scope.seriesId}
           lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Select a chapter to manage series lore.</p>}
