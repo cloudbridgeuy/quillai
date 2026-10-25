@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT universe_id FROM containers WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0e32a6f019ba5e37ea922eeb5aa7d4632cc69426a044ae8a7916a7eb1ece738b"
+}

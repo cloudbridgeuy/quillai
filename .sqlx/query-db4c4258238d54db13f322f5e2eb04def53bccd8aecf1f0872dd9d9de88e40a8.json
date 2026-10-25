@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "universe_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "container_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "position",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "label",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "format",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "shape",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "db4c4258238d54db13f322f5e2eb04def53bccd8aecf1f0872dd9d9de88e40a8"
+}

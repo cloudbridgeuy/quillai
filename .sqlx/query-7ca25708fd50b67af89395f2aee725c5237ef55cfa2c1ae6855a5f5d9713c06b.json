@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO universes (title, position) VALUES (?, ?) RETURNING id, title, position",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "position",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7ca25708fd50b67af89395f2aee725c5237ef55cfa2c1ae6855a5f5d9713c06b"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, universe_id, title, position, kind FROM containers WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "universe_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "position",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f02ae6ab3a89344bd495fc1eda64dfc6e10799b9b1369763b02841816a1ca8a4"
+}

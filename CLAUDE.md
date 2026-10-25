@@ -42,7 +42,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 |------|---------|
 | `main.rs` | Server init, SQLite pool setup, runs migrations before serving, calls `app()` from lib.rs |
 | `database.rs` | Shared embedded migration runner for startup and integration tests; baselines legacy databases that have `users` but no `_sqlx_migrations` |
-| `chapter_revisions.rs` | Pure Delta rebuild and transactional revision store with optimistic head checks and configurable snapshots |
+| `chapter_revisions.rs` | Pure Delta rebuild and transactional revision store over leaf `pieces`/`piece_revisions` with optimistic head checks and configurable snapshots |
 | `lib.rs` | Router composition — merges resource routes via `Router::merge()` |
 | `cli.rs` | CLI args via clap (host, port, db-url, log-level) |
 | `error.rs` | Error enum (`Sqlx`, `InvalidLogLevel`, `NotFound`, `Validation`), manual `IntoResponse` → JSON `{ error, code }`. See [error handling context](.claude/context/error-handling.md) |
@@ -52,8 +52,10 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `settings/` | Singleton author guidance models, UTF-8 byte validation, GET/PUT handlers, and shared server-side AI loading. |
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
-| `manuscripts/lore/` | Series-scoped author lore CRUD, field validation, JSON-array storage, and boolean pin mapping; HTTP coverage in `crates/api/tests/lore_test.rs` |
-| `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
+| `manuscripts/lore/` | Series lore façade over universe lore (`store.rs` holds universe-keyed CRUD), field validation, JSON-array storage, and boolean pin mapping; HTTP coverage in `crates/api/tests/lore_test.rs` |
+| `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync over the `legacy_chapters` view, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
+| `manuscripts/leaf_sync.rs` | Shared leaf Delta history and server-priority submit (snapshot every 100) for chapter and piece delta routes |
+| `manuscripts/universes/`, `containers/`, `pieces/` | Story model routes (camelCase JSON, lore stays snake_case with `universe_id`); `mod.rs` holds JSON input parsing, PUT key rejection, and trigger RAISE → 422 mapping; HTTP coverage in `crates/api/tests/story_routes_test.rs` |
 | `eval/`, `bin/eval.rs` | Eval set CLI (`cargo run -p quillai_api --bin eval -- export\|check`): exports one book via the chapter API to a gitignored `eval-fixtures/` fixture (refuses paths git does not ignore) and parses typed case files (Continue offset or Edit range plus instruction, Quill editor indices with embeds counted as 1). See [eval](docs/eval.md) |
 
 ### Rust — Logging (`crates/log/src/`)
@@ -149,7 +151,7 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 
 `migrations/20261020000000_lore_entries.up.sql` adds series-scoped `lore_entries` with cascading deletion and a series index: kind (`character`, `place`, `term`, `note`), nonblank name, separate `keywords` and `aliases` JSON-array text columns (each default `[]`, preserving search terms versus alternate names), visible text and hidden notes (default empty), pinned (0/1, default 0), and AI-request level (`include`, `known_dont_reveal`, `leave_out`, default `include`). The down migration drops only `lore_entries`; `crates/api/tests/lore_schema_test.rs` covers storage, defaults, constraints, cascades, and rollback/reapply.
 
-Staged, not yet in `migrations/`: the `docs/story-model.md` §1 universes/containers/pieces up/down SQL lives in `crates/api/tests/fixtures/story_model/` (GUZ-937) and is covered by `crates/api/tests/story_model_migration_test.rs`; GUZ-938 moves it into `migrations/` with the façade.
+`migrations/20261025000000_story_model.up.sql` (`docs/story-model.md` §1) replaces `series`/`books`/`chapters`/`chapter_revisions` with `universes`, `containers` (book_series/tv_series/collection), `pieces` (leaf/group, label, format, `legacy_book_id`/`legacy_chapter_id`), and `piece_revisions`; `lore_entries` becomes universe-scoped. Triggers enforce parent, container, and membership rules and assign legacy ids from `legacy_ids` on insert. Views `legacy_series`, `legacy_books`, `legacy_chapters` back the old routes as a permanent façade. The down migration aborts unless every row fits series/books/chapters. `crates/api/tests/story_model_migration_test.rs` covers up/down round trips; old schema tests undo to 20261020000000 first.
 
 ## Tech Stack
 
@@ -193,6 +195,15 @@ Staged, not yet in `migrations/`: the `docs/story-model.md` §1 universes/contai
 - `DELETE /series/{id}/books/{book_id}/chapters/{chapter_id}` — Delete chapter scoped to book and series (204 or 404)
 - `POST /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas` — Submit `{baseRev, delta}`; transform against later retained revisions with server priority, append atomically, return `{rev, delta}` (200, 404, 409 unavailable/future history, or 422 malformed JSON/Delta or compose failure)
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas?since=rev` — Return missed revisions ordered ascending as `[{rev, delta}]`; current head returns `[]` (200, 404, 409 unavailable/future history, or 422 invalid query)
+- Old `/series`, `/books`, `/chapters`, deltas, and lore routes are a façade over the story model with unchanged JSON: series are `book_series` containers, books are prose `novel` groups (id = `legacy_book_id`), chapters are their prologue/chapter/epilogue leaves (id = `legacy_chapter_id`), and series lore is the container's universe lore (shared by series in one universe). `POST /series` creates a universe plus container; `DELETE /series/{id}` deletes the universe too when it has no containers or pieces left
+- `GET/POST /universes`, `GET/PUT/DELETE /universes/{id}` — title/position, series rules (201, 404, 422); DELETE cascades containers, pieces, lore
+- `GET/POST /universes/{id}/lore`, `GET/PUT/DELETE /universes/{id}/lore/{lore_id}` — lore fields as series lore, JSON `universe_id`
+- `GET/POST /universes/{id}/containers`, `GET/PUT/DELETE /containers/{id}` — `{id, universeId, title, position, kind}`; `kind` or `universeId` on PUT is 422
+- `GET /universes/{id}/pieces?container=none` — loose roots; other or missing `container` is 422. `POST /universes/{id}/pieces` — root in storage `{title, position, label, shape, format?}`; format defaults to script for screenplay/tv_script/episode, else prose; a leaf starts with an empty Delta
+- `GET/POST /containers/{id}/pieces` — root pieces; book_series allows novel/novella, tv_series tv_script/episode (422 otherwise)
+- `POST /pieces/{id}/children` — new empty leaf under a group with the group's format; label defaults to chapter (prose) or scene (script); non-group is 422
+- `GET/PUT/DELETE /pieces/{id}` — leaf adds `content`/`headRev`, group adds `children`; PUT changes title/position/label/format (group format cascades to children); `universeId`, `containerId`, `parentId`, `shape`, `content`, a child format change, or a membership break is 422
+- `POST/GET /pieces/{id}/deltas` — leaves only (group 404); same JSON and 409 rules as chapter deltas
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON; optional `model` must exactly match a startup catalog ID (422 if invalid); omission uses the action default. See [AI streaming context](.claude/context/ai-streaming.md)
 - `GET /ai/models` — Return startup catalog model IDs, labels, input/output prices per million tokens, and `defaults.generate` (Continue) / `defaults.edit` IDs. No provider configuration or `include_usage`; missing catalog returns the standard 500 configuration error.
 - `GET /settings/author-guidance` — Return `{text: string}`; missing row returns empty text (200).

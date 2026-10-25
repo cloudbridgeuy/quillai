@@ -21,14 +21,14 @@ pub struct UpdateSeries {
     pub position: Option<i64>,
 }
 
-fn validate_title(title: &str) -> Result<(), Error> {
+pub(crate) fn validate_title(title: &str) -> Result<(), Error> {
     if title.trim().is_empty() {
         return Err(Error::Validation("title must not be empty".into()));
     }
     Ok(())
 }
 
-fn validate_position(position: i64) -> Result<(), Error> {
+pub(crate) fn validate_position(position: i64) -> Result<(), Error> {
     if position < 0 {
         return Err(Error::Validation("position must not be negative".into()));
     }
