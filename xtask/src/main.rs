@@ -12,6 +12,7 @@ use std::thread;
 use std::time::Duration;
 
 mod check_ui;
+mod dev_database;
 mod e2e;
 
 #[cfg(unix)]
@@ -68,6 +69,11 @@ pub struct DevArgs {
 
     #[clap(long, default_value_t = 3001)]
     app_port: u16,
+
+    /// SQLite URL forwarded to the API. When this and `QUILLAI_API_DB_URL` are
+    /// unset, dev uses absolute `<workspace>/quillai.db`.
+    #[clap(long, env = "QUILLAI_API_DB_URL")]
+    db_url: Option<String>,
 
     #[clap(long)]
     ai_model: Option<String>,
@@ -172,10 +178,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+fn workspace_root() -> Result<&'static std::path::Path, &'static str> {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .ok_or("xtask has no workspace directory")?;
+        .ok_or("xtask has no workspace directory")
+}
+
+fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
+    let root = workspace_root()?;
     let logs = root.join("target/xtask-lint");
     std::fs::create_dir_all(&logs)?;
     let checks: &[(&str, &str, &[&str], &str)] = &[
@@ -336,11 +346,13 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
 
     let (tx, rx) = mpsc::channel();
     let mut children = ManagedChildren::new(Vec::new());
+    let database_args = dev_database::api_database_args(workspace_root()?, args.db_url.as_deref());
     children.children.push(spawn_api(
         args.api_port,
         args.ai_model.as_deref(),
         args.ai_models.as_deref(),
         args.ai_base_url.as_deref(),
+        &database_args,
         tx.clone(),
     )?);
     children.children.push(spawn_app(args.app_port, tx)?);
@@ -383,6 +395,7 @@ fn spawn_api(
     ai_model: Option<&str>,
     ai_models: Option<&std::path::Path>,
     ai_base_url: Option<&str>,
+    database_args: &[String],
     tx: Sender<SupervisorEvent>,
 ) -> Result<ManagedChild, Box<dyn Error>> {
     let mut command = Command::new("cargo");
@@ -396,6 +409,7 @@ fn spawn_api(
         "--port",
         &port.to_string(),
     ]);
+    command.args(database_args);
 
     if let Some(model) = ai_model {
         command.env("QUILLAI_AI_MODEL", model);
@@ -603,5 +617,45 @@ fn log_supervisor_line(line: String) {
         println!("{DIM_COLOR}{timestamp}{RESET_COLOR} \x1b[32mdev{RESET_COLOR} │ {line}");
     } else {
         println!("{timestamp} dev │ {line}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workspace_root_is_the_xtask_parent() {
+        let root = workspace_root().unwrap();
+        assert!(root.is_absolute());
+        assert_eq!(
+            root.join("xtask"),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        );
+    }
+
+    #[test]
+    fn dev_db_url_flag_beats_the_environment_and_is_forwarded_unchanged() {
+        let args =
+            DevArgs::try_parse_from(["xtask", "--db-url", "sqlite:explicit.db?mode=rwc"]).unwrap();
+        assert_eq!(args.db_url.as_deref(), Some("sqlite:explicit.db?mode=rwc"));
+        let root = std::env::temp_dir().join(format!(
+            "quillai-dev-db-flag-{}-never-created",
+            std::process::id()
+        ));
+        assert_eq!(
+            dev_database::api_database_args(&root, args.db_url.as_deref()),
+            vec![
+                "--db-url".to_string(),
+                "sqlite:explicit.db?mode=rwc".to_string(),
+            ]
+        );
+        assert!(!root.join("quillai.db").exists());
+    }
+
+    #[test]
+    fn dev_db_url_reads_the_environment_when_the_flag_is_absent() {
+        let args = DevArgs::try_parse_from(["xtask"]).unwrap();
+        assert_eq!(args.db_url, std::env::var("QUILLAI_API_DB_URL").ok());
     }
 }
