@@ -76,6 +76,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 `edit-replacement.spec.ts` arms one-use `e2e-edit` identities at 1100px: tags split across fragments with commentary around them leave only the replacement in the editor and server; missing or unclosed tags show the error and restore the selection.
 
+`persistent-dev-database.spec.ts` at 1100px starts `target/debug/api` in a temporary directory with no `--db-url` and no `QUILLAI_API_DB_URL`, creates a chapter, types further text, kills that process, starts it again in the same directory, and checks the editor and the chapter GET still show the text. It does not use the sandbox database and does not open `<workspace>/quillai.db`.
+
 `continue-tie-order.spec.ts` also arms one-use real-provider identities at 1100px: server-priority ties can place remote paragraph-start typing in the AI paragraph (documented limitation); Finish pins `REMOTE AI first tail` / `Later paragraph`, Stop keeps `REMOTE Later paragraph`, with exact two-tab/server convergence and no API errors.
 `stream-remote-edit.spec.ts` checks exact two-tab/server convergence after Finish or Stop during desktop Continue at 1100px, preserving author and remote edits at distinct insertion points, retaining AI text only on Finish, and rejecting API errors; AI transport is mocked, not the real generation API.
 
@@ -227,6 +229,7 @@ Default to using Bun instead of Node.js.
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Bun automatically loads .env, so don't use dotenv.
+- Every ticket fixing or changing browser-visible behaviour ships with an E2E regression spec.
 
 ### Bun APIs
 
