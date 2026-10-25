@@ -15,7 +15,7 @@ crates/delta/  — Quill Delta core types, JSON serde, push/normalize, compose/t
 xtask/         — Development process runner (`cargo xtask dev`)
 app/           — React frontend (Bun runtime, Quill.js editor)
 migrations/    — SQLx migrations (SQLite)
-docs/          — QuillJS implementation guide, plans, and the v1 editor design spec (`docs/editor-design.md`)
+docs/          — QuillJS implementation guide, plans, the v1 editor design spec (`docs/editor-design.md`), and the design system (`docs/design-system.md`)
 prototypes/    — Static HTML design prototypes, not built or tested (`prototypes/editor-desktop/` is the visual reference for `docs/editor-design.md`)
 ```
 
@@ -66,7 +66,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, plus the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, with short output (logs in `target/xtask-lint/`) |
+| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, and the `ui` design-system check, with short output (logs in `target/xtask-lint/`) |
+| `check_ui.rs` | Lint check `ui`: pure scanner over tracked `app/src` files for raw `<button>`/`<input>`/`<textarea>`/`<select>` and Tailwind arbitrary brackets in `.tsx` outside `app/src/ui/`, and hex colours or `font-size:` in `.css` outside `app/src/ui/tokens.css`; compares per-file, per-rule counts with `app/src/ui/ALLOWLIST` (`path count rule`) and fails above or below the count (ratchet). See [design system](docs/design-system.md) |
 | `e2e.rs` | `cargo xtask e2e`: temporary SQLite file, random loopback API and frontend ports, HTTP readiness, managed Playwright runner, process-group and database cleanup. Catalog precedence: `--ai-models` > `QUILLAI_AI_MODELS_FILE` > workspace-root `e2e/fixtures/ai-models.json`; only the default fixture starts managed Bun TypeScript `e2e/fake-ai-provider.ts`, sets API `QUILLAI_AI_BASE_URL` to its random loopback `/v1` URL with a fake key, and supplies Playwright `QUILLAI_E2E_FAKE_AI_URL`. The fixture immediately rejects and counts unarmed requests; only armed specs (`real-route-stream.spec.ts`, `continue-tie-order.spec.ts` with `e2e-continue`; `edit-replacement.spec.ts` with `e2e-edit`) reach it, each arming a one-use model/document identity for real `/ai/generate`, with request/fragment/finish controls and actual upstream-close observation. Set the frontend port with `--port 3107` before Playwright arguments. Remaining arguments pass directly, e.g. `cargo xtask e2e --headed --trace on`. The runner sets API `--cors-origin` and Playwright `QUILLAI_E2E_APP_URL` for the chosen frontend. With `NO_COLOR` present or non-terminal stdout, prefixes are plain and all children receive `NO_COLOR=1`, `FORCE_COLOR=0`, and `CARGO_TERM_COLOR=never`. |
 
 ### Browser Smoke (`e2e/`)
@@ -95,7 +96,9 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/StickyNote.tsx` | Shared native textarea with yellow Story Context, Continue instruction, Thread continuation prompt, and author guidance styling; pink remains the rail Edit note. Forwards native props and ref. Enter and Apply share selection/readiness checks; Shift+Enter adds a newline and Esc cancels. Guidance saves explicitly. |
 | `frontend.tsx` | React root setup, CSS import, StrictMode |
-| `index.css` | Tailwind + editor shell layout, white paper/desk theme tokens and responsive styling. Right drawer uses 12px labels/eyebrows and 13px body/controls/placeholders, retaining 12px mono prompt text. Desktop drawers span 100dvh with contained internal scrolling; the right drawer heading stays pinned above a thin divider. Neither drawer has a Close button. Manuscript and Context rail toggles stay unmuted with ink text on green while open. |
+| `ui/tokens.css` | Design tokens: palette, `--placeholder`, seven named shadows, font stacks, and Tailwind 4 `@theme inline` mappings for colours, shadows, six type sizes, radii 0/1/2/4/7/10/999 and 4px spacing; Tailwind default colours, shadows, text sizes and radii are reset. Imported by `index.css`. See [design system](docs/design-system.md) |
+| `ui/ALLOWLIST` | `cargo xtask lint` `ui` check debt: `path count rule` lines; lower or remove a line when you fix its violations |
+| `index.css` | Tailwind + `ui/tokens.css` import, editor shell layout and responsive styling. Right drawer uses 12px labels/eyebrows and 13px body/controls/placeholders, retaining 12px mono prompt text. Desktop drawers span 100dvh with contained internal scrolling; the right drawer heading stays pinned above a thin divider. Neither drawer has a Close button. Manuscript and Context rail toggles stay unmuted with ink text on green while open. |
 | `i18n/messages.ts` | Pure `en`/`es` UI message tables and `formatMessage` (`Intl` plurals, interpolation, numbers, dates, currency). English is the key source; Spanish is written to match it. UI language is separate from series language. See [i18n](docs/i18n.md). |
 | `md_editor/types.ts` | TypeScript types: Delta, Range, EmitterSource, event callbacks |
 | `md_editor/ai_contract.ts` | Pure AI request contract with optional model ID pass-through (absent when omitted), visible-only matched lore assembly, and browser-safe API URL helper. See [AI editor context](.claude/context/ai-editor.md) |
@@ -243,6 +246,7 @@ Default to using Bun instead of Node.js.
 
 ### Frontend Conventions
 
+- Read [docs/design-system.md](docs/design-system.md) before adding or changing UI. Use `app/src/ui/` primitives and `app/src/ui/tokens.css` tokens; do not add raw controls, hex colours, font sizes or Tailwind arbitrary values elsewhere (`cargo xtask lint` check `ui` enforces this).
 - HTML imports with `Bun.serve()`. Don't use `vite`.
 - HTML files import .tsx/.jsx/.js directly — Bun transpiles and bundles.
 - `<link>` tags point to stylesheets — Bun's CSS bundler handles them.

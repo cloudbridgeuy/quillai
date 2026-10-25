@@ -1,0 +1,59 @@
+# Design System
+
+One token set and one primitive set for all QuillAI UI. Read this page before you add or change UI. Layout, sizes and behavior of each surface: `docs/editor-design.md`. Visual reference: `prototypes/editor-desktop/` (white paper palette).
+
+## Rules
+
+- Controls, headings and text styles come from `app/src/ui/` primitives. Do not write a raw `<button>`, `<input>`, `<textarea>` or `<select>` outside `app/src/ui/`.
+- Colours, shadows, type sizes, radii and spacing come from `app/src/ui/tokens.css`. Do not write a hex colour or `font-size:` in another `.css` file, and do not use Tailwind arbitrary values such as `w-[262px]`.
+- One button family: `Button` (quiet, primary, danger). No new pill, link-button or one-off button style.
+- Textareas are sticky notes: white or yellow, no border, paper shadow. Pink is only for the Edit instruction.
+- Lore editing opens in a `Modal`. The modal has no Cancel; Escape and backdrop click discard the draft. Delete is red (danger) and asks for confirmation: the first click arms it ("Delete this entry"), the second click deletes.
+- Popovers close from their trigger (toggle), click outside and Escape. They have no Close button.
+- Drawers have no Close button. Their rail toggle, bracket shortcut and Escape close them.
+
+## Enforcement
+
+`cargo xtask lint` check `ui` (`xtask/src/check_ui.rs`) scans tracked files under `app/src/`:
+
+| Rule | Fails on | Scope |
+|------|----------|-------|
+| `raw-button`, `raw-input`, `raw-textarea`, `raw-select` | the raw tag | `.tsx` outside `app/src/ui/` |
+| `tailwind-bracket` | an arbitrary value, e.g. `w-[262px]` | `.tsx` outside `app/src/ui/` |
+| `hex-colour` | `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` | `.css` except `app/src/ui/tokens.css` |
+| `font-size` | a `font-size:` declaration | `.css` except `app/src/ui/tokens.css` |
+
+`app/src/ui/ALLOWLIST` holds today's debt, one `path count rule` line per file and rule. A file above its count fails. A file below its count also fails until you lower the count (or remove the line at zero), so debt only goes down. Add lines only when a migration ticket moves debt; never to pass a new violation.
+
+## Tokens
+
+`app/src/ui/tokens.css` defines the CSS variables and maps them to Tailwind 4 utilities with `@theme inline`. Tailwind's default colours, shadows, text sizes and radii are removed, so only these utilities exist.
+
+| Group | CSS variable → utility | Values |
+|-------|------------------------|--------|
+| Colour | `--paper` → `bg-paper`, `text-paper`, … | paper `#FFFFFF`, desk `#F1EEE7`, ink `#1F2933`, slate `#4E6272`, graphite `#6F757C`, pencil `#A9ADB1`, rule `#EDE3D3`, tan `#C4A982`, alert `#B4412F` |
+| Post-it | `--pi-*` → `bg-pi-yellow`, … | yellow `#F4E8B5`, pink `#F3D6D8`, green `#D7E6D0`, blue `#D2E2EC`, lav `#E0D8EC` |
+| Stroke | `--st-*` → `border-st-blue`, … | blue `#7C9BB0`, lav `#9B8BB8`, tan `#B79A6C` |
+| Placeholder | `--placeholder` → `text-placeholder` | `#6b6f73` |
+| Shadow | `--sheet-shadow` → `shadow-sheet`; also note, fail, panel, popover, edit, lore | see `tokens.css` |
+| Type | `text-sheet`, `text-title`, `text-ui`, `text-label`, `text-meta`, `text-micro` | 21/1.75 (sheet, serif), 16/1.5 (app label), 13/1.5 (UI body, controls, chapter title), 12/1.4 (labels, panel headings 0.2em uppercase, inspector mono), 11/1.3 (flags), 10/1.3 (Continue label) |
+| Radius | `rounded-none`, `-note`, `-sheet`, `-card`, `-button`, `-icon`, `-pill` | 0 (drawers, guidance), 1px (notes), 2px (sheet), 4px (edit box, lore card), 7px (buttons outside drawers), 10px (rail icons), 999px (fail pill only) |
+| Spacing | `p-1` … `p-6`, `gap-*`, `m-*` | 4, 8, 12, 16, 20, 24px (`--spacing: 4px`; use steps 1–6) |
+
+Font stacks stay as `--serif`, `--sans` and `--mono`.
+
+## Primitives (planned, `app/src/ui/`)
+
+| Primitive | Props | Replaces |
+|-----------|-------|----------|
+| `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. No hover lift inside drawers | pill, small, primary and danger button classes |
+| `IconButton` | `label`, `pressed`, `glyph`, `kind?: "continue"`. 36px, radius 10; Continue is the 56px stack | rail buttons |
+| `TextField` | `as: "input" \| "select"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |
+| `Toggle` | checkbox plus label | `.editor-toggle` |
+| `Field` | `label`, control child. Label uses the 12px graphite style | `.editor-field` |
+| `Heading` | `level: "app" \| "section"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
+| `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
+| `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `components/StickyNote.tsx`, green lore text |
+| `Modal` | `title`, `onClose`, children. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |
+| `Popover` | `trigger`, `open`, `onOpenChange`. No Close prop | Settings, Edit box |
+| `ListButton` | `pressed`, `tone: "tree" \| "lore"` | manuscript tree rows, lore-window rows |

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./ui/tokens.css";
 
 .editor-lore-panel { border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 16px; }
 .editor-lore-panel h3 { color: var(--slate); font-size: 12px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
@@ -6,34 +7,6 @@
 .editor-lore-panel .editor-field { margin: 12px 0; }
 
 :root {
-  --paper: #FFFFFF;
-  --desk: #F1EEE7;
-  --ink: #1F2933;
-  --slate: #4E6272;
-  --graphite: #6F757C;
-  --pencil: #A9ADB1;
-  --rule: #EDE3D3;
-  --tan: #C4A982;
-  --alert: #B4412F;
-  --pi-yellow: #F4E8B5;
-  --pi-pink: #F3D6D8;
-  --pi-green: #D7E6D0;
-  --pi-blue: #D2E2EC;
-  --pi-lav: #E0D8EC;
-  --st-blue: #7C9BB0;
-  --st-lav: #9B8BB8;
-  --st-tan: #B79A6C;
-  --sheet-shadow: 0 1px 2px rgba(31, 41, 51, .06), 0 10px 34px rgba(31, 41, 51, .09);
-  --note-shadow: 0 1px 1px rgba(31, 41, 51, .06), 0 6px 14px -6px rgba(31, 41, 51, .22);
-  --fail-shadow: 0 4px 18px rgba(180, 65, 47, .35);
-  --panel-shadow: 0 0 40px rgba(31, 41, 51, .12);
-  --popover-shadow: 0 8px 30px rgba(31, 41, 51, .12);
-  --edit-shadow: 0 10px 30px rgba(31, 41, 51, .13);
-  --lore-shadow: 0 10px 30px rgba(31, 41, 51, .14);
-  --sheet-edge: 1px solid rgba(31, 41, 51, .07);
-  --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
-  --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, Menlo, monospace;
   font-family: var(--sans);
   line-height: 1.5;
   color-scheme: light;
@@ -453,7 +426,7 @@ button {
   gap: 16px;
   background: var(--paper);
   border: 1px solid var(--rule);
-  box-shadow: 0 8px 30px rgba(31,41,51,.12);
+  box-shadow: var(--popover-shadow);
 }
 
 .editor-settings-popover h2 {
@@ -691,7 +664,7 @@ button {
   position: absolute;
   left: -24px;
   width: 9px;
-  border: 2px solid #7C9BB0;
+  border: 2px solid var(--st-blue);
   border-right: 0;
   border-radius: 3px 0 0 3px;
   opacity: .6;
@@ -704,7 +677,7 @@ button {
   z-index: 15;
   border: 0;
   padding: 5px 18px 5px 10px;
-  background: #D2E2EC;
+  background: var(--pi-blue);
   color: var(--ink);
   font: 500 11px/1.3 var(--sans);
   text-align: left;
@@ -917,7 +890,7 @@ button {
 }
 
 .editor-sticky-note::placeholder {
-  color: #6b6f73;
+  color: var(--placeholder);
 }
 
 .editor-sticky-note:focus {
@@ -934,7 +907,7 @@ button {
   background: var(--paper);
   border: 1px solid rgba(31, 41, 51, .07);
   border-radius: 4px;
-  box-shadow: 0 10px 30px rgba(31, 41, 51, .13);
+  box-shadow: var(--edit-shadow);
 }
 
 .editor-edit-flag {
@@ -1230,11 +1203,11 @@ button {
 
 @media (min-width: 1100px) {
   .ql-editor[data-ai-tint="streaming"] {
-    --ai-stream-color: #4e6272;
+    --ai-stream-color: var(--slate);
   }
 
   .ql-editor[data-ai-tint="fading"] {
-    --ai-stream-color: #1f2933;
+    --ai-stream-color: var(--ink);
     transition: --ai-stream-color 1.8s 250ms;
   }
 
@@ -1296,7 +1269,7 @@ button {
   border: 1px solid rgba(31, 41, 51, .07);
   border-radius: 4px;
   background: var(--paper);
-  box-shadow: 0 10px 30px rgba(31, 41, 51, .14);
+  box-shadow: var(--lore-shadow);
   font-size: 13px;
 }
 

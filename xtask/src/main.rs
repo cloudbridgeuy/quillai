@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+mod check_ui;
 mod e2e;
 
 #[cfg(unix)]
@@ -257,14 +258,20 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
         report_lint_check(name, passed, &path, args.verbose)?;
         failed += usize::from(!passed);
     }
-    let path = logs.join("file-length.log");
-    let passed = check_file_lengths(root, &path)?;
-    report_lint_check("file-length", passed, &path, args.verbose)?;
-    failed += usize::from(!passed);
+    type SourceCheck = fn(&std::path::Path, &std::path::Path) -> std::io::Result<bool>;
+    let source_checks: [(&str, SourceCheck); 2] =
+        [("file-length", check_file_lengths), ("ui", check_ui::run)];
+    for (name, check) in source_checks {
+        let path = logs.join(format!("{name}.log"));
+        let passed = check(root, &path)?;
+        report_lint_check(name, passed, &path, args.verbose)?;
+        failed += usize::from(!passed);
+    }
+    let total = checks.len() + source_checks.len();
     if failed == 0 {
-        println!("All {} checks passed.", checks.len() + 1);
+        println!("All {total} checks passed.");
     } else {
-        println!("{failed}/{} checks failed.", checks.len() + 1);
+        println!("{failed}/{total} checks failed.");
     }
     Ok(failed == 0)
 }

@@ -1,0 +1,87 @@
+:root {
+  --paper: #FFFFFF;
+  --desk: #F1EEE7;
+  --ink: #1F2933;
+  --slate: #4E6272;
+  --graphite: #6F757C;
+  --pencil: #A9ADB1;
+  --rule: #EDE3D3;
+  --tan: #C4A982;
+  --alert: #B4412F;
+  --pi-yellow: #F4E8B5;
+  --pi-pink: #F3D6D8;
+  --pi-green: #D7E6D0;
+  --pi-blue: #D2E2EC;
+  --pi-lav: #E0D8EC;
+  --st-blue: #7C9BB0;
+  --st-lav: #9B8BB8;
+  --st-tan: #B79A6C;
+  --placeholder: #6b6f73;
+  --sheet-shadow: 0 1px 2px rgba(31, 41, 51, .06), 0 10px 34px rgba(31, 41, 51, .09);
+  --note-shadow: 0 1px 1px rgba(31, 41, 51, .06), 0 6px 14px -6px rgba(31, 41, 51, .22);
+  --fail-shadow: 0 4px 18px rgba(180, 65, 47, .35);
+  --panel-shadow: 0 0 40px rgba(31, 41, 51, .12);
+  --popover-shadow: 0 8px 30px rgba(31, 41, 51, .12);
+  --edit-shadow: 0 10px 30px rgba(31, 41, 51, .13);
+  --lore-shadow: 0 10px 30px rgba(31, 41, 51, .14);
+  --sheet-edge: 1px solid rgba(31, 41, 51, .07);
+  --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, Menlo, monospace;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--paper);
+  --color-desk: var(--desk);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-graphite: var(--graphite);
+  --color-pencil: var(--pencil);
+  --color-rule: var(--rule);
+  --color-tan: var(--tan);
+  --color-alert: var(--alert);
+  --color-pi-yellow: var(--pi-yellow);
+  --color-pi-pink: var(--pi-pink);
+  --color-pi-green: var(--pi-green);
+  --color-pi-blue: var(--pi-blue);
+  --color-pi-lav: var(--pi-lav);
+  --color-st-blue: var(--st-blue);
+  --color-st-lav: var(--st-lav);
+  --color-st-tan: var(--st-tan);
+  --color-placeholder: var(--placeholder);
+
+  --shadow-*: initial;
+  --shadow-sheet: var(--sheet-shadow);
+  --shadow-note: var(--note-shadow);
+  --shadow-fail: var(--fail-shadow);
+  --shadow-panel: var(--panel-shadow);
+  --shadow-popover: var(--popover-shadow);
+  --shadow-edit: var(--edit-shadow);
+  --shadow-lore: var(--lore-shadow);
+
+  --text-*: initial;
+  --text-sheet: 21px;
+  --text-sheet--line-height: 1.75;
+  --text-title: 16px;
+  --text-title--line-height: 1.5;
+  --text-ui: 13px;
+  --text-ui--line-height: 1.5;
+  --text-label: 12px;
+  --text-label--line-height: 1.4;
+  --text-meta: 11px;
+  --text-meta--line-height: 1.3;
+  --text-micro: 10px;
+  --text-micro--line-height: 1.3;
+
+  --radius-*: initial;
+  --radius-none: 0;
+  --radius-note: 1px;
+  --radius-sheet: 2px;
+  --radius-card: 4px;
+  --radius-button: 7px;
+  --radius-icon: 10px;
+  --radius-pill: 999px;
+
+  --spacing: 4px;
+}
