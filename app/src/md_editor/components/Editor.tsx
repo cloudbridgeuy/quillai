@@ -79,7 +79,7 @@ import { panelShortcut, transitionPanel, type PanelState } from "../editor_panel
 import { ManuscriptTree } from "./ManuscriptTree";
 import { LorePanel } from "./LorePanel";
 import { useLore } from "../../manuscripts/use_lore";
-import { StickyNote } from "../../components/StickyNote";
+import { StickyNote } from "../../ui/StickyNote";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";

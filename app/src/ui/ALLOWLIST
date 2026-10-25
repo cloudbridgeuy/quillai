@@ -3,7 +3,6 @@ app/src/api_tester/components/APITester.tsx 1 raw-input
 app/src/api_tester/components/APITester.tsx 1 raw-textarea
 app/src/api_tester/components/APITester.tsx 1 raw-select
 app/src/components/ErrorBoundary.tsx 1 raw-button
-app/src/components/StickyNote.tsx 1 raw-textarea
 app/src/index.css 1 hex-colour
 app/src/index.css 20 font-size
 app/src/md_editor/components/ContinueWindow.tsx 1 raw-button

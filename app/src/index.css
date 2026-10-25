@@ -35,21 +35,23 @@ body {
   color: inherit;
 }
 
-body,
-input,
-textarea,
-button {
-  font: inherit;
-}
+@layer base {
+  body,
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
 
-button,
-input,
-textarea {
-  color: inherit;
-}
+  button,
+  input,
+  textarea {
+    color: inherit;
+  }
 
-button {
-  cursor: pointer;
+  button {
+    cursor: pointer;
+  }
 }
 
 .app {
@@ -887,6 +889,19 @@ button {
 
 .editor-sticky-note-pink {
   background-color: var(--pi-pink);
+}
+
+.editor-sticky-note-green {
+  background-color: var(--pi-green);
+}
+
+.editor-sticky-note-overhang {
+  width: calc(100% + 8px);
+  margin-inline: -4px;
+}
+
+.editor-sticky-note[readonly] {
+  resize: none;
 }
 
 .editor-sticky-note::placeholder {

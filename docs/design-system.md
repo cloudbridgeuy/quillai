@@ -42,7 +42,9 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 
 Font stacks stay as `--serif`, `--sans` and `--mono`.
 
-## Primitives (planned, `app/src/ui/`)
+## Primitives (`app/src/ui/`)
+
+Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Planned: `Modal`, `Popover`, `ListButton`. Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/`. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
 
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
@@ -53,7 +55,7 @@ Font stacks stay as `--serif`, `--sans` and `--mono`.
 | `Field` | `label`, control child. Label uses the 12px graphite style | `.editor-field` |
 | `Heading` | `level: "app" \| "section"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
 | `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
-| `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `components/StickyNote.tsx`, green lore text |
+| `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `ui/StickyNote.tsx` (replaces `components/StickyNote.tsx`), green lore text |
 | `Modal` | `title`, `onClose`, children. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |
 | `Popover` | `trigger`, `open`, `onOpenChange`. No Close prop | Settings, Edit box |
 | `ListButton` | `pressed`, `tone: "tree" \| "lore"` | manuscript tree rows, lore-window rows |
