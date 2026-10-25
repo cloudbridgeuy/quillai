@@ -96,7 +96,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | File | Purpose |
 |------|---------|
 | `index.tsx` | Bun.serve entry — routes, static assets, HMR. Port via `PORT` env var |
-| `index.html` | HTML shell, loads frontend.tsx |
+| `index.html`, `logo.svg`, `tab_title.ts` | HTML shell with QuillAI fallback title and palette quill favicon; pure chapter-aware tab title applied by Editor, covered by Bun and `e2e/tab-title.spec.ts` |
 | `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `ui/StickyNote.tsx` | Shared native textarea (tones yellow, pink, green; `overhang` widens 4px each side; `readOnly` removes resize) with yellow Story Context, Continue instruction, Thread continuation prompt, and author guidance styling; pink remains the rail Edit note. Forwards native props and ref. Enter and Apply share selection/readiness checks; Shift+Enter adds a newline and Esc cancels. Guidance saves explicitly. |

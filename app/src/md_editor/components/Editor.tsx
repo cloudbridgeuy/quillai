@@ -73,6 +73,7 @@ import {
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
+import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
 import { createSettingsClient } from "../../settings/client";
 import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
@@ -334,6 +335,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
       setRange(quillRef.current?.getSelection() ?? null);
       updateThreadState(resetThread(threadStateRef.current));
     });
+
+  const tabTitle = getTabTitle(chapterSync.title, chapterSync.ready);
+  useEffect(() => {
+    document.title = tabTitle;
+    return () => { document.title = "QuillAI"; };
+  }, [tabTitle]);
 
   const lore = useLore(chapterSync.scope?.seriesId ?? null);
   const loreEntries = suppliedLoreEntries ?? lore.entries;
