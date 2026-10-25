@@ -5,6 +5,7 @@ import { Button } from "../../../app/src/ui/Button";
 import { Field } from "../../../app/src/ui/Field";
 import { Heading } from "../../../app/src/ui/Heading";
 import { IconButton } from "../../../app/src/ui/IconButton";
+import { ListButton } from "../../../app/src/ui/ListButton";
 import { StickyNote } from "../../../app/src/ui/StickyNote";
 import { TextField } from "../../../app/src/ui/TextField";
 import { Toggle } from "../../../app/src/ui/Toggle";
@@ -39,6 +40,21 @@ function Page() {
         <IconButton label="Disabled" glyph="D" disabled />
         <IconButton label="Continue" glyph="+" kind="continue" />
         <IconButton label="Continue pressed" glyph="+" kind="continue" pressed />
+      </Section>
+      <Section id="list-button" title="ListButton">
+        <ul className="m-0 flex w-64 list-none flex-col gap-1 p-0">
+          <li><ListButton tone="tree">Tree default</ListButton></li>
+          <li><ListButton tone="tree" pressed>Tree pressed</ListButton></li>
+          <li><ListButton tone="tree" disabled>Tree disabled</ListButton></li>
+        </ul>
+        <ul className="editor-lore-window m-0 w-64 list-none p-0">
+          <li>
+            <ListButton tone="lore">
+              <strong>Mira</strong><span>3 matches</span>
+              <small>character</small><small>include</small>
+            </ListButton>
+          </li>
+        </ul>
       </Section>
       <Section id="text-field" title="TextField">
         <TextField aria-label="Input" placeholder="Input" />

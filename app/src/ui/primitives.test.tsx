@@ -6,6 +6,7 @@ import { Button, buttonClassName } from "./Button";
 import { Field } from "./Field";
 import { Heading, headingClassName } from "./Heading";
 import { IconButton, iconButtonClassName } from "./IconButton";
+import { ListButton, listButtonClassName } from "./ListButton";
 import { StickyNote, stickyNoteClassName } from "./StickyNote";
 import { TextField, textFieldClassName } from "./TextField";
 import { Toggle } from "./Toggle";
@@ -44,6 +45,22 @@ describe("IconButton", () => {
     expect(html).toContain('aria-label="Open"');
     expect(html).toContain('aria-pressed="true"');
     expect(renderToStaticMarkup(<IconButton label="Open" glyph="+" kind="continue" />)).toContain("<span");
+  });
+});
+
+describe("ListButton", () => {
+  test("tones and className", () => {
+    expect(listButtonClassName({ tone: "tree" })).toContain("aria-pressed:bg-pi-blue");
+    expect(listButtonClassName({ tone: "lore" })).toContain("border-rule");
+    expect(listButtonClassName({ tone: "lore", className: "extra" })).toEndWith("extra");
+  });
+
+  test("pressed, type and forwarded props", () => {
+    const html = renderToStaticMarkup(<ListButton tone="tree" pressed disabled data-k="1">Ch</ListButton>);
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('type="button"');
+    expect(html).toContain("disabled");
+    expect(html).toContain('data-k="1"');
   });
 });
 

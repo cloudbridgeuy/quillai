@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Button } from "../../ui/Button";
+import { ListButton } from "../../ui/ListButton";
 import { createManuscriptClient } from "../../manuscripts/client";
 import type { Book, ChapterScope, ChapterSummary, Series } from "../../manuscripts/contract";
 
@@ -44,7 +46,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   if (state.status === "loading") return <p role="status">Loading manuscript…</p>;
   if (state.status === "failed") return <div role="alert">
     <p>{state.message}</p>
-    <button className="editor-button" type="button" onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</button>
+    <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
   </div>;
 
   return <>
@@ -59,9 +61,9 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
                 <summary>{book.title}</summary>
                 {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
                   {book.chapters.map((chapter) => <li key={chapter.id}>
-                    <button type="button" disabled={disabled}
-                      aria-pressed={selectedChapter?.seriesId === series.id && selectedChapter.bookId === book.id && selectedChapter.chapterId === chapter.id}
-                      onClick={() => onSelect({ seriesId: series.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</button>
+                    <ListButton tone="tree" disabled={disabled}
+                      pressed={selectedChapter?.seriesId === series.id && selectedChapter.bookId === book.id && selectedChapter.chapterId === chapter.id}
+                      onClick={() => onSelect({ seriesId: series.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
                   </li>)}
                 </ul>}
               </details>

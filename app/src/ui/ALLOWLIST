@@ -14,5 +14,3 @@ app/src/md_editor/components/LorePanel.tsx 6 raw-button
 app/src/md_editor/components/LorePanel.tsx 2 raw-input
 app/src/md_editor/components/LorePanel.tsx 3 raw-textarea
 app/src/md_editor/components/LorePanel.tsx 2 raw-select
-app/src/md_editor/components/LoreWindow.tsx 2 raw-button
-app/src/md_editor/components/ManuscriptTree.tsx 2 raw-button

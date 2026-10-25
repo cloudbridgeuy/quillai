@@ -16,7 +16,7 @@ for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`http://127.0.0.1:${server.port}/`);
 
-    for (const id of ["heading", "button", "icon-button", "text-field", "toggle", "field", "alert", "sticky-note"]) {
+    for (const id of ["heading", "button", "icon-button", "list-button", "text-field", "toggle", "field", "alert", "sticky-note"]) {
       await expect(page.getByTestId(id)).toBeVisible();
     }
     await expect(page.getByRole("heading", { level: 1, name: "QuillAI app heading" })).toBeVisible();
@@ -27,6 +27,13 @@ for (const width of [1100, 1440]) {
     await expect(page.getByRole("button", { name: "Context", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("button", { name: "Manuscript", exact: true })).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
+
+    await expect(page.getByRole("button", { name: "Tree default", exact: true })).toHaveAttribute("type", "button");
+    await expect(page.getByRole("button", { name: "Tree pressed", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Tree disabled", exact: true })).toBeDisabled();
+    const lore = page.getByRole("button", { name: /Mira/ });
+    await expect(lore).toHaveCSS("display", "grid");
+    await expect(lore).toHaveCSS("border-top-width", "1px");
 
     await expect(page.getByLabel("Input", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Disabled input")).toBeDisabled();
@@ -45,5 +52,6 @@ for (const width of [1100, 1440]) {
     await expect(page.getByLabel("Disabled note")).toBeDisabled();
 
     await page.screenshot({ fullPage: true, path: `../target/guz-874/${testInfo.project.name}/components-${width}.png` });
+    await page.screenshot({ fullPage: true, path: `../target/guz-884/${testInfo.project.name}/components-${width}.png` });
   });
 }

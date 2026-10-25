@@ -1,6 +1,8 @@
 import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { IconButton } from "../../ui/IconButton";
+import { ListButton } from "../../ui/ListButton";
 import type { buildInjectedLore } from "../context_inspector";
 
 type Lore = ReturnType<typeof buildInjectedLore>;
@@ -88,7 +90,7 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
     <h3>Lore in window</h3>
     <p className="editor-note">Continue context · includes pins · excludes leave out and budget skips.</p>
     {lore.injected.length === 0 ? <p>No lore in window.</p> : <ul className="editor-lore-window">
-      {lore.injected.map(entry => <li key={entry.id}><button type="button"
+      {lore.injected.map(entry => <li key={entry.id}><ListButton tone="lore"
         onMouseDown={event => event.preventDefault()} disabled={entry.occurrences.length === 0}
         onClick={() => {
           const mark = marks.find(match => match.entry.id === entry.id);
@@ -98,12 +100,12 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
         }}>
         <strong>{entry.name}</strong><span>{entry.occurrences.length} matches</span>
         <small>{entry.kind}{entry.reason === "pinned" ? " · pinned" : ""}</small><small>{loreLevel(entry.level)}</small>
-      </button></li>)}
+      </ListButton></li>)}
     </ul>}
     {selected && rect ? createPortal(<div role="dialog" aria-label="Lore match" className="editor-lore-card"
       style={{ left: Math.max(12, Math.min(rect.left, window.innerWidth - 324)), top: Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - 300)) }}>
       <span className="editor-lore-flag">Lore match</span>
-      <button type="button" aria-label="Close lore match" onClick={() => setActive(null)}>×</button>
+      <IconButton label="Close lore match" glyph="×" className="float-right" onClick={() => setActive(null)} />
       <h3>{selected.entry.name}</h3>
       <p>{selected.entry.kind} · {loreLevel(selected.entry.level)}</p>
       <p className="editor-lore-visible">{selected.entry.visible_text || "No visible text."}</p>

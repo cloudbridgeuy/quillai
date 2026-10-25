@@ -44,7 +44,7 @@ Font stacks stay as `--serif`, `--sans` and `--mono`.
 
 ## Primitives (`app/src/ui/`)
 
-Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Planned: `Modal`, `Popover`, `ListButton`. Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/`. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
+Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Planned: `Modal`, `Popover`. Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
 
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
