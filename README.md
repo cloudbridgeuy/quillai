@@ -60,7 +60,7 @@ The current browser-side AI trigger path is local-only: Continue and Edit always
 |------|-------------|---------|
 | `--host` | — | `127.0.0.1` |
 | `--port` | — | `2908` |
-| `--db-url` | `QUILLAI_API_DB_URL` | `sqlite://` |
+| `--db-url` | `QUILLAI_API_DB_URL` | `sqlite:quillai.db?mode=rwc` |
 | `--db-max-connections` | `QUILLAI_API_DB_MAX_CONNECTIONS` | `1` |
 | `--db-acquire-timeout` | `QUILLAI_API_DB_ACQUIRE_TIMEOUT` | `3` |
 | `--log-level` | `QUILLAI_API_LOG_LEVEL` | `warn` |

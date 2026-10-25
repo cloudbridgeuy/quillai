@@ -30,7 +30,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 | AI model catalog | `cargo xtask dev --ai-models models.json` (also `e2e` and API `--ai-models`; env `QUILLAI_AI_MODELS_FILE`) | `crates/api/src/ai/catalog.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
 
-API defaults to `127.0.0.1:2908`. Frontend defaults to port `3001` (configurable via `PORT` env var).
+API defaults to `127.0.0.1:2908` and SQLite file `sqlite:quillai.db` (created if missing). `--db-url` and `QUILLAI_API_DB_URL` override that URL. Frontend defaults to port `3001` (configurable via `PORT` env var).
 Set the frontend URL's `apiBaseUrl` query parameter to configure both AI and manuscript requests, e.g. `http://localhost:3001/?apiBaseUrl=http%3A%2F%2F127.0.0.1%3A49152`. The default is `http://127.0.0.1:2908`. No browser-side `process.env` or rebuild is needed. Only loopback hosts (`127.0.0.1`, `localhost`, `[::1]`) over HTTP(S) with any port are accepted; malformed or non-loopback values fall back to the default without throwing (`app/src/api_config.ts`).
 The override does not change CORS: the API defaults to allowing `http://localhost:3001` / `http://127.0.0.1:3001`. Repeat `--cors-origin <origin>` on the API CLI to replace this allow-list. E2E supplies its chosen frontend origin; `cargo xtask dev` defaults stay unchanged.
 

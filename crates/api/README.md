@@ -28,7 +28,7 @@ cargo run -p quillai_api --bin api
 |------|---------|---------|-------------|
 | `--host` | — | `127.0.0.1` | Bind address |
 | `--port` | — | `2908` | Listen port |
-| `--db-url` | `QUILLAI_API_DB_URL` | `sqlite://` | SQLite connection URL |
+| `--db-url` | `QUILLAI_API_DB_URL` | `sqlite:quillai.db?mode=rwc` | SQLite connection URL; the default file is created if missing |
 | `--db-max-connections` | `QUILLAI_API_DB_MAX_CONNECTIONS` | `1` | Pool size |
 | `--db-acquire-timeout` | `QUILLAI_API_DB_ACQUIRE_TIMEOUT` | `3` | Acquire timeout (seconds) |
 | `--log-level` | `QUILLAI_API_LOG_LEVEL` | `warn` | Log level |

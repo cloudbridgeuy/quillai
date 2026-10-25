@@ -16,7 +16,11 @@ pub struct App {
     #[clap(long, env = "QUILLAI_AI_MODELS_FILE")]
     pub ai_models: Option<std::path::PathBuf>,
 
-    #[clap(long, default_value = "sqlite://", env = "QUILLAI_API_DB_URL")]
+    #[clap(
+        long,
+        default_value = "sqlite:quillai.db?mode=rwc",
+        env = "QUILLAI_API_DB_URL"
+    )]
     pub db_url: String,
 
     #[clap(long, default_value = "1", env = "QUILLAI_API_DB_MAX_CONNECTIONS")]
