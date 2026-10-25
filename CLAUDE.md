@@ -251,7 +251,7 @@ Default to using Bun instead of Node.js.
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
 - Tracked `.rs` files under `crates/` and `xtask/` must stay at or below 1000 lines (enforced by `cargo xtask lint`).
-- SQLx with compile-time checked queries (`.sqlx/` cache). See [SQLx offline context](.claude/context/sqlx-offline.md).
+- SQLx with compile-time checked queries (`.sqlx/` cache). `.cargo/config.toml` sets `SQLX_OFFLINE=true` so builds use that cache; a shell `SQLX_OFFLINE=false` overrides it. See [SQLx offline context](.claude/context/sqlx-offline.md).
 - Errors via `thiserror` with manual `IntoResponse` for JSON responses. See [error handling context](.claude/context/error-handling.md).
 
 ### Frontend Conventions

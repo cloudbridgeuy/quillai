@@ -3,3 +3,6 @@ xtask = "run --package xtask --bin xtask --"
 
 [env]
 CARGO_WORKSPACE_DIR = { value = "", relative = true }
+# Query macros use the committed .sqlx cache. force is off, so an
+# existing SQLX_OFFLINE=false (shell or `cargo sqlx prepare`) still wins.
+SQLX_OFFLINE = { value = "true", force = false }
