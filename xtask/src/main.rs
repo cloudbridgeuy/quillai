@@ -52,6 +52,9 @@ pub struct E2eArgs {
     #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
     port: Option<u16>,
 
+    #[arg(long)]
+    verbose: bool,
+
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     playwright_args: Vec<String>,
 }

@@ -25,7 +25,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
 | Lint, tests, and project tsc (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
-| Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`) | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
+| Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`); prints only failures and a summary line, full log in `target/xtask-e2e/e2e.log`; `--verbose` prints full output | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | AI model catalog | `cargo xtask dev --ai-models models.json` (also `e2e` and API `--ai-models`; env `QUILLAI_AI_MODELS_FILE`) | `crates/api/src/ai/catalog.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |
@@ -244,6 +244,7 @@ Default to using Bun instead of Node.js.
 ### Rust Conventions
 
 - `crates/delta` parity rule: the crate is a superset of JS `quill-delta` 5.1.0 (the version the browser runs). It may add functions but must never drop or change JS behavior: for every Delta `quill-delta` accepts that holds valid Unicode, parse/serialize, `compose`, `transform`, `transform_position`, `invert` and `diff` give exactly the JS JSON, including zero-length ops (`{"insert":""}`, `{"retain":0}`, `{"delete":0}`) and odd ops (negative/fractional counts, several op keys, unknown keys, `"attributes": null`, embed retains; parsed as `Op::Raw`, lengths as `f64`). The only intended exception is half a UTF-16 surrogate pair (half an emoji), which returns a Rust error; `crates/delta/tests/fixtures.rs` pins those cases by count (9 parse-level, 7 compose inputs, 2 compose results, 3 invert slices, 0 diff cases) and any other mismatch must fail. Also matched (GUZ-718): array `attributes` (read as index-keyed objects), whole-number floats (`1.0` prints `1`; floats print like JS), non-object `ops` entries and extra top-level keys next to `ops` (ignored), a top-level array (read as the ops) and a non-array or missing `ops` or a scalar top level (read as an empty Delta; GUZ-720), and out-of-range numbers (`1e400` reads as `Infinity`, prints `null`; `Delta::from_json` only, since serde_json's own parser rejects them); `fixtures/delta/parse.json` pins these with raw JSON text, replayed by Rust only. Object key order is not preserved, and cases where JS throws are out of scope.
+- Workers run `cargo xtask lint` plus only the specs they add or change, in Chromium (`cargo xtask e2e e2e/<spec> --project chromium`; `--project` is variadic, so spec paths go first); the full three-browser suite is the owner's check, run out of band.
 - MSRV is Rust 1.95.0 or higher, set as `rust-version` in the workspace `Cargo.toml` and inherited by every member crate.
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.

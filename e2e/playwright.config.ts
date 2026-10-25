@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: ".",
   testMatch: ["chapter-sync.spec.ts", "chapter-emoji-sync.spec.ts", "author-guidance.spec.ts", "continue-stream.spec.ts", "desktop-edge-cases.spec.ts", "continue-window.spec.ts", "lore.spec.ts", "save-recovery.spec.ts", "model-picker.spec.ts", "offline-stale-base.spec.ts", "reload-in-flight.spec.ts", "emoji-cursor-remote.spec.ts", "stream-remote-edit.spec.ts", "real-route-stream.spec.ts", "continue-tie-order.spec.ts", "continue-poll.spec.ts", "tree-load-shift.spec.ts", "edit-replacement.spec.ts", "ui-components.spec.ts", "persistent-dev-database.spec.ts"],
   outputDir: "../target/xtask-e2e/results",
-  reporter: "list",
+  reporter: process.env.QUILLAI_E2E_SUMMARY ? [["list"], ["./summary-reporter.ts"]] : "list",
   workers: 1,
   retries: 0,
   projects: [

@@ -1,5 +1,5 @@
 use super::*;
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -65,6 +65,28 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .parent()
         .ok_or("xtask has no workspace directory")?;
     std::env::set_current_dir(root)?;
+    if args.verbose {
+        return sandbox(args, root, &mut None, None);
+    }
+    let directory = root.join("target/xtask-e2e");
+    fs::create_dir_all(&directory)?;
+    let summary = directory.join("summary.txt");
+    let _ = fs::remove_file(&summary);
+    let mut log = Some(File::create(directory.join("e2e.log"))?);
+    let result = sandbox(args, root, &mut log, Some(&summary));
+    if let Ok(text) = fs::read_to_string(&summary) {
+        println!("{}", text.trim_end());
+    }
+    println!("Full log: target/xtask-e2e/e2e.log");
+    result
+}
+
+fn sandbox(
+    args: E2eArgs,
+    root: &Path,
+    log: &mut Option<File>,
+    summary: Option<&Path>,
+) -> Result<(), Box<dyn Error>> {
     let app_reservation = TcpListener::bind(("127.0.0.1", args.port.unwrap_or(0)))?;
     let app_port = app_reservation.local_addr()?.port();
     let app_url = format!("http://127.0.0.1:{app_port}");
@@ -79,18 +101,21 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         install
             .args(["install", "--frozen-lockfile"])
             .current_dir(root.join("app"));
-        run_tool(install, &mut children, &tx, &rx, &shutdown)?;
+        run_tool(install, &mut children, &tx, &rx, &shutdown, log)?;
     }
     let mut build = e2e_command("cargo");
     build.args(["build", "-p", "quillai_api", "--bin", "api"]);
     build.env("SQLX_OFFLINE", "true");
-    run_tool(build, &mut children, &tx, &rx, &shutdown)?;
+    run_tool(build, &mut children, &tx, &rx, &shutdown, log)?;
 
     let api_port = TcpListener::bind("127.0.0.1:0")?.local_addr()?.port();
     let api_url = format!("http://127.0.0.1:{api_port}");
-    println!(
-        "E2E sandbox: api={api_url} app={app_url} database={}",
-        database.path().display()
+    note(
+        log,
+        &format!(
+            "E2E sandbox: api={api_url} app={app_url} database={}",
+            database.path().display()
+        ),
     );
     let mut api = e2e_command("cargo");
     api.args(["run", "--quiet", "-p", "quillai_api", "--bin", "api", "--"]);
@@ -115,7 +140,7 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
             .push(spawn_managed(Service::E2e, provider, tx.clone())?);
         let deadline = Instant::now() + Duration::from_secs(120);
         let port = loop {
-            drain_output(&rx);
+            drain_output(&rx, log);
             check_services(&mut children, &shutdown)?;
             match fs::read_to_string(&readiness) {
                 Ok(value) => break value.trim().parse::<u16>()?,
@@ -127,7 +152,7 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
             }
             thread::sleep(Duration::from_millis(50));
         };
-        wait_ready(port, "/control", &mut children, &rx, &shutdown)?;
+        wait_ready(port, "/control", &mut children, &rx, &shutdown, log)?;
         let url = format!("http://127.0.0.1:{port}");
         api.env("QUILLAI_AI_BASE_URL", format!("{url}/v1"))
             .env("QUILLAI_AI_API_KEY", "quillai-e2e-fake-key-not-a-secret");
@@ -145,8 +170,8 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     children
         .children
         .push(spawn_managed(Service::App, app, tx.clone())?);
-    wait_ready(api_port, "/series", &mut children, &rx, &shutdown)?;
-    wait_ready(app_port, "/", &mut children, &rx, &shutdown)?;
+    wait_ready(api_port, "/series", &mut children, &rx, &shutdown, log)?;
+    wait_ready(app_port, "/", &mut children, &rx, &shutdown, log)?;
 
     let mut playwright = e2e_command("bun");
     playwright
@@ -166,7 +191,10 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     if let Some(url) = provider_url {
         playwright.env("QUILLAI_E2E_FAKE_AI_URL", url);
     }
-    run_tool(playwright, &mut children, &tx, &rx, &shutdown)?;
+    if let Some(summary) = summary {
+        playwright.env("QUILLAI_E2E_SUMMARY", summary);
+    }
+    run_tool(playwright, &mut children, &tx, &rx, &shutdown, log)?;
     Ok(())
 }
 
@@ -181,14 +209,29 @@ fn e2e_command(program: &str) -> Command {
     command
 }
 
-fn drain_output(rx: &Receiver<SupervisorEvent>) {
+fn drain_output(rx: &Receiver<SupervisorEvent>, log: &mut Option<File>) {
     while let Ok(SupervisorEvent::Output {
         service,
         stream,
         line,
     }) = rx.try_recv()
     {
-        write_prefixed_line(service, stream, &line);
+        match log {
+            Some(file) => {
+                let timestamp = Local::now().format("%H:%M:%S");
+                let _ = writeln!(file, "{timestamp} {:>3} │ {line}", service.label());
+            }
+            None => write_prefixed_line(service, stream, &line),
+        }
+    }
+}
+
+fn note(log: &mut Option<File>, text: &str) {
+    match log {
+        Some(file) => {
+            let _ = writeln!(file, "{text}");
+        }
+        None => println!("{text}"),
     }
 }
 
@@ -217,13 +260,14 @@ fn run_tool(
     tx: &Sender<SupervisorEvent>,
     rx: &Receiver<SupervisorEvent>,
     shutdown: &AtomicBool,
+    log: &mut Option<File>,
 ) -> Result<(), Box<dyn Error>> {
     check_services(children, shutdown)?;
     children
         .children
         .push(spawn_managed(Service::E2e, command, tx.clone())?);
     loop {
-        drain_output(rx);
+        drain_output(rx, log);
         if shutdown.load(Ordering::SeqCst) {
             return Err("E2E interrupted; stopping sandbox".into());
         }
@@ -231,7 +275,7 @@ fn run_tool(
         if let Some(status) = tool.child.try_wait()? {
             let mut tool = children.children.pop().ok_or("E2E tool missing")?;
             terminate_process_group_or_child(&mut tool.child);
-            drain_output(rx);
+            drain_output(rx, log);
             if !status.success() {
                 return Err(format!("E2E command failed: {status}").into());
             }
@@ -257,13 +301,14 @@ fn wait_ready(
     children: &mut ManagedChildren,
     rx: &Receiver<SupervisorEvent>,
     shutdown: &AtomicBool,
+    log: &mut Option<File>,
 ) -> Result<(), Box<dyn Error>> {
     let deadline = Instant::now() + Duration::from_secs(120);
     loop {
-        drain_output(rx);
+        drain_output(rx, log);
         check_services(children, shutdown)?;
         if http_ready(port, path) {
-            println!("E2E ready: http://127.0.0.1:{port}{path}");
+            note(log, &format!("E2E ready: http://127.0.0.1:{port}{path}"));
             return Ok(());
         }
         if Instant::now() >= deadline {
@@ -335,6 +380,10 @@ mod tests {
             E2eArgs::try_parse_from(["e2e", "--ai-models", "models.json", "--headed"]).unwrap();
         assert_eq!(args.ai_models, Some(PathBuf::from("models.json")));
         assert_eq!(args.playwright_args, ["--headed"]);
+        assert!(!args.verbose);
+        let args = E2eArgs::try_parse_from(["e2e", "--verbose", "--project", "chromium"]).unwrap();
+        assert!(args.verbose);
+        assert_eq!(args.playwright_args, ["--project", "chromium"]);
         assert!(E2eArgs::try_parse_from(["e2e", "--port", "0"]).is_err());
         assert!(E2eArgs::try_parse_from(["e2e", "--port", "65536"]).is_err());
     }
