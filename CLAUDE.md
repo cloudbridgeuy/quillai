@@ -149,6 +149,8 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 
 `migrations/20261020000000_lore_entries.up.sql` adds series-scoped `lore_entries` with cascading deletion and a series index: kind (`character`, `place`, `term`, `note`), nonblank name, separate `keywords` and `aliases` JSON-array text columns (each default `[]`, preserving search terms versus alternate names), visible text and hidden notes (default empty), pinned (0/1, default 0), and AI-request level (`include`, `known_dont_reveal`, `leave_out`, default `include`). The down migration drops only `lore_entries`; `crates/api/tests/lore_schema_test.rs` covers storage, defaults, constraints, cascades, and rollback/reapply.
 
+Staged, not yet in `migrations/`: the `docs/story-model.md` §1 universes/containers/pieces up/down SQL lives in `crates/api/tests/fixtures/story_model/` (GUZ-937) and is covered by `crates/api/tests/story_model_migration_test.rs`; GUZ-938 moves it into `migrations/` with the façade.
+
 ## Tech Stack
 
 | Layer | Technology |
