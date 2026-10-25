@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = (SELECT piece_id FROM legacy_books WHERE series_id = ? AND id = ?) RETURNING legacy_book_id AS \"id!\", container_id AS \"series_id!\", title, position",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "series_id!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "position",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3a8ee9edc09feab362b3ca782d69f3e6f8c02528c52042f630280a94ae039323"
+}

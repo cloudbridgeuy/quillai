@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM pieces WHERE id = (SELECT piece_id FROM legacy_chapters WHERE id = ? AND book_id = ? AND series_id = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e2eacbc6f6e51f3b372ad37e1b6675ae065f5cfafadc1d0186a95c3a2acd84c7"
+}

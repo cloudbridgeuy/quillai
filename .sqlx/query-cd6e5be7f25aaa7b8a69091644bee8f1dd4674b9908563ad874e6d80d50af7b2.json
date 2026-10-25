@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT universe_id AS \"universe_id!\" FROM legacy_series WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cd6e5be7f25aaa7b8a69091644bee8f1dd4674b9908563ad874e6d80d50af7b2"
+}

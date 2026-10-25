@@ -11,7 +11,7 @@ use crate::error::Error;
 pub async fn list_series(State(pool): State<SqlitePool>) -> Result<Json<Vec<Series>>, Error> {
     let series = sqlx::query_as!(
         Series,
-        "SELECT id, title, position FROM series ORDER BY position, id"
+        r#"SELECT id AS "id!", title AS "title!", position AS "position!" FROM legacy_series ORDER BY position, id"#
     )
     .fetch_all(&pool)
     .await?;
@@ -23,19 +23,24 @@ pub async fn create_series(
     Json(input): Json<CreateSeries>,
 ) -> Result<(StatusCode, Json<Series>), Error> {
     input.validate()?;
-    let result = sqlx::query!(
-        "INSERT INTO series (title, position) VALUES (?, ?)",
+    let mut transaction = pool.begin().await?;
+    let universe_id = sqlx::query_scalar!(
+        "INSERT INTO universes (title, position) VALUES (?, ?) RETURNING id",
         input.title,
         input.position,
     )
-    .execute(&pool)
+    .fetch_one(&mut *transaction)
     .await?;
-
-    let series = Series {
-        id: result.last_insert_rowid(),
-        title: input.title,
-        position: input.position,
-    };
+    let series = sqlx::query_as!(
+        Series,
+        r#"INSERT INTO containers (universe_id, title, position, kind) VALUES (?, ?, ?, 'book_series') RETURNING id AS "id!", title, position"#,
+        universe_id,
+        input.title,
+        input.position,
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
     Ok((StatusCode::CREATED, Json(series)))
 }
 
@@ -45,7 +50,7 @@ pub async fn get_series(
 ) -> Result<Json<Series>, Error> {
     let series = sqlx::query_as!(
         Series,
-        "SELECT id, title, position FROM series WHERE id = ?",
+        r#"SELECT id AS "id!", title AS "title!", position AS "position!" FROM legacy_series WHERE id = ?"#,
         id
     )
     .fetch_optional(&pool)
@@ -62,7 +67,7 @@ pub async fn update_series(
     input.validate()?;
     let series = sqlx::query_as!(
         Series,
-        "UPDATE series SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? RETURNING id, title, position",
+        "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND kind = 'book_series' RETURNING id, title, position",
         input.title,
         input.position,
         id,
@@ -77,11 +82,22 @@ pub async fn delete_series(
     State(pool): State<SqlitePool>,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!("DELETE FROM series WHERE id = ?", id)
-        .execute(&pool)
-        .await?;
-    if result.rows_affected() == 0 {
-        return Err(Error::NotFound);
-    }
+    let mut transaction = pool.begin().await?;
+    let universe_id = sqlx::query_scalar!(
+        "DELETE FROM containers WHERE id = ? AND kind = 'book_series' RETURNING universe_id",
+        id
+    )
+    .fetch_optional(&mut *transaction)
+    .await?
+    .ok_or(Error::NotFound)?;
+    sqlx::query!(
+        "DELETE FROM universes WHERE id = ? AND NOT EXISTS (SELECT 1 FROM containers WHERE universe_id = ?) AND NOT EXISTS (SELECT 1 FROM pieces WHERE universe_id = ?)",
+        universe_id,
+        universe_id,
+        universe_id,
+    )
+    .execute(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
     Ok(StatusCode::NO_CONTENT)
 }

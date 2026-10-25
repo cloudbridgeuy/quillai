@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", piece_id AS \"piece_id!\", book_id AS \"book_id!\", title AS \"title!\", position AS \"position!\", kind AS \"kind!\", content AS \"content!\", head_rev AS \"head_rev!\" FROM legacy_chapters WHERE id = ? AND book_id = ? AND series_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "piece_id!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "book_id!",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "position!",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind!",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "content!",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "head_rev!",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c6e6bfd24c3f6de187cf705c4216f099192f4eb2f131862a8fa9fe2b479d6b5f"
+}

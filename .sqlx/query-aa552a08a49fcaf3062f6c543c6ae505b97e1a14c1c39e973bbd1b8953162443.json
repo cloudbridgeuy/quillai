@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pieces SET head_rev = ?, snapshot_rev = ?, content = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "aa552a08a49fcaf3062f6c543c6ae505b97e1a14c1c39e973bbd1b8953162443"
+}

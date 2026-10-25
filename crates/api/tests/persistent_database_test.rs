@@ -222,7 +222,7 @@ async fn series_count_after_connection_close(url: &str) -> Result<i64, sqlx::Err
         .await
         .unwrap();
     quillai_api::database::migrate(&pool).await.unwrap();
-    sqlx::query("INSERT INTO series (title, position) VALUES ('Kept', 0)")
+    sqlx::query("INSERT INTO universes (title, position) VALUES ('Kept', 0)")
         .execute(&pool)
         .await
         .unwrap();
@@ -233,7 +233,7 @@ async fn series_count_after_connection_close(url: &str) -> Result<i64, sqlx::Err
         .connect_with(options)
         .await
         .unwrap();
-    sqlx::query_scalar("SELECT COUNT(*) FROM series")
+    sqlx::query_scalar("SELECT COUNT(*) FROM universes")
         .fetch_one(&pool)
         .await
 }

@@ -37,6 +37,7 @@ pub struct Chapter {
 
 pub struct ChapterRow {
     pub id: i64,
+    pub piece_id: i64,
     pub book_id: i64,
     pub title: String,
     pub position: i64,

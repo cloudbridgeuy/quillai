@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO lore_entries (universe_id, kind, name, keywords, aliases, visible_text, hidden_notes, pinned, level) VALUES (?, ?, ?, COALESCE(?, '[]'), COALESCE(?, '[]'), COALESCE(?, ''), COALESCE(?, ''), COALESCE(?, 0), COALESCE(?, 'include')) RETURNING id AS \"id!\", universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "universe_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "keywords: SqlJson<Vec<String>>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "aliases: SqlJson<Vec<String>>",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "pinned: bool",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "level",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "303732d542632c7a31a00a1cf17759aa9649037b2db2389eff6b086b35d071ff"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rev, delta FROM piece_revisions WHERE piece_id = ? AND rev > ? ORDER BY rev",
+  "describe": {
+    "columns": [
+      {
+        "name": "rev",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "delta",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a165e49ae818e63922d10e6c729dc9494258d30fa52b950f01e20490613bae47"
+}

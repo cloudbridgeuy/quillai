@@ -13,13 +13,13 @@ pub async fn list_books(
     Path(series_id): Path<i64>,
 ) -> Result<Json<Vec<Book>>, Error> {
     let mut transaction = pool.begin().await?;
-    sqlx::query!("SELECT id FROM series WHERE id = ?", series_id)
+    sqlx::query!("SELECT id FROM legacy_series WHERE id = ?", series_id)
         .fetch_optional(&mut *transaction)
         .await?
         .ok_or(Error::NotFound)?;
     let books = sqlx::query_as!(
         Book,
-        r#"SELECT id AS "id!", series_id, title, position FROM books WHERE series_id = ? ORDER BY position, id"#,
+        r#"SELECT id AS "id!", series_id AS "series_id!", title AS "title!", position AS "position!" FROM legacy_books WHERE series_id = ? ORDER BY position, id"#,
         series_id,
     )
     .fetch_all(&mut *transaction)
@@ -34,16 +34,24 @@ pub async fn create_book(
     Json(input): Json<CreateBook>,
 ) -> Result<(StatusCode, Json<Book>), Error> {
     input.validate()?;
-    let book = sqlx::query_as!(
-        Book,
-        "INSERT INTO books (series_id, title, position) SELECT id, ?, ? FROM series WHERE id = ? RETURNING id, series_id, title, position",
+    let mut transaction = pool.begin().await?;
+    let piece_id = sqlx::query_scalar!(
+        "INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape) SELECT universe_id, id, ?, ?, 'novel', 'prose', 'group' FROM legacy_series WHERE id = ? RETURNING id",
         input.title,
         input.position,
         series_id,
     )
-    .fetch_optional(&pool)
+    .fetch_optional(&mut *transaction)
     .await?
     .ok_or(Error::NotFound)?;
+    let book = sqlx::query_as!(
+        Book,
+        r#"SELECT id AS "id!", series_id AS "series_id!", title AS "title!", position AS "position!" FROM legacy_books WHERE piece_id = ?"#,
+        piece_id,
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
     Ok((StatusCode::CREATED, Json(book)))
 }
 
@@ -53,7 +61,7 @@ pub async fn get_book(
 ) -> Result<Json<Book>, Error> {
     let book = sqlx::query_as!(
         Book,
-        "SELECT id, series_id, title, position FROM books WHERE series_id = ? AND id = ?",
+        r#"SELECT id AS "id!", series_id AS "series_id!", title AS "title!", position AS "position!" FROM legacy_books WHERE series_id = ? AND id = ?"#,
         series_id,
         book_id,
     )
@@ -71,7 +79,7 @@ pub async fn update_book(
     input.validate()?;
     let book = sqlx::query_as!(
         Book,
-        "UPDATE books SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE series_id = ? AND id = ? RETURNING id, series_id, title, position",
+        r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = (SELECT piece_id FROM legacy_books WHERE series_id = ? AND id = ?) RETURNING legacy_book_id AS "id!", container_id AS "series_id!", title, position"#,
         input.title,
         input.position,
         series_id,
@@ -88,7 +96,7 @@ pub async fn delete_book(
     Path((series_id, book_id)): Path<(i64, i64)>,
 ) -> Result<StatusCode, Error> {
     let result = sqlx::query!(
-        "DELETE FROM books WHERE series_id = ? AND id = ?",
+        "DELETE FROM pieces WHERE id = (SELECT piece_id FROM legacy_books WHERE series_id = ? AND id = ?)",
         series_id,
         book_id,
     )

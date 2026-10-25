@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e30e034879783a34433e1b18e7b4b9019a16e18540406e2257a05c6fbadf5a46"
+}

@@ -1,8 +1,19 @@
 mod common;
 
+const BEFORE_STORY_MODEL: i64 = 20261020000000;
+
+async fn legacy_pool() -> sqlx::SqlitePool {
+    let pool = common::test_pool().await;
+    quillai_api::database::MIGRATOR
+        .undo(&pool, BEFORE_STORY_MODEL)
+        .await
+        .unwrap();
+    pool
+}
+
 #[tokio::test]
 async fn deleting_a_book_or_series_cascades_only_to_its_descendants() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO series (id, title, position) VALUES (1, 'First', 0), (2, 'Second', 1);
          INSERT INTO books (id, series_id, title, position)
@@ -46,7 +57,7 @@ async fn deleting_a_book_or_series_cascades_only_to_its_descendants() {
 
 #[tokio::test]
 async fn positions_kinds_and_delta_json_round_trip() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO series (id, title, position) VALUES (1, 'Later', 20), (2, 'Earlier', 10);
          INSERT INTO books (id, series_id, title, position)
@@ -110,7 +121,7 @@ async fn positions_kinds_and_delta_json_round_trip() {
 
 #[tokio::test]
 async fn down_migration_preserves_users_and_can_be_reapplied() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com');
          INSERT INTO series (title, position) VALUES ('Series', 0);
@@ -137,7 +148,7 @@ async fn down_migration_preserves_users_and_can_be_reapplied() {
         .unwrap();
     assert_eq!(name, "Alice");
     quillai_api::database::migrate(&pool).await.unwrap();
-    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM chapters")
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pieces")
         .fetch_one(&pool)
         .await
         .unwrap();

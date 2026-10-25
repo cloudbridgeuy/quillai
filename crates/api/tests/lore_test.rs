@@ -352,8 +352,8 @@ async fn order_by_name_then_id_and_cascade_delete() {
         request(&app, "DELETE", &format!("/series/{series_id}"), Value::Null).await,
         (StatusCode::NO_CONTENT, Value::Null)
     );
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM lore_entries WHERE series_id = ?")
-        .bind(series_id)
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM lore_entries WHERE id <> ?")
+        .bind(other["id"].as_i64().unwrap())
         .fetch_one(&pool)
         .await
         .unwrap();

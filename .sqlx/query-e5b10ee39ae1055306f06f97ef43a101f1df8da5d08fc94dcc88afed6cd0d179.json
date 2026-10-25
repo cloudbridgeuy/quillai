@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT piece_id AS \"piece_id!\" FROM legacy_chapters WHERE id = ? AND book_id = ? AND series_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "piece_id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "e5b10ee39ae1055306f06f97ef43a101f1df8da5d08fc94dcc88afed6cd0d179"
+}

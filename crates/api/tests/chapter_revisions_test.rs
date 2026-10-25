@@ -24,9 +24,9 @@ fn revisions() -> Vec<Delta> {
 async fn chapter() -> SqlitePool {
     let pool = common::test_pool().await;
     sqlx::raw_sql(
-        "INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
-         INSERT INTO books (id, series_id, title, position) VALUES (1, 1, 'Book', 0);
-         INSERT INTO chapters (id, book_id, title, position, kind) VALUES (1, 1, 'Chapter', 0, 'chapter');",
+        r#"INSERT INTO universes (id, title, position) VALUES (1, 'Universe', 0);
+         INSERT INTO pieces (id, universe_id, title, position, label, format, shape, content, head_rev, snapshot_rev)
+         VALUES (1, 1, 'Chapter', 0, 'chapter', 'prose', 'leaf', '{"ops":[]}', 0, 0);"#,
     )
     .execute(&pool)
     .await
@@ -36,7 +36,7 @@ async fn chapter() -> SqlitePool {
 
 async fn stored(pool: &SqlitePool) -> (i64, i64, String, i64) {
     sqlx::query_as(
-        "SELECT head_rev, snapshot_rev, content, (SELECT COUNT(*) FROM chapter_revisions) FROM chapters WHERE id = 1",
+        "SELECT head_rev, snapshot_rev, content, (SELECT COUNT(*) FROM piece_revisions) FROM pieces WHERE id = 1",
     )
     .fetch_one(pool)
     .await
@@ -85,7 +85,7 @@ async fn persistence_replays_only_after_snapshot_and_keeps_all_revisions() {
                 rebuild(&Delta::new(), &all[..snapshot_rev as usize]).unwrap()
             );
         }
-        sqlx::query("UPDATE chapter_revisions SET delta = 'null' WHERE rev <= (SELECT snapshot_rev FROM chapters WHERE id = 1)")
+        sqlx::query("UPDATE piece_revisions SET delta = 'null' WHERE rev <= (SELECT snapshot_rev FROM pieces WHERE id = 1)")
             .execute(&pool).await.unwrap();
         assert_eq!(store.load(1).await.unwrap().delta, expected);
     }
@@ -95,7 +95,7 @@ async fn persistence_replays_only_after_snapshot_and_keeps_all_revisions() {
 async fn existing_content_is_revision_zero_and_failed_appends_leave_it_unchanged() {
     let pool = chapter().await;
     let initial = r#"{"ops":[{"insert":"😀"}]}"#;
-    sqlx::query("UPDATE chapters SET content = ? WHERE id = 1")
+    sqlx::query("UPDATE pieces SET content = ? WHERE id = 1")
         .bind(initial)
         .execute(&pool)
         .await
@@ -123,7 +123,7 @@ async fn existing_content_is_revision_zero_and_failed_appends_leave_it_unchanged
         Err(RevisionError::MissingChapter)
     ));
     assert_eq!(stored(&pool).await, before);
-    sqlx::query("CREATE TRIGGER reject_snapshot BEFORE UPDATE OF content ON chapters BEGIN SELECT RAISE(ABORT, 'snapshot rejected'); END")
+    sqlx::query("CREATE TRIGGER reject_snapshot BEFORE UPDATE OF content ON pieces BEGIN SELECT RAISE(ABORT, 'snapshot rejected'); END")
         .execute(&pool).await.unwrap();
     assert!(matches!(
         store.append(1, 0, &Delta::new()).await,
@@ -153,9 +153,9 @@ async fn concurrent_expected_heads_allow_only_one_append() {
         .unwrap();
     quillai_api::database::migrate(&pool).await.unwrap();
     sqlx::raw_sql(
-        "INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
-         INSERT INTO books (id, series_id, title, position) VALUES (1, 1, 'Book', 0);
-         INSERT INTO chapters (id, book_id, title, position, kind) VALUES (1, 1, 'Chapter', 0, 'chapter');",
+        r#"INSERT INTO universes (id, title, position) VALUES (1, 'Universe', 0);
+         INSERT INTO pieces (id, universe_id, title, position, label, format, shape, content, head_rev, snapshot_rev)
+         VALUES (1, 1, 'Chapter', 0, 'chapter', 'prose', 'leaf', '{"ops":[]}', 0, 0);"#,
     )
     .execute(&pool)
     .await
@@ -180,25 +180,25 @@ async fn revision_constraints_and_cascade_are_enforced() {
     let pool = chapter().await;
     let store = RevisionStore::new(pool.clone(), NonZeroU64::new(3).unwrap());
     store.append(1, 0, &revisions()[0]).await.unwrap();
-    let created: String = sqlx::query_scalar("SELECT created_at FROM chapter_revisions")
+    let created: String = sqlx::query_scalar("SELECT created_at FROM piece_revisions")
         .fetch_one(&pool)
         .await
         .unwrap();
     assert!(!created.is_empty());
     for statement in [
-        "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (1, 1, '{\"ops\":[]}')",
-        "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (99, 1, '{\"ops\":[]}')",
-        "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (1, 2, 'broken')",
-        "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (1, 0, '{\"ops\":[]}')",
-        "UPDATE chapters SET snapshot_rev = head_rev + 1",
+        "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (1, 1, '{\"ops\":[]}')",
+        "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (99, 1, '{\"ops\":[]}')",
+        "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (1, 2, 'broken')",
+        "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (1, 0, '{\"ops\":[]}')",
+        "UPDATE pieces SET snapshot_rev = head_rev + 1",
     ] {
         assert!(sqlx::query(statement).execute(&pool).await.is_err());
     }
-    sqlx::query("DELETE FROM series WHERE id = 1")
+    sqlx::query("DELETE FROM universes WHERE id = 1")
         .execute(&pool)
         .await
         .unwrap();
-    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM chapter_revisions")
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM piece_revisions")
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -210,7 +210,7 @@ async fn incomplete_or_invalid_replay_rolls_back_appends() {
     let pool = chapter().await;
     let store = RevisionStore::new(pool.clone(), NonZeroU64::new(3).unwrap());
     store.append(1, 0, &revisions()[0]).await.unwrap();
-    sqlx::query("UPDATE chapter_revisions SET delta = ?")
+    sqlx::query("UPDATE piece_revisions SET delta = ?")
         .bind(r#"{"ops":[{"insert":"\ud800"}]}"#)
         .execute(&pool)
         .await
@@ -221,7 +221,7 @@ async fn incomplete_or_invalid_replay_rolls_back_appends() {
         Err(RevisionError::Delta(_))
     ));
     assert_eq!(stored(&pool).await, before);
-    sqlx::query("DELETE FROM chapter_revisions")
+    sqlx::query("DELETE FROM piece_revisions")
         .execute(&pool)
         .await
         .unwrap();

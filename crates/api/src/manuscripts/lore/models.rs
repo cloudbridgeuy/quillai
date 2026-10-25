@@ -17,6 +17,37 @@ pub struct LoreEntry {
     pub level: String,
 }
 
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct UniverseLoreEntry {
+    pub id: i64,
+    pub universe_id: i64,
+    pub kind: String,
+    pub name: String,
+    pub keywords: Json<Vec<String>>,
+    pub aliases: Json<Vec<String>>,
+    pub visible_text: String,
+    pub hidden_notes: String,
+    pub pinned: bool,
+    pub level: String,
+}
+
+impl LoreEntry {
+    pub fn in_series(entry: UniverseLoreEntry, series_id: i64) -> Self {
+        Self {
+            id: entry.id,
+            series_id,
+            kind: entry.kind,
+            name: entry.name,
+            keywords: entry.keywords,
+            aliases: entry.aliases,
+            visible_text: entry.visible_text,
+            hidden_notes: entry.hidden_notes,
+            pinned: entry.pinned,
+            level: entry.level,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct LoreInput {
     pub kind: Option<String>,

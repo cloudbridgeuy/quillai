@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM lore_entries WHERE universe_id = ? AND id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b4f171cf59bec58cc20389e215450e6d9ef82ea8ca306820e61b160134250e2e"
+}

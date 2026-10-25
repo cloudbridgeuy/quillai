@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE lore_entries SET kind = COALESCE(?, kind), name = COALESCE(?, name), keywords = COALESCE(?, keywords), aliases = COALESCE(?, aliases), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes), pinned = COALESCE(?, pinned), level = COALESCE(?, level) WHERE universe_id = ? AND id = ? RETURNING id, universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "universe_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "keywords: SqlJson<Vec<String>>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "aliases: SqlJson<Vec<String>>",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "pinned: bool",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "level",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b392b4ebc46e2ddad8ffdbc0b29d41dab69e04265d982c46e4a56f8fa347a74c"
+}

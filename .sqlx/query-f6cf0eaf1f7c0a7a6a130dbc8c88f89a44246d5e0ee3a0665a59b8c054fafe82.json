@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape) SELECT universe_id, id, ?, ?, 'novel', 'prose', 'group' FROM legacy_series WHERE id = ? RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f6cf0eaf1f7c0a7a6a130dbc8c88f89a44246d5e0ee3a0665a59b8c054fafe82"
+}

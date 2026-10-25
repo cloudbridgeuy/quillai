@@ -1,5 +1,6 @@
 pub mod handlers;
 pub mod models;
+pub mod store;
 
 use axum::{routing::get, Router};
 use sqlx::sqlite::SqlitePool;

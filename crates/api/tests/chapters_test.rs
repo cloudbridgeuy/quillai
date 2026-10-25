@@ -81,6 +81,14 @@ async fn create(app: &Router, collection: &str, kind: &str, position: i64) -> Va
     chapter
 }
 
+async fn piece_id(pool: &sqlx::SqlitePool, chapter_id: i64) -> i64 {
+    sqlx::query_scalar("SELECT id FROM pieces WHERE legacy_chapter_id = ?")
+        .bind(chapter_id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
 fn not_found() -> (StatusCode, Value) {
     (
         StatusCode::NOT_FOUND,
@@ -108,12 +116,13 @@ async fn chapter_crud_prologue_epilogue_and_snapshot_round_trip() {
             request(&app, "GET", &uri, Value::Null).await,
             (StatusCode::OK, chapter.clone())
         );
-        let stored: (String, i64, i64) =
-            sqlx::query_as("SELECT content, head_rev, snapshot_rev FROM chapters WHERE id = ?")
-                .bind(chapter["id"].as_i64().unwrap())
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let stored: (String, i64, i64) = sqlx::query_as(
+            "SELECT content, head_rev, snapshot_rev FROM pieces WHERE legacy_chapter_id = ?",
+        )
+        .bind(chapter["id"].as_i64().unwrap())
+        .fetch_one(&pool)
+        .await
+        .unwrap();
         assert_eq!(
             serde_json::from_str::<Value>(&stored.0).unwrap(),
             chapter["content"]
@@ -314,7 +323,7 @@ async fn put_content_key_returns_422_even_when_null_or_parent_missing() {
         (StatusCode::OK, chapter)
     );
     assert_eq!(
-        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM chapter_revisions")
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM piece_revisions")
             .fetch_one(&pool)
             .await
             .unwrap(),
@@ -446,7 +455,7 @@ async fn reads_return_chapters_head_rev_not_snapshot_rev() {
     for rev in 0..4 {
         store
             .append(
-                chapter["id"].as_i64().unwrap(),
+                piece_id(&pool, chapter["id"].as_i64().unwrap()).await,
                 rev,
                 &quillai_delta::Delta::new(),
             )
@@ -490,7 +499,7 @@ async fn corrupt_stored_content_only_fails_content_list_and_detail() {
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("UPDATE chapters SET content = ? WHERE id = ?")
+        sqlx::query("UPDATE pieces SET content = ? WHERE legacy_chapter_id = ?")
             .bind(content)
             .bind(chapter["id"].as_i64().unwrap())
             .execute(&pool)
@@ -560,14 +569,14 @@ async fn sync_chapter(app: &Router, content: Value) -> (String, String, i64) {
 
 async fn persisted(pool: &sqlx::SqlitePool, id: i64) -> (i64, i64, String, Vec<(i64, String)>) {
     let (head, snapshot, content) = sqlx::query_as::<_, (i64, i64, String)>(
-        "SELECT head_rev, snapshot_rev, content FROM chapters WHERE id = ?",
+        "SELECT head_rev, snapshot_rev, content FROM pieces WHERE legacy_chapter_id = ?",
     )
     .bind(id)
     .fetch_one(pool)
     .await
     .unwrap();
     let revisions = sqlx::query_as(
-        "SELECT rev, delta FROM chapter_revisions WHERE chapter_id = ? ORDER BY rev",
+        "SELECT rev, delta FROM piece_revisions WHERE piece_id = (SELECT id FROM pieces WHERE legacy_chapter_id = ?) ORDER BY rev",
     )
     .bind(id)
     .fetch_all(pool)
@@ -741,7 +750,11 @@ async fn sync_retained_floor_and_gaps_and_future_revisions_return_409() {
     );
     for rev in 0..3 {
         store
-            .append(id, rev, &delta(&json!({"ops": [{"insert": "x"}]})))
+            .append(
+                piece_id(&pool, id).await,
+                rev,
+                &delta(&json!({"ops": [{"insert": "x"}]})),
+            )
             .await
             .unwrap();
     }
@@ -754,7 +767,7 @@ async fn sync_retained_floor_and_gaps_and_future_revisions_return_409() {
             .len(),
         3
     );
-    sqlx::query("DELETE FROM chapter_revisions WHERE chapter_id = ? AND rev = 1")
+    sqlx::query("DELETE FROM piece_revisions WHERE piece_id = (SELECT id FROM pieces WHERE legacy_chapter_id = ?) AND rev = 1")
         .bind(id)
         .execute(&pool)
         .await
@@ -781,7 +794,7 @@ async fn sync_retained_floor_and_gaps_and_future_revisions_return_409() {
             .0,
         StatusCode::OK
     );
-    sqlx::query("DELETE FROM chapter_revisions WHERE chapter_id = ? AND rev = 2")
+    sqlx::query("DELETE FROM piece_revisions WHERE piece_id = (SELECT id FROM pieces WHERE legacy_chapter_id = ?) AND rev = 2")
         .bind(id)
         .execute(&pool)
         .await

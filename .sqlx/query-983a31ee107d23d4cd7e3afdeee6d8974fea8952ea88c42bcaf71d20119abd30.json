@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT content AS \"content!\", snapshot_rev AS \"snapshot_rev!\", head_rev AS \"head_rev!\" FROM pieces WHERE id = ? AND shape = 'leaf'",
+  "describe": {
+    "columns": [
+      {
+        "name": "content!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "snapshot_rev!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "head_rev!",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "983a31ee107d23d4cd7e3afdeee6d8974fea8952ea88c42bcaf71d20119abd30"
+}

@@ -1,9 +1,9 @@
 mod common;
 
-use sqlx::SqlitePool;
+use quillai_api::database::MIGRATOR;
+use sqlx::{migrate::MigrateError, SqlitePool};
 
-const UP: &str = include_str!("fixtures/story_model/up.sql");
-const DOWN: &str = include_str!("fixtures/story_model/down.sql");
+const BEFORE_STORY_MODEL: i64 = 20261020000000;
 
 const OLD_TABLES: [(&str, &str); 6] = [
     ("series", "SELECT json_array(id, title, position) FROM series ORDER BY id"),
@@ -22,11 +22,11 @@ const OLD_TABLES: [(&str, &str); 6] = [
     ),
     (
         "sqlite_sequence",
-        "SELECT json_array(name, seq) FROM sqlite_sequence WHERE name IN ('series', 'lore_entries') ORDER BY name",
+        "SELECT json_array(name, seq) FROM sqlite_sequence WHERE name IN ('series', 'books', 'chapters', 'lore_entries') ORDER BY name",
     ),
 ];
 
-const NEW_TABLES: [(&str, &str); 6] = [
+const NEW_TABLES: [(&str, &str); 7] = [
     ("universes", "SELECT json_array(id, title, position) FROM universes ORDER BY id"),
     (
         "containers",
@@ -47,6 +47,10 @@ const NEW_TABLES: [(&str, &str); 6] = [
     (
         "sqlite_sequence",
         "SELECT json_array(name, seq) FROM sqlite_sequence WHERE name IN ('universes', 'containers', 'pieces', 'lore_entries') ORDER BY name",
+    ),
+    (
+        "legacy_ids",
+        "SELECT json_array(kind, seq) FROM legacy_ids ORDER BY kind",
     ),
 ];
 
@@ -69,10 +73,12 @@ INSERT INTO lore_entries (id, series_id, kind, name, keywords, aliases, visible_
 DELETE FROM lore_entries WHERE id = 4;
 "#;
 
-async fn run(pool: &SqlitePool, sql: &str) -> Result<(), sqlx::Error> {
-    let mut tx = pool.begin().await?;
-    sqlx::raw_sql(sql).execute(&mut *tx).await?;
-    tx.commit().await
+async fn up(pool: &SqlitePool) -> Result<(), MigrateError> {
+    MIGRATOR.run(pool).await
+}
+
+async fn down(pool: &SqlitePool) -> Result<(), MigrateError> {
+    MIGRATOR.undo(pool, BEFORE_STORY_MODEL).await
 }
 
 async fn dump(pool: &SqlitePool, tables: &[(&str, &str)]) -> Vec<(String, Vec<String>)> {
@@ -95,6 +101,7 @@ async fn table_names(pool: &SqlitePool) -> Vec<String> {
 
 async fn seeded_pool() -> SqlitePool {
     let pool = common::test_pool().await;
+    down(&pool).await.unwrap();
     sqlx::raw_sql(SEED).execute(&pool).await.unwrap();
     pool
 }
@@ -106,13 +113,14 @@ fn rows(values: &[&str]) -> Vec<String> {
 #[tokio::test]
 async fn up_maps_series_books_chapters_lore_and_revisions() {
     let pool = seeded_pool().await;
-    run(&pool, UP).await.unwrap();
+    up(&pool).await.unwrap();
 
     assert_eq!(
         table_names(&pool).await,
         rows(&[
             "author_guidance",
             "containers",
+            "legacy_ids",
             "lore_entries",
             "piece_revisions",
             "pieces",
@@ -167,6 +175,7 @@ async fn up_maps_series_books_chapters_lore_and_revisions() {
                 r#"["universes",2]"#,
             ]),
         ),
+        ("legacy_ids", rows(&[r#"["book",3]"#, r#"["chapter",3]"#])),
     ];
     let expected: Vec<(String, Vec<String>)> = expected
         .into_iter()
@@ -180,8 +189,8 @@ async fn down_restores_exact_old_rows_and_older_downs_still_run() {
     let pool = seeded_pool().await;
     let before = dump(&pool, &OLD_TABLES).await;
 
-    run(&pool, UP).await.unwrap();
-    run(&pool, DOWN).await.unwrap();
+    up(&pool).await.unwrap();
+    down(&pool).await.unwrap();
 
     assert_eq!(dump(&pool, &OLD_TABLES).await, before);
     assert_eq!(
@@ -196,17 +205,14 @@ async fn down_restores_exact_old_rows_and_older_downs_still_run() {
             "users"
         ])
     );
-    quillai_api::database::MIGRATOR
-        .undo(&pool, 0)
-        .await
-        .unwrap();
+    MIGRATOR.undo(&pool, 0).await.unwrap();
     assert!(table_names(&pool).await.is_empty());
 }
 
 #[tokio::test]
 async fn down_aborts_without_writes_when_a_loose_piece_exists() {
     let pool = seeded_pool().await;
-    run(&pool, UP).await.unwrap();
+    up(&pool).await.unwrap();
     sqlx::raw_sql(
         r#"INSERT INTO pieces (universe_id, title, position, label, format, shape, content, head_rev, snapshot_rev)
            VALUES (1, 'Loose', 0, 'short_story', 'prose', 'leaf', '{"ops":[]}', 0, 0)"#,
@@ -216,7 +222,7 @@ async fn down_aborts_without_writes_when_a_loose_piece_exists() {
     .unwrap();
     let before = dump(&pool, &NEW_TABLES).await;
 
-    let error = run(&pool, DOWN).await.unwrap_err();
+    let error = down(&pool).await.unwrap_err();
 
     assert!(
         error
@@ -230,6 +236,7 @@ async fn down_aborts_without_writes_when_a_loose_piece_exists() {
         rows(&[
             "author_guidance",
             "containers",
+            "legacy_ids",
             "lore_entries",
             "piece_revisions",
             "pieces",
@@ -242,11 +249,11 @@ async fn down_aborts_without_writes_when_a_loose_piece_exists() {
 #[tokio::test]
 async fn up_after_down_gives_the_same_rows() {
     let pool = seeded_pool().await;
-    run(&pool, UP).await.unwrap();
+    up(&pool).await.unwrap();
     let first = dump(&pool, &NEW_TABLES).await;
 
-    run(&pool, DOWN).await.unwrap();
-    run(&pool, UP).await.unwrap();
+    down(&pool).await.unwrap();
+    up(&pool).await.unwrap();
 
     assert_eq!(dump(&pool, &NEW_TABLES).await, first);
 }
@@ -254,7 +261,7 @@ async fn up_after_down_gives_the_same_rows() {
 #[tokio::test]
 async fn triggers_reject_rows_that_break_shape_rules() {
     let pool = seeded_pool().await;
-    run(&pool, UP).await.unwrap();
+    up(&pool).await.unwrap();
     sqlx::raw_sql(
         "INSERT INTO universes (id, title, position) VALUES (9, 'Elsewhere', 0);
          INSERT INTO containers (id, universe_id, title, position, kind) VALUES (9, 9, 'Shorts', 0, 'collection');",
@@ -304,4 +311,48 @@ async fn triggers_reject_rows_that_break_shape_rules() {
             .await
             .unwrap();
     assert_eq!(child_formats, rows(&["script", "script"]));
+}
+
+#[tokio::test]
+async fn new_pieces_take_the_next_legacy_ids_and_show_in_facade_views() {
+    let pool = seeded_pool().await;
+    up(&pool).await.unwrap();
+    sqlx::raw_sql(
+        r#"INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape) VALUES (1, 1, 'Next', 2, 'novel', 'prose', 'group');
+           INSERT INTO pieces (universe_id, parent_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (1, 7, 'Fresh', 0, 'chapter', 'prose', 'leaf', '{"ops":[]}', 0, 0);"#,
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let books: Vec<String> = sqlx::query_scalar(
+        "SELECT json_array(id, piece_id, series_id, title) FROM legacy_books ORDER BY id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        books,
+        rows(&[
+            r#"[1,1,1,"First"]"#,
+            r#"[2,2,1,"Empty"]"#,
+            r#"[3,3,2,"Other"]"#,
+            r#"[4,7,1,"Next"]"#,
+        ])
+    );
+    let chapters: Vec<String> = sqlx::query_scalar(
+        "SELECT json_array(id, piece_id, book_id, series_id, kind) FROM legacy_chapters ORDER BY id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        chapters,
+        rows(&[
+            r#"[1,4,1,1,"prologue"]"#,
+            r#"[2,5,1,1,"chapter"]"#,
+            r#"[3,6,3,2,"epilogue"]"#,
+            r#"[4,8,4,1,"chapter"]"#,
+        ])
+    );
 }

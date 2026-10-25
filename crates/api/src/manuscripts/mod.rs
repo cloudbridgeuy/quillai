@@ -1,5 +1,6 @@
 pub mod books;
 pub mod chapters;
+pub mod leaf_sync;
 pub mod lore;
 pub mod series;
 

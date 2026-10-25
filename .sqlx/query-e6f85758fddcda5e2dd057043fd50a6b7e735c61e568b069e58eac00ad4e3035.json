@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM universes WHERE id = ? AND NOT EXISTS (SELECT 1 FROM containers WHERE universe_id = ?) AND NOT EXISTS (SELECT 1 FROM pieces WHERE universe_id = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e6f85758fddcda5e2dd057043fd50a6b7e735c61e568b069e58eac00ad4e3035"
+}

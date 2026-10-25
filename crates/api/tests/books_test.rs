@@ -102,7 +102,7 @@ async fn book_crud_partial_updates_and_persistence() {
         );
     }
     let stored: (i64, String, i64) =
-        sqlx::query_as("SELECT series_id, title, position FROM books WHERE id = ?")
+        sqlx::query_as("SELECT series_id, title, position FROM legacy_books WHERE id = ?")
             .bind(book["id"].as_i64().unwrap())
             .fetch_one(&pool)
             .await
@@ -246,8 +246,8 @@ async fn deleting_book_cascades_chapters() {
     let app = quillai_api::app(pool.clone());
     let collection = create_series(&app).await;
     let book = create_book(&app, &collection, "Removed", 0).await;
-    let chapter_id: i64 = sqlx::query_scalar(
-        "INSERT INTO chapters (book_id, title, position, kind) VALUES (?, 'Chapter', 0, 'chapter') RETURNING id",
+    let piece_id: i64 = sqlx::query_scalar(
+        r#"INSERT INTO pieces (universe_id, parent_id, title, position, label, format, shape, content, head_rev, snapshot_rev) SELECT universe_id, piece_id, 'Chapter', 0, 'chapter', 'prose', 'leaf', '{"ops":[]}', 0, 0 FROM legacy_books WHERE id = ? RETURNING id"#,
     )
     .bind(book["id"].as_i64().unwrap())
     .fetch_one(&pool)
@@ -264,8 +264,8 @@ async fn deleting_book_cascades_chapters() {
         (StatusCode::NO_CONTENT, Value::Null)
     );
     assert_eq!(
-        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM chapters WHERE id = ?")
-            .bind(chapter_id)
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM pieces WHERE id = ?")
+            .bind(piece_id)
             .fetch_one(&pool)
             .await
             .unwrap(),
@@ -290,7 +290,7 @@ async fn deleting_series_cascades_books() {
         (StatusCode::NO_CONTENT, Value::Null)
     );
     assert_eq!(
-        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM books")
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM pieces")
             .fetch_one(&pool)
             .await
             .unwrap(),

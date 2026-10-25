@@ -56,31 +56,34 @@ impl RevisionStore {
         }
     }
 
-    pub async fn load(&self, chapter_id: i64) -> Result<ChapterHead, RevisionError> {
+    pub async fn load(&self, piece_id: i64) -> Result<ChapterHead, RevisionError> {
         let mut transaction = self.pool.begin().await?;
-        let head = load(&mut transaction, chapter_id).await?;
+        let head = load(&mut transaction, piece_id).await?;
         transaction.commit().await?;
         Ok(head)
     }
 
     pub async fn append(
         &self,
-        chapter_id: i64,
+        piece_id: i64,
         expected_head: i64,
         revision: &Delta,
     ) -> Result<ChapterHead, RevisionError> {
         let mut transaction = self.pool.begin().await?;
         let claimed = sqlx::query!(
-            "UPDATE chapters SET head_rev = head_rev WHERE id = ? AND head_rev = ?",
-            chapter_id,
+            "UPDATE pieces SET head_rev = head_rev WHERE id = ? AND shape = 'leaf' AND head_rev = ?",
+            piece_id,
             expected_head
         )
         .execute(&mut *transaction)
         .await?;
         if claimed.rows_affected() == 0 {
-            let exists = sqlx::query_scalar!("SELECT id FROM chapters WHERE id = ?", chapter_id)
-                .fetch_optional(&mut *transaction)
-                .await?;
+            let exists = sqlx::query_scalar!(
+                "SELECT id FROM pieces WHERE id = ? AND shape = 'leaf'",
+                piece_id
+            )
+            .fetch_optional(&mut *transaction)
+            .await?;
             return Err(if exists.is_some() {
                 RevisionError::StaleHead
             } else {
@@ -90,12 +93,12 @@ impl RevisionStore {
         let head_rev = expected_head
             .checked_add(1)
             .ok_or(RevisionError::RevisionOverflow)?;
-        let current = load(&mut transaction, chapter_id).await?;
+        let current = load(&mut transaction, piece_id).await?;
         let delta = rebuild(&current.delta, std::slice::from_ref(revision))?;
         let revision_json = serde_json::to_string(revision)?;
         sqlx::query!(
-            "INSERT INTO chapter_revisions (chapter_id, rev, delta) VALUES (?, ?, ?)",
-            chapter_id,
+            "INSERT INTO piece_revisions (piece_id, rev, delta) VALUES (?, ?, ?)",
+            piece_id,
             head_rev,
             revision_json
         )
@@ -107,19 +110,19 @@ impl RevisionStore {
         {
             let snapshot = serde_json::to_string(&delta)?;
             sqlx::query!(
-                "UPDATE chapters SET head_rev = ?, snapshot_rev = ?, content = ? WHERE id = ?",
+                "UPDATE pieces SET head_rev = ?, snapshot_rev = ?, content = ? WHERE id = ?",
                 head_rev,
                 head_rev,
                 snapshot,
-                chapter_id
+                piece_id
             )
             .execute(&mut *transaction)
             .await?;
         } else {
             sqlx::query!(
-                "UPDATE chapters SET head_rev = ? WHERE id = ?",
+                "UPDATE pieces SET head_rev = ? WHERE id = ?",
                 head_rev,
-                chapter_id
+                piece_id
             )
             .execute(&mut *transaction)
             .await?;
@@ -131,18 +134,18 @@ impl RevisionStore {
 
 pub(crate) async fn load(
     connection: &mut SqliteConnection,
-    chapter_id: i64,
+    piece_id: i64,
 ) -> Result<ChapterHead, RevisionError> {
     let chapter = sqlx::query!(
-        "SELECT content, snapshot_rev, head_rev FROM chapters WHERE id = ?",
-        chapter_id
+        r#"SELECT content AS "content!", snapshot_rev AS "snapshot_rev!", head_rev AS "head_rev!" FROM pieces WHERE id = ? AND shape = 'leaf'"#,
+        piece_id
     )
     .fetch_optional(&mut *connection)
     .await?
     .ok_or(RevisionError::MissingChapter)?;
     let rows = sqlx::query!(
-        "SELECT rev, delta FROM chapter_revisions WHERE chapter_id = ? AND rev > ? ORDER BY rev",
-        chapter_id,
+        "SELECT rev, delta FROM piece_revisions WHERE piece_id = ? AND rev > ? ORDER BY rev",
+        piece_id,
         chapter.snapshot_rev
     )
     .fetch_all(&mut *connection)
@@ -167,7 +170,7 @@ pub(crate) async fn load(
 
 pub(crate) async fn missed(
     connection: &mut SqliteConnection,
-    chapter_id: i64,
+    piece_id: i64,
     since: i64,
     head: i64,
 ) -> Result<Vec<Revision>, RevisionError> {
@@ -175,8 +178,8 @@ pub(crate) async fn missed(
         return Err(RevisionError::StaleHead);
     }
     let rows = sqlx::query!(
-        "SELECT rev, delta FROM chapter_revisions WHERE chapter_id = ? AND rev > ? ORDER BY rev",
-        chapter_id,
+        "SELECT rev, delta FROM piece_revisions WHERE piece_id = ? AND rev > ? ORDER BY rev",
+        piece_id,
         since
     )
     .fetch_all(connection)

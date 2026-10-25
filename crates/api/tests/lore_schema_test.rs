@@ -1,8 +1,19 @@
 mod common;
 
+const BEFORE_STORY_MODEL: i64 = 20261020000000;
+
+async fn legacy_pool() -> sqlx::SqlitePool {
+    let pool = common::test_pool().await;
+    quillai_api::database::MIGRATOR
+        .undo(&pool, BEFORE_STORY_MODEL)
+        .await
+        .unwrap();
+    pool
+}
+
 #[tokio::test]
 async fn entries_round_trip_with_defaults_and_all_kinds_and_levels() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
          INSERT INTO lore_entries (series_id, kind, name) VALUES (1, 'character', 'Alice');",
@@ -79,7 +90,7 @@ async fn entries_round_trip_with_defaults_and_all_kinds_and_levels() {
 
 #[tokio::test]
 async fn invalid_kinds_levels_names_keywords_aliases_and_pinned_flags_are_rejected() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
          INSERT INTO lore_entries (series_id, kind, name) VALUES (1, 'character', 'Alice');",
@@ -129,7 +140,7 @@ async fn invalid_kinds_levels_names_keywords_aliases_and_pinned_flags_are_reject
 
 #[tokio::test]
 async fn missing_series_is_rejected_and_deleting_series_cascades_only_to_its_entries() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     let error = sqlx::query(
         "INSERT INTO lore_entries (series_id, kind, name) VALUES (999, 'character', 'Orphan')",
     )
@@ -159,7 +170,7 @@ async fn missing_series_is_rejected_and_deleting_series_cascades_only_to_its_ent
 
 #[tokio::test]
 async fn down_migration_preserves_other_tables_and_can_be_reapplied() {
-    let pool = common::test_pool().await;
+    let pool = legacy_pool().await;
     sqlx::raw_sql(
         "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com');
          INSERT INTO series (id, title, position) VALUES (1, 'Series', 0);
@@ -194,8 +205,10 @@ async fn down_migration_preserves_other_tables_and_can_be_reapplied() {
         .await
         .unwrap();
     assert_eq!(count, 0);
-    sqlx::query("INSERT INTO lore_entries (series_id, kind, name) VALUES (1, 'note', 'Restored')")
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO lore_entries (universe_id, kind, name) VALUES (1, 'note', 'Restored')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 }

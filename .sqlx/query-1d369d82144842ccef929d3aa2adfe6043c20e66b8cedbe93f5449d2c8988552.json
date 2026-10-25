@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO pieces (universe_id, parent_id, title, position, label, format, shape, content, head_rev, snapshot_rev) SELECT universe_id, piece_id, ?, ?, ?, 'prose', 'leaf', ?, 0, 0 FROM legacy_books WHERE series_id = ? AND id = ? RETURNING id AS \"id!\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "1d369d82144842ccef929d3aa2adfe6043c20e66b8cedbe93f5449d2c8988552"
+}

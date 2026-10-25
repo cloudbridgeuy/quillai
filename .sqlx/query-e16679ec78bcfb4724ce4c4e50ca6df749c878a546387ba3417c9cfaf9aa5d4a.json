@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM containers WHERE id = ? AND kind = 'book_series' RETURNING universe_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e16679ec78bcfb4724ce4c4e50ca6df749c878a546387ba3417c9cfaf9aa5d4a"
+}
