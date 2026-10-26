@@ -431,7 +431,8 @@ fn spawn_api(
 
 fn spawn_app(port: u16, tx: Sender<SupervisorEvent>) -> Result<ManagedChild, Box<dyn Error>> {
     let mut command = Command::new("bun");
-    command.args(["--hot", "app/src/index.tsx"]);
+    command.args(["--hot", "src/index.tsx"]);
+    command.current_dir(workspace_root()?.join("app"));
     command.env("PORT", port.to_string());
 
     spawn_managed(Service::App, command, tx)

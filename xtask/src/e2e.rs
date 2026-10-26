@@ -165,7 +165,8 @@ fn sandbox(
         .push(spawn_managed(Service::Api, api, tx.clone())?);
     drop(app_reservation);
     let mut app = e2e_command("bun");
-    app.arg("app/src/index.tsx")
+    app.arg("src/index.tsx")
+        .current_dir(root.join("app"))
         .env("PORT", app_port.to_string());
     children
         .children
