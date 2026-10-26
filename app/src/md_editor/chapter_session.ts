@@ -1,13 +1,31 @@
 import Delta from "quill-delta";
 import type { createManuscriptClient } from "../manuscripts/client";
-import { parseDelta, type Chapter, type ChapterScope, type Revision } from "../manuscripts/contract";
+import { parseDelta, type Chapter, type ChapterScope, type EditorScope, type PieceScope, type Revision } from "../manuscripts/contract";
+import { loreSeriesId, sameScope } from "../manuscripts/story_tree";
 import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 
 type Client = ReturnType<typeof createManuscriptClient>;
 export type SyncProblem = { kind: "retrying" | "blocked"; message: string };
 
+export type EditorDocument = Pick<Chapter, "title" | "content" | "head_rev">;
+
 export class NoEditorChapter extends Error {}
+
+async function loadPiece(client: Client, pieceId: number): Promise<{ scope: PieceScope; chapter: EditorDocument }> {
+  const piece = await client.getPiece({ pieceId });
+  if (piece.shape !== "leaf") throw new Error("Only a piece with text can open in the editor.");
+  const seriesId = loreSeriesId(await client.listContainers({ universeId: piece.universeId }));
+  if (seriesId === null) throw new Error("This piece's universe needs a book series before it can open.");
+  return {
+    scope: { seriesId, universeId: piece.universeId, pieceId },
+    chapter: { title: piece.title, content: piece.content, head_rev: piece.headRev },
+  };
+}
+
+export async function loadEditorDocument(client: Client, scope: EditorScope): Promise<EditorDocument> {
+  return "pieceId" in scope ? (await loadPiece(client, scope.pieceId)).chapter : client.getChapter(scope);
+}
 
 export async function bootstrapEditorChapter(client: Client): Promise<ChapterScope> {
   const series = (await client.listSeries())[0] ?? await client.createSeries({ title: "My Series", position: 0 });
@@ -20,8 +38,13 @@ export async function bootstrapEditorChapter(client: Client): Promise<ChapterSco
   return { ...bookScope, chapterId: chapter.id };
 }
 
-export async function loadEditorChapter(client: Client, search: string): Promise<{ scope: ChapterScope; chapter: Chapter }> {
+export async function loadEditorChapter(client: Client, search: string): Promise<{ scope: EditorScope; chapter: EditorDocument }> {
   const params = new URLSearchParams(search);
+  if (params.has("pieceId")) {
+    const pieceId = Number(params.get("pieceId"));
+    if (!Number.isSafeInteger(pieceId) || pieceId <= 0) throw new Error("Piece URL requires a positive pieceId.");
+    return loadPiece(client, pieceId);
+  }
   const keys = ["seriesId", "bookId", "chapterId"];
   if (keys.some((key) => params.has(key))) {
     const [seriesId, bookId, chapterId] = keys.map((key) => Number(params.get(key)));
@@ -46,8 +69,8 @@ export async function loadEditorChapter(client: Client, search: string): Promise
 
 export function createChapterSession(
   client: Pick<Client, "postDelta" | "getDeltas">,
-  scope: ChapterScope,
-  chapter: Chapter,
+  scope: EditorScope,
+  chapter: Pick<EditorDocument, "content" | "head_rev">,
   publish: (document: Delta, dirty: boolean, problem: SyncProblem | null) => void,
 ) {
   let state = startChapterSync(chapter.content, chapter.head_rev);
@@ -216,7 +239,6 @@ export function createChapterSession(
   };
 }
 
-export function canSwitchChapter(current: ChapterScope | null, target: ChapterScope, unavailable: boolean): boolean {
-  return !unavailable && current !== null &&
-    (current.seriesId !== target.seriesId || current.bookId !== target.bookId || current.chapterId !== target.chapterId);
+export function canSwitchChapter(current: EditorScope | null, target: EditorScope, unavailable: boolean): boolean {
+  return !unavailable && current !== null && !sameScope(current, target);
 }

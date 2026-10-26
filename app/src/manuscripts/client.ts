@@ -1,7 +1,9 @@
 import { getApiBaseUrl } from "../api_config";
 import {
-  parseApiError, parseBook, parseChapter, parseChapterSummary, parseList, parseRevision, parseSeries,
-  type BookScope, type ChapterScope, type CreateBook, type CreateChapter,
+  parseApiError, parseBook, parseChapter, parseChapterSummary, parseContainer, parseList, parsePiece,
+  parsePieceDetail, parseRevision, parseSeries,
+  type BookScope, type ChapterScope, type ContainerScope, type CreateBook, type CreateChapter,
+  type EditorScope, type PieceScope, type UniverseScope,
   type CreateSeries, type SeriesScope, type SubmitDelta, type UpdateBook,
   type UpdateChapter, type UpdateSeries,
 } from "./contract";
@@ -38,6 +40,18 @@ function chaptersPath(scope: BookScope): string {
 
 function chapterPath(scope: ChapterScope): string {
   return `${chaptersPath(scope)}/${encodeURIComponent(scope.chapterId)}`;
+}
+
+function piecePath({ pieceId }: Pick<PieceScope, "pieceId">): string {
+  return `/pieces/${encodeURIComponent(pieceId)}`;
+}
+
+function universePath({ universeId }: UniverseScope): string {
+  return `/universes/${encodeURIComponent(universeId)}`;
+}
+
+function documentPath(scope: EditorScope): string {
+  return "pieceId" in scope ? piecePath(scope) : chapterPath(scope);
 }
 
 export function createManuscriptClient({
@@ -99,7 +113,12 @@ export function createManuscriptClient({
     getChapter: (scope: ChapterScope) => request(chapterPath(scope), "GET", 200, parseChapter),
     updateChapter: (scope: ChapterScope, input: UpdateChapter) => request(chapterPath(scope), "PUT", 200, parseChapter, input),
     deleteChapter: (scope: ChapterScope) => request(chapterPath(scope), "DELETE", 204, deleted),
-    getDeltas: (scope: ChapterScope, since: number) => request(`${chapterPath(scope)}/deltas?since=${encodeURIComponent(since)}`, "GET", 200, (value) => parseList(value, parseRevision)),
-    postDelta: (scope: ChapterScope, input: SubmitDelta) => request(`${chapterPath(scope)}/deltas`, "POST", 200, parseRevision, input),
+    listUniverses: () => request("/universes", "GET", 200, (value) => parseList(value, parseSeries)),
+    listContainers: (scope: UniverseScope) => request(`${universePath(scope)}/containers`, "GET", 200, (value) => parseList(value, parseContainer)),
+    listLoosePieces: (scope: UniverseScope) => request(`${universePath(scope)}/pieces?container=none`, "GET", 200, (value) => parseList(value, parsePiece)),
+    listContainerPieces: ({ containerId }: ContainerScope) => request(`/containers/${encodeURIComponent(containerId)}/pieces`, "GET", 200, (value) => parseList(value, parsePiece)),
+    getPiece: (scope: Pick<PieceScope, "pieceId">) => request(piecePath(scope), "GET", 200, parsePieceDetail),
+    getDeltas: (scope: EditorScope, since: number) => request(`${documentPath(scope)}/deltas?since=${encodeURIComponent(since)}`, "GET", 200, (value) => parseList(value, parseRevision)),
+    postDelta: (scope: EditorScope, input: SubmitDelta) => request(`${documentPath(scope)}/deltas`, "POST", 200, parseRevision, input),
   };
 }

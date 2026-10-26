@@ -442,7 +442,7 @@ test("chapter switch boundary flush succeeds and loads the selected target after
   expect(canSwitchChapter(scope, target, false)).toBe(true);
   const loaded = await loadEditorChapter(client, "?seriesId=1&bookId=2&chapterId=4");
   expect(loaded.scope).toEqual(target);
-  expect(loaded.chapter.id).toBe(target.chapterId);
+  expect(loaded.chapter).toMatchObject({ id: target.chapterId });
   expect(urls).toEqual(["http://api/series/1/books/2/chapters/4"]);
 });
 
@@ -467,4 +467,36 @@ test("Continue reservation rejects dirty and unrecovered work then waits success
   expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
   reservation!.release();
   expect(session.canStartAi()).toBe(true);
+});
+
+test("piece URL loads the leaf with the universe book series as lore scope", async () => {
+  const urls: string[] = [];
+  const client = createManuscriptClient({ baseUrl: "http://api", fetch: async (url) => {
+    urls.push(url);
+    if (url.endsWith("/pieces/9")) return Response.json({
+      id: 9, universeId: 5, containerId: null, parentId: null, title: "Loose", position: 0,
+      label: "short_story", format: "prose", shape: "leaf", content: { ops: [{ insert: "Loose\n" }] }, headRev: 3,
+    });
+    return Response.json([
+      { id: 7, universeId: 5, title: "Shelf", position: 0, kind: "collection" },
+      { id: 4, universeId: 5, title: "Saga", position: 1, kind: "book_series" },
+    ]);
+  } });
+  const loaded = await loadEditorChapter(client, "?seriesId=1&bookId=2&chapterId=3&pieceId=9");
+  expect(loaded).toEqual({
+    scope: { seriesId: 4, universeId: 5, pieceId: 9 },
+    chapter: { title: "Loose", content: { ops: [{ insert: "Loose\n" }] }, head_rev: 3 },
+  });
+  expect(urls).toEqual(["http://api/pieces/9", "http://api/universes/5/containers"]);
+  expect(canSwitchChapter(loaded.scope, { seriesId: 4, bookId: 2, chapterId: 3 }, false)).toBe(true);
+  expect(canSwitchChapter(loaded.scope, { seriesId: 4, universeId: 5, pieceId: 9 }, false)).toBe(false);
+});
+
+test("piece URL rejects groups and invalid ids", async () => {
+  const client = createManuscriptClient({ baseUrl: "http://api", fetch: async () => Response.json({
+    id: 9, universeId: 5, containerId: null, parentId: null, title: "Play", position: 0,
+    label: "screenplay", format: "script", shape: "group", children: [],
+  }) });
+  await expect(loadEditorChapter(client, "?pieceId=9")).rejects.toThrow("Only a piece with text");
+  await expect(loadEditorChapter(client, "?pieceId=0")).rejects.toThrow("positive pieceId");
 });

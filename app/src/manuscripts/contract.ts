@@ -23,6 +23,24 @@ export type SubmitDelta = { baseRev: number; delta: ManuscriptDelta };
 export type SeriesScope = { seriesId: number };
 export type BookScope = SeriesScope & { bookId: number };
 export type ChapterScope = BookScope & { chapterId: number };
+export type PieceScope = SeriesScope & { universeId: number; pieceId: number };
+export type EditorScope = ChapterScope | PieceScope;
+export type UniverseScope = { universeId: number };
+export type ContainerScope = { containerId: number };
+export type Universe = Series;
+export type ContainerKind = "book_series" | "tv_series" | "collection";
+export type Container = Series & { universeId: number; kind: ContainerKind };
+export type Piece = Series & {
+  universeId: number;
+  containerId: number | null;
+  parentId: number | null;
+  label: string;
+  format: "prose" | "script";
+  shape: "leaf" | "group";
+};
+export type PieceDetail =
+  | Piece & { shape: "leaf"; content: ManuscriptDelta; headRev: number }
+  | Piece & { shape: "group"; children: Piece[] };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -74,6 +92,41 @@ export function parseChapterSummary(value: unknown): ChapterSummary {
 export function parseChapter(value: unknown): Chapter {
   const row = record(value);
   return { ...parseChapterSummary(row), book_id: integer(row.book_id, 1), content: parseDelta(row.content) };
+}
+
+function nullableId(value: unknown): number | null {
+  return value === null ? null : integer(value, 1);
+}
+
+function oneOf<T extends string>(value: unknown, options: readonly T[]): T {
+  if (!options.includes(value as T)) throw new Error(`Expected one of ${options.join(", ")}`);
+  return value as T;
+}
+
+export function parseContainer(value: unknown): Container {
+  const row = record(value);
+  return {
+    ...parseSeries(row), universeId: integer(row.universeId, 1),
+    kind: oneOf(row.kind, ["book_series", "tv_series", "collection"] as const),
+  };
+}
+
+export function parsePiece(value: unknown): Piece {
+  const row = record(value);
+  if (typeof row.label !== "string") throw new Error("Expected a piece label");
+  return {
+    ...parseSeries(row), universeId: integer(row.universeId, 1), containerId: nullableId(row.containerId),
+    parentId: nullableId(row.parentId), label: row.label, format: oneOf(row.format, ["prose", "script"] as const),
+    shape: oneOf(row.shape, ["leaf", "group"] as const),
+  };
+}
+
+export function parsePieceDetail(value: unknown): PieceDetail {
+  const row = record(value);
+  const piece = parsePiece(row);
+  return piece.shape === "leaf"
+    ? { ...piece, shape: "leaf", content: parseDelta(row.content), headRev: integer(row.headRev) }
+    : { ...piece, shape: "group", children: parseList(row.children, parsePiece) };
 }
 
 export function parseDelta(value: unknown): ManuscriptDelta {

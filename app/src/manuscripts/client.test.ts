@@ -16,6 +16,11 @@ const update = { title: null, position: 3 };
 const revision = { rev: 1, delta: { ops: [{ insert: "New" }] } };
 const submission = { baseRev: 0, delta: revision.delta };
 const root = "/series/1/books/2/chapters/3";
+const container = { id: 1, universeId: 5, title: "Series", position: 0, kind: "book_series" };
+const piece = { id: 9, universeId: 5, containerId: null, parentId: null, title: "Loose", position: 0, label: "short_story", format: "prose", shape: "leaf" };
+const pieceDetail = { ...piece, content: { ops: [{ insert: "Loose\n" }] }, headRev: 2 };
+const group = { ...piece, id: 10, shape: "group", label: "screenplay", format: "script", children: [{ ...piece, id: 11, parentId: 10, label: "scene", format: "script" }] };
+const pieceScope = { seriesId: 1, universeId: 5, pieceId: 9 };
 type Client = ReturnType<typeof createManuscriptClient>;
 
 describe("manuscript request contracts", () => {
@@ -40,6 +45,14 @@ describe("manuscript request contracts", () => {
     { name: "delete chapter", call: (c) => c.deleteChapter(scope), path: root, method: "DELETE", status: 204 },
     { name: "get deltas", call: (c) => c.getDeltas(scope, 0), path: `${root}/deltas?since=0`, method: "GET", status: 200, response: [revision] },
     { name: "post delta", call: (c) => c.postDelta(scope, submission), path: `${root}/deltas`, method: "POST", status: 200, response: revision, body: submission },
+    { name: "list universes", call: (c) => c.listUniverses(), path: "/universes", method: "GET", status: 200, response: [series] },
+    { name: "list containers", call: (c) => c.listContainers({ universeId: 5 }), path: "/universes/5/containers", method: "GET", status: 200, response: [container] },
+    { name: "list loose pieces", call: (c) => c.listLoosePieces({ universeId: 5 }), path: "/universes/5/pieces?container=none", method: "GET", status: 200, response: [piece] },
+    { name: "list container pieces", call: (c) => c.listContainerPieces({ containerId: 1 }), path: "/containers/1/pieces", method: "GET", status: 200, response: [piece] },
+    { name: "get leaf piece", call: (c) => c.getPiece(pieceScope), path: "/pieces/9", method: "GET", status: 200, response: pieceDetail },
+    { name: "get group piece", call: (c) => c.getPiece({ pieceId: 10 }), path: "/pieces/10", method: "GET", status: 200, response: group },
+    { name: "get piece deltas", call: (c) => c.getDeltas(pieceScope, 2), path: "/pieces/9/deltas?since=2", method: "GET", status: 200, response: [revision] },
+    { name: "post piece delta", call: (c) => c.postDelta(pieceScope, submission), path: "/pieces/9/deltas", method: "POST", status: 200, response: revision, body: submission },
   ];
   for (const entry of cases) {
     test(entry.name, async () => {

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { createManuscriptClient } from "../manuscripts/client";
-import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter, NoEditorChapter } from "./chapter_session";
-import type { Chapter, ChapterScope } from "../manuscripts/contract";
+import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter, loadEditorDocument, NoEditorChapter, type EditorDocument } from "./chapter_session";
+import type { EditorScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
@@ -20,9 +20,9 @@ export function useChapterSync(
   const [blocked, setBlocked] = useState(false);
   const [recovery, setRecovery] = useState<string | null>(null);
   const [needsChapter, setNeedsChapter] = useState(false);
-  const [scope, setScope] = useState<ChapterScope | null>(null);
+  const [scope, setScope] = useState<EditorScope | null>(null);
   const sessionRef = useRef<ReturnType<typeof createChapterSession> | null>(null);
-  const switchRef = useRef<((target: ChapterScope) => Promise<void>) | null>(null);
+  const switchRef = useRef<((target: EditorScope) => Promise<void>) | null>(null);
   const switchingRef = useRef(false);
   const applyingRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -53,12 +53,13 @@ export function useChapterSync(
       storageFailed = true;
     }
     const client = createManuscriptClient();
-    let currentScope: ChapterScope | null = null;
-    function openChapter(scope: ChapterScope, chapter: Chapter) {
+    let currentScope: EditorScope | null = null;
+    function openChapter(scope: EditorScope, chapter: EditorDocument) {
       const quill = quillRef.current;
       if (disposed || !quill) return;
       sessionRef.current?.stop();
       const url = new URL(window.location.href);
+      for (const key of ["seriesId", "bookId", "chapterId", "universeId", "pieceId"]) url.searchParams.delete(key);
       for (const [key, value] of Object.entries(scope)) url.searchParams.set(key, String(value));
       window.history.replaceState(null, "", url);
       applyingRef.current = true;
@@ -119,7 +120,7 @@ export function useChapterSync(
         await session.flush();
         if (disposed) return;
         setStatus("Loading chapter…");
-        const chapter = await client.getChapter(target);
+        const chapter = await loadEditorDocument(client, target);
         if (disposed) return;
         openChapter(target, chapter);
       } catch (error) {
@@ -164,7 +165,7 @@ export function useChapterSync(
     status,
     title,
     scope,
-    switchChapter: (target: ChapterScope) => switchRef.current?.(target),
+    switchChapter: (target: EditorScope) => switchRef.current?.(target),
     recovery,
     needsChapter,
     async bootstrap() {

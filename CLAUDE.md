@@ -85,6 +85,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 `emoji-cursor-remote.spec.ts` checks caret/selection surrogate boundaries during remote insert/delete, subsequent typing, HTTP errors, and exact two-tab/server convergence at 1100px, including adjacent 😀😃 and a deliberately requested mid-surrogate caret.
 
+`story-tree.spec.ts` at 1100px and 1440px seeds a book-series novel chapter and a loose piece in one universe; the tree shows the open universe's non-book-series containers and loose pieces (`manuscripts/story_tree.ts`), the piece opens by `pieceId` (lore via the universe's first book series), syncs through `/pieces/{id}/deltas`, survives reload, and the chapter still opens.
+
 `reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.
 
 `offline-stale-base.spec.ts` holds one tab's delta submission offline while the other commits three edits, then verifies HTTP 200 for the stale base and exact convergence of both tabs and server with all in-flight and pending edits at 1100px.

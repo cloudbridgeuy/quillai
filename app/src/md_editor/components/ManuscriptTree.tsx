@@ -4,19 +4,20 @@ import { ListButton } from "../../ui/ListButton";
 import { TextField } from "../../ui/TextField";
 import { Alert } from "../../ui/Alert";
 import { createManuscriptClient } from "../../manuscripts/client";
-import type { ChapterScope } from "../../manuscripts/contract";
+import type { EditorScope, Piece } from "../../manuscripts/contract";
 import { createTitle, draftTransition, targetPosition, type CreateTarget, type ManuscriptSeries } from "../../manuscripts/create_draft";
+import { containerKindLabel, openUniverse, pieceScope, sameScope, universeRoots, type StoryRoot, type StoryUniverse } from "../../manuscripts/story_tree";
 import { treeScrollTarget } from "./tree_scroll";
 
 type TreeState =
   | { status: "loading" }
   | { status: "failed"; message: string }
-  | { status: "ready"; series: ManuscriptSeries[] };
+  | { status: "ready"; series: ManuscriptSeries[]; universes: StoryUniverse[] };
 
 export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
-  selectedChapter: ChapterScope | null;
+  selectedChapter: EditorScope | null;
   disabled: boolean;
-  onSelect: (scope: ChapterScope) => void;
+  onSelect: (scope: EditorScope) => void;
 }) {
   const [client] = useState(createManuscriptClient);
   const [state, setState] = useState<TreeState>({ status: "loading" });
@@ -24,6 +25,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   const [draft, dispatch] = useReducer(draftTransition, null);
   const submitting = useRef(false);
   const treeRef = useRef<HTMLDivElement>(null);
+  const selectedKey = JSON.stringify(selectedChapter);
 
   useLayoutEffect(() => {
     const tree = treeRef.current;
@@ -38,7 +40,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
     const series = row.closest("details")?.parentElement?.closest("details");
     const blockBottom = series?.lastElementChild?.getBoundingClientRect().bottom ?? bounds.bottom;
     container.scrollTop = treeScrollTarget(container.scrollTop, bounds.top, bounds.bottom, viewportTop, viewportTop + container.clientHeight, blockBottom);
-  }, [state.status, selectedChapter?.seriesId, selectedChapter?.bookId, selectedChapter?.chapterId]);
+  }, [state.status, selectedKey]);
 
   async function create() {
     if (!draft || disabled || submitting.current || state.status !== "ready") return;
@@ -51,14 +53,14 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
       const input = { title, position: targetPosition(state.series, target) };
       if (target.kind === "series") {
         const series = await client.createSeries(input);
-        setState({ status: "ready", series: [...state.series, { ...series, books: [] }] });
+        setState({ ...state, series: [...state.series, { ...series, books: [] }] });
       } else if (target.kind === "book") {
         const book = await client.createBook(target, input);
-        setState({ status: "ready", series: state.series.map(series => series.id === target.seriesId
+        setState({ ...state, series: state.series.map(series => series.id === target.seriesId
           ? { ...series, books: [...series.books, { ...book, chapters: [] }] } : series) });
       } else {
         const chapter = await client.createChapter(target, { ...input, kind: "chapter" });
-        setState({ status: "ready", series: state.series.map(series => series.id === target.seriesId
+        setState({ ...state, series: state.series.map(series => series.id === target.seriesId
           ? { ...series, books: series.books.map(book => book.id === target.bookId
             ? { ...book, chapters: [...book.chapters, chapter] } : book) } : series) });
         onSelect({ seriesId: target.seriesId, bookId: target.bookId, chapterId: chapter.id });
@@ -95,7 +97,27 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   useEffect(() => {
     let active = true;
     setState({ status: "loading" });
-    async function load() {
+    async function roots(pieces: Piece[]): Promise<StoryRoot[]> {
+      return Promise.all(pieces.map(async (piece) => {
+        const detail = piece.shape === "group" ? await client.getPiece({ pieceId: piece.id }) : null;
+        return { ...piece, children: detail?.shape === "group" ? detail.children : [] };
+      }));
+    }
+    async function loadUniverses(): Promise<StoryUniverse[]> {
+      return Promise.all((await client.listUniverses()).map(async (universe) => {
+        const scope = { universeId: universe.id };
+        const [containers, loose] = await Promise.all([client.listContainers(scope), client.listLoosePieces(scope)]);
+        return {
+          ...universe,
+          loose: await roots(loose),
+          containers: await Promise.all(containers.map(async (container) => ({
+            ...container,
+            pieces: container.kind === "book_series" ? [] : await roots(await client.listContainerPieces({ containerId: container.id })),
+          }))),
+        };
+      }));
+    }
+    async function loadSeries() {
       const series = await client.listSeries();
       return Promise.all(series.map(async (item) => {
         const books = await client.listBooks({ seriesId: item.id });
@@ -108,8 +130,8 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
         };
       }));
     }
-    load().then((series) => {
-      if (active) setState({ status: "ready", series });
+    Promise.all([loadSeries(), loadUniverses()]).then(([series, universes]) => {
+      if (active) setState({ status: "ready", series, universes });
     }).catch((error: unknown) => {
       if (active) setState({ status: "failed", message: error instanceof Error ? error.message : "Could not load manuscript." });
     });
@@ -121,6 +143,26 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
     <p>{state.message}</p>
     <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
   </div>;
+
+  const universe = openUniverse(state.universes, selectedChapter);
+  const universeTree = universeRoots(universe);
+
+  function pieceButton(story: StoryUniverse, piece: Piece) {
+    const scope = pieceScope(story, piece);
+    return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending) || !scope}
+      pressed={sameScope(selectedChapter, scope)} onClick={() => { if (scope) onSelect(scope); }}>{piece.title}</ListButton>;
+  }
+
+  function rootItem(story: StoryUniverse, piece: StoryRoot) {
+    return <li key={`piece-${piece.id}`}>
+      {piece.shape === "leaf" ? pieceButton(story, piece) : <details open>
+        <summary>{piece.title}</summary>
+        {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
+          {piece.children.map((child) => <li key={`piece-${child.id}`}>{pieceButton(story, child)}</li>)}
+        </ul>}
+      </details>}
+    </li>;
+  }
 
   return <>
     <p className="editor-note">Opening a chapter saves current changes first.</p>
@@ -137,7 +179,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
                 {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
                   {book.chapters.map((chapter) => <li key={chapter.id}>
                     <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
-                      pressed={selectedChapter?.seriesId === series.id && selectedChapter.bookId === book.id && selectedChapter.chapterId === chapter.id}
+                      pressed={sameScope(selectedChapter, { seriesId: series.id, bookId: book.id, chapterId: chapter.id })}
                       onClick={() => onSelect({ seriesId: series.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
                   </li>)}
                 </ul>}
@@ -149,6 +191,20 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
         </details>
       </li>)}
     </ul>}
+    {universe && universeTree ? <details open data-universe>
+      <summary>{universe.title}</summary>
+      <ul>
+        {universeTree.containers.map((container) => <li key={`container-${container.id}`}>
+          <details open>
+            <summary>{container.title} · {containerKindLabel[container.kind]}</summary>
+            {container.pieces.length === 0 ? <p>No pieces yet.</p> : <ul>
+              {container.pieces.map((piece) => rootItem(universe, piece))}
+            </ul>}
+          </details>
+        </li>)}
+        {universeTree.loose.map((piece) => rootItem(universe, piece))}
+      </ul>
+    </details> : null}
     </div>
   </>;
 }
