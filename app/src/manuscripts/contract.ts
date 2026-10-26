@@ -30,14 +30,22 @@ export type ContainerScope = { containerId: number };
 export type Universe = Series;
 export type ContainerKind = "book_series" | "tv_series" | "collection";
 export type Container = Series & { universeId: number; kind: ContainerKind };
+export type Label = "piece" | "short_story" | "novella" | "novel" | "screenplay" | "tv_script"
+  | "episode" | "prologue" | "chapter" | "epilogue" | "scene";
+export type Format = "prose" | "script";
+export type Shape = "leaf" | "group";
 export type Piece = Series & {
   universeId: number;
   containerId: number | null;
   parentId: number | null;
   label: string;
-  format: "prose" | "script";
-  shape: "leaf" | "group";
+  format: Format;
+  shape: Shape;
 };
+export type CreateUniverse = CreateSeries;
+export type CreateContainer = CreateSeries & { kind: ContainerKind };
+export type CreatePiece = CreateSeries & { label: Label; shape: Shape; format: Format };
+export type CreateChild = CreateSeries & { label: Label };
 export type PieceDetail =
   | Piece & { shape: "leaf"; content: ManuscriptDelta; headRev: number }
   | Piece & { shape: "group"; children: Piece[] };

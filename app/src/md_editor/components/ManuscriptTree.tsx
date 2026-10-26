@@ -4,15 +4,19 @@ import { ListButton } from "../../ui/ListButton";
 import { TextField } from "../../ui/TextField";
 import { Alert } from "../../ui/Alert";
 import { createManuscriptClient } from "../../manuscripts/client";
+import { Field } from "../../ui/Field";
 import type { EditorScope, Piece } from "../../manuscripts/contract";
-import { createTitle, draftTransition, targetPosition, type CreateTarget, type ManuscriptSeries } from "../../manuscripts/create_draft";
-import { containerKindLabel, openUniverse, pieceScope, sameScope, universeRoots, type StoryRoot, type StoryUniverse } from "../../manuscripts/story_tree";
+import {
+  addChapter, addChild, addContainer, addRoot, addUniverse, childName, containerKinds, createTitle, draftTransition, formats,
+  labelNames, labelOptions, pieceShape, targetPosition, withBooks, type CreateTarget, type ManuscriptTreeData,
+} from "../../manuscripts/create_draft";
+import { containerKindLabel, facadeBook, pieceRoots, pieceScope, sameScope, treeUniverses, type StoryContainer, type StoryRoot, type StoryUniverse } from "../../manuscripts/story_tree";
 import { treeScrollTarget } from "./tree_scroll";
 
 type TreeState =
   | { status: "loading" }
   | { status: "failed"; message: string }
-  | { status: "ready"; series: ManuscriptSeries[]; universes: StoryUniverse[] };
+  | ({ status: "ready" } & ManuscriptTreeData);
 
 export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   selectedChapter: EditorScope | null;
@@ -23,6 +27,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   const [state, setState] = useState<TreeState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [draft, dispatch] = useReducer(draftTransition, null);
+  const [createdUniverses, setCreatedUniverses] = useState<number[]>([]);
   const submitting = useRef(false);
   const treeRef = useRef<HTMLDivElement>(null);
   const selectedKey = JSON.stringify(selectedChapter);
@@ -44,27 +49,44 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
 
   async function create() {
     if (!draft || disabled || submitting.current || state.status !== "ready") return;
-    const title = createTitle(draft.title);
+    const title = createTitle(draft.fields.title);
     dispatch({ type: "submit" });
     if (!title) return;
     submitting.current = true;
     try {
-      const target = draft.target;
-      const input = { title, position: targetPosition(state.series, target) };
-      if (target.kind === "series") {
-        const series = await client.createSeries(input);
-        setState({ ...state, series: [...state.series, { ...series, books: [] }] });
-      } else if (target.kind === "book") {
-        const book = await client.createBook(target, input);
-        setState({ ...state, series: state.series.map(series => series.id === target.seriesId
-          ? { ...series, books: [...series.books, { ...book, chapters: [] }] } : series) });
-      } else {
-        const chapter = await client.createChapter(target, { ...input, kind: "chapter" });
-        setState({ ...state, series: state.series.map(series => series.id === target.seriesId
-          ? { ...series, books: series.books.map(book => book.id === target.bookId
-            ? { ...book, chapters: [...book.chapters, chapter] } : book) } : series) });
-        onSelect({ seriesId: target.seriesId, bookId: target.bookId, chapterId: chapter.id });
+      const { target, fields } = draft;
+      const input = { title, position: targetPosition(state, target) };
+      let tree: ManuscriptTreeData = state;
+      let opened: EditorScope | null = null;
+      if (target.kind === "universe") {
+        const universe = await client.createUniverse(input);
+        setCreatedUniverses(ids => [...ids, universe.id]);
+        tree = addUniverse(state, universe);
       }
+      else if (target.kind === "container") {
+        tree = addContainer(state, await client.createContainer(target, { ...input, kind: fields.containerKind }));
+      } else if (target.kind === "piece") {
+        const pieceInput = { ...input, label: fields.label, format: fields.format, shape: pieceShape(fields.label) };
+        const piece = target.container
+          ? await client.createContainerPiece({ containerId: target.container.id }, pieceInput)
+          : await client.createLoosePiece(target, pieceInput);
+        tree = addRoot(state, piece);
+        if (target.container?.kind === "book_series" && facadeBook(piece)) {
+          tree = withBooks(tree, target.container.id, await client.listBooks({ seriesId: target.container.id }));
+        }
+        if (piece.shape === "leaf") opened = { universeId: piece.universeId, pieceId: piece.id };
+      } else if (target.kind === "child") {
+        const child = await client.createChild(target, { ...input, label: fields.label });
+        tree = addChild(state, child);
+        opened = { universeId: child.universeId, pieceId: child.id };
+      } else {
+        const kind = fields.label === "prologue" || fields.label === "epilogue" ? fields.label : "chapter";
+        const chapter = await client.createChapter(target, { ...input, kind });
+        tree = addChapter(state, target, chapter);
+        opened = { seriesId: target.seriesId, bookId: target.bookId, chapterId: chapter.id };
+      }
+      setState({ status: "ready", series: tree.series, universes: tree.universes });
+      if (opened) onSelect(opened);
       dispatch({ type: "created" });
     } catch (error) {
       dispatch({ type: "failed", message: error instanceof Error ? error.message : "Could not create manuscript item." });
@@ -73,10 +95,13 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
     }
   }
 
-  function createAction(target: CreateTarget) {
+  function createAction(target: CreateTarget, button: string, noun: string) {
     const active = draft && JSON.stringify(draft.target) === JSON.stringify(target);
-    const label = target.kind[0]!.toUpperCase() + target.kind.slice(1);
-    return active ? <form data-manuscript-draft onSubmit={event => { event.preventDefault(); void create(); }}
+    if (!active) return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+      onClick={() => dispatch({ type: "start", target })}>+ {button}</ListButton>;
+    const locked = disabled || draft.pending;
+    const labels = labelOptions(target);
+    return <form data-manuscript-draft className="flex flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
       onKeyDown={event => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -85,13 +110,34 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
         }
         if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault();
       }}>
-      <TextField square autoFocus aria-label={`${label} title`} placeholder={`${label} title`} value={draft.title}
-        disabled={disabled || draft.pending} aria-invalid={Boolean(draft.error)}
-        onChange={event => dispatch({ type: "title", title: event.target.value })} />
+      <TextField square autoFocus aria-label={`${noun} title`} placeholder={`${noun} title`} value={draft.fields.title}
+        disabled={locked} aria-invalid={Boolean(draft.error)}
+        onChange={event => dispatch({ type: "edit", fields: { title: event.target.value } })} />
+      {target.kind === "container" ? <Field label="Kind">
+        <TextField as="select" square value={draft.fields.containerKind} disabled={locked}
+          onChange={event => dispatch({ type: "edit", fields: { containerKind: containerKinds.find(kind => kind === event.target.value) } })}>
+          {containerKinds.map(kind => <option key={kind} value={kind}>{containerKindLabel[kind]}</option>)}
+        </TextField>
+      </Field> : null}
+      {labels.length ? <Field label="Label">
+        <TextField as="select" square value={draft.fields.label} disabled={locked}
+          onChange={event => dispatch({ type: "edit", fields: { label: labels.find(label => label === event.target.value) } })}>
+          {labels.map(label => <option key={label} value={label}>{labelNames[label]}</option>)}
+        </TextField>
+      </Field> : null}
+      {target.kind === "piece" ? <Field label="Format">
+        <TextField as="select" square value={draft.fields.format} disabled={locked}
+          onChange={event => dispatch({ type: "edit", fields: { format: formats.find(format => format === event.target.value) } })}>
+          {formats.map(format => <option key={format} value={format}>{format === "script" ? "Script" : "Prose"}</option>)}
+        </TextField>
+      </Field> : null}
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" size="sm" disabled={locked}>Create</Button>
+        <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>Cancel</Button>
+      </div>
       {draft.error ? <Alert tone="inline">{draft.error}</Alert> : null}
-      {draft.pending ? <p role="status">Creating {target.kind}…</p> : null}
-    </form> : <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
-      onClick={() => dispatch({ type: "start", target })}>+ {label}</ListButton>;
+      {draft.pending ? <p role="status">Creating {noun.toLowerCase()}…</p> : null}
+    </form>;
   }
 
   useEffect(() => {
@@ -112,7 +158,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
           loose: await roots(loose),
           containers: await Promise.all(containers.map(async (container) => ({
             ...container,
-            pieces: container.kind === "book_series" ? [] : await roots(await client.listContainerPieces({ containerId: container.id })),
+            pieces: await roots(await client.listContainerPieces({ containerId: container.id })),
           }))),
         };
       }));
@@ -144,8 +190,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
     <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
   </div>;
 
-  const universe = openUniverse(state.universes, selectedChapter);
-  const universeTree = universeRoots(universe);
+  const series = state.series;
 
   function pieceButton(story: StoryUniverse, piece: Piece) {
     const scope = pieceScope(story, piece);
@@ -154,57 +199,61 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   }
 
   function rootItem(story: StoryUniverse, piece: StoryRoot) {
+    const noun = childName(piece.format);
     return <li key={`piece-${piece.id}`}>
       {piece.shape === "leaf" ? pieceButton(story, piece) : <details open>
         <summary>{piece.title}</summary>
         {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
           {piece.children.map((child) => <li key={`piece-${child.id}`}>{pieceButton(story, child)}</li>)}
         </ul>}
+        {createAction({ kind: "child", universeId: story.id, pieceId: piece.id, format: piece.format }, noun, noun)}
       </details>}
     </li>;
+  }
+
+  function bookItems(container: StoryContainer) {
+    if (container.kind !== "book_series") return [];
+    return (series.find(item => item.id === container.id)?.books ?? []).map((book) => <li key={`book-${book.id}`}>
+      <details open>
+        <summary>{book.title}</summary>
+        {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
+          {book.chapters.map((chapter) => <li key={chapter.id}>
+            <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+              pressed={sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id })}
+              onClick={() => onSelect({ seriesId: container.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
+          </li>)}
+        </ul>}
+        {createAction({ kind: "chapter", seriesId: container.id, bookId: book.id }, "Chapter", "Chapter")}
+      </details>
+    </li>);
   }
 
   return <>
     <p className="editor-note">Opening a chapter saves current changes first.</p>
     <div ref={treeRef} className="editor-manuscript-tree">
-    {createAction({ kind: "series" })}
-    {state.series.length === 0 ? <p>No series yet.</p> : <ul>
-      {state.series.map((series) => <li key={series.id}>
-        <details open>
-          <summary>{series.title}</summary>
-          {series.books.length === 0 ? <p>No books yet.</p> : <ul>
-            {series.books.map((book) => <li key={book.id}>
-              <details open>
-                <summary>{book.title}</summary>
-                {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
-                  {book.chapters.map((chapter) => <li key={chapter.id}>
-                    <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
-                      pressed={sameScope(selectedChapter, { seriesId: series.id, bookId: book.id, chapterId: chapter.id })}
-                      onClick={() => onSelect({ seriesId: series.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
-                  </li>)}
-                </ul>}
-                {createAction({ kind: "chapter", seriesId: series.id, bookId: book.id })}
-              </details>
-            </li>)}
+    {createAction({ kind: "universe" }, "Universe", "Universe")}
+    {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>
+      {treeUniverses(state.universes, selectedChapter).map(({ universe, open }) => <li key={`universe-${universe.id}`}>
+        <details open={open || createdUniverses.includes(universe.id)}>
+          <summary>{universe.title}</summary>
+          {universe.containers.length === 0 && universe.loose.length === 0 ? <p>No works yet.</p> : <ul>
+            {universe.containers.map((container) => {
+              const items = [...bookItems(container), ...pieceRoots(container).map((piece) => rootItem(universe, piece))];
+              return <li key={`container-${container.id}`}>
+                <details open>
+                  <summary>{container.title} · {containerKindLabel[container.kind]}</summary>
+                  {items.length === 0 ? <p>No pieces yet.</p> : <ul>{items}</ul>}
+                  {createAction({ kind: "piece", universeId: universe.id, container: { id: container.id, kind: container.kind } }, "Piece", "Piece")}
+                </details>
+              </li>;
+            })}
+            {universe.loose.map((piece) => rootItem(universe, piece))}
           </ul>}
-          {createAction({ kind: "book", seriesId: series.id })}
+          {createAction({ kind: "container", universeId: universe.id }, "Container", "Container")}
+          {createAction({ kind: "piece", universeId: universe.id, container: null }, "Loose piece", "Piece")}
         </details>
       </li>)}
     </ul>}
-    {universe && universeTree ? <details open data-universe>
-      <summary>{universe.title}</summary>
-      <ul>
-        {universeTree.containers.map((container) => <li key={`container-${container.id}`}>
-          <details open>
-            <summary>{container.title} · {containerKindLabel[container.kind]}</summary>
-            {container.pieces.length === 0 ? <p>No pieces yet.</p> : <ul>
-              {container.pieces.map((piece) => rootItem(universe, piece))}
-            </ul>}
-          </details>
-        </li>)}
-        {universeTree.loose.map((piece) => rootItem(universe, piece))}
-      </ul>
-    </details> : null}
     </div>
   </>;
 }

@@ -20,6 +20,7 @@ const container = { id: 1, universeId: 5, title: "Series", position: 0, kind: "b
 const piece = { id: 9, universeId: 5, containerId: null, parentId: null, title: "Loose", position: 0, label: "short_story", format: "prose", shape: "leaf" };
 const pieceDetail = { ...piece, content: { ops: [{ insert: "Loose\n" }] }, headRev: 2 };
 const group = { ...piece, id: 10, shape: "group", label: "screenplay", format: "script", children: [{ ...piece, id: 11, parentId: 10, label: "scene", format: "script" }] };
+const newPiece = { ...metadata, label: "short_story", shape: "leaf", format: "prose" } as const;
 const pieceScope = { seriesId: 1, universeId: 5, pieceId: 9 };
 type Client = ReturnType<typeof createManuscriptClient>;
 
@@ -46,6 +47,11 @@ describe("manuscript request contracts", () => {
     { name: "get deltas", call: (c) => c.getDeltas(scope, 0), path: `${root}/deltas?since=0`, method: "GET", status: 200, response: [revision] },
     { name: "post delta", call: (c) => c.postDelta(scope, submission), path: `${root}/deltas`, method: "POST", status: 200, response: revision, body: submission },
     { name: "list universes", call: (c) => c.listUniverses(), path: "/universes", method: "GET", status: 200, response: [series] },
+    { name: "create universe", call: (c) => c.createUniverse(metadata), path: "/universes", method: "POST", status: 201, response: series, body: metadata },
+    { name: "create container", call: (c) => c.createContainer({ universeId: 5 }, { ...metadata, kind: "collection" }), path: "/universes/5/containers", method: "POST", status: 201, response: container, body: { ...metadata, kind: "collection" } },
+    { name: "create loose piece", call: (c) => c.createLoosePiece({ universeId: 5 }, newPiece), path: "/universes/5/pieces", method: "POST", status: 201, response: piece, body: newPiece },
+    { name: "create container piece", call: (c) => c.createContainerPiece({ containerId: 1 }, newPiece), path: "/containers/1/pieces", method: "POST", status: 201, response: piece, body: newPiece },
+    { name: "create child", call: (c) => c.createChild({ pieceId: 10 }, { ...metadata, label: "scene" }), path: "/pieces/10/children", method: "POST", status: 201, response: group.children[0], body: { ...metadata, label: "scene" } },
     { name: "list containers", call: (c) => c.listContainers({ universeId: 5 }), path: "/universes/5/containers", method: "GET", status: 200, response: [container] },
     { name: "list loose pieces", call: (c) => c.listLoosePieces({ universeId: 5 }), path: "/universes/5/pieces?container=none", method: "GET", status: 200, response: [piece] },
     { name: "list container pieces", call: (c) => c.listContainerPieces({ containerId: 1 }), path: "/containers/1/pieces", method: "GET", status: 200, response: [piece] },

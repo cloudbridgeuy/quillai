@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { Container, Piece } from "./contract";
-import { openUniverse, pieceScope, sameScope, universeRoots, type StoryUniverse } from "./story_tree";
+import { facadeBook, openUniverse, pieceRoots, pieceScope, sameScope, treeUniverses, type StoryUniverse } from "./story_tree";
 
 const piece = (id: number, shape: Piece["shape"] = "leaf"): Piece => ({
   id, universeId: 5, containerId: null, parentId: null, title: `Piece ${id}`, position: 0,
@@ -21,10 +21,21 @@ test("open universe follows a chapter's series or a piece's universe", () => {
   expect(openUniverse([universe], null)).toBeNull();
 });
 
-test("universe roots omit book series and empty universes", () => {
-  expect(universeRoots(universe)).toEqual({ containers: [universe.containers[0]!], loose: universe.loose });
-  expect(universeRoots(empty)).toBeNull();
-  expect(universeRoots(null)).toBeNull();
+test("the open universe is listed last and expanded, others collapsed; no scope expands all", () => {
+  const third = { ...empty, id: 7 };
+  expect(treeUniverses([universe, empty, third], { universeId: 5, pieceId: 9 }).map(({ universe, open }) => [universe.id, open]))
+    .toEqual([[6, false], [7, false], [5, true]]);
+  expect(treeUniverses([universe, empty], null).map(({ open }) => open)).toEqual([true, true]);
+});
+
+test("book series hide façade novels, other containers show every root", () => {
+  const novel = { ...piece(11, "group"), label: "novel", children: [] };
+  const novella = { ...piece(12, "group"), label: "novella", children: [] };
+  const script = { ...novel, id: 13, format: "script" as const };
+  expect(facadeBook(novel)).toBe(true);
+  expect([novella, script, { ...novel, shape: "leaf" as const }].map(facadeBook)).toEqual([false, false, false]);
+  expect(pieceRoots({ ...container(4, "book_series"), pieces: [novel, novella, script] })).toEqual([novella, script]);
+  expect(pieceRoots({ ...container(7, "collection"), pieces: [novel, novella] })).toEqual([novel, novella]);
 });
 
 test("every leaf gets a piece scope in its universe, with or without a book series", () => {

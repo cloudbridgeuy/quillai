@@ -11,10 +11,18 @@ export function openUniverse(universes: StoryUniverse[], scope: EditorScope | nu
     : universe.containers.some(container => container.kind === "book_series" && container.id === scope.seriesId)) ?? null;
 }
 
-export function universeRoots(universe: StoryUniverse | null): { containers: StoryContainer[]; loose: StoryRoot[] } | null {
-  if (!universe) return null;
-  const containers = universe.containers.filter(container => container.kind !== "book_series");
-  return containers.length || universe.loose.length ? { containers, loose: universe.loose } : null;
+export function treeUniverses(universes: StoryUniverse[], scope: EditorScope | null): { universe: StoryUniverse; open: boolean }[] {
+  const current = openUniverse(universes, scope);
+  if (!current) return universes.map(universe => ({ universe, open: true }));
+  return [...universes.filter(universe => universe !== current).map(universe => ({ universe, open: false })), { universe: current, open: true }];
+}
+
+export function facadeBook(piece: Piece): boolean {
+  return piece.shape === "group" && piece.label === "novel" && piece.format === "prose";
+}
+
+export function pieceRoots(container: StoryContainer): StoryRoot[] {
+  return container.kind === "book_series" ? container.pieces.filter(piece => !facadeBook(piece)) : container.pieces;
 }
 
 export function pieceScope(universe: StoryUniverse, piece: Piece): PieceScope | null {
