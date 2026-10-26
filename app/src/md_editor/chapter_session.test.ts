@@ -469,7 +469,7 @@ test("Continue reservation rejects dirty and unrecovered work then waits success
   expect(session.canStartAi()).toBe(true);
 });
 
-test("piece URL loads the leaf with the universe book series as lore scope", async () => {
+test("piece URL loads the leaf in its universe without a book series", async () => {
   const urls: string[] = [];
   const client = createManuscriptClient({ baseUrl: "http://api", fetch: async (url) => {
     urls.push(url);
@@ -477,19 +477,16 @@ test("piece URL loads the leaf with the universe book series as lore scope", asy
       id: 9, universeId: 5, containerId: null, parentId: null, title: "Loose", position: 0,
       label: "short_story", format: "prose", shape: "leaf", content: { ops: [{ insert: "Loose\n" }] }, headRev: 3,
     });
-    return Response.json([
-      { id: 7, universeId: 5, title: "Shelf", position: 0, kind: "collection" },
-      { id: 4, universeId: 5, title: "Saga", position: 1, kind: "book_series" },
-    ]);
+    throw new Error(`Unexpected ${url}`);
   } });
   const loaded = await loadEditorChapter(client, "?seriesId=1&bookId=2&chapterId=3&pieceId=9");
   expect(loaded).toEqual({
-    scope: { seriesId: 4, universeId: 5, pieceId: 9 },
+    scope: { universeId: 5, pieceId: 9 },
     chapter: { title: "Loose", content: { ops: [{ insert: "Loose\n" }] }, head_rev: 3 },
   });
-  expect(urls).toEqual(["http://api/pieces/9", "http://api/universes/5/containers"]);
+  expect(urls).toEqual(["http://api/pieces/9"]);
   expect(canSwitchChapter(loaded.scope, { seriesId: 4, bookId: 2, chapterId: 3 }, false)).toBe(true);
-  expect(canSwitchChapter(loaded.scope, { seriesId: 4, universeId: 5, pieceId: 9 }, false)).toBe(false);
+  expect(canSwitchChapter(loaded.scope, { universeId: 5, pieceId: 9 }, false)).toBe(false);
 });
 
 test("piece URL rejects groups and invalid ids", async () => {

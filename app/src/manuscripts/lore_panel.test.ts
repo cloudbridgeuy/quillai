@@ -12,7 +12,7 @@ test("terms trim lines, remove blanks, preserve commas and Unicode", () => {
 });
 
 test("saved lore replaces by ID, sorts and does not mutate the source", () => {
-  const entry = { ...newLoreDraft(), id: 1, series_id: 2, name: "Zed" };
+  const entry = { ...newLoreDraft(), id: 1, universe_id: 2, name: "Zed" };
   const saved = { ...entry, name: "Ada", hidden_notes: "secret" };
   expect(replaceLoreEntry([entry], saved)).toEqual([saved]);
   expect(replaceLoreEntry([entry], { ...saved, id: 3 }).map(row => row.name)).toEqual(["Ada", "Zed"]);

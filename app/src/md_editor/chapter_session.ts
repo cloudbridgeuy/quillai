@@ -1,7 +1,7 @@
 import Delta from "quill-delta";
 import type { createManuscriptClient } from "../manuscripts/client";
 import { parseDelta, type Chapter, type ChapterScope, type EditorScope, type PieceScope, type Revision } from "../manuscripts/contract";
-import { loreSeriesId, sameScope } from "../manuscripts/story_tree";
+import { sameScope } from "../manuscripts/story_tree";
 import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 
@@ -15,10 +15,8 @@ export class NoEditorChapter extends Error {}
 async function loadPiece(client: Client, pieceId: number): Promise<{ scope: PieceScope; chapter: EditorDocument }> {
   const piece = await client.getPiece({ pieceId });
   if (piece.shape !== "leaf") throw new Error("Only a piece with text can open in the editor.");
-  const seriesId = loreSeriesId(await client.listContainers({ universeId: piece.universeId }));
-  if (seriesId === null) throw new Error("This piece's universe needs a book series before it can open.");
   return {
-    scope: { seriesId, universeId: piece.universeId, pieceId },
+    scope: { universeId: piece.universeId, pieceId },
     chapter: { title: piece.title, content: piece.content, head_rev: piece.headRev },
   };
 }

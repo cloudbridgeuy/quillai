@@ -4,10 +4,6 @@ export type StoryRoot = Piece & { children: Piece[] };
 export type StoryContainer = Container & { pieces: StoryRoot[] };
 export type StoryUniverse = Universe & { containers: StoryContainer[]; loose: StoryRoot[] };
 
-export function loreSeriesId(containers: Container[]): number | null {
-  return containers.find(container => container.kind === "book_series")?.id ?? null;
-}
-
 export function openUniverse(universes: StoryUniverse[], scope: EditorScope | null): StoryUniverse | null {
   if (!scope) return null;
   return universes.find(universe => "pieceId" in scope
@@ -22,8 +18,7 @@ export function universeRoots(universe: StoryUniverse | null): { containers: Sto
 }
 
 export function pieceScope(universe: StoryUniverse, piece: Piece): PieceScope | null {
-  const seriesId = loreSeriesId(universe.containers);
-  return piece.shape === "leaf" && seriesId !== null ? { seriesId, universeId: universe.id, pieceId: piece.id } : null;
+  return piece.shape === "leaf" ? { universeId: universe.id, pieceId: piece.id } : null;
 }
 
 export function sameScope(left: EditorScope | null, right: EditorScope | null): boolean {

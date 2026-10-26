@@ -1,11 +1,11 @@
 import { getApiBaseUrl } from "../api_config";
 import type { LoreMatchEntry } from "../md_editor/lore_match";
 import { ManuscriptApiError } from "./client";
-import { parseApiError, parseList, type SeriesScope } from "./contract";
+import { parseApiError, parseContainer, parseList, type SeriesScope, type UniverseScope } from "./contract";
 
-export type LoreEntry = LoreMatchEntry & { series_id: number; hidden_notes: string };
-export type LoreInput = Omit<LoreEntry, "id" | "series_id">;
-export type LoreScope = SeriesScope & { loreId: number };
+export type LoreEntry = LoreMatchEntry & { universe_id: number; hidden_notes: string };
+export type LoreInput = Omit<LoreEntry, "id" | "universe_id">;
+export type LoreScope = UniverseScope & { loreId: number };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Expected lore object");
@@ -28,7 +28,7 @@ export function parseLoreEntry(value: unknown): LoreEntry {
   if (level !== "include" && level !== "known_dont_reveal" && level !== "leave_out") throw new Error("Invalid lore level");
   if (typeof pinned !== "boolean") throw new Error("Expected lore pin boolean");
   return {
-    id: id(row.id), series_id: id(row.series_id), kind, level, pinned, name: term(row.name),
+    id: id(row.id), universe_id: id(row.universe_id), kind, level, pinned, name: term(row.name),
     keywords: parseList(row.keywords, term), aliases: parseList(row.aliases, term),
     visible_text: text(row.visible_text), hidden_notes: text(row.hidden_notes),
   };
@@ -37,8 +37,10 @@ export function parseLoreEntry(value: unknown): LoreEntry {
 export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchRequest = globalThis.fetch }: {
   baseUrl?: string; fetch?: (url: string, init?: RequestInit) => Promise<Response>;
 } = {}) {
-  async function request<T>(scope: SeriesScope | LoreScope, method: string, status: number, parse: (value: unknown) => T, body?: unknown): Promise<T> {
-    const path = `/series/${encodeURIComponent(scope.seriesId)}/lore${"loreId" in scope ? `/${encodeURIComponent(scope.loreId)}` : ""}`;
+  function lorePath(scope: UniverseScope | LoreScope): string {
+    return `/universes/${encodeURIComponent(scope.universeId)}/lore${"loreId" in scope ? `/${encodeURIComponent(scope.loreId)}` : ""}`;
+  }
+  async function request<T>(path: string, method: string, status: number, parse: (value: unknown) => T, body?: unknown): Promise<T> {
     const response = await fetchRequest(`${baseUrl.replace(/\/+$/, "")}${path}`, {
       method, headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -58,11 +60,13 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
     }
   }
   return {
-    list: (scope: SeriesScope) => request(scope, "GET", 200, value => parseList(value, parseLoreEntry)),
-    get: (scope: LoreScope) => request(scope, "GET", 200, parseLoreEntry),
-    create: (scope: SeriesScope, input: LoreInput) => request(scope, "POST", 201, parseLoreEntry, input),
-    update: (scope: LoreScope, input: Partial<LoreInput>) => request(scope, "PUT", 200, parseLoreEntry, input),
-    delete: (scope: LoreScope) => request(scope, "DELETE", 204, value => {
+    seriesUniverse: ({ seriesId }: SeriesScope) => request(`/containers/${encodeURIComponent(seriesId)}`, "GET", 200,
+      value => parseContainer(value).universeId),
+    list: (scope: UniverseScope) => request(lorePath(scope), "GET", 200, value => parseList(value, parseLoreEntry)),
+    get: (scope: LoreScope) => request(lorePath(scope), "GET", 200, parseLoreEntry),
+    create: (scope: UniverseScope, input: LoreInput) => request(lorePath(scope), "POST", 201, parseLoreEntry, input),
+    update: (scope: LoreScope, input: Partial<LoreInput>) => request(lorePath(scope), "PUT", 200, parseLoreEntry, input),
+    delete: (scope: LoreScope) => request(lorePath(scope), "DELETE", 204, value => {
       if (value !== "") throw new Error("Expected empty delete response");
     }),
   };

@@ -3,9 +3,7 @@ import type { LoreEntry, LoreInput } from "../../manuscripts/lore_client";
 import { newLoreDraft, parseLoreTerms, replaceLoreEntry } from "../../manuscripts/lore_panel";
 import type { useLore } from "../../manuscripts/use_lore";
 
-export function LorePanel({ seriesId, lore, disabled }: {
-  seriesId: number; lore: ReturnType<typeof useLore>; disabled: boolean;
-}) {
+export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
@@ -16,18 +14,19 @@ export function LorePanel({ seriesId, lore, disabled }: {
     setError("");
   }
   async function save(remove = false) {
-    if (!draft) return;
+    const universeId = lore.universeId;
+    if (!draft || universeId === null) return;
     setPending(true);
     setError("");
     try {
       if (remove && editingId !== null) {
-        await lore.client.delete({ seriesId, loreId: editingId });
+        await lore.client.delete({ universeId, loreId: editingId });
         lore.change(lore.entries.filter(entry => entry.id !== editingId));
       } else {
         const input: LoreInput = { kind: draft.kind, name: draft.name, keywords: draft.keywords, aliases: draft.aliases,
           visible_text: draft.visible_text, hidden_notes: draft.hidden_notes, level: draft.level, pinned: draft.pinned };
-        const saved = editingId === null ? await lore.client.create({ seriesId }, input)
-          : await lore.client.update({ seriesId, loreId: editingId }, input);
+        const saved = editingId === null ? await lore.client.create({ universeId }, input)
+          : await lore.client.update({ universeId, loreId: editingId }, input);
         lore.change(replaceLoreEntry(lore.entries, saved));
       }
       setDraft(null);

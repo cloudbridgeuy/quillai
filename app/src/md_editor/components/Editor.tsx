@@ -342,7 +342,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
     return () => { document.title = "QuillAI"; };
   }, [tabTitle]);
 
-  const lore = useLore(chapterSync.scope?.seriesId ?? null);
+  const lore = useLore(chapterSync.scope);
   const loreEntries = suppliedLoreEntries ?? lore.entries;
 
   function persistEditorState() {
@@ -1256,7 +1256,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
               } else void chapterSync.switchChapter(scope);
             }} />
         </div>
-        {chapterSync.scope ? <LorePanel key={chapterSync.scope.seriesId} seriesId={chapterSync.scope.seriesId}
+        {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
           lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Select a chapter to manage series lore.</p>}
         <a className="editor-button" download="chapter-local.json"
           href="#" onClick={(event) => {
