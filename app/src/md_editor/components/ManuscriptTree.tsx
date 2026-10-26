@@ -18,9 +18,10 @@ type TreeState =
   | { status: "failed"; message: string }
   | ({ status: "ready" } & ManuscriptTreeData);
 
-export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
+export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, onSelect }: {
   selectedChapter: EditorScope | null;
   disabled: boolean;
+  savesBeforeOpening?: boolean;
   onSelect: (scope: EditorScope) => void;
 }) {
   const [client] = useState(createManuscriptClient);
@@ -236,7 +237,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   }
 
   return <>
-    <p className="editor-note">Opening a chapter saves current changes first.</p>
+    {savesBeforeOpening ? <p className="editor-note">Opening a chapter saves current changes first.</p> : null}
     <div ref={treeRef} className="editor-manuscript-tree">
     {createAction({ kind: "universe" }, "Universe", "Universe")}
     {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>

@@ -12,7 +12,7 @@ function apiUrl() {
 test("tab title without a chapter", async ({ page }) => {
   const api = apiUrl();
   await page.route(`${api}/series`, route => route.fulfill({ json: [] }));
-  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
   await expect(page.getByRole("button", { name: "Create chapter", exact: true })).toBeVisible();
   await expect(page).toHaveTitle("QuillAI");
 });
@@ -25,7 +25,7 @@ test("tab title while loading and after a load error", async ({ page }) => {
     await held;
     await route.fulfill({ status: 500, json: { error: "Chapter load failed" } });
   });
-  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
   try {
     await expect(page.getByText("Loading chapter…", { exact: true })).toBeVisible();
     await expect(page).toHaveTitle("QuillAI");
@@ -79,7 +79,7 @@ test("tab title follows the open chapter and chapter switches", async ({ page, r
 test("favicon link serves an image", async ({ page, request }) => {
   const api = apiUrl();
   await page.route(`${api}/series`, route => route.fulfill({ json: [] }));
-  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
   const icon = page.locator('link[rel="icon"]');
   await expect(icon).toHaveCount(1);
   const href = await icon.getAttribute("href");

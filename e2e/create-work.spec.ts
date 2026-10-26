@@ -17,7 +17,7 @@ for (const width of [1100, 1440]) {
     const shots = `../target/guz-941/${testInfo.project.name}`;
     const title = `Work ${testInfo.project.name} ${width}`;
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
     const editor = page.locator(".ql-editor");
     const drawerButton = page.getByRole("button", { name: "Manuscript", exact: true });
     const outline = page.getByRole("region", { name: "Manuscript outline", exact: true });

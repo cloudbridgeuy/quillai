@@ -81,6 +81,7 @@ import { ManuscriptTree } from "./ManuscriptTree";
 import { LorePanel } from "./LorePanel";
 import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
+import { IconButton } from "../../ui/IconButton";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";
@@ -1176,6 +1177,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
       {desktop && showContinueWindow && chapterSync.ready && markerQuill ? <ContinueWindow
         quill={markerQuill} start={markerWindow.start} end={markerWindow.end} /> : null}
       <nav className="editor-rail editor-rail-left" aria-label="Navigation">
+        <IconButton label="Library" title="Back to library" glyph="⌂" disabled={isBusy}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => void chapterSync.leave()} />
         <button type="button" aria-label="Manuscript" title="Manuscript (Ctrl/Cmd+[)"
           aria-controls="manuscript-drawer" aria-expanded={panel === "manuscript"}
           onMouseDown={(event) => event.preventDefault()}
@@ -1247,7 +1251,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
           <h2 id="manuscript-title">Manuscript</h2>
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={chapterSync.scope} disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
+          <ManuscriptTree selectedChapter={chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
             onSelect={(scope) => {
               if (chapterSync.needsChapter) {
                 const url = new URL(window.location.href);

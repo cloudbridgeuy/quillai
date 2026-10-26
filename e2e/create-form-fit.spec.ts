@@ -49,7 +49,7 @@ for (const width of [1100, 1440]) {
     const loose = await post(`${api}/universes/${universe.id}/pieces`, { title: `${prefix} loose`, position: 0, label: "short_story", shape: "leaf" });
 
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     const drawer = page.locator("#manuscript-drawer");
     await expect(drawer.getByText("Open a piece or chapter to manage its universe lore.", { exact: true })).toBeVisible();

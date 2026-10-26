@@ -6,6 +6,7 @@ import type { EditorScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
+import { LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -26,6 +27,7 @@ export function useChapterSync(
   const switchingRef = useRef(false);
   const applyingRef = useRef(false);
   const dirtyRef = useRef(false);
+  const openedRef = useRef<string | null>(null);
   const activeRef = useRef(isAiActive);
   const remoteRef = useRef(onRemoteChange);
   activeRef.current = isAiActive;
@@ -101,6 +103,7 @@ export function useChapterSync(
       let latestRecovery: string | null = null;
       sessionRef.current = session;
       currentScope = scope;
+      openedRef.current = JSON.stringify({ scope, title: chapter.title });
       setScope(scope);
       setBlocked(false);
       setTitle(chapter.title);
@@ -166,6 +169,26 @@ export function useChapterSync(
     title,
     scope,
     switchChapter: (target: EditorScope) => switchRef.current?.(target),
+    async leave() {
+      const quill = quillRef.current;
+      const session = sessionRef.current;
+      if (switchingRef.current || activeRef.current()) return;
+      if (quill && session) {
+        switchingRef.current = true;
+        setReady(false);
+        setStatus("Saving before leaving…");
+        try {
+          session.edit(quill.getContents());
+          await session.flush();
+        } catch (error) {
+          setStatus(`Leaving stopped: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
+          switchingRef.current = false;
+          setReady(true);
+          return;
+        }
+      }
+      window.location.assign(landingUrl(window.location.href));
+    },
     recovery,
     needsChapter,
     async bootstrap() {
@@ -198,6 +221,9 @@ export function useChapterSync(
     documentChanged() {
       if (!applyingRef.current && quillRef.current) {
         sessionRef.current?.edit(quillRef.current.getContents());
+        try {
+          if (openedRef.current) window.localStorage.setItem(LAST_EDITED_KEY, openedRef.current);
+        } catch {}
       }
     },
     exportDocument: () => JSON.stringify({ document: quillRef.current?.getContents() }),

@@ -92,6 +92,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 `create-form-fit.spec.ts` at 1100px and 1440px checks every field and button of the container and loose piece create forms sits inside the tree area without manual scrolling (the open form scrolls itself into view; Label and Format sit side by side), create controls align with sibling rows, and the no-scope lore wording; screenshots in `target/guz-971/<browser>/`.
 
+`landing.spec.ts` at 1100px and 1440px opens `/` with no target: the landing lists a seeded universe, container and loose pieces; an edited leaf (not one only opened) becomes Resume; the editor's Library button saves and returns; a loose piece created from landing opens and stays listed after reload. Screenshots in `target/guz-894/<browser>/`.
+
 `reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.
 
 `offline-stale-base.spec.ts` holds one tab's delta submission offline while the other commits three edits, then verifies HTTP 200 for the stale base and exact convergence of both tabs and server with all in-flight and pending edits at 1100px.
@@ -106,7 +108,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 |------|---------|
 | `index.tsx` | Bun.serve entry — routes, static assets, HMR. Port via `PORT` env var |
 | `index.html`, `logo.svg`, `tab_title.ts` | HTML shell with QuillAI fallback title and palette quill favicon; pure chapter-aware tab title applied by Editor, covered by Bun and `e2e/tab-title.spec.ts` |
-| `App.tsx` | Root React component — renders the editor inside an ErrorBoundary. See [error boundary context](.claude/context/error-boundary.md) |
+| `App.tsx` | Root React component — renders the landing page when the URL has no `pieceId`, `seriesId`/`bookId`/`chapterId` or `editor` parameter, otherwise the editor, inside an ErrorBoundary. `?editor=1` opens the editor with its old first-chapter fallback. See [error boundary context](.claude/context/error-boundary.md) |
+| `landing/Landing.tsx`, `landing/routes.ts` | Landing page: Resume button for the last leaf this browser edited (browser-side only, `localStorage` key `quillai.landing.lastEdited.v1` with scope and title, written on author/AI document changes, not on open) and the `ManuscriptTree` library (universes, containers, loose pieces, the same create forms); picking or creating a leaf opens it in the editor. `routes.ts` holds pure landing/editor URL helpers (keeps `apiBaseUrl`) and the stored-scope parser. The editor's left-rail Library button saves (flush) and returns to landing. |
 | `components/ErrorBoundary.tsx` | React error boundary with ADT state, crash isolation per component. See [error boundary context](.claude/context/error-boundary.md) |
 | `ui/StickyNote.tsx` | Shared native textarea (tones yellow, pink, green; `overhang` widens 4px each side; `readOnly` removes resize) with yellow Story Context, Continue instruction, Thread continuation prompt, and author guidance styling; pink remains the rail Edit note. Forwards native props and ref. Enter and Apply share selection/readiness checks; Shift+Enter adds a newline and Esc cancels. Guidance saves explicitly. |
 | `ui/Button.tsx`, `IconButton.tsx`, `ListButton.tsx`, `TextField.tsx`, `Toggle.tsx`, `Field.tsx`, `Heading.tsx`, `Alert.tsx`, `cx.ts` | Design-system primitives, each exporting a pure `*ClassName` function and forwarding native props and ref; unit tests in `ui/primitives.test.tsx`. Component page `e2e/fixtures/ui-components/` is not shipped; `e2e/ui-components.spec.ts` renders every variant and screenshots to `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. See [design system](docs/design-system.md) |

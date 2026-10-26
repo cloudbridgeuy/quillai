@@ -20,7 +20,7 @@ for (const width of [1100, 1440]) {
       if (req.url().startsWith(api) && req.method() === "POST") posts.push(req.url());
     });
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api })}`);
+    await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
     await expect(page.getByRole("button", { name: "Manuscript", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     const outline = page.getByRole("region", { name: "Manuscript outline", exact: true });
