@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { Button } from "../../ui/Button";
 import { ListButton } from "../../ui/ListButton";
 import { TextField } from "../../ui/TextField";
@@ -6,6 +6,7 @@ import { Alert } from "../../ui/Alert";
 import { createManuscriptClient } from "../../manuscripts/client";
 import type { ChapterScope } from "../../manuscripts/contract";
 import { createTitle, draftTransition, targetPosition, type CreateTarget, type ManuscriptSeries } from "../../manuscripts/create_draft";
+import { treeScrollTarget } from "./tree_scroll";
 
 type TreeState =
   | { status: "loading" }
@@ -22,6 +23,22 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   const [attempt, setAttempt] = useState(0);
   const [draft, dispatch] = useReducer(draftTransition, null);
   const submitting = useRef(false);
+  const treeRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const tree = treeRef.current;
+    const container = tree?.parentElement;
+    const row = tree?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!container || !row) return;
+    for (let ancestor = row.parentElement; ancestor && ancestor !== container; ancestor = ancestor.parentElement) {
+      if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+    }
+    const viewportTop = container.getBoundingClientRect().top + container.clientTop;
+    const bounds = row.getBoundingClientRect();
+    const series = row.closest("details")?.parentElement?.closest("details");
+    const blockBottom = series?.lastElementChild?.getBoundingClientRect().bottom ?? bounds.bottom;
+    container.scrollTop = treeScrollTarget(container.scrollTop, bounds.top, bounds.bottom, viewportTop, viewportTop + container.clientHeight, blockBottom);
+  }, [state.status, selectedChapter?.seriesId, selectedChapter?.bookId, selectedChapter?.chapterId]);
 
   async function create() {
     if (!draft || disabled || submitting.current || state.status !== "ready") return;
@@ -107,7 +124,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
 
   return <>
     <p className="editor-note">Opening a chapter saves current changes first.</p>
-    <div className="editor-manuscript-tree">
+    <div ref={treeRef} className="editor-manuscript-tree">
     {createAction({ kind: "series" })}
     {state.series.length === 0 ? <p>No series yet.</p> : <ul>
       {state.series.map((series) => <li key={series.id}>

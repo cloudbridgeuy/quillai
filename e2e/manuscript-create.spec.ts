@@ -100,9 +100,6 @@ for (const width of [1100, 1440]) {
     await expect(outline.getByRole("button", { name: "+ Series", exact: true })).toBeVisible();
     await expect(seriesRow.getByRole("button", { name: "+ Book", exact: true })).toBeVisible();
     await expect(seriesRow.getByRole("button", { name: "+ Chapter", exact: true })).toBeVisible();
-    for (const summary of await outline.locator(".editor-manuscript-tree > ul > li > details > summary").all()) {
-      if (await summary.textContent() !== title) await summary.click();
-    }
     await expect(seriesRow.getByRole("button", { name: "Second chapter", exact: true })).toBeInViewport();
     await expect(seriesRow.getByRole("button", { name: "+ Book", exact: true })).toBeInViewport();
     await expect(seriesRow.getByRole("button", { name: "+ Chapter", exact: true })).toBeInViewport();
