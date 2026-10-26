@@ -18,10 +18,11 @@ type TreeState =
   | { status: "failed"; message: string }
   | ({ status: "ready" } & ManuscriptTreeData);
 
-export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, onSelect }: {
+export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, collapsedExcept, onSelect }: {
   selectedChapter: EditorScope | null;
   disabled: boolean;
   savesBeforeOpening?: boolean;
+  collapsedExcept?: number | null;
   onSelect: (scope: EditorScope) => void;
 }) {
   const [client] = useState(createManuscriptClient);
@@ -199,6 +200,9 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   </div>;
 
   const series = state.series;
+  const universes = collapsedExcept === undefined
+    ? treeUniverses(state.universes, selectedChapter)
+    : state.universes.map(universe => ({ universe, open: universe.id === collapsedExcept }));
 
   function pieceButton(story: StoryUniverse, piece: Piece) {
     const scope = pieceScope(story, piece);
@@ -241,7 +245,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
     <div ref={treeRef} className="editor-manuscript-tree">
     {createAction({ kind: "universe" }, "Universe", "Universe")}
     {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>
-      {treeUniverses(state.universes, selectedChapter).map(({ universe, open }) => <li key={`universe-${universe.id}`}>
+      {universes.map(({ universe, open }) => <li key={`universe-${universe.id}`}>
         <details open={open || createdUniverses.includes(universe.id)}>
           <summary>{universe.title}</summary>
           {universe.containers.length === 0 && universe.loose.length === 0 ? <p>No works yet.</p> : <ul>

@@ -1,0 +1,27 @@
+@reference "../index.css";
+
+.landing-library .editor-manuscript-tree > ul {
+  @apply m-0 mt-2 grid items-start gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(--spacing(72), 1fr));
+}
+
+.landing-library .editor-manuscript-tree > ul > li {
+  @apply m-0 rounded-card bg-paper p-4 shadow-note;
+  border: var(--sheet-edge);
+}
+
+.landing-library .editor-manuscript-tree > ul > li:has(> details[open]) {
+  @apply col-span-full;
+}
+
+.landing-library .editor-manuscript-tree > ul > li > details {
+  @apply pl-0;
+}
+
+.landing-library .editor-manuscript-tree > ul > li > details > summary {
+  @apply ml-0 text-title font-semibold text-ink;
+}
+
+.landing-library .editor-manuscript-tree > ul > li > details[open] > summary {
+  @apply mb-2 border-b border-rule pb-2;
+}
