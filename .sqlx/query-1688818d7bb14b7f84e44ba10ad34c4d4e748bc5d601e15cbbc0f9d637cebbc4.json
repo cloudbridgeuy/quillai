@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pieces SET container_id = NULL, parent_id = ?, position = 0, label = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "1688818d7bb14b7f84e44ba10ad34c4d4e748bc5d601e15cbbc0f9d637cebbc4"
+}

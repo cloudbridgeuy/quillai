@@ -56,6 +56,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 | `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync over the `legacy_chapters` view, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
 | `manuscripts/leaf_sync.rs` | Shared leaf Delta history and server-priority submit (snapshot every 100) for chapter and piece delta routes |
 | `manuscripts/universes/`, `containers/`, `pieces/` | Story model routes (camelCase JSON, lore stays snake_case with `universe_id`); `mod.rs` holds JSON input parsing, PUT key rejection, and trigger RAISE → 422 mapping; HTTP coverage in `crates/api/tests/story_routes_test.rs` |
+| `manuscripts/pieces/moves.rs` | Placement, detach, split, and attach inside one universe (`docs/story-model.md` §3): one UPDATE per move keeps piece id, revisions, and lore; triggers enforce universe, format, and membership (422); HTTP coverage in `crates/api/tests/piece_moves_test.rs` |
 | `eval/`, `bin/eval.rs` | Eval set CLI (`cargo run -p quillai_api --bin eval -- export\|check`): exports one book via the chapter API to a gitignored `eval-fixtures/` fixture (refuses paths git does not ignore) and parses typed case files (Continue offset or Edit range plus instruction, Quill editor indices with embeds counted as 1). See [eval](docs/eval.md) |
 
 ### Rust — Logging (`crates/log/src/`)
@@ -77,6 +78,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 `ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.
 
 `edit-replacement.spec.ts` arms one-use `e2e-edit` identities at 1100px: tags split across fragments with commentary around them leave only the replacement in the editor and server; missing or unclosed tags show the error and restore the selection.
+
+`piece-move-lore.spec.ts` at 1100px seeds one universe with lore and two collections, records the Continue lore list for a piece, places the piece in the other collection through `POST /pieces/{id}/placement`, reloads, and checks the same lore list, text, head revision, and universe lore.
 
 `persistent-dev-database.spec.ts` at 1100px starts `target/debug/api` in a temporary directory with no `--db-url` and no `QUILLAI_API_DB_URL`, creates a chapter, types further text, kills that process, starts it again in the same directory, and checks the editor and the chapter GET still show the text. It does not use the sandbox database and does not open `<workspace>/quillai.db`.
 
@@ -208,6 +211,9 @@ Startup applies embedded migrations before serving and explicitly enables SQLite
 - `POST /pieces/{id}/children` — new empty leaf under a group with the group's format; label defaults to chapter (prose) or scene (script); non-group is 422
 - `GET/PUT/DELETE /pieces/{id}` — leaf adds `content`/`headRev`, group adds `children`; PUT changes title/position/label/format (group format cascades to children); `universeId`, `containerId`, `parentId`, `shape`, `content`, a child format change, or a membership break is 422
 - `POST/GET /pieces/{id}/deltas` — leaves only (group 404); same JSON and 409 rules as chapter deltas
+- `POST /pieces/{id}/placement` — `{containerId: number|null, position}`; a root moves to that container or storage (null); a child accepts only null (detach: clears `parentId`). Returns the piece detail (200, 404, or 422 for another universe, a missing container, a membership break, or a child with a container)
+- `POST /pieces/{id}/split` — `{label?}`; a root leaf becomes the position-0 child of a new group that copies its universe, container, title, position, label, and format; child label defaults to chapter (prose) or scene (script). Returns the group detail with children (201, 404, or 422 for a group, a child, or an unknown label)
+- `POST /pieces/{groupId}/attach` — `{pieceId, position}`; a root leaf in the same universe and format becomes a child of that group, clearing `containerId` in the same UPDATE. Returns the group detail (200, 404 for a missing group, or 422 for a non-group target, a missing/group/child source, another universe, or another format)
 - `POST /ai/generate` — Stream AI delta fragments as NDJSON; optional `model` must exactly match a startup catalog ID (422 if invalid); omission uses the action default. See [AI streaming context](.claude/context/ai-streaming.md)
 - `GET /ai/models` — Return startup catalog model IDs, labels, input/output prices per million tokens, and `defaults.generate` (Continue) / `defaults.edit` IDs. No provider configuration or `include_usage`; missing catalog returns the standard 500 configuration error.
 - `GET /settings/author-guidance` — Return `{text: string}`; missing row returns empty text (200).

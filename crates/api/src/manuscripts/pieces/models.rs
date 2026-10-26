@@ -62,6 +62,25 @@ pub struct CreateChild {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Placement {
+    pub container_id: Option<i64>,
+    pub position: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Split {
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Attach {
+    pub piece_id: i64,
+    pub position: i64,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UpdatePiece {
     pub title: Option<String>,
     pub position: Option<i64>,
@@ -100,6 +119,14 @@ fn validate_format(format: &str) -> Result<(), Error> {
     Ok(())
 }
 
+fn child_label<'a>(label: Option<&'a str>, format: &str) -> &'a str {
+    match (label, format) {
+        (Some(label), _) => label,
+        (None, "script") => "scene",
+        (None, _) => "chapter",
+    }
+}
+
 impl CreatePiece {
     pub fn validate(&self) -> Result<(), Error> {
         validate_title(&self.title)?;
@@ -128,11 +155,17 @@ impl CreateChild {
     }
 
     pub fn label<'a>(&'a self, format: &str) -> &'a str {
-        match (self.label.as_deref(), format) {
-            (Some(label), _) => label,
-            (None, "script") => "scene",
-            (None, _) => "chapter",
-        }
+        child_label(self.label.as_deref(), format)
+    }
+}
+
+impl Split {
+    pub fn validate(&self) -> Result<(), Error> {
+        self.label.as_deref().map_or(Ok(()), validate_label)
+    }
+
+    pub fn label<'a>(&'a self, format: &str) -> &'a str {
+        child_label(self.label.as_deref(), format)
     }
 }
 

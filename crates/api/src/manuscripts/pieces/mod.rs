@@ -1,5 +1,6 @@
 pub mod handlers;
 pub mod models;
+pub mod moves;
 
 use axum::{
     routing::{get, post},
@@ -18,6 +19,9 @@ pub fn routes(pool: SqlitePool) -> Router {
             get(handlers::list_container_pieces).post(handlers::create_container_piece),
         )
         .route("/pieces/{id}/children", post(handlers::create_child))
+        .route("/pieces/{id}/placement", post(moves::place))
+        .route("/pieces/{id}/split", post(moves::split))
+        .route("/pieces/{id}/attach", post(moves::attach))
         .route(
             "/pieces/{id}",
             get(handlers::get_piece)

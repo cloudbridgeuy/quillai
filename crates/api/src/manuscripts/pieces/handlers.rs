@@ -19,7 +19,7 @@ use crate::manuscripts::{
     universes::handlers::existing_universe,
 };
 
-async fn piece(connection: &mut SqliteConnection, id: i64) -> Result<Piece, Error> {
+pub(super) async fn piece(connection: &mut SqliteConnection, id: i64) -> Result<Piece, Error> {
     sqlx::query_as!(
         Piece,
         r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE id = ?"#,
@@ -30,7 +30,10 @@ async fn piece(connection: &mut SqliteConnection, id: i64) -> Result<Piece, Erro
     .ok_or(Error::NotFound)
 }
 
-async fn detail(connection: &mut SqliteConnection, piece: Piece) -> Result<PieceDetail, Error> {
+pub(super) async fn detail(
+    connection: &mut SqliteConnection,
+    piece: Piece,
+) -> Result<PieceDetail, Error> {
     if piece.shape == "group" {
         let children = sqlx::query_as!(
             Piece,
