@@ -87,6 +87,8 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 `story-tree.spec.ts` at 1100px and 1440px seeds a book-series novel chapter and a loose piece in one universe; the tree lists every universe (other universes collapsed first, the open one expanded last) with its containers and loose pieces; book series show their façade novels and other roots (`manuscripts/story_tree.ts`), the piece opens by `pieceId` (lore from the piece's universe via `/universes/{id}/lore`), syncs through `/pieces/{id}/deltas`, survives reload, and the chapter still opens.
 
+`create-form-fit.spec.ts` at 1100px and 1440px checks every field and button of the container and loose piece create forms sits inside the tree area without manual scrolling (the open form scrolls itself into view; Label and Format sit side by side), create controls align with sibling rows, and the no-scope lore wording; screenshots in `target/guz-971/<browser>/`.
+
 `reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.
 
 `offline-stale-base.spec.ts` holds one tab's delta submission offline while the other commits three edits, then verifies HTTP 200 for the stale base and exact convergence of both tabs and server with all in-flight and pending edits at 1100px.

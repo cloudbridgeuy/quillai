@@ -1257,7 +1257,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
             }} />
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
-          lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Select a chapter to manage series lore.</p>}
+          lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
         <a className="editor-button" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;

@@ -31,6 +31,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   const submitting = useRef(false);
   const treeRef = useRef<HTMLDivElement>(null);
   const selectedKey = JSON.stringify(selectedChapter);
+  const draftKey = draft && JSON.stringify(draft.target);
 
   useLayoutEffect(() => {
     const tree = treeRef.current;
@@ -46,6 +47,10 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
     const blockBottom = series?.lastElementChild?.getBoundingClientRect().bottom ?? bounds.bottom;
     container.scrollTop = treeScrollTarget(container.scrollTop, bounds.top, bounds.bottom, viewportTop, viewportTop + container.clientHeight, blockBottom);
   }, [state.status, selectedKey]);
+
+  useLayoutEffect(() => {
+    treeRef.current?.querySelector("[data-manuscript-draft]")?.scrollIntoView({ block: "nearest" });
+  }, [draftKey]);
 
   async function create() {
     if (!draft || disabled || submitting.current || state.status !== "ready") return;
@@ -96,12 +101,12 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
   }
 
   function createAction(target: CreateTarget, button: string, noun: string) {
-    const active = draft && JSON.stringify(draft.target) === JSON.stringify(target);
+    const active = draft && draftKey === JSON.stringify(target);
     if (!active) return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
       onClick={() => dispatch({ type: "start", target })}>+ {button}</ListButton>;
     const locked = disabled || draft.pending;
     const labels = labelOptions(target);
-    return <form data-manuscript-draft className="flex flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
+    return <form data-manuscript-draft className="flex scroll-my-2 flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
       onKeyDown={event => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -119,6 +124,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
           {containerKinds.map(kind => <option key={kind} value={kind}>{containerKindLabel[kind]}</option>)}
         </TextField>
       </Field> : null}
+      <div className={target.kind === "piece" ? "grid grid-cols-2 gap-2" : "contents"}>
       {labels.length ? <Field label="Label">
         <TextField as="select" square value={draft.fields.label} disabled={locked}
           onChange={event => dispatch({ type: "edit", fields: { label: labels.find(label => label === event.target.value) } })}>
@@ -131,6 +137,7 @@ export function ManuscriptTree({ selectedChapter, disabled, onSelect }: {
           {formats.map(format => <option key={format} value={format}>{format === "script" ? "Script" : "Prose"}</option>)}
         </TextField>
       </Field> : null}
+      </div>
       <div className="flex gap-2">
         <Button type="submit" variant="primary" size="sm" disabled={locked}>Create</Button>
         <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>Cancel</Button>

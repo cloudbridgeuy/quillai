@@ -564,11 +564,11 @@ body {
 .editor-manuscript-tree,
 .editor-manuscript-tree ul {
   list-style: none;
-  padding-left: 14px;
+  padding-left: 0;
 }
 
-.editor-manuscript-tree {
-  padding-left: 0;
+.editor-manuscript-tree details {
+  padding-left: 14px;
 }
 
 .editor-manuscript-tree li {
@@ -576,6 +576,7 @@ body {
 }
 
 .editor-manuscript-tree summary {
+  margin-left: -14px;
   cursor: pointer;
   color: var(--slate);
   font-weight: 600;
