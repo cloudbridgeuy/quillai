@@ -187,7 +187,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await select(page, (await oneEnd()) - "boils.".length, "boils.\n\nThunder.".length);
     await paste("Merged");
     await expectSurface("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
-    await expect(status).toHaveText("Edits across a scene break are not saved");
+    await expect(page.getByRole("alert")).toHaveText("Edits across a scene break are not saved");
     await polls(2);
     expect(posts.length).toBe(count);
     await expectServer("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
@@ -197,7 +197,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     const count = posts.length;
     await breaks.nth(1).evaluate((node) => node.insertBefore(document.createTextNode("Dropped"), node.firstChild));
     await expectSurface("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
-    await expect(status).toHaveText("Edits across a scene break are not saved");
+    await expect(page.getByRole("alert")).toHaveText("Edits across a scene break are not saved");
     await polls(2);
     expect(posts.length).toBe(count);
 

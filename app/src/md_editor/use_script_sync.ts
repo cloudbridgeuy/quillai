@@ -51,16 +51,15 @@ export function useScriptSync(
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [recovery, setRecovery] = useState<string | null>(null);
-  const [scope, setScope] = useState<EditorScope | null>(null);
+  const [scope, setScope] = useState<PieceScope | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [caretScene, setCaretScene] = useState<number | null>(null);
   const caretRef = useRef<number | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
   const layoutRef = useRef<ScriptLayout>([]);
   const applyingRef = useRef(false);
   const leavingRef = useRef(false);
   const openedRef = useRef<string | null>(null);
-  const noticeRef = useRef<string | null>(null);
-  const refreshRef = useRef(() => {});
   const activeRef = useRef(isAiActive);
   const remoteRef = useRef(onRemoteChange);
   activeRef.current = isAiActive;
@@ -104,10 +103,8 @@ export function useScriptSync(
       setBlocked(scenes.some((scene) => scene.problem?.kind === "blocked"));
       setStatus(failing?.problem
         ? `${failing.title}: ${failing.problem.message}`
-        : `${groupTitle} · ${noticeRef.current ?? (scenes.some((scene) => scene.dirty) ? "Unsaved changes" : "Saved")}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
+        : `${groupTitle} · ${scenes.some((scene) => scene.dirty) ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
     }
-
-    refreshRef.current = refresh;
 
     function publish(scene: SceneState, scope: PieceScope, document: Delta, dirty: boolean, problem: SyncProblem | null) {
       const quill = quillRef.current;
@@ -205,24 +202,35 @@ export function useScriptSync(
       if (action.kind === "move") quill.setSelection(action.index, 0, "user");
       else block();
     };
-    const paste = (event: ClipboardEvent) => {
-      const range = quill?.getSelection();
-      if (!range || !crossesBreak(range, layoutRef.current)) return;
+    const refuse = (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
       block();
     };
+    const clipboard = (event: ClipboardEvent) => {
+      const range = quill?.getSelection();
+      if (range && crossesBreak(range, layoutRef.current)) refuse(event);
+    };
+    const drop = (event: DragEvent) => {
+      if (event.target instanceof Element && event.target.closest(".ql-scene-break")) refuse(event);
+    };
     const selection = (range: { index: number; length: number } | null, previous: { index: number } | null) => {
       const index = range && range.length === 0 ? offBreak(range.index, previous?.index ?? null, layoutRef.current) : null;
       if (quill && index !== null) quill.setSelection(index, 0, "user");
+      const span = range && layoutRef.current.find((candidate) => range.index >= candidate.start && range.index < candidate.start + candidate.length);
+      if (span) setCaretScene(span.sceneId);
     };
     host?.addEventListener("keydown", keydown, true);
-    host?.addEventListener("paste", paste, true);
+    host?.addEventListener("paste", clipboard, true);
+    host?.addEventListener("cut", clipboard, true);
+    host?.addEventListener("drop", drop, true);
     quill?.on("selection-change", selection);
     return () => {
       disposed = true;
       host?.removeEventListener("keydown", keydown, true);
-      host?.removeEventListener("paste", paste, true);
+      host?.removeEventListener("paste", clipboard, true);
+      host?.removeEventListener("cut", clipboard, true);
+      host?.removeEventListener("drop", drop, true);
       quill?.off("selection-change", selection);
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
@@ -240,9 +248,7 @@ export function useScriptSync(
   }, [quillRef, ready]);
 
   function block() {
-    noticeRef.current = BREAK_NOTICE;
     setNotice(BREAK_NOTICE);
-    refreshRef.current();
   }
 
   function revert() {
@@ -281,6 +287,15 @@ export function useScriptSync(
     status,
     title,
     scope,
+    treeScope: scope && caretScene !== null ? { universeId: scope.universeId, pieceId: caretScene } : scope,
+    focusScene(pieceId: number) {
+      const quill = quillRef.current;
+      const span = layoutRef.current.find((candidate) => candidate.sceneId === pieceId);
+      if (!quill || !span || leavingRef.current) return false;
+      quill.setSelection(span.start, 0, "user");
+      quill.scrollSelectionIntoView();
+      return true;
+    },
     async switchChapter(target: EditorScope) {
       if (await flushAll("Saving script before opening…")) window.location.assign(editorUrl(window.location.href, target));
     },
@@ -326,7 +341,6 @@ export function useScriptSync(
         return;
       }
       layoutRef.current = split.layout;
-      noticeRef.current = null;
       setNotice(null);
       for (const scene of scenesRef.current) {
         const span = split.layout.find((candidate) => candidate.sceneId === scene.id);

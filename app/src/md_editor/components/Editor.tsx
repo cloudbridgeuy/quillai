@@ -1265,8 +1265,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <h2 id="manuscript-title">Manuscript</h2>
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
+          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
             onSelect={(scope, opensScript) => {
+              if ("focusScene" in chapterSync && "pieceId" in scope && chapterSync.focusScene(scope.pieceId)) return;
               if (opensScript && !chapterSync.needsChapter) void chapterSync.leave(editorUrl(window.location.href, scope));
               else if (chapterSync.needsChapter) {
                 const url = new URL(window.location.href);

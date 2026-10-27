@@ -661,13 +661,7 @@ body {
 }
 
 .editor-scene-notice {
-  position: fixed;
-  z-index: 30;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: calc(100vw - 48px);
+  align-self: center;
 }
 
 .editor-continue-window {
@@ -990,6 +984,15 @@ body {
   .editor-run-status {
     grid-column: 3;
     grid-row: 1;
+  }
+
+  .editor-scene-notice {
+    position: absolute;
+    top: calc(100% + 34px);
+    left: 50%;
+    width: max-content;
+    max-width: 100%;
+    transform: translateX(-50%);
   }
 
   .editor-topbar h1 {
