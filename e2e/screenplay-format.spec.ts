@@ -123,7 +123,7 @@ for (const width of [1100, 1440]) {
     });
 
     if (width === 1100) for (const scenario of ["remote", "continue", "edit", "edit newline"] as const) {
-      test(scenario === "edit newline" ? "Edit including a heading newline takes the following character type and survives reload" : `block types survive ${scenario} and reload`, async ({ page, request, browserName }) => {
+      test(scenario === "edit newline" ? "Edit including a heading newline keeps the heading line ending and survives reload" : `block types survive ${scenario} and reload`, async ({ page, request, browserName }) => {
         const provider = process.env.QUILLAI_E2E_FAKE_AI_URL;
         if (!provider) throw new Error("Run with cargo xtask e2e and its default catalog");
         const { group, one, two } = await seed(request, `${browserName} ${scenario}`);
@@ -197,7 +197,7 @@ for (const width of [1100, 1440]) {
           expect((await request.post(`${provider}/control/${id}/finish`)).status()).toBe(200);
           await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
           expected = edit
-            ? [{ text: scenario === "edit newline" ? "RevisedANNA" : "Typed Revised - DAY", type: scenario === "edit newline" ? "character" : "scene-heading" }, ...(scenario === "edit newline" ? initial.slice(2) : initial.slice(1))]
+            ? [{ text: scenario === "edit newline" ? "Revised" : "Typed Revised - DAY", type: "scene-heading" }, ...initial.slice(1)]
             : [...initial.slice(0, -1), { text: "More.", type: undefined }, initial[initial.length - 1]!];
         }
         await expect.poll(async () => lineTypes(await contents(page))).toEqual(expected);

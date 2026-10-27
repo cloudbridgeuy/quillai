@@ -4,7 +4,7 @@ import { expectEditorReady } from "./editor-ready";
 const original = "He try to distract himself.";
 const replacement = "He tried to distract himself.";
 
-async function openEditChapter(page: Page, request: APIRequestContext, identity: string) {
+async function openEditChapter(page: Page, request: APIRequestContext, identity: string, wholeParagraph = false) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
   const providerUrl = process.env.QUILLAI_E2E_FAKE_AI_URL;
   if (!apiUrl || !providerUrl) throw new Error("Run with cargo xtask e2e and its default catalog");
@@ -35,13 +35,15 @@ async function openEditChapter(page: Page, request: APIRequestContext, identity:
   await editor.click();
   await editor.evaluate((element, length) => {
     const text = element.querySelector("p")?.firstChild;
-    if (!text) throw new Error("Missing chapter text");
+    const next = element.querySelectorAll("p")[1];
+    if (!text || !next) throw new Error("Missing chapter text");
     const range = document.createRange();
     range.setStart(text, 0);
-    range.setEnd(text, length);
+    if (length === null) range.setEnd(next, 0);
+    else range.setEnd(text, length);
     window.getSelection()?.removeAllRanges();
     window.getSelection()?.addRange(range);
-  }, original.length);
+  }, wholeParagraph ? null : original.length);
   await page.getByRole("button", { name: "Edit selection", exact: true }).click();
   const note = page.getByRole("textbox", { name: "Edit instruction", exact: true });
   await expect(note).toBeFocused();
@@ -81,16 +83,30 @@ test("Edit keeps only the replacement and drops commentary around it", async ({ 
   expect(run.failures).toEqual([]);
 });
 
+for (const fragment of ["Revised paragraph", "Revised paragraph\n"]) {
+  test(`Edit of a whole paragraph with its line ending and ${JSON.stringify(fragment)} keeps its paragraph break`, async ({ page, request }) => {
+    const identity = `GUZ985-edit-${crypto.randomUUID()}`;
+    const run = await openEditChapter(page, request, identity, true);
+    await run.fragment(`<replacement>${fragment}</replacement>`);
+    expect((await request.post(`${run.controlUrl}/finish`)).status()).toBe(200);
+    expect((await run.generation).status()).toBe(200);
+    await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
+    await expectSavedChapter(page, request, run.chapterUrl, ["Revised paragraph", "Later paragraph"]);
+    expect(run.failures).toEqual([]);
+  });
+}
+
 for (const scenario of [
   { name: "missing", fragments: [replacement, " This fixes the agreement."], message: "AI edit response did not include a <replacement> tag." },
   { name: "unclosed", fragments: ["<replacement>He tried", " to distract"], message: "AI edit response ended before the closing </replacement> tag." },
+  { name: "unclosed", fragments: ["<replacement>He tried", " to distract"], message: "AI edit response ended before the closing </replacement> tag.", wholeParagraph: true },
 ]) {
-  test(`Edit with a ${scenario.name} replacement tag restores the selection`, async ({ page, request }) => {
+  test(`Edit with a ${scenario.name} replacement tag restores the ${scenario.wholeParagraph ? "whole paragraph" : "selection"}`, async ({ page, request }) => {
     const identity = `GUZ865-${scenario.name}-${crypto.randomUUID()}`;
-    const run = await openEditChapter(page, request, identity);
+    const run = await openEditChapter(page, request, identity, scenario.wholeParagraph);
     for (const text of scenario.fragments) await run.fragment(text);
     if (scenario.name === "unclosed") {
-      await expect(run.editor.locator("p").first()).toHaveText(`He tried to distract ${identity}`);
+      await expect(run.editor.locator("p").first()).toHaveText(scenario.wholeParagraph ? "He tried to distract" : `He tried to distract ${identity}`);
     }
     expect((await request.post(`${run.controlUrl}/finish`)).status()).toBe(200);
     expect((await run.generation).status()).toBe(200);

@@ -19,6 +19,7 @@ import {
 } from "../ai_contract";
 import {
   continueClickAction,
+  editReplacementLength,
   canApplyEdit,
   getSavePresentation,
   getStatusPresentation,
@@ -766,9 +767,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       action === "edit"
         ? normalizedSelection?.index ?? 0
         : normalizedSelection?.index ?? documentLength;
-    const deleteLength = action === "edit" ? normalizedSelection?.length ?? 0 : 0;
-    const originalSelectionDelta =
-      deleteLength > 0 ? new Delta(quill.getContents(anchor, deleteLength).ops) : null;
+    const selectionLength = action === "edit" ? normalizedSelection?.length ?? 0 : 0;
+    const selectedDelta =
+      selectionLength > 0 ? new Delta(quill.getContents(anchor, selectionLength).ops) : null;
+    const deleteLength = selectedDelta ? editReplacementLength(selectedDelta.ops) : 0;
+    const originalSelectionDelta = selectedDelta?.slice(0, deleteLength) ?? null;
+    const keepsLineEnding = deleteLength < selectionLength;
+    let heldLineEnding: Delta | null = null;
     let didDeleteSelection = false;
     const concurrentContinue = action === "generate" && desktop;
     clearContinueTint();
@@ -832,8 +837,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         throw new Error("AI stream did not return a response body.");
       }
 
-      if (deleteLength > 0) {
-        quill.deleteText(anchor, deleteLength, "api");
+      if (originalSelectionDelta) {
+        if (deleteLength > 0) quill.deleteText(anchor, deleteLength, "api");
         didDeleteSelection = true;
       }
 
@@ -856,7 +861,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               .map((op) => (typeof op.insert === "string" ? op.insert : ""))
               .join("");
             generatedText += fragmentText;
-            const fragment = new Delta(toQuillDeltaDocument(event.delta));
+            let fragment = new Delta(toQuillDeltaDocument(event.delta));
+            if (keepsLineEnding) {
+              if (heldLineEnding) fragment = heldLineEnding.concat(fragment);
+              const end = fragment.length() - 1;
+              heldLineEnding = end >= 0 && fragment.slice(end).ops[0]?.insert === "\n" ? fragment.slice(end) : null;
+              if (heldLineEnding) fragment = fragment.slice(0, end);
+            }
             if (concurrentContinue && continueStreamRef.current) {
               const appended = appendContinueFragment(continueStreamRef.current, fragment);
               continueStreamRef.current = appended.state;
@@ -966,7 +977,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         shouldRestoreCancelledEditSelection(
           action,
           didDeleteSelection,
-          deleteLength,
+          selectionLength,
           nextInsertIndex - anchor,
         )
       ) {
@@ -975,7 +986,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           "api",
         );
         nextInsertIndex = anchor + originalSelectionDelta.length();
-        setSelectionState(quill, { index: anchor, length: deleteLength });
+        setSelectionState(quill, { index: anchor, length: selectionLength });
         return;
       }
 
@@ -1004,7 +1015,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           shouldRestoreCancelledEditSelection(
             action,
             didDeleteSelection,
-            deleteLength,
+            selectionLength,
             nextInsertIndex - anchor,
           )
           && isActiveEditor()
@@ -1013,10 +1024,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             new Delta().retain(anchor).concat(originalSelectionDelta),
             "api",
           );
-          setRange({ index: anchor, length: deleteLength });
-          lastEditSelectionRef.current = { index: anchor, length: deleteLength };
-          lastCursorRangeRef.current = { index: anchor, length: deleteLength };
-          quill.setSelection(anchor, deleteLength, "silent");
+          setSelectionState(quill, { index: anchor, length: selectionLength });
           return;
         }
 
@@ -1026,7 +1034,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               quill,
               action,
               didDeleteSelection,
-              deleteLength,
+              selectionLength,
               anchor,
             )
           ) {
@@ -1053,7 +1061,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
         if (
           originalSelectionDelta &&
-          shouldRollbackFailedEditSelection(action, didDeleteSelection, deleteLength)
+          shouldRollbackFailedEditSelection(action, didDeleteSelection, selectionLength)
           && isActiveEditor()
         ) {
           quill.updateContents(
@@ -1072,7 +1080,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               quill,
               action,
               didDeleteSelection,
-              deleteLength,
+              selectionLength,
               anchor,
             )
           ) {

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import {
+  editReplacementLength,
   getStatusPresentation,
   isTextOnlyDeltaDocument,
   rememberCursorRange,
@@ -125,4 +126,13 @@ test("getStatusPresentation maps run states to compact UI status values", () => 
     tone: "error",
     label: "boom",
   });
+});
+
+test("editReplacementLength keeps a selection's trailing line ending out of the replaced range", () => {
+  expect(editReplacementLength([{ insert: "He walked" }])).toBe(9);
+  expect(editReplacementLength([{ insert: "INT. HALL\n", attributes: { "script-block": "scene-heading" } }])).toBe(9);
+  expect(editReplacementLength([{ insert: "\n" }])).toBe(0);
+  expect(editReplacementLength([{ insert: "One\nTwo" }, { insert: "\n", attributes: { "script-block": "character" } }])).toBe(7);
+  expect(editReplacementLength([{ insert: "A" }, { insert: { image: "x.png" } }, { insert: "B\n" }])).toBe(3);
+  expect(editReplacementLength([{ insert: "A" }, { insert: { image: "x.png" } }])).toBe(2);
 });

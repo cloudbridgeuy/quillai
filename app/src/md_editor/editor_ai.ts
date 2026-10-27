@@ -67,6 +67,12 @@ export function resolveEditSelection(
   return current && current.length > 0 ? current : remembered;
 }
 
+export function editReplacementLength(selected: ReadonlyArray<{ insert?: unknown; attributes?: unknown }>): number {
+  const length = selected.reduce((sum, op) => sum + (typeof op.insert === "string" ? op.insert.length : 1), 0);
+  const last = selected.at(-1)?.insert;
+  return typeof last === "string" && last.endsWith("\n") ? length - 1 : length;
+}
+
 export function shouldRestoreCancelledEditSelection(
   action: AiAction,
   didDeleteSelection: boolean,
