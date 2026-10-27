@@ -660,6 +660,50 @@ body {
   content: attr(data-title);
 }
 
+.editor-script-tools {
+  @apply flex items-center gap-2;
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.editor-script-tools select {
+  @apply w-auto;
+}
+
+.editor-host .ql-editor :is(
+  .ql-script-block-scene-heading,
+  .ql-script-block-character,
+  .ql-script-block-dialogue,
+  .ql-script-block-parenthetical,
+  .ql-script-block-transition
+) {
+  font-family: var(--mono);
+}
+
+.editor-host .ql-editor :is(.ql-script-block-scene-heading, .ql-script-block-character, .ql-script-block-transition) {
+  @apply uppercase;
+}
+
+.editor-host .ql-editor .ql-script-block-scene-heading {
+  @apply font-semibold;
+}
+
+.editor-host .ql-editor .ql-script-block-character {
+  @apply px-32 text-center;
+}
+
+.editor-host .ql-editor .ql-script-block-dialogue {
+  @apply px-16;
+}
+
+.editor-host .ql-editor .ql-script-block-parenthetical {
+  @apply px-24;
+}
+
+.editor-host .ql-editor .ql-script-block-transition {
+  @apply text-right;
+}
+
 .editor-scene-notice {
   align-self: center;
 }

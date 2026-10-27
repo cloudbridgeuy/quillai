@@ -1,6 +1,9 @@
 import Quill from "quill";
 import Block from "quill/blots/block";
 import { SCENE_BREAK, type SceneId } from "./script_layout";
+import { BLOCK_TYPES, SCRIPT_BLOCK } from "./script_blocks";
+
+const { ClassAttributor, Scope } = Quill.import("parchment");
 
 export const sceneTitles = new Map<SceneId, string>();
 
@@ -23,3 +26,8 @@ class SceneBreak extends Block {
 }
 
 Quill.register(SceneBreak, true);
+
+Quill.register(new ClassAttributor(SCRIPT_BLOCK, "ql-script-block", {
+  scope: Scope.BLOCK,
+  whitelist: BLOCK_TYPES.filter((type) => type !== "action"),
+}), true);

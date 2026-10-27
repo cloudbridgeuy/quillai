@@ -38,3 +38,7 @@ export function offBreak(index: number, previous: number | null, layout: ScriptL
   if (!breaks(layout).includes(index)) return null;
   return index === 0 || (previous !== null && previous < index) ? index + 1 : index - 1;
 }
+
+export function startsList(textBeforeCaret: string): boolean {
+  return /^\s*?(\d+\.|-|\*|\[ ?\]|\[x\])$/.test(textBeforeCaret);
+}

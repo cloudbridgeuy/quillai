@@ -84,7 +84,9 @@ import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
 import { IconButton } from "../../ui/IconButton";
 import { Alert } from "../../ui/Alert";
-import { Button } from "../../ui/Button";
+import { Button, buttonClassName } from "../../ui/Button";
+import { TextField } from "../../ui/TextField";
+import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
@@ -1309,6 +1311,17 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </p>
         {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
           onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
+        {"addScene" in chapterSync ? <div className="editor-script-tools">
+          <TextField as="select" aria-label="Block type" value={chapterSync.blockType}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            onChange={(event) => chapterSync.setBlock(parseBlock(event.target.value))}>
+            {BLOCK_TYPES.map((type) => <option key={type} value={type}>{blockLabel(type)}</option>)}
+          </TextField>
+          <a className={buttonClassName({ size: "sm" })} download={`${chapterSync.title || "script"}.fountain`} href="#"
+            onClick={(event) => {
+              event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(chapterSync.fountain())}`;
+            }}>Download Fountain</a>
+        </div> : null}
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>

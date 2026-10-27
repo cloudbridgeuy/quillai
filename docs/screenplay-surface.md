@@ -146,6 +146,8 @@ GUZ-944 (block formats, Fountain/FDX):
 - Markdown shortcuts turn off when the open piece is script (`Editor.tsx:220`); §6 already states that. GUZ-943 can ship that switch, since the surface is the first script-only view.
 - Fountain/FDX export walks `layout` in order. It needs the surface's scene list, which is why GUZ-944 depends on GUZ-943.
 
+Shipped (GUZ-944): `script-block` is a block ClassAttributor (`ql-script-block-<type>`, `scene_break.ts`) holding scene-heading, character, dialogue, parenthetical or transition; action is no attribute, so unformatted text and AI output read as action and no migration is needed. Tab and Shift-Tab cycle the type, plain Enter sends one Delta that keeps the line's type and gives the new line its successor (character to dialogue, dialogue to action, heading to action, transition to heading), and a Block type select in the top bar sets it. A format on the break line or across a break reverts with the break notice (`splitChange` returns `crossesBreak`). Quill's built-in list autofill is stopped on the surface (a space after `-` or `1.`), since `markdownShortcuts` only covers the app's own shortcuts. Download Fountain exports the current scene Deltas in surface order (`fountain.ts`); FDX is not shipped.
+
 Prose stays unaffected:
 
 - Prose groups still open one leaf at a time (`docs/story-model.md` §5). `loadPiece` keeps the group error for prose.

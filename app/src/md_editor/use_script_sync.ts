@@ -10,7 +10,9 @@ import { selectionBoundary } from "./selection_boundary";
 import { composeScenes, placeRemote, SCENE_BREAK, splitChange, type ScriptLayout } from "./script_layout";
 import { createScenePoll } from "./script_poll";
 import { sceneTitles } from "./scene_break";
-import { crossesBreak, offBreak, scriptKeyAction } from "./script_keys";
+import { crossesBreak, offBreak, scriptKeyAction, startsList } from "./script_keys";
+import { blockAttribute, cycleBlock, parseBlock, SCRIPT_BLOCK, splitLineDelta, type BlockType } from "./script_blocks";
+import { toFountain } from "./fountain";
 import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
@@ -59,7 +61,9 @@ export function useScriptSync(
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [caretScene, setCaretScene] = useState<number | null>(null);
+  const [blockType, setBlockType] = useState<BlockType>("action");
   const caretRef = useRef<number | null>(null);
+  const rangeRef = useRef<{ index: number; length: number } | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
   const layoutRef = useRef<ScriptLayout>([]);
   const applyingRef = useRef(false);
@@ -205,7 +209,27 @@ export function useScriptSync(
       const range = quill?.getSelection();
       if (!quill || !range || event.isComposing) return;
       const action = scriptKeyAction(event, range, layoutRef.current);
-      if (action.kind === "pass") return;
+      if (action.kind === "pass") {
+        if (event.altKey || event.ctrlKey || event.metaKey || !quill.isEnabled()) return;
+        if (event.key === " " && range.length === 0) {
+          const [line, offset] = quill.getLine(range.index);
+          if (line && startsList(quill.getText(range.index - offset, offset))) event.stopPropagation();
+          return;
+        }
+        if (event.key === "Tab") {
+          event.preventDefault();
+          event.stopPropagation();
+          applyBlock(cycleBlock(blockAt(range.index), event.shiftKey ? -1 : 1), range);
+        } else if (event.key === "Enter" && !event.shiftKey && range.length === 0) {
+          event.preventDefault();
+          event.stopPropagation();
+          const [line, offset] = quill.getLine(range.index);
+          if (!line) return;
+          quill.updateContents(splitLineDelta(range.index, line.length() - offset - 1, blockAt(range.index)), "user");
+          quill.setSelection(range.index + 1, 0, "user");
+        }
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       if (action.kind === "move") quill.setSelection(action.index, 0, "user");
@@ -228,12 +252,21 @@ export function useScriptSync(
       if (quill && index !== null) quill.setSelection(index, 0, "user");
       const span = range && layoutRef.current.find((candidate) => range.index >= candidate.start && range.index < candidate.start + candidate.length);
       if (span) setCaretScene(span.sceneId);
+      if (range) {
+        rangeRef.current = range;
+        setBlockType(blockAt(range.index));
+      }
+    };
+    const textChange = () => {
+      const range = quill?.getSelection();
+      if (range) setBlockType(blockAt(range.index));
     };
     host?.addEventListener("keydown", keydown, true);
     host?.addEventListener("paste", clipboard, true);
     host?.addEventListener("cut", clipboard, true);
     host?.addEventListener("drop", drop, true);
     quill?.on("selection-change", selection);
+    quill?.on("text-change", textChange);
     return () => {
       disposed = true;
       host?.removeEventListener("keydown", keydown, true);
@@ -241,6 +274,7 @@ export function useScriptSync(
       host?.removeEventListener("cut", clipboard, true);
       host?.removeEventListener("drop", drop, true);
       quill?.off("selection-change", selection);
+      quill?.off("text-change", textChange);
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
       for (const scene of scenesRef.current) scene.session.stop();
@@ -258,6 +292,19 @@ export function useScriptSync(
 
   function block() {
     setNotice(BREAK_NOTICE);
+  }
+
+  function blockAt(index: number): BlockType {
+    return parseBlock(quillRef.current?.getFormat(index, 0)[SCRIPT_BLOCK]);
+  }
+
+  function applyBlock(type: BlockType, range: { index: number; length: number }) {
+    const quill = quillRef.current;
+    if (!quill || !quill.isEnabled()) return;
+    if (crossesBreak(range, layoutRef.current) || offBreak(range.index, null, layoutRef.current) !== null) return block();
+    quill.formatLine(range.index, range.length, SCRIPT_BLOCK, blockAttribute(type), "user");
+    quill.setSelection(range.index, range.length, "silent");
+    setBlockType(type);
   }
 
   function revert() {
@@ -323,6 +370,17 @@ export function useScriptSync(
 
   return {
     addScene,
+    blockType,
+    setBlock(type: BlockType) {
+      const quill = quillRef.current;
+      if (!quill || !rangeRef.current) return;
+      quill.focus();
+      applyBlock(type, rangeRef.current);
+    },
+    fountain: () => {
+      const quill = quillRef.current;
+      return quill ? toFountain(layoutRef.current.map((span) => quill.getContents(span.start, span.length))) : "";
+    },
     adding,
     ready,
     blocked,
