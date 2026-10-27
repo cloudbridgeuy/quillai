@@ -206,6 +206,7 @@ export function useChapterSync(
       }
     },
     canStartAi: () => !switchingRef.current && (sessionRef.current?.canStartAi() ?? false),
+    editRejection: (): string | null => null,
     reserveAi() {
       const session = sessionRef.current;
       if (switchingRef.current || !session) return null;

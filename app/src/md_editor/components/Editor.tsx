@@ -520,12 +520,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     aiRunState.status === "continuing" ||
     aiRunState.status === "editing" ||
     aiRunState.status === "cancelling";
-  const hasSelection = Boolean(
-    resolveEditSelection(
-      range ? { index: range.index, length: range.length } : null,
-      lastEditSelectionRef.current,
-    ),
+  const editSelection = resolveEditSelection(
+    range ? { index: range.index, length: range.length } : null,
+    lastEditSelectionRef.current,
   );
+  const hasSelection = Boolean(editSelection);
+  const editRejection = editSelection ? chapterSync.editRejection(editSelection) : null;
 
   function updateAiRunState(nextState: AiRunState) {
     aiRunStateRef.current = nextState;
@@ -743,12 +743,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         ? resolveEditSelection(currentSelection, lastEditSelectionRef.current)
         : resolveContinueSelection(currentSelection, lastCursorRangeRef.current);
 
-    if (action === "edit" && (!selection || selection.length === 0)) {
-      const failed = failRun(started.state, "Select text before using Edit.");
+    const editFailure = action !== "edit" ? null
+      : !selection || selection.length === 0 ? "Select text before using Edit." : chapterSync.editRejection(selection);
+    if (editFailure) {
+      const failed = failRun(started.state, editFailure);
       if (failed.ok) {
         updateAiRunState(failed.state);
       } else {
-        setAiFailure(action, "Select text before using Edit.");
+        setAiFailure(action, editFailure);
       }
       return;
     }
@@ -1108,10 +1110,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     else void runAiAction("generate");
   }
 
-  const editAvailable = canApplyEdit(isBusy, hasSelection, chapterSync.ready, chapterSync.blocked);
+  const editAvailable = canApplyEdit(isBusy, hasSelection, chapterSync.ready, chapterSync.blocked) && editRejection === null;
 
   function applyEdit() {
-    if (!canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
+    if (editRejection !== null || !canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
     setEditBoxOpen(false);
     void runAiAction("edit");
   }
@@ -1249,10 +1251,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             applyEdit();
           }} />
         <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc cancels · Shift+Enter adds a line</p>
+        {editRejection ? <p id="edit-instruction-rejection" className="editor-note" role="status">{editRejection}</p> : null}
         <div className="editor-actions">
           <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Cancel edit</button>
           <button className="editor-button editor-button-primary editor-button-small" type="button"
-            onClick={applyEdit}
+            onClick={applyEdit} aria-describedby={editRejection ? "edit-instruction-rejection" : undefined}
             disabled={!editAvailable}>Apply</button>
         </div>
       </div> : null}

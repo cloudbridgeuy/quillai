@@ -16,6 +16,7 @@ import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
 const BREAK_NOTICE = "Edits across a scene break are not saved";
+const EDIT_ACROSS_BREAK = "Select text inside one scene to use Edit.";
 
 type SceneState = {
   id: number;
@@ -290,6 +291,7 @@ export function useScriptSync(
     recovery,
     needsChapter: false,
     async bootstrap() {},
+    editRejection: (range: { index: number; length: number }) => crossesBreak(range, layoutRef.current) ? EDIT_ACROSS_BREAK : null,
     canStartAi: () => !leavingRef.current && scenesRef.current.length > 0 && scenesRef.current.every(({ session }) => session.canStartAi()),
     reserveAi() {
       if (leavingRef.current) return null;
