@@ -169,7 +169,7 @@ export function useChapterSync(
     title,
     scope,
     switchChapter: (target: EditorScope) => switchRef.current?.(target),
-    async leave() {
+    async leave(target: URL = landingUrl(window.location.href)) {
       const quill = quillRef.current;
       const session = sessionRef.current;
       if (switchingRef.current || activeRef.current()) return;
@@ -187,8 +187,9 @@ export function useChapterSync(
           return;
         }
       }
-      window.location.assign(landingUrl(window.location.href));
+      window.location.assign(target);
     },
+    notice: null,
     recovery,
     needsChapter,
     async bootstrap() {

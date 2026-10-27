@@ -10,10 +10,12 @@ import { selectionBoundary } from "./selection_boundary";
 import { composeScenes, placeRemote, SCENE_BREAK, splitChange, type ScriptLayout } from "./script_layout";
 import { createScenePoll } from "./script_poll";
 import { sceneTitles } from "./scene_break";
+import { crossesBreak, offBreak, scriptKeyAction } from "./script_keys";
 import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
+const BREAK_NOTICE = "Edits across a scene break are not saved";
 
 type SceneState = {
   id: number;
@@ -49,6 +51,8 @@ export function useScriptSync(
   const [blocked, setBlocked] = useState(false);
   const [recovery, setRecovery] = useState<string | null>(null);
   const [scope, setScope] = useState<EditorScope | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const caretRef = useRef<number | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
   const layoutRef = useRef<ScriptLayout>([]);
   const applyingRef = useRef(false);
@@ -143,6 +147,7 @@ export function useScriptSync(
       if (disposed || !quill) return;
       const groupScope = { universeId: group.universeId, pieceId: group.id };
       const url = new URL(window.location.href);
+      const requested = Number(url.searchParams.get("pieceId"));
       for (const key of ["seriesId", "bookId", "chapterId", "universeId", "pieceId"]) url.searchParams.delete(key);
       for (const [key, value] of Object.entries(groupScope)) url.searchParams.set(key, String(value));
       window.history.replaceState(null, "", url);
@@ -153,6 +158,7 @@ export function useScriptSync(
       quill.history.clear();
       applyingRef.current = false;
       layoutRef.current = composed.layout;
+      caretRef.current = (composed.layout.find((span) => span.sceneId === requested) ?? composed.layout[0])?.start ?? null;
       remoteRef.current();
       groupTitle = group.title;
       scenesRef.current = group.scenes.map((scene) => {
@@ -186,14 +192,57 @@ export function useScriptSync(
       }
     };
     window.addEventListener("beforeunload", beforeUnload);
+    const quill = quillRef.current;
+    const host = quill?.root.parentElement;
+    const keydown = (event: KeyboardEvent) => {
+      const range = quill?.getSelection();
+      if (!quill || !range || event.isComposing) return;
+      const action = scriptKeyAction(event, range, layoutRef.current);
+      if (action.kind === "pass") return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (action.kind === "move") quill.setSelection(action.index, 0, "user");
+      else block();
+    };
+    const paste = (event: ClipboardEvent) => {
+      const range = quill?.getSelection();
+      if (!range || !crossesBreak(range, layoutRef.current)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      block();
+    };
+    const selection = (range: { index: number; length: number } | null, previous: { index: number } | null) => {
+      const index = range && range.length === 0 ? offBreak(range.index, previous?.index ?? null, layoutRef.current) : null;
+      if (quill && index !== null) quill.setSelection(index, 0, "user");
+    };
+    host?.addEventListener("keydown", keydown, true);
+    host?.addEventListener("paste", paste, true);
+    quill?.on("selection-change", selection);
     return () => {
       disposed = true;
+      host?.removeEventListener("keydown", keydown, true);
+      host?.removeEventListener("paste", paste, true);
+      quill?.off("selection-change", selection);
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
       for (const scene of scenesRef.current) scene.session.stop();
       scenesRef.current = [];
     };
   }, [quillRef, groupId]);
+
+  useEffect(() => {
+    const quill = quillRef.current;
+    if (!ready || !quill || caretRef.current === null) return;
+    quill.setSelection(caretRef.current, 0, "api");
+    quill.scrollSelectionIntoView();
+    caretRef.current = null;
+  }, [quillRef, ready]);
+
+  function block() {
+    noticeRef.current = BREAK_NOTICE;
+    setNotice(BREAK_NOTICE);
+    refreshRef.current();
+  }
 
   function revert() {
     queueMicrotask(() => {
@@ -205,8 +254,7 @@ export function useScriptSync(
       quill.history.clear();
       applyingRef.current = false;
       layoutRef.current = composed.layout;
-      noticeRef.current = "Edits across a scene break are not saved";
-      refreshRef.current();
+      block();
     });
   }
 
@@ -235,9 +283,10 @@ export function useScriptSync(
     async switchChapter(target: EditorScope) {
       if (await flushAll("Saving script before opening…")) window.location.assign(editorUrl(window.location.href, target));
     },
-    async leave() {
-      if (await flushAll("Saving before leaving…")) window.location.assign(landingUrl(window.location.href));
+    async leave(target: URL = landingUrl(window.location.href)) {
+      if (await flushAll("Saving before leaving…")) window.location.assign(target);
     },
+    notice,
     recovery,
     needsChapter: false,
     async bootstrap() {},
@@ -276,6 +325,7 @@ export function useScriptSync(
       }
       layoutRef.current = split.layout;
       noticeRef.current = null;
+      setNotice(null);
       for (const scene of scenesRef.current) {
         const span = split.layout.find((candidate) => candidate.sceneId === scene.id);
         if (span && split.changes.has(scene.id)) scene.session.edit(document.slice(span.start, span.start + span.length));

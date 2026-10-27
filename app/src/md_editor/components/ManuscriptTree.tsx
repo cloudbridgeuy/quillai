@@ -12,6 +12,7 @@ import {
 } from "../../manuscripts/create_draft";
 import { containerKindLabel, facadeBook, pieceRoots, pieceScope, sameScope, treeUniverses, type StoryContainer, type StoryRoot, type StoryUniverse } from "../../manuscripts/story_tree";
 import { treeScrollTarget } from "./tree_scroll";
+import { scriptGroupId } from "../../landing/routes";
 
 type TreeState =
   | { status: "loading" }
@@ -23,7 +24,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   disabled: boolean;
   savesBeforeOpening?: boolean;
   collapsedExcept?: number | null;
-  onSelect: (scope: EditorScope) => void;
+  onSelect: (scope: EditorScope, opensScript: boolean) => void;
 }) {
   const [client] = useState(createManuscriptClient);
   const [state, setState] = useState<TreeState>({ status: "loading" });
@@ -65,6 +66,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
       const input = { title, position: targetPosition(state, target) };
       let tree: ManuscriptTreeData = state;
       let opened: EditorScope | null = null;
+      let opensScript = false;
       if (target.kind === "universe") {
         const universe = await client.createUniverse(input);
         setCreatedUniverses(ids => [...ids, universe.id]);
@@ -86,6 +88,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
         const child = await client.createChild(target, { ...input, label: fields.label });
         tree = addChild(state, child);
         opened = { universeId: child.universeId, pieceId: child.id };
+        opensScript = scriptGroupId(child) !== undefined;
       } else {
         const kind = fields.label === "prologue" || fields.label === "epilogue" ? fields.label : "chapter";
         const chapter = await client.createChapter(target, { ...input, kind });
@@ -93,7 +96,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
         opened = { seriesId: target.seriesId, bookId: target.bookId, chapterId: chapter.id };
       }
       setState({ status: "ready", series: tree.series, universes: tree.universes });
-      if (opened) onSelect(opened);
+      if (opened) onSelect(opened, opensScript);
       dispatch({ type: "created" });
     } catch (error) {
       dispatch({ type: "failed", message: error instanceof Error ? error.message : "Could not create manuscript item." });
@@ -207,14 +210,16 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   function pieceButton(story: StoryUniverse, piece: Piece) {
     const scope = pieceScope(story, piece);
     return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending) || !scope}
-      pressed={sameScope(selectedChapter, scope)} onClick={() => { if (scope) onSelect(scope); }}>{piece.title}</ListButton>;
+      pressed={sameScope(selectedChapter, scope)} onClick={() => { if (scope) onSelect(scope, scriptGroupId(piece) !== undefined); }}>{piece.title}</ListButton>;
   }
 
   function rootItem(story: StoryUniverse, piece: StoryRoot) {
     const noun = childName(piece.format);
     return <li key={`piece-${piece.id}`}>
       {piece.shape === "leaf" ? pieceButton(story, piece) : <details open>
-        <summary>{piece.title}</summary>
+        <summary>{piece.format === "script" ? <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+          pressed={sameScope(selectedChapter, { universeId: story.id, pieceId: piece.id })}
+          onClick={() => onSelect({ universeId: story.id, pieceId: piece.id }, true)}>{piece.title}</ListButton> : piece.title}</summary>
         {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
           {piece.children.map((child) => <li key={`piece-${child.id}`}>{pieceButton(story, child)}</li>)}
         </ul>}
@@ -232,7 +237,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
           {book.chapters.map((chapter) => <li key={chapter.id}>
             <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
               pressed={sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id })}
-              onClick={() => onSelect({ seriesId: container.id, bookId: book.id, chapterId: chapter.id })}>{chapter.title}</ListButton>
+              onClick={() => onSelect({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }, false)}>{chapter.title}</ListButton>
           </li>)}
         </ul>}
         {createAction({ kind: "chapter", seriesId: container.id, bookId: book.id }, "Chapter", "Chapter")}

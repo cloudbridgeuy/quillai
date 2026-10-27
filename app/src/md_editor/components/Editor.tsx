@@ -83,6 +83,8 @@ import { LorePanel } from "./LorePanel";
 import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
 import { IconButton } from "../../ui/IconButton";
+import { Alert } from "../../ui/Alert";
+import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";
@@ -1261,8 +1263,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
           <ManuscriptTree selectedChapter={chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
-            onSelect={(scope) => {
-              if (chapterSync.needsChapter) {
+            onSelect={(scope, opensScript) => {
+              if (opensScript && !chapterSync.needsChapter) void chapterSync.leave(editorUrl(window.location.href, scope));
+              else if (chapterSync.needsChapter) {
                 const url = new URL(window.location.href);
                 for (const [key, value] of Object.entries(scope)) url.searchParams.set(key, String(value));
                 window.location.assign(url);
@@ -1299,6 +1302,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap",
           }}>{savePresentation.detail}</span> : null}
         </p>
+        {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
