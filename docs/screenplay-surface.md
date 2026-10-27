@@ -127,7 +127,7 @@ The guard has two layers: keyboard bindings stop the common keys, and `splitChan
 
 Enter at a scene end inserts a newline in that scene, as in prose. It does not make a new scene.
 
-In this epic (decision 4): **New scene** adds an empty scene after the caret's scene through the existing `POST /pieces/{id}/children` (`pieces/mod.rs:21`). No text moves, so a failure loses no text. Later siblings need a new `position`; that is one `PUT /pieces/{id}` per later scene, not atomic. A failure leaves the order wrong but every scene's text intact.
+In this epic (decision 4): **New scene** adds an empty scene after the caret's scene through the existing `POST /pieces/{id}/children` (`pieces/mod.rs:21`). No text moves, so a failure loses no text. Later siblings need a new `position`; that is one `PUT /pieces/{id}` per later scene, not atomic. Shipped (GUZ-986): later scenes are renumbered first, last to first, to `max(position, caret position + 1 + k) + 1`; then the scene is created at `caret position + 1`, so no step reorders scenes and a failure leaves the order intact (at most a position gap, no scene added). The page then flushes every session and reloads with `pieceId` set to the new scene, so the caret lands there. The surface does not rebuild in place. A poll whose `children` differs from the surface shows a persistent "Scenes changed; reload".
 
 Out of scope for this epic:
 
@@ -183,4 +183,4 @@ Names are proposals; ticket 2 decides.
 - Whether the scene title can sit in the break blot without Quill counting it as text. Ticket 3 must check `getLength` and `getText` around a break.
 - Payload size of the group GET and poll for a long script (about 100 scenes). No measurement was made.
 - Typical scene count per script is an estimate, not data from this app.
-- New-scene renumbering is one `PUT` per later scene, not atomic; a partial failure leaves the order wrong. Not measured how often this occurs.
+- New-scene renumbering is one `PUT` per later scene, not atomic; a partial failure leaves position gaps but the order intact, and no scene is added.

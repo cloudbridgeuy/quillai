@@ -84,6 +84,7 @@ import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
 import { IconButton } from "../../ui/IconButton";
 import { Alert } from "../../ui/Alert";
+import { Button } from "../../ui/Button";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
@@ -1306,6 +1307,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap",
           }}>{savePresentation.detail}</span> : null}
         </p>
+        {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
+          onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>

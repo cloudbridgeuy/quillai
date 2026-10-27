@@ -45,6 +45,7 @@ export type Piece = Series & {
 export type CreateUniverse = CreateSeries;
 export type CreateContainer = CreateSeries & { kind: ContainerKind };
 export type CreatePiece = CreateSeries & { label: Label; shape: Shape; format: Format };
+export type UpdatePiece = { position: number };
 export type CreateChild = CreateSeries & { label: Label };
 export type PieceDetail =
   | Piece & { shape: "leaf"; content: ManuscriptDelta; headRev: number }

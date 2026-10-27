@@ -6,7 +6,7 @@ import {
   type CreateChild, type CreateContainer, type CreatePiece, type CreateUniverse,
   type EditorScope, type PieceScope, type UniverseScope,
   type CreateSeries, type SeriesScope, type SubmitDelta, type UpdateBook,
-  type UpdateChapter, type UpdateSeries,
+  type UpdateChapter, type UpdatePiece, type UpdateSeries,
 } from "./contract";
 
 export class ManuscriptApiError extends Error {
@@ -120,6 +120,7 @@ export function createManuscriptClient({
     createLoosePiece: (scope: UniverseScope, input: CreatePiece) => request(`${universePath(scope)}/pieces`, "POST", 201, parsePiece, input),
     createContainerPiece: ({ containerId }: ContainerScope, input: CreatePiece) => request(`/containers/${encodeURIComponent(containerId)}/pieces`, "POST", 201, parsePiece, input),
     createChild: (scope: Pick<PieceScope, "pieceId">, input: CreateChild) => request(`${piecePath(scope)}/children`, "POST", 201, parsePiece, input),
+    updatePiece: (scope: Pick<PieceScope, "pieceId">, input: UpdatePiece) => request(piecePath(scope), "PUT", 200, parsePieceDetail, input),
     listContainers: (scope: UniverseScope) => request(`${universePath(scope)}/containers`, "GET", 200, (value) => parseList(value, parseContainer)),
     listLoosePieces: (scope: UniverseScope) => request(`${universePath(scope)}/pieces?container=none`, "GET", 200, (value) => parseList(value, parsePiece)),
     listContainerPieces: ({ containerId }: ContainerScope) => request(`/containers/${encodeURIComponent(containerId)}/pieces`, "GET", 200, (value) => parseList(value, parsePiece)),

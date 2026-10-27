@@ -16,11 +16,13 @@ import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
 const BREAK_NOTICE = "Edits across a scene break are not saved";
+const SCENES_CHANGED = "Scenes changed; reload";
 const EDIT_ACROSS_BREAK = "Select text inside one scene to use Edit.";
 
 type SceneState = {
   id: number;
   title: string;
+  position: number;
   session: ReturnType<typeof createChapterSession>;
   dirty: boolean;
   problem: SyncProblem | null;
@@ -53,6 +55,9 @@ export function useScriptSync(
   const [recovery, setRecovery] = useState<string | null>(null);
   const [scope, setScope] = useState<PieceScope | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [changed, setChanged] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [caretScene, setCaretScene] = useState<number | null>(null);
   const caretRef = useRef<number | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
@@ -88,7 +93,11 @@ export function useScriptSync(
       storageFailed = true;
     }
     const client = createManuscriptClient();
-    const poll = createScenePoll((since) => client.pollScriptGroup({ pieceId: groupId }, since));
+    const poll = createScenePoll(async (since) => {
+      const response = await client.pollScriptGroup({ pieceId: groupId }, since);
+      if (!disposed && response.children.join() !== scenesRef.current.map(({ id }) => id).join()) setChanged(true);
+      return response;
+    });
     const sessionClient = {
       postDelta: client.postDelta,
       getDeltas: (scope: EditorScope, since: number) => {
@@ -161,7 +170,7 @@ export function useScriptSync(
       groupTitle = group.title;
       scenesRef.current = group.scenes.map((scene) => {
         const scope = { universeId: scene.universeId, pieceId: scene.id };
-        const state: SceneState = { id: scene.id, title: scene.title, session: null!, dirty: false, problem: null };
+        const state: SceneState = { id: scene.id, title: scene.title, position: scene.position, session: null!, dirty: false, problem: null };
         state.session = createChapterSession(sessionClient, scope, { content: scene.content, head_rev: scene.headRev },
           (document, dirty, problem) => publish(state, scope, document, dirty, problem));
         return state;
@@ -281,7 +290,40 @@ export function useScriptSync(
     }
   }
 
+  async function addScene() {
+    const scenes = scenesRef.current;
+    const quill = quillRef.current;
+    if (adding || leavingRef.current || activeRef.current() || scenes.length === 0 || !quill) return;
+    const found = scenes.findIndex(({ id }) => id === caretScene);
+    const after = found === -1 ? scenes.length - 1 : found;
+    const previous = scenes[after]!;
+    const universeId = scope?.universeId;
+    if (universeId === undefined) return;
+    const client = createManuscriptClient();
+    setAdding(true);
+    setAddError(null);
+    const later = scenes.slice(after + 1);
+    let created;
+    try {
+      for (let index = later.length - 1; index >= 0; index--) {
+        const scene = later[index]!;
+        const position = Math.max(scene.position, previous.position + 1 + index) + 1;
+        await client.updatePiece({ pieceId: scene.id }, { position });
+        scene.position = position;
+      }
+      created = await client.createChild({ pieceId: groupId }, { title: `Scene ${scenes.length + 1}`, position: previous.position + 1, label: "scene" });
+    } catch (error) {
+      setAddError(`New scene not added: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setAdding(false);
+      return;
+    }
+    if (await flushAll("Saving script before opening the new scene…")) window.location.assign(editorUrl(window.location.href, { universeId, pieceId: created.id }));
+    else setAdding(false);
+  }
+
   return {
+    addScene,
+    adding,
     ready,
     blocked,
     status,
@@ -302,7 +344,7 @@ export function useScriptSync(
     async leave(target: URL = landingUrl(window.location.href)) {
       if (await flushAll("Saving before leaving…")) window.location.assign(target);
     },
-    notice,
+    notice: addError ?? (changed ? SCENES_CHANGED : notice),
     recovery,
     needsChapter: false,
     async bootstrap() {},
