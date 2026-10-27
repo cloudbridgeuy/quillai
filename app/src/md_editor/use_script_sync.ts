@@ -12,6 +12,7 @@ import { createScenePoll } from "./script_poll";
 import { sceneTitles } from "./scene_break";
 import { crossesBreak, offBreak, scriptKeyAction, startsList } from "./script_keys";
 import { blockAttribute, cycleBlock, parseBlock, SCRIPT_BLOCK, splitLineDelta, type BlockType } from "./script_blocks";
+import { toFdx } from "./fdx";
 import { toFountain } from "./fountain";
 import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 
@@ -380,6 +381,10 @@ export function useScriptSync(
     fountain: () => {
       const quill = quillRef.current;
       return quill ? toFountain(layoutRef.current.map((span) => quill.getContents(span.start, span.length))) : "";
+    },
+    fdx: () => {
+      const quill = quillRef.current;
+      return toFdx(quill ? layoutRef.current.map((span) => quill.getContents(span.start, span.length)) : []);
     },
     adding,
     ready,

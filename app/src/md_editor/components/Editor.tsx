@@ -1329,6 +1329,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             onClick={(event) => {
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(chapterSync.fountain())}`;
             }}>Download Fountain</a>
+          <a className={buttonClassName({ size: "sm" })} download={`${chapterSync.title || "script"}.fdx`} href="#"
+            onClick={(event) => {
+              event.currentTarget.href = `data:application/xml;charset=utf-8,${encodeURIComponent(chapterSync.fdx())}`;
+            }}>Download FDX</a>
         </div> : null}
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
