@@ -20,6 +20,7 @@ import {
 import {
   continueClickAction,
   editReplacementLength,
+  emptyContinueMessage,
   canApplyEdit,
   getSavePresentation,
   getStatusPresentation,
@@ -278,6 +279,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const tintEnabledRef = useRef(aiTextTint);
   tintEnabledRef.current = aiTextTint;
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
+  const [emptyContinueNotice, setEmptyContinueNotice] = useState<string | null>(null);
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
@@ -714,6 +716,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       return;
     }
 
+    setEmptyContinueNotice(null);
     const controller = new AbortController();
     if (reservation) {
       desktopContinueWaitingRef.current = desktop;
@@ -955,6 +958,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       if (concurrentContinue && terminalOutcome === "cancelled") {
         rollbackContinue();
         updateThreadState(finishCancelledThread(threadStateRef.current));
+        return;
+      }
+      if (action === "generate" && terminalOutcome === "done" && generatedText.length === 0) {
+        setEmptyContinueNotice(emptyContinueMessage(finishReason));
         return;
       }
       if (action === "generate") {
@@ -1335,6 +1342,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }}>Download FDX</a>
         </div> : null}
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
+        {emptyContinueNotice ? <Alert tone="fail" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
@@ -1368,6 +1376,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                 }
 
                 if (source === "user") {
+                  if (quill && emptyContinueNotice) queueMicrotask(() => {
+                    if (oldDelta.diff(quill.getContents()).ops.length > 0) setEmptyContinueNotice(null);
+                  });
                   updateThreadState(
                     invalidateThreadForManualEdit(threadStateRef.current, manualEditFromDelta(delta)),
                   );

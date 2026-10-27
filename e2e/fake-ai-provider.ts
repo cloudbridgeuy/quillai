@@ -45,7 +45,7 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && request.url === "/control/arm") {
       const input: { identity?: unknown; model?: unknown } = JSON.parse(body);
-      const continueIdentity = typeof input.identity === "string" && /^GUZ(807|985)-(Finish|Stop)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
+      const continueIdentity = typeof input.identity === "string" && /^GUZ(?:(807|985)-(Finish|Stop)|866-(seed|length|stop))-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
       const editIdentity = typeof input.identity === "string" && /^(GUZ865-(commentary|missing|unclosed)|GUZ985-edit)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-edit";
       if (typeof input.identity !== "string" || !(continueIdentity || editIdentity)) {
         response.writeHead(422).end();
@@ -90,7 +90,7 @@ const server = createServer(async (request, response) => {
       events.emit(`request:${record.id}`);
       return;
     }
-    const control = /^\/control\/(\d+)\/(fragment|finish)$/.exec(request.url ?? "");
+    const control = /^\/control\/(\d+)\/(fragment|usage|finish)$/.exec(request.url ?? "");
     if (request.method === "POST" && control) {
       const id = Number(control[1]);
       const stream = streams.get(id);
@@ -102,9 +102,13 @@ const server = createServer(async (request, response) => {
         const { text }: { text?: unknown } = JSON.parse(body);
         if (typeof text !== "string" || !text.length) throw new Error("Missing fragment");
         stream.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+      } else if (control[2] === "usage") {
+        stream.write(`data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 11, completion_tokens: 0 } })}\n\n`);
       } else {
+        const { reason = "stop" }: { reason?: "stop" | "length" } = body ? JSON.parse(body) : {};
+        if (reason !== "stop" && reason !== "length") throw new Error("Invalid finish reason");
         requests[id]!.completed = true;
-        stream.end(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`);
+        stream.end(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: reason }] })}\n\ndata: [DONE]\n\n`);
       }
       response.writeHead(200).end();
       return;

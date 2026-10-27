@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 
 import {
   editReplacementLength,
+  emptyContinueMessage,
   getStatusPresentation,
   isTextOnlyDeltaDocument,
   rememberCursorRange,
@@ -135,4 +136,10 @@ test("editReplacementLength keeps a selection's trailing line ending out of the 
   expect(editReplacementLength([{ insert: "One\nTwo" }, { insert: "\n", attributes: { "script-block": "character" } }])).toBe(7);
   expect(editReplacementLength([{ insert: "A" }, { insert: { image: "x.png" } }, { insert: "B\n" }])).toBe(3);
   expect(editReplacementLength([{ insert: "A" }, { insert: { image: "x.png" } }])).toBe(2);
+});
+
+test("empty Continue explains length and other finishes", () => {
+  expect(emptyContinueMessage("length")).toBe("The model used its whole budget without writing any text. Try again or pick another model.");
+  expect(emptyContinueMessage("stop")).toBe("The model returned no text.");
+  expect(emptyContinueMessage("unknown")).toBe("The model returned no text.");
 });

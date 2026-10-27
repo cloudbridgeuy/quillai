@@ -1,5 +1,11 @@
-import type { AiAction, AiSelection, DeltaDocument } from "./ai_contract";
+import type { AiAction, AiFinishReason, AiSelection, DeltaDocument } from "./ai_contract";
 import type { AiRunState } from "./ai_state";
+
+export function emptyContinueMessage(reason: AiFinishReason): string {
+  return reason === "length"
+    ? "The model used its whole budget without writing any text. Try again or pick another model."
+    : "The model returned no text.";
+}
 
 export function continueClickAction(state: AiRunState): "stop" | "generate" {
   return state.status === "continuing" || state.status === "editing" || state.status === "cancelling"
