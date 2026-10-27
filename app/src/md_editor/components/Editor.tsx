@@ -73,6 +73,7 @@ import {
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
+import { useScriptSync } from "../use_script_sync";
 import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
 import { createSettingsClient } from "../../settings/client";
@@ -139,6 +140,7 @@ export type ComponentPropsT = {
   defaultValue: DeltaT;
   onTextChange: OnTextChangeFn;
   onSelectionChange: OnSelectionChangeFn;
+  markdownShortcuts: boolean;
 };
 
 function getStoredEditorState(): PersistedEditorState {
@@ -174,10 +176,11 @@ function getAiErrorMessage(responseText: string, status: number): string {
 }
 
 export const Component = forwardRef<Quill, ComponentPropsT>(
-  ({ readOnly, defaultValue, onTextChange, onSelectionChange }, ref) => {
+  ({ readOnly, defaultValue, onTextChange, onSelectionChange, markdownShortcuts }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const defaultValueRef = useRef(defaultValue);
     const initialReadOnlyRef = useRef(readOnly);
+    const markdownShortcutsRef = useRef(markdownShortcuts);
     const onTextChangeRef = useRef(onTextChange);
     const onSelectionChangeRef = useRef(onSelectionChange);
 
@@ -217,7 +220,7 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
       quill.enable(!initialReadOnlyRef.current);
 
       quill.on(Quill.events.TEXT_CHANGE, (delta, oldDelta, source) => {
-        processMarkdownSyntax(quill, delta, source);
+        if (markdownShortcutsRef.current) processMarkdownSyntax(quill, delta, source);
         onTextChangeRef.current?.(delta, oldDelta, source);
       });
 
@@ -239,7 +242,10 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 
 Component.displayName = "EditorComponent";
 
-export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: readonly LoreMatchEntry[] }) => {
+export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
+  loreEntries?: readonly LoreMatchEntry[];
+  scriptGroupId?: number;
+}) => {
   const initialEditorStateRef = useRef<PersistedEditorState | null>(null);
   if (initialEditorStateRef.current === null) {
     initialEditorStateRef.current = getStoredEditorState();
@@ -327,15 +333,18 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
   const isMountedRef = useRef(true);
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
-  const chapterSync = useChapterSync(quillRef, () =>
-    ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status), () => {
-      lastCursorRangeRef.current = null;
-      lastEditSelectionRef.current = null;
-      clearContinueTint();
-      setSectionOverrides({ generate: {}, edit: {} });
-      setRange(quillRef.current?.getSelection() ?? null);
-      updateThreadState(resetThread(threadStateRef.current));
-    });
+  const isAiActive = () => ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status);
+  const onRemoteChange = () => {
+    lastCursorRangeRef.current = null;
+    lastEditSelectionRef.current = null;
+    clearContinueTint();
+    setSectionOverrides({ generate: {}, edit: {} });
+    setRange(quillRef.current?.getSelection() ?? null);
+    updateThreadState(resetThread(threadStateRef.current));
+  };
+  const chapterSync = scriptGroupId === undefined
+    ? useChapterSync(quillRef, isAiActive, onRemoteChange)
+    : useScriptSync(quillRef, isAiActive, onRemoteChange, scriptGroupId);
 
   const tabTitle = getTabTitle(chapterSync.title, chapterSync.ready);
   useEffect(() => {
@@ -1314,8 +1323,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries }: { loreEntries?: 
                   nextRange ? { index: nextRange.index, length: nextRange.length } : null,
                 );
               }}
-              onTextChange={(delta, _oldDelta, source) => {
-                chapterSync.documentChanged();
+              markdownShortcuts={scriptGroupId === undefined}
+              onTextChange={(delta, oldDelta, source) => {
+                chapterSync.documentChanged(delta, oldDelta);
                 const quill = quillRef.current;
                 if (quill) {
                   persistEditorState();

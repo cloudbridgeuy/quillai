@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { editorUrl, landingUrl, parseLastEdited, showsLanding } from "./routes";
+import { editorUrl, landingUrl, parseLastEdited, scriptGroupId, showsLanding } from "./routes";
 
 describe("landing routes", () => {
   test("shows landing only without an editor target", () => {
@@ -25,5 +25,12 @@ describe("landing routes", () => {
       JSON.stringify({ scope: { universeId: 1, pieceId: 0 }, title: "A" }), JSON.stringify({ scope: { universeId: 1, pieceId: 2 } })]) {
       expect(parseLastEdited(raw)).toBeNull();
     }
+  });
+
+  test("opens script groups and their scenes as one surface", () => {
+    expect(scriptGroupId({ id: 4, format: "script", shape: "group", parentId: null })).toBe(4);
+    expect(scriptGroupId({ id: 5, format: "script", shape: "leaf", parentId: 4 })).toBe(4);
+    expect(scriptGroupId({ id: 6, format: "script", shape: "leaf", parentId: null })).toBeUndefined();
+    expect(scriptGroupId({ id: 7, format: "prose", shape: "leaf", parentId: 3 })).toBeUndefined();
   });
 });

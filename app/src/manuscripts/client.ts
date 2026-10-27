@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from "../api_config";
 import {
   parseApiError, parseBook, parseChapter, parseChapterSummary, parseContainer, parseList, parsePiece,
-  parsePieceDetail, parseRevision, parseSeries,
+  parsePieceDetail, parseRevision, parseScenePoll, parseScriptGroup, parseSeries,
   type BookScope, type ChapterScope, type ContainerScope, type CreateBook, type CreateChapter,
   type CreateChild, type CreateContainer, type CreatePiece, type CreateUniverse,
   type EditorScope, type PieceScope, type UniverseScope,
@@ -124,6 +124,10 @@ export function createManuscriptClient({
     listLoosePieces: (scope: UniverseScope) => request(`${universePath(scope)}/pieces?container=none`, "GET", 200, (value) => parseList(value, parsePiece)),
     listContainerPieces: ({ containerId }: ContainerScope) => request(`/containers/${encodeURIComponent(containerId)}/pieces`, "GET", 200, (value) => parseList(value, parsePiece)),
     getPiece: (scope: Pick<PieceScope, "pieceId">) => request(piecePath(scope), "GET", 200, parsePieceDetail),
+    getScriptGroup: (scope: Pick<PieceScope, "pieceId">) => request(`${piecePath(scope)}/scenes`, "GET", 200, parseScriptGroup),
+    pollScriptGroup: (scope: Pick<PieceScope, "pieceId">, since: ReadonlyMap<number, number>) => request(
+      `${piecePath(scope)}/scenes/deltas?since=${encodeURIComponent([...since].map(([id, rev]) => `${id}:${rev}`).join(","))}`,
+      "GET", 200, parseScenePoll),
     getDeltas: (scope: EditorScope, since: number) => request(`${documentPath(scope)}/deltas?since=${encodeURIComponent(since)}`, "GET", 200, (value) => parseList(value, parseRevision)),
     postDelta: (scope: EditorScope, input: SubmitDelta) => request(`${documentPath(scope)}/deltas`, "POST", 200, parseRevision, input),
   };

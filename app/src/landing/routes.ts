@@ -1,4 +1,4 @@
-import type { EditorScope } from "../manuscripts/contract";
+import type { EditorScope, Piece } from "../manuscripts/contract";
 
 export const LAST_EDITED_KEY = "quillai.landing.lastEdited.v1";
 const editorKeys = ["seriesId", "bookId", "chapterId", "universeId", "pieceId", "editor"];
@@ -43,4 +43,9 @@ export function parseLastEdited(raw: string | null): LastEdited | null {
   } catch {
     return null;
   }
+}
+
+export function scriptGroupId(piece: Pick<Piece, "id" | "format" | "shape" | "parentId">): number | undefined {
+  if (piece.format !== "script") return undefined;
+  return piece.shape === "group" ? piece.id : piece.parentId ?? undefined;
 }

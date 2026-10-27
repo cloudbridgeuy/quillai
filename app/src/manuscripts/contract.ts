@@ -49,6 +49,10 @@ export type CreateChild = CreateSeries & { label: Label };
 export type PieceDetail =
   | Piece & { shape: "leaf"; content: ManuscriptDelta; headRev: number }
   | Piece & { shape: "group"; children: Piece[] };
+export type Scene = Piece & { shape: "leaf"; content: ManuscriptDelta; headRev: number };
+export type ScriptGroup = Piece & { scenes: Scene[] };
+export type SceneDeltas = { revisions: Revision[] } | { conflict: string };
+export type ScenePoll = { children: number[]; scenes: Map<number, SceneDeltas> };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -135,6 +139,29 @@ export function parsePieceDetail(value: unknown): PieceDetail {
   return piece.shape === "leaf"
     ? { ...piece, shape: "leaf", content: parseDelta(row.content), headRev: integer(row.headRev) }
     : { ...piece, shape: "group", children: parseList(row.children, parsePiece) };
+}
+
+export function parseScriptGroup(value: unknown): ScriptGroup {
+  const row = record(value);
+  return {
+    ...parsePiece(row),
+    scenes: parseList(row.scenes, (scene) => {
+      const detail = parsePieceDetail(scene);
+      if (detail.shape !== "leaf") throw new Error("Expected a scene leaf");
+      return detail;
+    }),
+  };
+}
+
+export function parseScenePoll(value: unknown): ScenePoll {
+  const row = record(value);
+  const scenes = new Map(Object.entries(record(row.scenes)).map(([id, entry]): [number, SceneDeltas] => {
+    const scene = record(entry);
+    return [integer(Number(id), 1), typeof scene.conflict === "string"
+      ? { conflict: scene.conflict }
+      : { revisions: parseList(scene.revisions, parseRevision) }];
+  }));
+  return { children: parseList(row.children, (id) => integer(id, 1)), scenes };
 }
 
 export function parseDelta(value: unknown): ManuscriptDelta {

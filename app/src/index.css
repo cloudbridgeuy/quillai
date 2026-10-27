@@ -645,6 +645,21 @@ body {
   color: var(--pencil);
 }
 
+.editor-host .ql-editor .ql-scene-break {
+  @apply mt-4 text-label text-graphite;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  cursor: default;
+}
+
+.editor-host .ql-editor .ql-scene-break:first-child {
+  @apply mt-0;
+}
+
+.editor-host .ql-editor .ql-scene-break::before {
+  content: attr(data-title);
+}
+
 .editor-continue-window {
   position: absolute;
   left: -24px;
