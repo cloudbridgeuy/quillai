@@ -1,0 +1,3 @@
+{"type":"delta","delta":{"ops":[{"insert":"partial"}]}}
+{"type":"error","error":"missing replacement tag"}
+{"type":"done","finishReason":"stop"}

@@ -1,0 +1,17 @@
+{"type":"delta","delta":{"ops":[{"insert":"M"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"ara"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" stepped"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" inside"}]}}
+{"type":"delta","delta":{"ops":[{"insert":","}]}}
+{"type":"delta","delta":{"ops":[{"insert":" and"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" the"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" candles"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" gutter"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"ed"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" as"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" if"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" in"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" warning"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"."}]}}
+{"type":"usage","promptTokens":195,"completionTokens":21}
+{"type":"done","finishReason":"stop"}

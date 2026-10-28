@@ -1,0 +1,36 @@
+{"type":"delta","delta":{"ops":[{"insert":"It"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" was"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" a"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" signal"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" no"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" one"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" had"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" answered"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" in"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" forty"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" years"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"—or"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" so"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" she"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" believed"}]}}
+{"type":"delta","delta":{"ops":[{"insert":","}]}}
+{"type":"delta","delta":{"ops":[{"insert":" until"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" tonight"}]}}
+{"type":"delta","delta":{"ops":[{"insert":","}]}}
+{"type":"delta","delta":{"ops":[{"insert":" when"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" a"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" light"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" flick"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"ered"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" back"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" from"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" the"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" black"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" water"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" beyond"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" the"}]}}
+{"type":"delta","delta":{"ops":[{"insert":" sho"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"als"}]}}
+{"type":"delta","delta":{"ops":[{"insert":"."}]}}
+{"type":"usage","promptTokens":131,"completionTokens":36}
+{"type":"done","finishReason":"stop"}

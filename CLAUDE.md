@@ -26,6 +26,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
 | Lint, tests, and project tsc (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
 | Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`); prints only failures and a summary line, full log in `target/xtask-e2e/e2e.log`; `--verbose` prints full output | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
+| Live AI smoke (opt-in) | `cargo xtask ai-smoke [--model ID] [--ai-models FILE]` | `xtask/src/ai_smoke.rs` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
 | AI model catalog | `cargo xtask dev --ai-models models.json` (also `e2e` and API `--ai-models`; env `QUILLAI_AI_MODELS_FILE`) | `crates/api/src/ai/catalog.rs` |
 | Frontend dev only | `PORT=3001 bun --hot app/src/index.tsx` | `app/src/index.tsx` |

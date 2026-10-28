@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+mod ai_smoke;
 mod check_claude_md;
 mod check_ui;
 mod dev_database;
@@ -37,6 +38,8 @@ pub struct App {
 pub enum Commands {
     #[command(about = "Run the API and frontend in development mode")]
     Dev(DevArgs),
+    #[command(about = "Run an opt-in live AI smoke test")]
+    AiSmoke(ai_smoke::Args),
     #[command(
         about = "Run read-only quality checks with short output; full logs in target/xtask-lint"
     )]
@@ -172,6 +175,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli.command {
         Commands::Dev(args) => dev(args),
+        Commands::AiSmoke(args) => ai_smoke::run(args),
         Commands::E2e(args) => e2e::run(args),
         Commands::Lint(args) => {
             if !lint(args)? {

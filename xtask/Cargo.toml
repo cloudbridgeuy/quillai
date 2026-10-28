@@ -11,3 +11,4 @@ chrono = { workspace = true }
 clap = { workspace = true }
 libc = "0.2"
 signal-hook = "0.3.17"
+serde_json = { workspace = true }
