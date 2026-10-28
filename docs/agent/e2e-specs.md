@@ -25,6 +25,8 @@
 
 `continue-empty.spec.ts` arms one-use real-provider identities at 1100px and checks empty length and stop finishes, exact Alerts, unchanged chapter/piece, selection and AI thread, and Alert clearing.
 
+`continue-reasoning.spec.ts` arms real-provider identities at 1100px: a model with low reasoning effort writes text that persists on server GET; a model without it returns an empty length finish and leaves the chapter unchanged.
+
 `continue-tie-order.spec.ts` also arms one-use real-provider identities at 1100px: server-priority ties can place remote paragraph-start typing in the AI paragraph (documented limitation); Finish pins `REMOTE AI first tail` / `Later paragraph`, Stop keeps `REMOTE Later paragraph`, with exact two-tab/server convergence and no API errors.
 `stream-remote-edit.spec.ts` checks exact two-tab/server convergence after Finish or Stop during desktop Continue at 1100px, preserving author and remote edits at distinct insertion points, retaining AI text only on Finish, and rejecting API errors; AI transport is mocked, not the real generation API.
 

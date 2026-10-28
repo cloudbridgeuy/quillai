@@ -1,9 +1,19 @@
 use std::{collections::HashSet, path::Path};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::models::AiAction;
 use crate::error::Error;
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ReasoningEffort {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+}
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -14,6 +24,7 @@ pub struct CatalogModel {
     pub output_price_per_million: f64,
     #[serde(default = "default_include_usage")]
     pub include_usage: bool,
+    pub reasoning_effort: Option<ReasoningEffort>,
 }
 
 fn default_include_usage() -> bool {
@@ -97,6 +108,7 @@ impl ModelCatalog {
                 input_price_per_million: 0.0,
                 output_price_per_million: 0.0,
                 include_usage: true,
+                reasoning_effort: None,
             }],
             generate: 0,
             edit: 0,
@@ -220,8 +232,34 @@ mod tests {
         for action in [AiAction::Generate, AiAction::Edit] {
             assert_eq!(catalog.resolve(action).id, "legacy-model");
             assert!(catalog.resolve(action).include_usage);
+            assert_eq!(catalog.resolve(action).reasoning_effort, None);
         }
         assert!(load(None, None).unwrap().is_none());
         assert!(load(None, Some(" ")).is_err());
+    }
+
+    #[test]
+    fn reasoning_effort_accepts_known_values_and_rejects_unknown() {
+        let mut file = file();
+        assert_eq!(
+            ModelCatalog::parse(&file.to_string()).unwrap().models()[0].reasoning_effort,
+            None
+        );
+        for (value, effort) in [
+            ("none", ReasoningEffort::None),
+            ("minimal", ReasoningEffort::Minimal),
+            ("low", ReasoningEffort::Low),
+            ("medium", ReasoningEffort::Medium),
+            ("high", ReasoningEffort::High),
+        ] {
+            file["models"][0]["reasoning_effort"] = json!(value);
+            assert_eq!(
+                ModelCatalog::parse(&file.to_string()).unwrap().models()[0].reasoning_effort,
+                Some(effort)
+            );
+            assert_eq!(serde_json::to_value(effort).unwrap(), json!(value));
+        }
+        file["models"][0]["reasoning_effort"] = json!("unknown");
+        assert!(ModelCatalog::parse(&file.to_string()).is_err());
     }
 }

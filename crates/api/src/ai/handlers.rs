@@ -56,17 +56,20 @@ pub async fn generate(
         .transpose()?;
     let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
-    let (config, include_usage) = match catalog.as_ref() {
+    let (config, include_usage, reasoning_effort) = match catalog.as_ref() {
         Some(axum::Extension(catalog)) => {
             let model = selected_model.unwrap_or_else(|| catalog.resolve(input.action));
             (
                 OpenAiCompatibleConfig::from_env_with_model(model.id.clone())?,
                 model.include_usage,
+                model.reasoning_effort,
             )
         }
-        None => (OpenAiCompatibleConfig::from_env()?, true),
+        None => (OpenAiCompatibleConfig::from_env()?, true, None),
     };
-    let provider = OpenAiCompatibleProvider::new(config)?.with_include_usage(include_usage);
+    let provider = OpenAiCompatibleProvider::new(config)?
+        .with_include_usage(include_usage)
+        .with_reasoning_effort(reasoning_effort);
     let body_stream = provider
         .stream(input)
         .map(|event| Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event))));

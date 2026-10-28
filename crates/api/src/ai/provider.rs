@@ -6,6 +6,7 @@ use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 
+use super::catalog::ReasoningEffort;
 use super::models::{AiAction, FinishReason, GenerateInput, StreamEvent};
 use super::prompt::{build_prompt, escape_prompt_text};
 use super::replacement::ReplacementExtractor;
@@ -49,6 +50,7 @@ pub struct OpenAiCompatibleProvider {
     client: Client,
     config: OpenAiCompatibleConfig,
     include_usage: bool,
+    reasoning_effort: Option<ReasoningEffort>,
 }
 
 impl OpenAiCompatibleProvider {
@@ -63,11 +65,17 @@ impl OpenAiCompatibleProvider {
             client,
             config,
             include_usage: true,
+            reasoning_effort: None,
         })
     }
 
     pub fn with_include_usage(mut self, include_usage: bool) -> Self {
         self.include_usage = include_usage;
+        self
+    }
+
+    pub fn with_reasoning_effort(mut self, reasoning_effort: Option<ReasoningEffort>) -> Self {
+        self.reasoning_effort = reasoning_effort;
         self
     }
 }
@@ -83,9 +91,10 @@ impl AiProvider for OpenAiCompatibleProvider {
         let client = self.client.clone();
         let config = self.config.clone();
         let include_usage = self.include_usage;
+        let reasoning_effort = self.reasoning_effort;
 
         Box::pin(stream! {
-            let request_body = ChatCompletionRequest::from_input(config.model.clone(), include_usage, &input);
+            let request_body = ChatCompletionRequest::from_input(config.model.clone(), include_usage, reasoning_effort, &input);
             let response = match client
                 .post(format!("{}/chat/completions", config.base_url))
                 .bearer_auth(config.api_key)
@@ -193,12 +202,19 @@ struct ChatCompletionRequest {
     stream: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     stream_options: Option<StreamOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_effort: Option<ReasoningEffort>,
     max_tokens: usize,
     messages: Vec<ChatMessage>,
 }
 
 impl ChatCompletionRequest {
-    fn from_input(model: String, include_usage: bool, input: &GenerateInput) -> Self {
+    fn from_input(
+        model: String,
+        include_usage: bool,
+        reasoning_effort: Option<ReasoningEffort>,
+        input: &GenerateInput,
+    ) -> Self {
         let current_turn = build_prompt(input);
         Self {
             model,
@@ -206,6 +222,7 @@ impl ChatCompletionRequest {
             stream_options: include_usage.then_some(StreamOptions {
                 include_usage: true,
             }),
+            reasoning_effort,
             max_tokens: input.max_output_tokens,
             messages: chat_messages(input, current_turn),
         }
@@ -862,11 +879,24 @@ mod tests {
             max_output_tokens: 777,
         };
 
-        let body =
-            serde_json::to_value(ChatCompletionRequest::from_input("m".into(), false, &input))
-                .unwrap();
+        let body = serde_json::to_value(ChatCompletionRequest::from_input(
+            "m".into(),
+            false,
+            Some(ReasoningEffort::Low),
+            &input,
+        ))
+        .unwrap();
 
         assert_eq!(body["max_tokens"], 777);
+        assert_eq!(body["reasoning_effort"], "low");
+        let body = serde_json::to_value(ChatCompletionRequest::from_input(
+            "m".into(),
+            false,
+            None,
+            &input,
+        ))
+        .unwrap();
+        assert!(body.get("reasoning_effort").is_none());
     }
 
     #[test]
@@ -910,12 +940,22 @@ mod tests {
         let body = serde_json::to_value(ChatCompletionRequest::from_input(
             "model-a".into(),
             true,
+            None,
             &input,
         ))
         .unwrap();
 
         assert_eq!(body["model"], "model-a");
         assert_eq!(body["stream"], true);
+        assert!(body.get("reasoning_effort").is_none());
+        let configured = serde_json::to_value(ChatCompletionRequest::from_input(
+            "model-a".into(),
+            true,
+            Some(ReasoningEffort::Low),
+            &input,
+        ))
+        .unwrap();
+        assert_eq!(configured["reasoning_effort"], "low");
         assert_eq!(body["stream_options"]["include_usage"], true);
         assert_eq!(body["max_tokens"], 777);
         assert_eq!(body["messages"][1]["role"], "user");
