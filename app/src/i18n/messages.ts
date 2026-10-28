@@ -28,6 +28,7 @@ export const en = {
   },
   "draft.words": "{count} words",
   "edit.summary": "Edited {when} for {price}",
+  "edit.failure": "The model didn't return an edit. Try again or switch models.",
 } as const satisfies Record<string, string | PluralMessage>;
 
 export type MessageKey = keyof typeof en;
@@ -41,6 +42,7 @@ export const es = {
   },
   "draft.words": "{count} palabras",
   "edit.summary": "Editado el {when} por {price}",
+  "edit.failure": "El modelo no devolvió una edición. Inténtalo de nuevo o cambia de modelo.",
 } as const satisfies MessageShape<typeof en>;
 
 export type CurrencyAmount = {

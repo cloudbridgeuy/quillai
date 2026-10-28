@@ -34,6 +34,7 @@ import {
   shouldRestoreCancelledEditSelection,
   shouldRollbackFailedEditSelection,
 } from "../editor_ai";
+import { getEditFailurePresentation } from "../edit_failure";
 import { finalizeAiStreamRemainder, parseAiStreamChunk } from "../ai_stream";
 import { toContractDeltaDocument, toQuillDeltaDocument } from "../delta_bridge";
 import {
@@ -1137,6 +1138,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }
 
   const statusPresentation = getStatusPresentation(aiRunState);
+  const editFailure = aiRunState.status === "failed" && aiRunState.action === "edit"
+    ? getEditFailurePresentation(aiRunState.error)
+    : null;
   const savePresentation = getSavePresentation(chapterSync.status, chapterSync.title, chapterSync.blocked);
   const withThread = activeContinueWithThread ?? shouldContinueWithThread(
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
@@ -1344,7 +1348,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="fail" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
-          <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
+          editFailure ? <Alert tone="fail" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={editFailure.title}>{editFailure.label}</Alert>
+            : <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
       </div>
 

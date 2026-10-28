@@ -4,7 +4,7 @@ import { expectEditorReady } from "./editor-ready";
 const original = "He try to distract himself.";
 const replacement = "He tried to distract himself.";
 
-async function openEditChapter(page: Page, request: APIRequestContext, identity: string, wholeParagraph = false) {
+async function openEditChapter(page: Page, request: APIRequestContext, identity: string, wholeParagraph = false, error?: string) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
   const providerUrl = process.env.QUILLAI_E2E_FAKE_AI_URL;
   if (!apiUrl || !providerUrl) throw new Error("Run with cargo xtask e2e and its default catalog");
@@ -31,7 +31,7 @@ async function openEditChapter(page: Page, request: APIRequestContext, identity:
   await expect(editor.locator("p")).toHaveText([`${original} ${identity}`, "Later paragraph"]);
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   const before = (await (await request.get(`${providerUrl}/control`)).json()).length as number;
-  expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-edit" } })).status()).toBe(200);
+  if (!error) expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-edit" } })).status()).toBe(200);
   await editor.click();
   await editor.evaluate((element, length) => {
     const text = element.querySelector("p")?.firstChild;
@@ -48,13 +48,19 @@ async function openEditChapter(page: Page, request: APIRequestContext, identity:
   const note = page.getByRole("textbox", { name: "Edit instruction", exact: true });
   await expect(note).toBeFocused();
   await note.fill("Fix the grammar only");
+  if (error) await page.route(`${apiUrl}/ai/generate`, route => route.fulfill({
+    contentType: "application/x-ndjson",
+    body: `${JSON.stringify({ type: "error", error })}\n`,
+  }));
   const generation = page.waitForResponse(response => response.url() === `${apiUrl}/ai/generate` && response.request().method() === "POST");
   await note.press("Enter");
-  const recorded = await request.get(`${providerUrl}/control/${before}/request`);
-  expect(recorded.status()).toBe(200);
-  const upstream = await recorded.json();
-  expect(upstream).toEqual({ id: before, identity, model: "e2e-edit", stream: true, closed: false, completed: false });
-  const controlUrl = `${providerUrl}/control/${upstream.id}`;
+  if (!error) {
+    const recorded = await request.get(`${providerUrl}/control/${before}/request`);
+    expect(recorded.status()).toBe(200);
+    const upstream = await recorded.json();
+    expect(upstream).toEqual({ id: before, identity, model: "e2e-edit", stream: true, closed: false, completed: false });
+  }
+  const controlUrl = `${providerUrl}/control/${before}`;
   const fragment = async (text: string) => expect((await request.post(`${controlUrl}/fragment`, { data: { text } })).status()).toBe(200);
   return { editor, failures, generation, fragment, chapterUrl: `${chaptersUrl}/${chapter.id}`, controlUrl };
 }
@@ -110,8 +116,20 @@ for (const scenario of [
     }
     expect((await request.post(`${run.controlUrl}/finish`)).status()).toBe(200);
     expect((await run.generation).status()).toBe(200);
-    await expect(page.getByText(scenario.message, { exact: true })).toBeVisible();
+    const error = page.getByText("The model didn't return an edit. Try again or switch models.", { exact: true });
+    await expect(error).toBeVisible();
+    await expect(error).toHaveAttribute("title", scenario.message);
     await expectSavedChapter(page, request, run.chapterUrl, [`${original} ${identity}`, "Later paragraph"]);
     expect(run.failures).toEqual([]);
   });
 }
+
+test("Edit shows other errors unchanged", async ({ page, request }) => {
+  const identity = `GUZ921-other-error-${crypto.randomUUID()}`;
+  const message = "Mock stream failure";
+  const run = await openEditChapter(page, request, identity, false, message);
+  expect((await run.generation).status()).toBe(200);
+  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  await expectSavedChapter(page, request, run.chapterUrl, [`${original} ${identity}`, "Later paragraph"]);
+  expect(run.failures).toEqual([]);
+});
