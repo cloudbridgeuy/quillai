@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+mod check_claude_md;
 mod check_ui;
 mod dev_database;
 mod e2e;
@@ -272,8 +273,11 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
         failed += usize::from(!passed);
     }
     type SourceCheck = fn(&std::path::Path, &std::path::Path) -> std::io::Result<bool>;
-    let source_checks: [(&str, SourceCheck); 2] =
-        [("file-length", check_file_lengths), ("ui", check_ui::run)];
+    let source_checks: [(&str, SourceCheck); 3] = [
+        ("file-length", check_file_lengths),
+        ("ui", check_ui::run),
+        ("claude-md-size", check_claude_md::run),
+    ];
     for (name, check) in source_checks {
         let path = logs.join(format!("{name}.log"));
         let passed = check(root, &path)?;
