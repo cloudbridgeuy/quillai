@@ -18,7 +18,7 @@ export type PromptSection = {
   tokens: number;
 };
 
-const GENERATE_RULES = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. ";
+const GENERATE_RULES = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. Start exactly where the text before the caret ends. Do not repeat or rephrase it. ";
 const EDIT_RULES = "You are editing a passage of fiction. Rewrite only the selected text, following the instruction. "
   + "Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. "
   + "Do not add new paragraphs unless the selected text already has them. "
@@ -47,6 +47,10 @@ export function assemblePromptSections(input: AiGenerateRequest, authorGuidance 
     ? `index=${input.selection.range.index}, length=${input.selection.range.length}, text=${escapePromptText(selectionText)}`
     : escapePromptText(selectionText);
   const document = overrides.document ?? input.document.text;
+  const caret = input.selection?.range.index ?? input.document.text.length;
+  const caretSections = input.action === "generate"
+    ? `\n<before_caret>\n${escapePromptText(input.document.text.slice(0, caret))}\n</before_caret>\n<after_caret>\n${escapePromptText(input.document.text.slice(caret))}\n</after_caret>`
+    : "";
   const system = "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.";
   const lore = (input.lore ?? []).filter(entry => ["include", "known_dont_reveal"].includes(entry.level)).map(entry =>
     `Name: ${entry.name}\nKind: ${entry.kind}\n${entry.level === "known_dont_reveal" ? "Known, but MUST NOT be revealed in prose.\n" : ""}Text: ${entry.visible_text}`,
@@ -61,7 +65,7 @@ export function assemblePromptSections(input: AiGenerateRequest, authorGuidance 
     section("story_context", "Story context", `<story_context>\n${escapePromptText(storyContext)}\n</story_context>\n`, storyContext),
     ...(lore === "" ? [] : [section("lore", "Lore", `<lore>\n${escapePromptText(lore)}\n</lore>\n`, lore)]),
     section("selection", "Selection", `<selection>\n${selection}\n</selection>\n`, selectionText),
-    section("document", "Document", `<document>\n${escapePromptText(document)}\n</document>`, document),
+    section("document", "Document", `<document>\n${escapePromptText(document)}\n</document>${caretSections}`, document),
   ];
 }
 

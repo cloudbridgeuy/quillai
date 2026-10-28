@@ -1,6 +1,6 @@
 use super::models::{AiAction, GenerateInput, LoreEntry, LoreLevel, PromptSectionId};
 
-const GENERATE_RULES: &str = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. ";
+const GENERATE_RULES: &str = "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. Start exactly where the text before the caret ends. Do not repeat or rephrase it. ";
 const EDIT_RULES: &str = concat!(
     "You are editing a passage of fiction. Rewrite only the selected text, following the instruction. ",
     "Change only what the instruction asks; keep every other word, sentence, and paragraph break unchanged. ",
@@ -33,6 +33,17 @@ pub fn build_prompt(input: &GenerateInput) -> String {
         &input.document.text,
     ));
 
+    let caret = if input.action == AiAction::Generate {
+        let (before, after) = input.document_at_caret();
+        format!(
+            "\n<before_caret>\n{}\n</before_caret>\n<after_caret>\n{}\n</after_caret>",
+            escape_prompt_text(before),
+            escape_prompt_text(after)
+        )
+    } else {
+        String::new()
+    };
+
     format!(
         concat!(
             "{}",
@@ -41,7 +52,7 @@ pub fn build_prompt(input: &GenerateInput) -> String {
             "<story_context>\n{}\n</story_context>\n",
             "{}",
             "<selection>\n{}\n</selection>\n",
-            "<document>\n{}\n</document>"
+            "<document>\n{}\n</document>{}"
         ),
         match input.action {
             AiAction::Generate => GENERATE_RULES,
@@ -52,7 +63,8 @@ pub fn build_prompt(input: &GenerateInput) -> String {
         story_context,
         lore,
         selection,
-        document
+        document,
+        caret
     )
 }
 
@@ -144,14 +156,17 @@ mod tests {
         };
 
         let prompt = build_prompt(&input);
+        assert!(prompt
+            .contains("<before_caret>\nHello\n</before_caret>\n<after_caret>\n\n</after_caret>"));
 
         assert!(prompt.contains("<action>generate</action>"));
         assert!(prompt.contains("<instruction>\ncontinue\n</instruction>"));
         assert!(prompt.contains("<story_context>\nfantasy\n</story_context>"));
         assert!(prompt.contains("<selection>\nnone\n</selection>"));
         assert!(prompt.contains("<document>\nHello\n</document>"));
-        assert!(prompt.starts_with(
-            "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n"
+        assert!(prompt.starts_with(&format!("{GENERATE_RULES}<action>generate</action>\n")));
+        assert!(prompt.contains(
+            "Start exactly where the text before the caret ends. Do not repeat or rephrase it."
         ));
         assert!(!prompt.contains("replacement"));
     }
@@ -204,6 +219,19 @@ mod tests {
         assert!(prompt.contains("Change only what the instruction asks"));
         assert!(prompt.contains("Do not add commentary"));
         assert!(!prompt.contains("two sentences"));
+        assert!(!prompt.contains("<before_caret>"));
+        assert!(!prompt.contains("<after_caret>"));
+
+        let mut input = input;
+        input.action = AiAction::Generate;
+        input.document.text = "A😀B".into();
+        input.selection.as_mut().unwrap().range = SelectionRange {
+            index: 3,
+            length: 0,
+        };
+        let prompt = build_prompt(&input);
+        assert!(prompt
+            .contains("<before_caret>\nA😀\n</before_caret>\n<after_caret>\nB\n</after_caret>"));
     }
 
     #[test]

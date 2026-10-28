@@ -63,7 +63,7 @@ describe("assemblePromptSections", () => {
       expect(assemblePromptSections({ ...sent, sectionOverrides: reset })).toEqual(baseline);
     }
     expect(assemblePromptSections({ ...base, sectionOverrides: {} })).toEqual(baseline);
-    expect(assemblePromptSections({ ...base, sectionOverrides: { document: "" } })[5]!.text).toBe("<document>\n\n</document>");
+    expect(assemblePromptSections({ ...base, sectionOverrides: { document: "" } })[5]!.text).toBe(action === "generate" ? "<document>\n\n</document>\n<before_caret>\n\n</before_caret>\n<after_caret>\nHello\n</after_caret>" : "<document>\n\n</document>");
     expect(base.sectionOverrides).toBeUndefined();
     expect(buildAiRequest({ ...base, action, selection: base.selection!, window: { start: 0, end: 5 }, sectionOverrides: {} }).sectionOverrides).toBeUndefined();
   });
@@ -80,13 +80,13 @@ describe("assemblePromptSections", () => {
     expect(sections.map(({ id, label, text }) => ({ id, label, text }))).toEqual([
       { id: "system", label: "System", text: "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only." },
       { id: "history", label: "History", text: "previous &lt;prompt&gt;previous &amp; output" },
-      { id: "instruction", label: "Instruction", text: "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume from cutoff\n</instruction>\n" },
+      { id: "instruction", label: "Instruction", text: "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. Start exactly where the text before the caret ends. Do not repeat or rephrase it. <action>generate</action>\n<instruction>\nresume from cutoff\n</instruction>\n" },
       { id: "story_context", label: "Story context", text: "<story_context>\nfantasy\n</story_context>\n" },
       { id: "selection", label: "Selection", text: "<selection>\nnone\n</selection>\n" },
-      { id: "document", label: "Document", text: "<document>\nHello\n</document>" },
+      { id: "document", label: "Document", text: "<document>\nHello\n</document>\n<before_caret>\nHello\n</before_caret>\n<after_caret>\n\n</after_caret>" },
     ]);
     expect(sections.slice(2).map(({ text }) => text).join("")).toBe(
-      "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume from cutoff\n</instruction>\n<story_context>\nfantasy\n</story_context>\n<selection>\nnone\n</selection>\n<document>\nHello\n</document>",
+      "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. Start exactly where the text before the caret ends. Do not repeat or rephrase it. <action>generate</action>\n<instruction>\nresume from cutoff\n</instruction>\n<story_context>\nfantasy\n</story_context>\n<selection>\nnone\n</selection>\n<document>\nHello\n</document>\n<before_caret>\nHello\n</before_caret>\n<after_caret>\n\n</after_caret>",
     );
   });
 
@@ -173,9 +173,9 @@ describe("token estimates", () => {
         expect(section.tokens).toBe(estimateTokens(section.text));
       }
       expect(sections.map(({ tokens }) => tokens)).toEqual([
-        21, 0, action === "generate" ? 43 : 127, 11, 14, 7,
+        21, 0, action === "generate" ? 64 : 127, 11, 14, action === "generate" ? 24 : 7,
       ]);
-      expect(totalEstimatedTokens(sections)).toBe(action === "generate" ? 96 : 180);
+      expect(totalEstimatedTokens(sections)).toBe(action === "generate" ? 134 : 180);
       expect(totalEstimatedTokens(sections)).toBe(sections.reduce((sum, { tokens }) => sum + tokens, 0));
     }
     expect(totalEstimatedTokens([])).toBe(0);

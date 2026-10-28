@@ -7,6 +7,12 @@
       "output_price_per_million": 0
     },
     {
+      "id": "e2e-repeat",
+      "label": "E2E Repeat",
+      "input_price_per_million": 0,
+      "output_price_per_million": 0
+    },
+    {
       "id": "e2e-edit",
       "label": "E2E Edit",
       "input_price_per_million": 0,

@@ -8,8 +8,11 @@ use axum::Json;
 use futures_util::StreamExt;
 
 use super::catalog::ModelCatalog;
-use super::models::{event_to_ndjson_line, AiAction, GenerateInput, GenerateRequest};
+use super::models::{event_to_ndjson_line, AiAction, GenerateInput, GenerateRequest, StreamEvent};
+use super::overlap::Overlap;
 use super::provider::{AiProvider, OpenAiCompatibleConfig, OpenAiCompatibleProvider};
+use super::segments::plain_text;
+use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
 
 pub async fn models(
@@ -70,9 +73,31 @@ pub async fn generate(
     let provider = OpenAiCompatibleProvider::new(config)?
         .with_include_usage(include_usage)
         .with_reasoning_effort(reasoning_effort);
-    let body_stream = provider
-        .stream(input)
-        .map(|event| Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event))));
+    let mut overlap =
+        (input.action == AiAction::Generate).then(|| Overlap::new(input.document_at_caret().0));
+    let mut upstream = provider.stream(input);
+    let body_stream = async_stream::stream! {
+        while let Some(event) = upstream.next().await {
+            match (&mut overlap, event) {
+                (Some(overlap), StreamEvent::Delta { delta }) => {
+                    let text = overlap.push(&plain_text(&delta), false);
+                    if !text.is_empty() {
+                        let delta = into_delta(&TaggedText::generated(&text));
+                        yield Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&StreamEvent::Delta { delta })));
+                    }
+                }
+                (Some(overlap), event) => {
+                    let text = overlap.push("", true);
+                    if !text.is_empty() {
+                        let delta = into_delta(&TaggedText::generated(&text));
+                        yield Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&StreamEvent::Delta { delta })));
+                    }
+                    yield Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event)));
+                }
+                (None, event) => yield Ok::<Bytes, Infallible>(Bytes::from(event_to_ndjson_line(&event))),
+            }
+        }
+    };
 
     Response::builder()
         .status(StatusCode::OK)

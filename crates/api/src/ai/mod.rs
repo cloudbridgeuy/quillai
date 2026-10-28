@@ -2,6 +2,7 @@ pub mod catalog;
 pub mod handlers;
 pub mod lore;
 pub mod models;
+mod overlap;
 pub mod prompt;
 pub mod provider;
 pub mod replacement;

@@ -30,9 +30,9 @@ test("empty context keeps all sections, empty history, and framed defaults", () 
   expect(model.sections[2]?.text).toContain("<instruction>\nnone\n</instruction>");
   expect(model.sections[3]?.text).toBe("<story_context>\nnone\n</story_context>\n");
   expect(model.sections[4]?.text).toBe("<selection>\nnone\n</selection>\n");
-  expect(model.sections[5]?.text).toBe("<document>\n\n</document>");
-  expect(model.sections.map(({ tokens }) => tokens)).toEqual([21, 0, 42, 10, 8, 6]);
-  expect(model.totalTokens).toBe(87);
+  expect(model.sections[5]?.text).toBe("<document>\n\n</document>\n<before_caret>\n\n</before_caret>\n<after_caret>\n\n</after_caret>");
+  expect(model.sections.map(({ tokens }) => tokens)).toEqual([21, 0, 63, 10, 8, 22]);
+  expect(model.totalTokens).toBe(124);
 });
 
 test("one Continue label indicates the effective history, including overrides", () => {
@@ -62,13 +62,13 @@ test("all sections use resume context and sum individually rounded estimates", (
   expect(model.sections.map(({ text }) => text)).toEqual([
     "You are QuillAI, a concise fiction-writing assistant. Reply with plain text only.",
     "ab",
-    "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. <action>generate</action>\n<instruction>\nresume\n</instruction>\n",
+    "You are helping with a fiction-writing task. Respond with plain text only, and do not exceed two sentences. Start exactly where the text before the caret ends. Do not repeat or rephrase it. <action>generate</action>\n<instruction>\nresume\n</instruction>\n",
     "<story_context>\nfantasy\n</story_context>\n",
     "<selection>\nindex=0, length=5, text=Hello\n</selection>\n",
-    "<document>\nHello\n</document>",
+    "<document>\nHello\n</document>\n<before_caret>\n\n</before_caret>\n<after_caret>\nHello\n</after_caret>",
   ]);
-  expect(model.sections.map(({ tokens }) => tokens)).toEqual([21, 1, 43, 11, 14, 7]);
-  expect(model.totalTokens).toBe(97);
+  expect(model.sections.map(({ tokens }) => tokens)).toEqual([21, 1, 63, 11, 14, 24]);
+  expect(model.totalTokens).toBe(134);
   expect(model.tokenEstimateLabel).toBe("Estimated tokens (UTF-8 bytes ÷ 4, rounded up per section; excludes chat framing)");
   expect(input).toEqual(before);
   expect(buildContextInspector(input)).toEqual(model);
@@ -80,8 +80,8 @@ test("multibyte text and emoji estimates count UTF-8 bytes, not UTF-16 units", (
     messages: [{ role: "assistant", content: "💡 世界" }],
   }));
   expect(model.sections[1]).toEqual({ id: "history", label: "History", text: "💡 世界", editableText: "💡 世界", tokens: 3 });
-  expect(model.sections[5]).toEqual({ id: "document", label: "Document", text: "<document>\n💡 世界\n</document>", editableText: "💡 世界", tokens: 9 });
-  expect(model.totalTokens).toBe(93);
+  expect(model.sections[5]).toEqual({ id: "document", label: "Document", text: "<document>\n💡 世界\n</document>\n<before_caret>\n💡 世界\n</before_caret>\n<after_caret>\n\n</after_caret>", editableText: "💡 世界", tokens: 27 });
+  expect(model.totalTokens).toBe(132);
 });
 
 test("Edit inspector exposes raw editable content and ordered history turns", () => {

@@ -48,7 +48,8 @@ const server = createServer(async (request, response) => {
       const continueIdentity = typeof input.identity === "string" && /^GUZ(?:(807|985)-(Finish|Stop)|866-(seed|length|stop))-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
       const editIdentity = typeof input.identity === "string" && /^(GUZ865-(commentary|missing|unclosed)|GUZ985-edit)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-edit";
       const reasoningIdentity = typeof input.identity === "string" && /^GUZ1008-[a-f0-9-]{36}$/.test(input.identity) && (input.model === "e2e-reasoning" || input.model === "e2e-no-reasoning");
-      if (typeof input.identity !== "string" || !(continueIdentity || editIdentity || reasoningIdentity)) {
+      const repeatIdentity = typeof input.identity === "string" && /^GUZ870-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-repeat";
+      if (typeof input.identity !== "string" || !(continueIdentity || editIdentity || reasoningIdentity || repeatIdentity)) {
         response.writeHead(422).end();
         return;
       }
@@ -71,7 +72,7 @@ const server = createServer(async (request, response) => {
         rejectUnarmed(response);
         return;
       }
-      if (input.stream !== true || typeof input.model !== "string" || !["e2e-continue", "e2e-edit", "e2e-reasoning", "e2e-no-reasoning"].includes(input.model)) {
+      if (input.stream !== true || typeof input.model !== "string" || !["e2e-continue", "e2e-edit", "e2e-reasoning", "e2e-no-reasoning", "e2e-repeat"].includes(input.model)) {
         response.writeHead(422).end();
         return;
       }
@@ -89,6 +90,13 @@ const server = createServer(async (request, response) => {
       response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
       response.flushHeaders();
       events.emit(`request:${record.id}`);
+      if (identity.startsWith("GUZ870-")) {
+        for (const content of ["The lantern", " flickered at the window.", " Beyond it, the rain began."]) {
+          response.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`);
+        }
+        record.completed = true;
+        response.end(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`);
+      }
       if (identity.startsWith("GUZ1008-")) {
         if (input.reasoning_effort === "low") response.write(`data: ${JSON.stringify({ choices: [{ delta: { content: "Reasoned continuation." } }] })}\n\n`);
         record.completed = true;

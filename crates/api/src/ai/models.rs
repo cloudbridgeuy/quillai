@@ -151,6 +151,26 @@ pub struct GenerateInput {
 }
 
 impl GenerateInput {
+    pub fn document_at_caret(&self) -> (&str, &str) {
+        let index = self
+            .selection
+            .as_ref()
+            .map(|selection| selection.range.index);
+        let byte = index
+            .and_then(|index| {
+                let mut units = 0;
+                self.document.text.char_indices().find_map(|(byte, ch)| {
+                    if units == index {
+                        return Some(byte);
+                    }
+                    units += ch.len_utf16();
+                    None
+                })
+            })
+            .unwrap_or(self.document.text.len());
+        self.document.text.split_at(byte)
+    }
+
     pub fn selected_text(&self) -> Option<&str> {
         self.selection
             .as_ref()
