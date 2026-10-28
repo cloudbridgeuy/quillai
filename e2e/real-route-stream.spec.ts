@@ -75,10 +75,10 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect((await request.post(`${controlUrl}/fragment`, { data: { text: "AI first" } })).status()).toBe(200);
     expect((await generationResponse).status()).toBe(200);
     await expect(stop).toBeVisible();
-    await expect(editor.locator("p").nth(1)).toHaveText("AI first");
+    await expect(editor.locator("p").nth(0)).toHaveText(`OpeAI firstning paragraph ${identity}`);
     await placeCaret(editor, 0, 3);
     await page.keyboard.type("AUTHOR");
-    await expect(editor.locator("p").first()).toHaveText(authored);
+    await expect(editor.locator("p").first()).toHaveText(`OpeAUTHORAI firstning paragraph ${identity}`);
 
     const remoteSave = second.waitForResponse(response => response.url() === `${chapterUrl}/deltas` && response.request().method() === "POST");
     await placeCaret(remoteEditor, 1, 6);
@@ -90,12 +90,12 @@ for (const outcome of ["Finish", "Stop"] as const) {
     const duringResponse = await request.get(chapterUrl);
     expect(duringResponse.status()).toBe(200);
     expect((await duringResponse.json()).content).toEqual({ ops: [{ insert: `${opening}\nLater REMOTE paragraph\n` }] });
-    await expect(editor.locator("p")).toHaveText([authored, "AI first", "Later paragraph"]);
+    await expect(editor.locator("p")).toHaveText([`OpeAUTHORAI firstning paragraph ${identity}`, "Later paragraph"]);
     expect(failures).toEqual([]);
 
     if (outcome === "Finish") {
       expect((await request.post(`${controlUrl}/fragment`, { data: { text: " tail" } })).status()).toBe(200);
-      await expect(editor.locator("p").nth(1)).toHaveText("AI first tail");
+      await expect(editor.locator("p").nth(0)).toHaveText(`OpeAUTHORAI first tailning paragraph ${identity}`);
       expect((await request.post(`${controlUrl}/finish`)).status()).toBe(200);
     } else {
       await stop.click();
@@ -106,7 +106,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect((await closed.json()).closed).toBe(true);
     expect((await upstreamRequests())[before]!.completed).toBe(outcome === "Finish");
     await expect(stop).toBeHidden();
-    const paragraphs = [authored, ...(outcome === "Finish" ? ["AI first tail"] : []), "Later REMOTE paragraph"];
+    const paragraphs = [outcome === "Finish" ? `OpeAUTHORAI first tailning paragraph ${identity}` : authored, "Later REMOTE paragraph"];
     const expectedText = `${paragraphs.join("\n")}\n`;
     for (const tab of [page, second]) {
       await expect(tab.locator(".ql-editor p")).toHaveText(paragraphs);

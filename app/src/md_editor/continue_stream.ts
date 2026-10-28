@@ -4,6 +4,7 @@ export type ContinueStream = {
   anchor: number;
   end: number;
   started: boolean;
+  paragraph: boolean;
   removal: Delta;
 };
 
@@ -16,10 +17,23 @@ export function transformContinueSelection(selection: { index: number; length: n
   return { index, length: Math.max(0, end - index) };
 }
 
-export function createContinueStream(text: string, caret: number): ContinueStream {
+export function continuePlacement(text: string, caret: number, first: string) {
+  const lineStart = caret === 0 ? 0 : text.lastIndexOf("\n", caret - 1) + 1;
   const newline = text.indexOf("\n", caret);
-  const anchor = newline < 0 ? text.length : newline;
-  return { anchor, end: anchor, started: false, removal: new Delta() };
+  const lineEnd = newline < 0 ? text.length : newline;
+  const before = text.slice(lineStart, caret);
+  const after = text.slice(caret, lineEnd);
+  const paragraph = !text.slice(lineStart, lineEnd).trim() || (!after.trim() && /[.!?]["'”’]*\s*$/u.test(before));
+  const left = text[caret - 1];
+  const right = text[caret];
+  const space = !!left && !/\s/u.test(left) && (!right || /\s/u.test(right)) && !!first && !/^[\s\p{P}]/u.test(first);
+  return { paragraph, space, lineEnd };
+}
+
+export function createContinueStream(text: string, caret: number): ContinueStream {
+  const { paragraph, lineEnd } = continuePlacement(text, caret, "");
+  const anchor = paragraph ? lineEnd : caret;
+  return { anchor, end: anchor, started: false, paragraph, removal: new Delta() };
 }
 
 export function transformContinueStream(state: ContinueStream, change: Delta): ContinueStream {
@@ -40,9 +54,12 @@ export function continueOwnedRanges(removal: Delta): Array<{ start: number; end:
   });
 }
 
-export function appendContinueFragment(state: ContinueStream, fragment: Delta) {
+export function appendContinueFragment(state: ContinueStream, fragment: Delta, text: string) {
   if (fragment.length() === 0) return { state, change: new Delta() };
-  const inserted = (state.started ? new Delta() : new Delta().insert("\n")).concat(fragment);
+  const first = fragment.ops[0]?.insert;
+  const space = continuePlacement(text, state.end, typeof first === "string" ? first : "").space;
+  const prefix = state.started ? "" : state.paragraph ? "\n" : space ? " " : "";
+  const inserted = (prefix ? new Delta().insert(prefix) : new Delta()).concat(fragment);
   const change = new Delta().retain(state.end).concat(inserted);
   const removal = new Delta([...state.removal.ops]);
   const consumed = continueOwnedRanges(removal).at(-1)?.end ?? 0;

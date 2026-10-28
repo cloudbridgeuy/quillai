@@ -19,7 +19,7 @@ async function placeCaret(editor: Locator, paragraph: number, offset: number) {
 }
 
 for (const outcome of ["Finish", "Stop"] as const) {
-  test(`Continue server-priority paragraph-start tie order on ${outcome}`, async ({ context, page, request }) => {
+  test(`Continue server-priority inline tie order on ${outcome}`, async ({ context, page, request }) => {
     const apiUrl = process.env.QUILLAI_E2E_API_URL;
     const providerUrl = process.env.QUILLAI_E2E_FAKE_AI_URL;
     if (!apiUrl || !providerUrl) throw new Error("Run with cargo xtask e2e and its default catalog");
@@ -52,12 +52,12 @@ for (const outcome of ["Finish", "Stop"] as const) {
     const book = await bookResponse.json();
     const chaptersUrl = `${apiUrl}/series/${series.id}/books/${book.id}/chapters`;
     const chapterResponse = await request.post(chaptersUrl, { data: {
-      title: "Continue paragraph-start tie", position: 0, kind: "chapter",
+      title: "Continue inline tie", position: 0, kind: "chapter",
       content: { ops: [{ insert: `${opening}\nLater paragraph\n` }] },
     } });
     expect(chapterResponse.status()).toBe(201);
     const chapter = await chapterResponse.json();
-    record({ initial: chapter, openingNewlineOffset: opening.length, remoteInsertOffset: opening.length + 1 });
+    record({ initial: chapter, openingNewlineOffset: opening.length, remoteInsertOffset: 3 });
     const chapterUrl = `${chaptersUrl}/${chapter.id}`;
     const second = await context.newPage();
     const query = new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) });
@@ -86,9 +86,9 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect((await request.post(`${controlUrl}/fragment`, { data: { text: "AI first" } })).status()).toBe(200);
     expect((await generationResponse).status()).toBe(200);
     await expect(stop).toBeVisible();
-    await expect(editor.locator("p")).toHaveText([opening, "AI first", "Later paragraph"]);
+    await expect(editor.locator("p")).toHaveText([`${opening.slice(0, 3)}AI first${opening.slice(3)}`, "Later paragraph"]);
     const remoteSave = second.waitForResponse(response => response.url() === `${chapterUrl}/deltas` && response.request().method() === "POST");
-    await placeCaret(second.locator(".ql-editor"), 1, 0);
+    await placeCaret(second.locator(".ql-editor"), 0, 3);
     await second.keyboard.type("REMOTE ");
     expect((await remoteSave).status()).toBe(200);
     await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
@@ -97,9 +97,9 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect(duringResponse.status()).toBe(200);
     const during = await duringResponse.json();
     record({ during });
-    expect(during.content).toEqual({ ops: [{ insert: `${opening}\nREMOTE Later paragraph\n` }] });
+    expect(during.content).toEqual({ ops: [{ insert: `${opening.slice(0, 3)}REMOTE ${opening.slice(3)}\nLater paragraph\n` }] });
     expect((await request.post(`${controlUrl}/fragment`, { data: { text: " tail" } })).status()).toBe(200);
-    await expect(editor.locator("p")).toHaveText([opening, "AI first tail", "Later paragraph"]);
+    await expect(editor.locator("p")).toHaveText([`${opening.slice(0, 3)}AI first tail${opening.slice(3)}`, "Later paragraph"]);
     if (outcome === "Finish") {
       expect((await request.post(`${controlUrl}/finish`)).status()).toBe(200);
     } else {
@@ -110,7 +110,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     expect(closed.status()).toBe(200);
     expect(await closed.json()).toEqual({ ...upstream, closed: true, completed: outcome === "Finish" });
     await expect(stop).toBeHidden();
-    const paragraphs = outcome === "Finish" ? [opening, "REMOTE AI first tail", "Later paragraph"] : [opening, "REMOTE Later paragraph"];
+    const paragraphs = outcome === "Finish" ? [`${opening.slice(0, 3)}REMOTE AI first tail${opening.slice(3)}`, "Later paragraph"] : [`${opening.slice(0, 3)}REMOTE ${opening.slice(3)}`, "Later paragraph"];
     const expectedText = `${paragraphs.join("\n")}\n`;
     try {
       for (const tab of [page, second]) {
@@ -129,10 +129,10 @@ for (const outcome of ["Finish", "Stop"] as const) {
       await Promise.all(observations);
       expect(saved.content).toEqual({ ops: [{ insert: expectedText }] });
     }
-    const offset = opening.length + 1;
+    const offset = 3;
     expect(submissions).toEqual([
       { tab: "remote", submitted: { baseRev: 0, delta: { ops: [{ retain: offset }, { insert: "REMOTE " }] } }, returned: { rev: 1, delta: { ops: [{ retain: offset }, { insert: "REMOTE " }] } } },
-      ...(outcome === "Finish" ? [{ tab: "desktop", submitted: { baseRev: 0, delta: { ops: [{ retain: offset }, { insert: "AI first tail\n" }] } }, returned: { rev: 2, delta: { ops: [{ retain: offset + 7 }, { insert: "AI first tail\n" }] } } }] : []),
+      ...(outcome === "Finish" ? [{ tab: "desktop", submitted: { baseRev: 0, delta: { ops: [{ retain: offset }, { insert: "AI first tail" }] } }, returned: { rev: 2, delta: { ops: [{ retain: offset + 7 }, { insert: "AI first tail" }] } } }] : []),
     ]);
     const finalRequests = await request.get(`${providerUrl}/control`);
     expect(finalRequests.status()).toBe(200);

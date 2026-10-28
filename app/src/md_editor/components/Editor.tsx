@@ -872,7 +872,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               if (heldLineEnding) fragment = fragment.slice(0, end);
             }
             if (concurrentContinue && continueStreamRef.current) {
-              const appended = appendContinueFragment(continueStreamRef.current, fragment);
+              const appended = appendContinueFragment(continueStreamRef.current, fragment, quill.getText());
               continueStreamRef.current = appended.state;
               applyContinueChange(quill, appended.change);
               renderContinueTint(quill, appended.state.removal, tintEnabledRef.current);

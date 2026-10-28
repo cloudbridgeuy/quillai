@@ -84,9 +84,9 @@ test("Continue sends matched visible lore and previews the escaped lore block", 
   await editor.evaluate((element, entries) => {
     const host = element.closest(".editor-host")!;
     const key = Object.keys(host).find(key => key.startsWith("__reactFiber$"))!;
-    type Fiber = { type?: { name?: string }; memoizedProps: object; pendingProps: object; alternate?: Fiber; return?: Fiber };
+    type Fiber = { type?: { displayName?: string }; memoizedProps: object; pendingProps: object; alternate?: Fiber; return?: Fiber };
     let fiber: Fiber | undefined = (host as unknown as Record<string, Fiber>)[key];
-    while (fiber && fiber.type?.name !== "Container") fiber = fiber.return;
+    while (fiber && fiber.type?.displayName !== "EditorContainer") fiber = fiber.return;
     if (!fiber) throw new Error("Editor Container fiber not found");
     for (const target of [fiber, fiber.alternate]) {
       if (!target) continue;
@@ -177,17 +177,17 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expectEditorReady(editor);
   await page.keyboard.type("AUTHOR");
   await fragment("AI first");
-  await expect(editor.locator("p").nth(1)).toHaveText("AI first");
+  await expect(editor.locator("p").nth(0)).toHaveText("OpeAUTHORAI firstning paragraph");
   expect(await page.evaluate(() => window.getSelection()?.anchorOffset)).toBe(9);
-  await select(2, 2, 7);
+  await select(1, 2, 7);
   await fragment(" second");
-  await expect(editor.locator("p").nth(1)).toHaveText("AI first second");
+  await expect(editor.locator("p").nth(0)).toHaveText("OpeAUTHORAI first secondning paragraph");
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("ter p");
-  await select(1, 3);
+  await select(0, 13);
   await page.keyboard.type("KEPT");
   await fragment(" tail");
-  await expect(editor.locator("p").nth(1)).toHaveText("AI KEPTfirst second tail");
-  expect(await page.evaluate(() => window.getSelection()?.anchorOffset)).toBe(7);
+  await expect(editor.locator("p").nth(0)).toHaveText("OpeAUTHORAI fKEPTirst second tailning paragraph");
+  expect(await page.evaluate(() => window.getSelection()?.anchorOffset)).toBe(17);
   const tintText = await page.evaluate(() => Array.from(CSS.highlights.get("quillai-stream") ?? []).map((range) => range.toString()).join(""));
   expect(tintText).not.toContain("KEPT");
   expect(tintText).toContain("AI first second tail");
@@ -197,11 +197,11 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   }
   await page.getByRole("button", { name: "Stop AI", exact: true }).click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
-  await expect(editor).toHaveText("OpeAUTHORning paragraphKEPTLater paragraph");
+  await expect(editor).toHaveText("OpeAUTHORKEPTning paragraphLater paragraph");
   expect(await page.evaluate(() => {
     const selection = window.getSelection();
     return selection?.anchorNode?.textContent?.slice(0, selection.anchorOffset);
-  })).toBe("OpeAUTHORning paragraphKEPT");
+  })).toBe("OpeAUTHORKEPT");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await select(0, 1);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
@@ -212,7 +212,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await page.keyboard.type("SURVIVES");
   await send({ type: "error", error: "Mock stream failure" });
   await expect(page.getByText("Mock stream failure", { exact: true })).toBeVisible();
-  await expect(editor).toHaveText("OpeAUTHORning paragraphKEPTSURVIVESLater paragraph");
+  await expect(editor).toHaveText("OpeAUTHORKEPTning paragraphLater SURVIVESparagraph");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await select(0, 2, 5);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
@@ -232,7 +232,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await page.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.reload();
-  await expect(editor).toHaveText("OpeAUTHORning paragraphKEPTSURVIVESCompleted AILater paragraph");
+  await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Tint AI text", exact: true })).not.toBeChecked();
   await page.getByRole("button", { name: "Close settings", exact: true }).click();
@@ -244,7 +244,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   expect(await page.evaluate(() => CSS.highlights.get("quillai-stream")?.size)).toBe(0);
   await send({ type: "cancelled" });
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
-  await expect(editor).toHaveText("OpeAUTHORning paragraphKEPTSURVIVESCompleted AILater paragraph");
+  await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.setViewportSize({ width: 1099, height: 1000 });
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
@@ -257,9 +257,9 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
 });
 
 for (const outcome of [
-  { name: "whole selection deletion", edit: { index: 11, length: 4, text: "" }, selection: { index: 11, length: 0 }, remainder: "af" },
-  { name: "selected text replacement", edit: { index: 11, length: 4, text: "NEW" }, selection: { index: 14, length: 0 }, remainder: "aNEWf" },
-  { name: "partial selection deletion", edit: { index: 10, length: 3, text: "" }, selection: { index: 10, length: 2 }, remainder: "def" },
+  { name: "whole selection deletion", edit: { index: 11, length: 4, text: "" }, selection: { index: 11, length: 0 }, remainder: "ab" },
+  { name: "selected text replacement", edit: { index: 11, length: 4, text: "NEW" }, selection: { index: 14, length: 0 }, remainder: "abNEW" },
+  { name: "partial selection deletion", edit: { index: 10, length: 3, text: "" }, selection: { index: 10, length: 2 }, remainder: "aef" },
 ]) {
   test(`desktop Continue transforms saved selection after ${outcome.name}`, async ({ page, request }) => {
     const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -281,25 +281,25 @@ for (const outcome of [
       window.dispatchEvent(new CustomEvent("ai-test-event", { detail }));
     }, detail);
     await send({ type: "delta", delta: { ops: [{ insert: "AI" }] } });
-    await expect(editor.locator("p").nth(1)).toHaveText("AI");
+    await expect(editor.locator("p").nth(0)).toHaveText("BeAIfore");
     expect((await editor.evaluate(quillSnapshot, { selection: { index: 11, length: 4 } })).selection).toEqual({ index: 11, length: 4 });
     await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     await editor.evaluate((element) => (element as HTMLElement).blur());
-    expect((await editor.evaluate(quillSnapshot, { edit: outcome.edit })).text).toBe(`Before\nAI\n${outcome.remainder}\nAfter\n`);
+    expect((await editor.evaluate(quillSnapshot, { edit: outcome.edit })).text).toBe(`BeAIfore\n${outcome.remainder}\nAfter\n`);
     await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     expect((await editor.evaluate(quillSnapshot, {})).selection).toEqual(outcome.selection);
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
     await send({ type: "delta", delta: { ops: [{ insert: " tail" }] } });
-    await expect(editor.locator("p").nth(1)).toHaveText("AI tail");
+    await expect(editor.locator("p").nth(0)).toHaveText("BeAI tailfore");
     expect(await editor.evaluate(quillSnapshot, {})).toEqual({
       selection: { index: outcome.selection.index + 5, length: outcome.selection.length },
-      text: `Before\nAI tail\n${outcome.remainder}\nAfter\n`,
+      text: `BeAI tailfore\n${outcome.remainder}\nAfter\n`,
     });
     await send({ type: "done", finishReason: "stop" });
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
     expect(await editor.evaluate(quillSnapshot, {})).toEqual({
       selection: { index: outcome.selection.index + 5, length: outcome.selection.length },
-      text: `Before\nAI tail\n${outcome.remainder}\nAfter\n`,
+      text: `BeAI tailfore\n${outcome.remainder}\nAfter\n`,
     });
   });
 }

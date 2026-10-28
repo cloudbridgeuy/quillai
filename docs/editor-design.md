@@ -55,9 +55,9 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 
 ## Caret and scroll
 
-- At 1100px and wider, Continue leaves the editor writable. Its output starts as a new paragraph after the original caret paragraph, not at a later caret location. Every author change transforms the insertion anchor, append end, and exact surviving AI-owned ranges with `quill-delta`. Later fragments append at that transformed end.
-- Stream insertion, completion, and rollback preserve the logical caret or selection, including selections after the AI paragraph. No recentering or stream-driven scrolling is added. Further smooth-writing work remains in GUZ-763.
-- Desktop Continue Stop, server cancellation, and failures delete only surviving AI-owned text, including the inserted paragraph separator. Author inserts inside that text survive. Edit selection and screens below 1100px retain their existing locked-editor behavior.
+- At 1100px and wider, Continue leaves the editor writable. Its output starts at the original caret, except on a blank line or after a completed sentence at the paragraph end, where it starts a new paragraph. Inline output receives a separating space when needed. Every author change transforms the insertion anchor, append end, and exact surviving AI-owned ranges with `quill-delta`. Later fragments append at that transformed end.
+- Stream insertion, completion, and rollback preserve the logical caret or selection, including selections after the AI text. No recentering or stream-driven scrolling is added. Further smooth-writing work remains in GUZ-763.
+- Desktop Continue Stop, server cancellation, and failures delete only surviving AI-owned text, including any inserted separator. Author inserts inside that text survive. Edit selection and screens below 1100px retain their existing locked-editor behavior.
 
 ## AI text
 
