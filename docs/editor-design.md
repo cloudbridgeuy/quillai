@@ -88,7 +88,7 @@ Common: `.postit` textarea, full width, vertical resize, no border, radius 1px, 
 
 Author guidance uses the yellow post-it styling above, with owner-approved square corners and `--sheet-shadow` instead of the common radius and note shadow. Its focus ring is added to the sheet shadow; the yellow fill remains on focus.
 
-The shared `StickyNote` textarea provides both yellow guidance and pink Edit input. Guidance still saves only with Save author guidance. The right-rail Edit selection control opens the focused pink note without sending a request; there is no middle Edit button. Enter and Apply use the same selection, busy, chapter-ready, and blocked-save checks before invoking the existing Edit stream. Shift+Enter inserts a newline, and Esc cancels without changing manuscript text and restores the editor selection. Composing text does not submit. The note edits the existing shared Instruction value used by Continue and Edit.
+The shared `StickyNote` textarea provides both yellow guidance and pink Edit input. Guidance still saves only with Save author guidance. The right-rail Edit selection control toggles the focused pink note without sending a request; closing it restores the editor selection. The note overhangs the borderless, softly shadowed card, and its flag, input, hint and Apply button share the label type size. Enter and Apply use the same selection, busy, chapter-ready, and blocked-save checks before invoking the existing Edit stream. Shift+Enter inserts a newline, and Esc cancels without changing manuscript text and restores the editor selection. Composing text does not submit. The note edits the existing shared Instruction value used by Continue and Edit.
 
 | Note | Fill | Appears | Where |
 |------|------|---------|-------|

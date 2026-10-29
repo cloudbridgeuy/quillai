@@ -1248,7 +1248,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           onMouseDown={(event) => event.preventDefault()}
           aria-controls="edit-instruction-box" aria-expanded={editBoxOpen}
-          onClick={() => setEditBoxOpen(true)}>✎</button>
+          onClick={() => editBoxOpen ? closePanels() : setEditBoxOpen(true)}>✎</button>
         <button type="button" aria-label="Context inspector" title="Context inspector (Ctrl/Cmd+])"
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
@@ -1268,23 +1268,24 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       </nav>
       {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
         <div className="editor-edit-flag">Edit selection</div>
-        <StickyNote tone="pink" ref={editInstructionRef} aria-label="Edit instruction" rows={4}
-          disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
-          aria-describedby="edit-instruction-hint" value={editInstruction}
-          placeholder="How should the selected text change?"
-          onChange={(event) => setEditInstruction(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-            event.preventDefault();
-            applyEdit();
-          }} />
-        <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc cancels · Shift+Enter adds a line</p>
+        <div className="-mx-4">
+          <StickyNote tone="pink" overhang ref={editInstructionRef} aria-label="Edit instruction" rows={4}
+            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            aria-describedby="edit-instruction-hint" value={editInstruction}
+            placeholder="How should the selected text change?"
+            onChange={(event) => setEditInstruction(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              applyEdit();
+            }} />
+        </div>
+        <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc or Edit closes · Shift+Enter adds a line</p>
         {editRejection ? <p id="edit-instruction-rejection" className="editor-note" role="status">{editRejection}</p> : null}
         <div className="editor-actions">
-          <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Cancel edit</button>
-          <button className="editor-button editor-button-primary editor-button-small" type="button"
+          <Button variant="primary" size="sm"
             onClick={applyEdit} aria-describedby={editRejection ? "edit-instruction-rejection" : undefined}
-            disabled={!editAvailable}>Apply</button>
+            disabled={!editAvailable}>Apply</Button>
         </div>
       </div> : null}
       {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"

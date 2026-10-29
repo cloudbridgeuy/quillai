@@ -163,7 +163,8 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await note.fill("Merge these");
     await note.press("Enter");
     await expect(note).toBeVisible();
-    await page.getByRole("button", { name: "Cancel edit", exact: true }).click();
+    await note.press("Escape");
+    await expect(note).toBeHidden();
 
     const identity = `GUZ985-edit-${crypto.randomUUID()}`;
     const rain = (await sceneTwoStart()) + "Mist. ".length;

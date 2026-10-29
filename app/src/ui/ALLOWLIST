@@ -5,7 +5,7 @@ app/src/api_tester/components/APITester.tsx 1 raw-select
 app/src/index.css 1 hex-colour
 app/src/index.css 20 font-size
 app/src/md_editor/components/ContinueWindow.tsx 1 raw-button
-app/src/md_editor/components/Editor.tsx 11 raw-button
+app/src/md_editor/components/Editor.tsx 9 raw-button
 app/src/md_editor/components/Editor.tsx 2 raw-input
 app/src/md_editor/components/Editor.tsx 3 raw-textarea
 app/src/md_editor/components/Editor.tsx 2 raw-select
