@@ -197,10 +197,10 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   }, [client, attempt]);
 
   if (state.status === "loading") return <p role="status">Loading manuscript…</p>;
-  if (state.status === "failed") return <div role="alert">
+  if (state.status === "failed") return <Alert tone="inline">
     <p>{state.message}</p>
     <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
-  </div>;
+  </Alert>;
 
   const series = state.series;
   const universes = collapsedExcept === undefined

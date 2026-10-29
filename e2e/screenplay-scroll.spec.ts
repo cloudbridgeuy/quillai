@@ -280,8 +280,8 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
       ? route.abort("failed") : route.fallback());
     await select(page, await twoStart());
     await page.keyboard.type("Wind. ");
-    await expect(status).toHaveText(/^Not saved/);
-    await expect(status).toHaveAttribute("title", new RegExp(sceneTwo));
+    await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveText(/^Not saved/);
+    await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveAttribute("title", new RegExp(sceneTwo));
     held = false;
     await expect(status).toHaveText("Saved");
     await expectServer("Steam. Kettle whistles.\n", "Wind. 雨Thunder. Rain falls hard.\n");

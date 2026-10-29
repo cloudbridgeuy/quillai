@@ -70,7 +70,7 @@ test("failed chapter save resumes after the delta route is released", async ({ p
   await expect(editor).toHaveText("Opening line before during");
   releaseFailure();
   await failedSave;
-  await expect(status.locator("span").first()).toHaveText("Not saved");
+  await expect(page.getByRole("alert", { name: "Chapter save status", exact: true }).locator("span").first()).toHaveText("Not saved");
   expect(posts).toBe(1);
 
   await page.unroute(deltaUrl);

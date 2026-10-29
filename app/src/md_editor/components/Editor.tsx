@@ -90,6 +90,7 @@ import { IconButton } from "../../ui/IconButton";
 import { Alert } from "../../ui/Alert";
 import { Button, buttonClassName } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
+import { Toggle } from "../../ui/Toggle";
 import { Popover } from "../../ui/Popover";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
@@ -1196,11 +1197,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       <input className="editor-input" type="number" min="0" step="1" value={windowSize}
         onChange={(event) => setWindowSize(event.target.value)} disabled={isBusy} />
     </label>
-    <label className="editor-toggle">
-      <input type="checkbox" checked={windowMode === "document"}
-        onChange={(event) => setWindowMode(event.target.checked ? "document" : "window")} disabled={isBusy} />
-      <span>Whole document</span>
-    </label>
+    <Toggle label="Whole document" checked={windowMode === "document"}
+      onChange={(event) => setWindowMode(event.target.checked ? "document" : "window")} disabled={isBusy} />
   </>;
 
   const markerQuill = quillRef.current;
@@ -1264,14 +1262,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             <h2 id="editor-settings-title">Settings</h2>
           </div>
           {windowSettings}
-          <label className="editor-toggle">
-            <input type="checkbox" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
-            <span>Show Continue window</span>
-          </label>
-          <label className="editor-toggle">
-            <input type="checkbox" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
-            <span>Tint AI text</span>
-          </label>
+          <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
+          <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
         </Popover> : null}
       </nav>
       {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
@@ -1326,22 +1318,24 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <h1>QuillAI</h1>
           {chapterSync.needsChapter ? <button className="editor-button" type="button"
             onClick={() => void chapterSync.bootstrap()}>Create chapter</button> : null}
-          {chapterSync.recovery ? <div role="alert">
+          {chapterSync.recovery ? <Alert tone="inline">
             Previous unsaved work is available. Export it before closing this tab.
             <a download="chapter-recovery.json"
               href={`data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.recovery)}`}>
               Export recovery
             </a>
-          </div> : null}
+          </Alert> : null}
         </div>
-        <p className={`editor-save-status${savePresentation.failed ? " editor-save-failed" : ""}`}
-          role="status" aria-label="Chapter save status" aria-live={savePresentation.failed ? "assertive" : "polite"}
-          title={savePresentation.detail} aria-describedby={savePresentation.failed ? "chapter-save-detail" : undefined}>
+        {savePresentation.failed ? <Alert tone="fail" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
+          title={savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
-          {savePresentation.failed ? <span id="chapter-save-detail" style={{
+          <span id="chapter-save-detail" style={{
             position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap",
-          }}>{savePresentation.detail}</span> : null}
-        </p>
+          }}>{savePresentation.detail}</span>
+        </Alert> : <p className="editor-save-status"
+          role="status" aria-label="Chapter save status" aria-live="polite" title={savePresentation.detail}>
+          <span>{savePresentation.label}</span>
+        </p>}
         {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
           onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
         {"addScene" in chapterSync ? <div className="editor-script-tools">

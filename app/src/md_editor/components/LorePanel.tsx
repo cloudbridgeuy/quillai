@@ -3,6 +3,8 @@ import type { LoreEntry, LoreInput } from "../../manuscripts/lore_client";
 import { newLoreDraft, parseLoreTerms, replaceLoreEntry } from "../../manuscripts/lore_panel";
 import type { useLore } from "../../manuscripts/use_lore";
 import { Button } from "../../ui/Button";
+import { Alert } from "../../ui/Alert";
+import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
@@ -49,7 +51,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
   return <section className="editor-lore-panel" aria-label="Series lore">
     <h3>Series lore</h3>
     {lore.status === "loading" ? <p role="status">Loading lore…</p> : null}
-    {lore.status === "failed" ? <div role="alert">{lore.error}<button className="editor-button" onClick={lore.retry}>Retry lore</button></div> : null}
+    {lore.status === "failed" ? <Alert tone="inline">{lore.error}<button className="editor-button" onClick={lore.retry}>Retry lore</button></Alert> : null}
     {lore.status === "ready" ? <>
       {lore.entries.length === 0 ? <p>No lore yet.</p> : <ul className="editor-manuscript-tree">
         {lore.entries.map(entry => <li key={entry.id}><button type="button" disabled={disabled || pending}
@@ -82,11 +84,11 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
           onChange={event => setDraft({ ...draft, level: event.target.value as LoreInput["level"] })}>
           <option value="include">Include</option><option value="known_dont_reveal">Known, don't reveal</option><option value="leave_out">Leave out</option>
         </select></label>
-        <label className="editor-toggle"><input type="checkbox" checked={draft.pinned}
-          onChange={event => setDraft({ ...draft, pinned: event.target.checked })} /><span>Pin in AI context</span></label>
+        <Toggle label="Pin in AI context" checked={draft.pinned}
+          onChange={event => setDraft({ ...draft, pinned: event.target.checked })} />
       </fieldset>
       </form>
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? <Alert tone="inline">{error}</Alert> : null}
     </Modal> : null}
   </section>;
 }

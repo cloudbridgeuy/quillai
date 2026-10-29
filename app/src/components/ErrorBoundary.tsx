@@ -1,6 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-
-// --- Functional Core: Types ---
+import { Button } from "../ui/Button";
 
 type ErrorBoundaryState =
   | { status: "idle" }
@@ -10,8 +9,6 @@ type ErrorBoundaryProps = {
   children: ReactNode;
   fallback?: (props: { error: Error; retry: () => void }) => ReactNode;
 };
-
-// --- Functional Core: Pure render function ---
 
 function DefaultFallback({
   error,
@@ -23,12 +20,10 @@ function DefaultFallback({
   return (
     <div className="error-boundary-fallback">
       <p>Something went wrong: {error.message}</p>
-      <button onClick={retry}>Try again</button>
+      <Button onClick={retry}>Try again</Button>
     </div>
   );
 }
-
-// --- Imperative Shell: React class component (required for error boundaries) ---
 
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,

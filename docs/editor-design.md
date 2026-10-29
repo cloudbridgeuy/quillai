@@ -124,7 +124,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
-- Failed save or recovery failure: a floating "Not saved" pill with `--alert` fill, white text and dot, `8px 18px` padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
+- Failed save or recovery failure: a floating "Not saved" pill using the shared `Alert` fail style, with `--alert` fill, white text and dot, token padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively by an alert. Saving and saved states use a status. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
 
 ## Shortcuts (prototype)
 

@@ -215,8 +215,8 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   await firstButton.click();
   await failing;
   releaseFailure();
-  await expect(page.getByRole("status").filter({ hasText: "Chapter switch failed" })).toContainText("Save stopped");
-  const failedSave = page.getByRole("status", { name: "Chapter save status", exact: true });
+  await expect(page.getByRole("alert").filter({ hasText: "Chapter switch failed" })).toContainText("Save stopped");
+  const failedSave = page.getByRole("alert", { name: "Chapter save status", exact: true });
   await expect(failedSave).toBeVisible();
   await expect(failedSave).toHaveAttribute("aria-live", "assertive");
   await expect(failedSave).toHaveCSS("background-color", "rgb(180, 65, 47)");
