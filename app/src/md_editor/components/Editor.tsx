@@ -90,6 +90,7 @@ import { IconButton } from "../../ui/IconButton";
 import { Alert } from "../../ui/Alert";
 import { Button, buttonClassName } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
+import { Popover } from "../../ui/Popover";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
@@ -461,11 +462,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       return;
     }
     settingsRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus({ preventScroll: true });
-    const dismiss = (event: PointerEvent) => {
-      if (event.target instanceof Element && !settingsRef.current?.contains(event.target) && !event.target.closest(".editor-settings-button")) setPanel(null);
-    };
-    document.addEventListener("pointerdown", dismiss);
-    return () => document.removeEventListener("pointerdown", dismiss);
   }, [panel, desktop]);
 
   useEffect(() => {
@@ -1259,27 +1255,25 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("context")}>◫</button>
-        {desktop ? <button type="button" className="editor-settings-button" aria-label="Settings" title="Settings"
-          aria-controls="editor-settings" aria-expanded={panel === "settings"} aria-haspopup="dialog"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => togglePanel("settings")}>⚙</button> : null}
+        {desktop ? <Popover open={panel === "settings"} onOpenChange={(open) => { if (!open) setPanel(null); }}
+          ref={settingsRef} className="editor-settings-popover flex flex-col gap-4" role="dialog" aria-labelledby="editor-settings-title"
+          trigger={<button type="button" className="editor-settings-button" aria-label="Settings" title="Settings" aria-haspopup="dialog"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => { event.preventDefault(); togglePanel("settings"); }}>⚙</button>}>
+          <div className="editor-drawer-header">
+            <h2 id="editor-settings-title">Settings</h2>
+          </div>
+          {windowSettings}
+          <label className="editor-toggle">
+            <input type="checkbox" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
+            <span>Show Continue window</span>
+          </label>
+          <label className="editor-toggle">
+            <input type="checkbox" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
+            <span>Tint AI text</span>
+          </label>
+        </Popover> : null}
       </nav>
-      {desktop && panel === "settings" ? <div id="editor-settings" ref={settingsRef}
-        className="editor-settings-popover" role="dialog" aria-labelledby="editor-settings-title">
-        <div className="editor-drawer-header">
-          <h2 id="editor-settings-title">Settings</h2>
-          <button className="editor-button editor-button-small" type="button" onClick={closePanels}>Close settings</button>
-        </div>
-        {windowSettings}
-        <label className="editor-toggle">
-          <input type="checkbox" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
-          <span>Show Continue window</span>
-        </label>
-        <label className="editor-toggle">
-          <input type="checkbox" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
-          <span>Tint AI text</span>
-        </label>
-      </div> : null}
       {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
         <div className="editor-edit-flag">Edit selection</div>
         <StickyNote tone="pink" ref={editInstructionRef} aria-label="Edit instruction" rows={4}

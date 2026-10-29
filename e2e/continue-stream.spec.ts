@@ -235,7 +235,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Tint AI text", exact: true })).not.toBeChecked();
-  await page.getByRole("button", { name: "Close settings", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await select(0, 1);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();

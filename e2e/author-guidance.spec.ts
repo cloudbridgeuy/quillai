@@ -386,7 +386,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     if (!prose || !popover) throw new Error("Missing prose or settings");
     expect(prose.x + prose.width).toBeLessThan(popover.x);
     await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/gear-${width}.png` });
-    await page.getByRole("button", { name: "Close settings", exact: true }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
   }
   await page.evaluate(() => window.scrollTo(0, 400));
   const scrolledStatus = await status.boundingBox();

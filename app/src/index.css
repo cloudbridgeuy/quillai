@@ -410,7 +410,11 @@ body {
   opacity: .95;
 }
 
-.editor-settings-button {
+.editor-rail-right:has(.editor-settings-popover) {
+  opacity: 1;
+}
+
+.editor-rail-right > div:has(> .editor-settings-button) {
   margin-top: auto;
 }
 
@@ -422,13 +426,10 @@ body {
   width: 280px;
   max-height: calc(100vh - 36px);
   overflow: auto;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  box-shadow: var(--popover-shadow);
+}
+
+.editor-settings-popover .editor-drawer-header {
+  margin-bottom: 0;
 }
 
 .editor-settings-popover h2 {
