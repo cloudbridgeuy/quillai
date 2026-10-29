@@ -1,6 +1,7 @@
 # E2E Specs
 
 ### Browser Smoke (`e2e/`)
+`lore-modal.spec.ts` checks draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence.
 `settings-popover.spec.ts` checks Settings dismissal and equal row gaps at 1100px and 1440px.
 
 `ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, checks Modal and Popover dismissal and Modal focus restoration, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.

@@ -51,9 +51,11 @@ for (const width of [1100, 1440]) {
     expect(before.export).not.toBeNull();
     await drawer.screenshot({ path: `../target/guz-820/${testInfo.project.name}-loading-${width}.png` });
     await lore.click();
-    const editForm = drawer.getByRole("group", { name: "Edit lore", exact: true });
+    const editForm = drawer.getByRole("dialog", { name: "Edit lore", exact: true });
     await expect(editForm).toBeVisible();
     await expect(editForm.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Mira");
+    await page.keyboard.press("Escape");
+    await expect(editForm).toBeHidden();
     const downloadStarted = page.waitForEvent("download");
     await exportLink.click();
     expect((await downloadStarted).suggestedFilename()).toBe("chapter-local.json");
@@ -72,6 +74,7 @@ for (const width of [1100, 1440]) {
     expect(scroll.height).toBeGreaterThan(0);
     expect(scroll.content).toBeGreaterThan(scroll.height * 5);
     expect(scroll.overflow).toBe("auto");
+    await lore.click();
     await expect(editForm).toBeVisible();
     await expect(exportLink).toBeInViewport();
     await drawer.screenshot({ path: `../target/guz-820/${testInfo.project.name}-loaded-${width}.png` });

@@ -230,6 +230,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await lore.getByRole("button", { name: "Mira · character", exact: true }).click();
   await expect(lore.getByText("Edit lore", { exact: true })).toBeVisible();
   await lore.getByRole("button", { name: "Delete lore", exact: true }).click();
+  await lore.getByRole("button", { name: "Confirm delete", exact: true }).click();
   await expect(lore.getByText("No lore yet.", { exact: true })).toBeVisible();
   expect(await (await request.get(`${apiUrl}/series/${series.id}/lore`)).json()).toEqual([]);
 });

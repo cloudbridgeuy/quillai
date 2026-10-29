@@ -1,14 +1,26 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { LoreEntry, LoreInput } from "../../manuscripts/lore_client";
 import { newLoreDraft, parseLoreTerms, replaceLoreEntry } from "../../manuscripts/lore_panel";
 import type { useLore } from "../../manuscripts/use_lore";
+import { Button } from "../../ui/Button";
+import { Modal } from "../../ui/Modal";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  function edit(entry?: LoreEntry) {
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const formId = useId();
+  function close() {
+    setDraft(null);
+    setDeleteArmed(false);
+    setError("");
+  }
+  function edit(opener: HTMLElement, entry?: LoreEntry) {
+    returnFocusRef.current = opener;
+    setDeleteArmed(false);
     setEditingId(entry?.id ?? null);
     setDraft(entry ?? newLoreDraft());
     setError("");
@@ -29,7 +41,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
           : await lore.client.update({ universeId, loreId: editingId }, input);
         lore.change(replaceLoreEntry(lore.entries, saved));
       }
-      setDraft(null);
+      close();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not save lore.");
     } finally { setPending(false); }
@@ -41,13 +53,16 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
     {lore.status === "ready" ? <>
       {lore.entries.length === 0 ? <p>No lore yet.</p> : <ul className="editor-manuscript-tree">
         {lore.entries.map(entry => <li key={entry.id}><button type="button" disabled={disabled || pending}
-          onClick={() => edit(entry)}>{entry.name} · {entry.kind}{entry.pinned ? " · pinned" : ""}</button></li>)}
+          onClick={event => edit(event.currentTarget, entry)}>{entry.name} · {entry.kind}{entry.pinned ? " · pinned" : ""}</button></li>)}
       </ul>}
-      <button className="editor-button" disabled={disabled || pending} onClick={() => edit()}>New lore</button>
+      <button className="editor-button" disabled={disabled || pending} onClick={event => edit(event.currentTarget)}>New lore</button>
     </> : null}
-    {draft ? <form onSubmit={event => { event.preventDefault(); void save(); }}>
+    {draft ? <Modal data-manuscript-draft title={editingId === null ? "Create lore" : "Edit lore"} onClose={close} returnFocusRef={returnFocusRef}
+      footer={<>{editingId !== null ? <Button variant="danger" disabled={disabled || pending}
+        onClick={() => { if (deleteArmed) void save(true); else setDeleteArmed(true); }}>{deleteArmed ? "Confirm delete" : "Delete lore"}</Button> : null}
+        <Button variant="primary" type="submit" form={formId} disabled={disabled || pending || !draft.name.trim()}>Save lore</Button></>}>
+      <form id={formId} onSubmit={event => { event.preventDefault(); void save(); }}>
       <fieldset disabled={disabled || pending}>
-        <legend>{editingId === null ? "Create lore" : "Edit lore"}</legend>
         <label className="editor-field"><span>Kind</span><select className="editor-input" value={draft.kind}
           onChange={event => setDraft({ ...draft, kind: event.target.value as LoreInput["kind"] })}>
           {["character", "place", "term", "note"].map(kind => <option key={kind}>{kind}</option>)}
@@ -69,13 +84,9 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
         </select></label>
         <label className="editor-toggle"><input type="checkbox" checked={draft.pinned}
           onChange={event => setDraft({ ...draft, pinned: event.target.checked })} /><span>Pin in AI context</span></label>
-        <div className="editor-actions">
-          <button className="editor-button" type="submit" disabled={!draft.name.trim()}>Save lore</button>
-          <button className="editor-button" type="button" onClick={() => setDraft(null)}>Cancel lore</button>
-          {editingId !== null ? <button className="editor-button" type="button" onClick={() => void save(true)}>Delete lore</button> : null}
-        </div>
       </fieldset>
-    </form> : null}
-    {error ? <p role="alert">{error}</p> : null}
+      </form>
+      {error ? <p role="alert">{error}</p> : null}
+    </Modal> : null}
   </section>;
 }

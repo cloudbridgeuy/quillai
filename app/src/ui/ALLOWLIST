@@ -10,7 +10,7 @@ app/src/md_editor/components/Editor.tsx 11 raw-button
 app/src/md_editor/components/Editor.tsx 5 raw-input
 app/src/md_editor/components/Editor.tsx 3 raw-textarea
 app/src/md_editor/components/Editor.tsx 2 raw-select
-app/src/md_editor/components/LorePanel.tsx 6 raw-button
+app/src/md_editor/components/LorePanel.tsx 3 raw-button
 app/src/md_editor/components/LorePanel.tsx 2 raw-input
 app/src/md_editor/components/LorePanel.tsx 3 raw-textarea
 app/src/md_editor/components/LorePanel.tsx 2 raw-select
