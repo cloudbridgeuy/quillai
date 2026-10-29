@@ -49,7 +49,7 @@ Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
 | `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. No hover lift inside drawers | pill, small, primary and danger button classes |
-| `IconButton` | `label`, `pressed`, `glyph`, `kind?: "continue"`. 36px, radius 10; Continue is the 56px stack | rail buttons |
+| `IconButton` | `label`, `pressed`, `glyph`, `badge?`, `kind?: "continue"`. Native `aria-label` overrides `label`; Continue shows `label` then `badge`. 36px, radius 10; Continue is the 56px stack | rail buttons |
 | `TextField` | `as: "input" \| "select"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |
 | `Toggle` | checkbox plus label | `.editor-toggle` |
 | `Field` | `label`, control child. Label uses the 12px graphite style | `.editor-field` |

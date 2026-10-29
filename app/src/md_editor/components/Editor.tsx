@@ -1229,35 +1229,33 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <IconButton label="Library" title="Back to library" glyph="⌂" disabled={isBusy}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => void chapterSync.leave()} />
-        <button type="button" aria-label="Manuscript" title="Manuscript (Ctrl/Cmd+[)"
+        <IconButton label="Manuscript" glyph={<span aria-hidden="true">☰</span>} title="Manuscript (Ctrl/Cmd+[)"
           aria-controls="manuscript-drawer" aria-expanded={panel === "manuscript"}
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => togglePanel("manuscript")}>☰</button>
+          onClick={() => togglePanel("manuscript")} />
       </nav>
       <nav className="editor-rail editor-rail-right" aria-label="AI tools">
-        <button type="button" className="editor-continue" aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
+        <IconButton kind="continue" className="editor-continue" label={isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
+          badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
+          aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
           title={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
-          onClick={continueOrStop}>
-          <span aria-hidden="true">{isBusy ? "■" : "➤"}</span>
-          <span className="editor-continue-label">{isBusy ? "Stop" : "Continue"}</span>
-          {withThread ? <span className="editor-thread-indicator">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
-        </button>
-        <button type="button" aria-label="Edit selection" title="Edit selection"
+          onClick={continueOrStop} />
+        <IconButton label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title="Edit selection"
           disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
           onMouseDown={(event) => event.preventDefault()}
           aria-controls="edit-instruction-box" aria-expanded={editBoxOpen}
-          onClick={() => editBoxOpen ? closePanels() : setEditBoxOpen(true)}>✎</button>
-        <button type="button" aria-label="Context inspector" title="Context inspector (Ctrl/Cmd+])"
+          onClick={() => editBoxOpen ? closePanels() : setEditBoxOpen(true)} />
+        <IconButton label="Context inspector" glyph={<span aria-hidden="true">◫</span>} title="Context inspector (Ctrl/Cmd+])"
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
-          onClick={() => togglePanel("context")}>◫</button>
+          onClick={() => togglePanel("context")} />
         {desktop ? <Popover open={panel === "settings"} onOpenChange={(open) => { if (!open) setPanel(null); }}
           ref={settingsRef} className="editor-settings-popover flex flex-col gap-4" role="dialog" aria-labelledby="editor-settings-title"
-          trigger={<button type="button" className="editor-settings-button" aria-label="Settings" title="Settings" aria-haspopup="dialog"
+          trigger={<IconButton className="editor-settings-button" label="Settings" glyph={<span aria-hidden="true">⚙</span>} title="Settings" aria-haspopup="dialog"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => { event.preventDefault(); togglePanel("settings"); }}>⚙</button>}>
+            onClick={(event) => { event.preventDefault(); togglePanel("settings"); }} />}>
           <div className="editor-drawer-header">
             <h2 id="editor-settings-title">Settings</h2>
           </div>

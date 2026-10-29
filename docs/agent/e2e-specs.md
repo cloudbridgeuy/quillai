@@ -1,6 +1,7 @@
 # E2E Specs
 
 ### Browser Smoke (`e2e/`)
+`rail-buttons.spec.ts` checks rail geometry, names, titles, selection preservation, panel toggles and pending Continue at 1100px and 1440px.
 `lore-modal.spec.ts` checks draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence.
 `settings-popover.spec.ts` checks Settings dismissal and equal row gaps at 1100px and 1440px.
 

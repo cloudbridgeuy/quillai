@@ -42,6 +42,13 @@ describe("IconButton", () => {
     expect(iconButtonClassName({ kind: "continue" })).toContain("w-14");
   });
 
+  test("Continue label, accessible name and badge", () => {
+    const html = renderToStaticMarkup(<IconButton label="Continue" aria-label="Continue writing" glyph="➤" kind="continue" badge={<span>Pending</span>} />);
+    expect(html).toContain('aria-label="Continue writing"');
+    expect(html).toContain('>Continue</span><span>Pending</span>');
+    expect(renderToStaticMarkup(<IconButton label="Continue" glyph="➤" kind="continue" />)).toContain('aria-label="Continue"');
+  });
+
   test("label and pressed", () => {
     const html = renderToStaticMarkup(<IconButton label="Open" glyph="+" pressed />);
     expect(html).toContain('aria-label="Open"');

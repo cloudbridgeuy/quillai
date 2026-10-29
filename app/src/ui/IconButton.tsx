@@ -4,6 +4,7 @@ import { cx } from "./cx";
 type IconButtonProps = Omit<ComponentProps<"button">, "children"> & {
   label: string;
   glyph: ReactNode;
+  badge?: ReactNode;
   pressed?: boolean;
   kind?: "continue";
 };
@@ -19,11 +20,12 @@ export function iconButtonClassName({ kind, className }: Pick<IconButtonProps, "
   );
 }
 
-export function IconButton({ label, glyph, pressed, kind, className, type = "button", ...props }: IconButtonProps) {
+export function IconButton({ label, glyph, badge, pressed, kind, className, type = "button", ...props }: IconButtonProps) {
   return (
-    <button {...props} type={type} aria-label={label} aria-pressed={pressed} className={iconButtonClassName({ kind, className })}>
+    <button {...props} type={type} aria-label={props["aria-label"] ?? label} aria-pressed={pressed} className={iconButtonClassName({ kind, className })}>
       {glyph}
       {kind === "continue" ? <span className="text-micro">{label}</span> : null}
+      {badge}
     </button>
   );
 }
