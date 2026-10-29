@@ -11,6 +11,8 @@ import {
   resetThreadOnInstructionChange,
   shouldUseResumeThread,
   updateThreadSettings,
+  threadScopeKey,
+  threadScopeKeyFromSearch,
 } from "./ai_thread";
 
 const base = initialAiThreadState(512);
@@ -38,7 +40,7 @@ test("getThreadPresentation describes completion mode without matching history",
   expect(getThreadPresentation(base, "continue", false)).toEqual({
     mode: "completion",
     label: "Continue",
-    detail: "No saved thread history will be sent.",
+    detail: "No saved reply will be resumed.",
     messageCount: 0,
     canReset: false,
   });
@@ -55,7 +57,7 @@ test("getThreadPresentation describes completion mode without matching history",
   expect(getThreadPresentation(withThread, "changed", false)).toEqual({
     mode: "completion",
     label: "Continue",
-    detail: "No saved thread history will be sent.",
+    detail: "No saved reply will be resumed.",
     messageCount: 0,
     canReset: true,
   });
@@ -73,7 +75,7 @@ test("getThreadPresentation describes resume and resuming modes", () => {
 
   expect(getThreadPresentation(withThread, "continue", false)).toEqual({
     mode: "resume",
-    label: "Continue · with thread",
+    label: "Continue · from a cut-off reply",
     detail: "2 history messages · range 10–17",
     messageCount: 2,
     canReset: true,
@@ -81,7 +83,7 @@ test("getThreadPresentation describes resume and resuming modes", () => {
 
   expect(getThreadPresentation(withThread, "continue", true)).toMatchObject({
     mode: "resuming",
-    label: "Continuing with thread…",
+    label: "Continuing from a cut-off reply…",
   });
 });
 
@@ -178,4 +180,19 @@ test("invalidateThreadForManualEdit shifts generated range for earlier edits", (
       insertedLength: 3,
     }).thread?.generatedRange,
   ).toEqual({ start: 13, end: 20 });
+});
+
+test("thread scope separates chapters and pieces", () => {
+  const chapter = threadScopeKey({ seriesId: 1, bookId: 2, chapterId: 3 });
+  expect(chapter).not.toBe(threadScopeKey({ seriesId: 1, bookId: 2, chapterId: 4 }));
+  expect(chapter).not.toBe(threadScopeKey({ universeId: 1, pieceId: 3 }));
+  expect(threadScopeKey({ universeId: 1, pieceId: 3 })).not.toBe(threadScopeKey({ universeId: 1, pieceId: 4 }));
+});
+
+test("thread scope rejects malformed, ambiguous, and missing IDs", () => {
+  expect(threadScopeKeyFromSearch("?seriesId=1&bookId=2&chapterId=3")).toBe("chapter:1:2:3");
+  expect(threadScopeKeyFromSearch("?universeId=1&pieceId=3")).toBe("piece:1:3");
+  for (const search of ["", "?seriesId=1&bookId=2", "?seriesId=1&bookId=2&chapterId=0", "?seriesId=1&bookId=2&chapterId=1.5", "?universeId=1&pieceId=NaN", "?universeId=1&pieceId=9007199254740992", "?universeId=1&pieceId=3&pieceId=4", "?universeId=1&pieceId=3&chapterId=3"]) {
+    expect(threadScopeKeyFromSearch(search)).toBeNull();
+  }
 });

@@ -72,6 +72,7 @@ import {
   shouldUseResumeThread,
   shouldContinueWithThread,
   updateThreadSettings,
+  threadScopeKeyFromSearch,
   type AiThreadState,
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
@@ -95,6 +96,7 @@ import { appendContinueFragment, createContinueStream, transformContinueSelectio
 import { renderContinueTint } from "../continue_tint";
 import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
+import { defaultLocale, formatMessage } from "../../i18n/messages";
 import { getApiBaseUrl } from "../../api_config";
 import { parseModelCatalog, resolveModelChoice, type ModelCatalog } from "../model_catalog";
 import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
@@ -339,6 +341,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const aiRunStateRef = useRef(aiRunState);
   const abortControllerRef = useRef<AbortController | null>(null);
   const threadStateRef = useRef(threadState);
+  const threadsRef = useRef(initialEditorState.threads);
+  const threadScopeRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
@@ -349,7 +353,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     clearContinueTint();
     setSectionOverrides({ generate: {}, edit: {} });
     setRange(quillRef.current?.getSelection() ?? null);
-    updateThreadState(resetThread(threadStateRef.current));
+    const key = threadScopeKeyFromSearch(window.location.search);
+    if (threadScopeRef.current !== key) {
+      threadScopeRef.current = key;
+      updateThreadState({ ...threadStateRef.current, thread: key ? threadsRef.current[key] ?? null : null });
+    } else {
+      updateThreadState(resetThread(threadStateRef.current));
+    }
   };
   const chapterSync = scriptGroupId === undefined
     ? useChapterSync(quillRef, isAiActive, onRemoteChange)
@@ -382,6 +392,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           aiTextTint,
           showContinueWindow,
           threadState: threadStateRef.current,
+          threads: threadsRef.current,
         }),
       );
     } catch {}
@@ -581,6 +592,15 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }
 
   function updateThreadState(nextState: AiThreadState) {
+    const key = threadScopeRef.current;
+    if (key) {
+      if (nextState.thread) threadsRef.current = { ...threadsRef.current, [key]: nextState.thread };
+      else {
+        const threads = { ...threadsRef.current };
+        delete threads[key];
+        threadsRef.current = threads;
+      }
+    }
     threadStateRef.current = nextState;
     if (isMountedRef.current) {
       setThreadState(nextState);
@@ -1221,14 +1241,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onClick={() => togglePanel("manuscript")}>☰</button>
       </nav>
       <nav className="editor-rail editor-rail-right" aria-label="AI tools">
-        <button type="button" className="editor-continue" aria-label={isBusy ? "Stop AI" : withThread ? "Continue writing with thread" : "Continue writing"}
-          title={isBusy ? "Stop AI" : withThread ? "Continue writing with thread" : "Continue writing"}
+        <button type="button" className="editor-continue" aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
+          title={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop}>
           <span aria-hidden="true">{isBusy ? "■" : "➤"}</span>
           <span className="editor-continue-label">{isBusy ? "Stop" : "Continue"}</span>
-          {withThread ? <span className="editor-thread-indicator">with thread</span> : null}
+          {withThread ? <span className="editor-thread-indicator">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
         </button>
         <button type="button" aria-label="Edit selection" title="Edit selection"
           disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
@@ -1433,21 +1453,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           {!desktop ? windowSettings : null}
         </div>
 
-        <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
+        {threadPresentation.mode !== "completion" ? <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
           <div>
-            <span className="editor-thread-label">AI Thread</span>
-            <strong>{threadPresentation.label}</strong>
-            <span>{threadPresentation.detail}</span>
+            <strong>{formatMessage(defaultLocale, "thread.cutOff")}</strong>
           </div>
-          <button
-            className="editor-button editor-button-small"
-            type="button"
-            onClick={resetCurrentThread}
-            disabled={isBusy || !threadPresentation.canReset}
-          >
-            Reset Thread
-          </button>
-        </div>
+          <Button size="sm" onClick={resetCurrentThread} disabled={isBusy}>
+            {formatMessage(defaultLocale, "thread.discard")}
+          </Button>
+        </div> : null}
 
         <p className="editor-note">
           Edit replaces the current selection as text arrives. Stopping an Edit
@@ -1503,7 +1516,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             <span>Request to inspect</span>
             <select className="editor-input" value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
-              <option value="generate">{withThread ? "Continue · with thread" : "Continue"}</option>
+              <option value="generate">{withThread ? formatMessage(defaultLocale, "thread.resumeOption") : "Continue"}</option>
               <option value="edit">Edit selection</option>
             </select>
           </label>

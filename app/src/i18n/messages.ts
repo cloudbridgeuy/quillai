@@ -21,6 +21,13 @@ export type MessageShape<Source> = {
 
 export const en = {
   "action.save": "Save",
+  "thread.cutOff": "Continuing from a cut-off reply",
+  "thread.discard": "Discard",
+  "thread.resumeIndicator": "from a cut-off reply",
+  "thread.resumeAction": "Continue writing from a cut-off reply",
+  "thread.resumeOption": "Continue · from a cut-off reply",
+  "thread.resuming": "Continuing from a cut-off reply…",
+  "thread.noResume": "No saved reply will be resumed.",
   "greeting.hello": "Hello, {name}",
   "chapter.count": {
     one: "{count} chapter",
@@ -35,6 +42,13 @@ export type MessageKey = keyof typeof en;
 
 export const es = {
   "action.save": "Guardar",
+  "thread.cutOff": "Continuando una respuesta interrumpida",
+  "thread.discard": "Descartar",
+  "thread.resumeIndicator": "desde una respuesta interrumpida",
+  "thread.resumeAction": "Continuar escribiendo desde una respuesta interrumpida",
+  "thread.resumeOption": "Continuar · desde una respuesta interrumpida",
+  "thread.resuming": "Continuando desde una respuesta interrumpida…",
+  "thread.noResume": "No se continuará ninguna respuesta guardada.",
   "greeting.hello": "Hola, {name}",
   "chapter.count": {
     one: "{count} capítulo",

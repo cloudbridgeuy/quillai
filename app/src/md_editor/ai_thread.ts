@@ -1,3 +1,4 @@
+import { defaultLocale, formatMessage } from "../i18n/messages";
 import type { AiFinishReason, AiHistoryMessage, PromptHistoryMessage } from "./ai_contract";
 
 export type GeneratedRange = {
@@ -65,6 +66,30 @@ export function updateThreadSettings(
   };
 }
 
+export function threadScopeKey(scope: { universeId: number; pieceId: number } | { seriesId: number; bookId: number; chapterId: number }): string {
+  return "pieceId" in scope ? `piece:${scope.universeId}:${scope.pieceId}` : `chapter:${scope.seriesId}:${scope.bookId}:${scope.chapterId}`;
+}
+
+export function threadScopeKeyFromSearch(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const id = (name: string): number | null => {
+    const values = params.getAll(name);
+    if (values.length !== 1 || !/^[0-9]+$/.test(values[0]!)) return null;
+    const value = Number(values[0]);
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  };
+  if (params.has("pieceId") || params.has("universeId")) {
+    if (["seriesId", "bookId", "chapterId"].some(name => params.has(name))) return null;
+    const universeId = id("universeId");
+    const pieceId = id("pieceId");
+    return universeId && pieceId ? threadScopeKey({ universeId, pieceId }) : null;
+  }
+  const seriesId = id("seriesId");
+  const bookId = id("bookId");
+  const chapterId = id("chapterId");
+  return seriesId && bookId && chapterId ? threadScopeKey({ seriesId, bookId, chapterId }) : null;
+}
+
 export function historyForResume(state: AiThreadState): AiHistoryMessage[] {
   return state.thread?.messages ?? [];
 }
@@ -98,7 +123,7 @@ export function getThreadPresentation(
     return {
       mode: "completion",
       label: "Continue",
-      detail: "No saved thread history will be sent.",
+      detail: formatMessage(defaultLocale, "thread.noResume"),
       messageCount: 0,
       canReset: state.thread !== null,
     };
@@ -109,7 +134,7 @@ export function getThreadPresentation(
 
   return {
     mode: isResuming ? "resuming" : "resume",
-    label: isResuming ? "Continuing with thread…" : "Continue · with thread",
+    label: formatMessage(defaultLocale, isResuming ? "thread.resuming" : "thread.resumeOption"),
     detail: `${messageCount} history messages · range ${range}`,
     messageCount,
     canReset: true,

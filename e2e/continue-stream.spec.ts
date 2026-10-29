@@ -135,7 +135,7 @@ test("usage before done keeps length finish and arms Continue with thread", asyn
   await send({ type: "usage", promptTokens: 11, completionTokens: 4 });
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await send({ type: "done", finishReason: "length" });
-  await expect(page.getByRole("button", { name: "Continue writing with thread", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
   await expect(editor).toContainText("More prose.");
 });
 

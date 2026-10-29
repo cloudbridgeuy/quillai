@@ -65,8 +65,8 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   }
   await continueButton.click();
   await expect(editor).toHaveText("A saved beginning.");
-  await expect(continueButton).toHaveAccessibleName("Continue writing with thread");
-  await expect(continueButton.getByText("with thread", { exact: true })).toBeVisible();
+  await expect(continueButton).toHaveAccessibleName("Continue writing from a cut-off reply");
+  await expect(continueButton.getByText("from a cut-off reply", { exact: true })).toBeVisible();
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const context = page.locator("#context-drawer");
@@ -74,16 +74,16 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expect(context.getByRole("textbox", { name: "Continue instruction", exact: true })).toBeVisible();
   await expect(context.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveCount(0);
   await expect(context.getByRole("checkbox", { name: "Whole document", exact: true })).toHaveCount(0);
-  await expect(context.getByRole("button", { name: "Reset Thread", exact: true })).toBeEnabled();
+  await expect(context.getByRole("button", { name: "Discard", exact: true })).toBeEnabled();
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/with-thread-${width}.png`, fullPage: true });
   }
-  await expect(page.getByRole("option", { name: "Continue · with thread", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("option", { name: "Continue · from a cut-off reply", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await continueButton.click();
   await expect(continueButton).toHaveAccessibleName("Stop AI");
-  await expect(continueButton.getByText("with thread", { exact: true })).toBeVisible();
+  await expect(continueButton.getByText("from a cut-off reply", { exact: true })).toBeVisible();
   await expect(editor).toContainText("More words.");
   await continueButton.click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();

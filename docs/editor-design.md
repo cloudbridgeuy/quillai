@@ -74,7 +74,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 - Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails provide manuscript, Continue/Stop, Edit selection, context inspector, and a bottom-pinned desktop Settings gear.
-- The right drawer holds Story Context, Instruction, and the AI Thread bar with Reset Thread beside the live Continue context. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal.
+- The right drawer holds Story Context, Instruction, and a cut-off reply notice with Discard when a reply can resume. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal.
 - At 1100px and wider, Settings opens a 280px popover at right 72px, bottom 18px, outside the prose. It holds Window Size, Whole document, Show Continue window, and Tint AI text, using persisted local preferences. Window controls remain disabled during AI runs; marker visibility and tint remain available. Opening it closes either drawer; opening a drawer closes Settings. Settings has no Close button: its gear toggle, click outside, and Escape close it, and the gear and Escape restore the remembered editor selection/focus (owner rule; the code still shows Close settings until GUZ-873 removes it). Narrow screens retain the window controls in the context drawer. Prototype-only recentering, extra text effects, and save-failure simulation are not exposed.
 - Export local chapter is in the left manuscript drawer. It remains available after a save failure.
 - Both drawers start closed. Only one can be open. Bracket shortcuts toggle their drawer. Neither drawer has a Close button; Escape and a second click on the drawer's rail toggle close it and restore the remembered editor selection and focus. Hover changes only appearance.
@@ -117,9 +117,9 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Continue
 
-- One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "with thread" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
+- One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "from a cut-off reply" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
 - While streaming the same control shows Stop. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
-- The context drawer has one Continue view, labeled "Continue · with thread" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
+- The context drawer has one Continue view, labeled "Continue · from a cut-off reply" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
 ## Saves
 
@@ -140,7 +140,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Prototype vs decisions
 
-- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a visible "with thread" indicator; the prototype has no such indicator.
+- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a visible "from a cut-off reply" indicator; the prototype has no such indicator.
 - Off-screen marker reads `Continue window / starts ↑ N pages up`, not "window starts ↑ N pages".
 - AI text effect has four options, not an on/off switch.
 - Post-its have no rotation, and yellow lives in the drawer rather than on the sheet.

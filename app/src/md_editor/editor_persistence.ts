@@ -23,6 +23,7 @@ export type PersistedEditorState = {
   aiTextTint: boolean;
   showContinueWindow: boolean;
   threadState: AiThreadState;
+  threads: Record<string, ResumableGenerateThread>;
 };
 
 export function initialPersistedEditorState(): PersistedEditorState {
@@ -36,6 +37,7 @@ export function initialPersistedEditorState(): PersistedEditorState {
     aiTextTint: true,
     showContinueWindow: true,
     threadState: initialAiThreadState(DEFAULT_MAX_OUTPUT_TOKENS),
+    threads: {},
   };
 }
 
@@ -64,7 +66,8 @@ export function parsePersistedEditorState(raw: string | null): PersistedEditorSt
       windowMode: parseWindowMode(parsed.windowMode, fallback.windowMode),
       aiTextTint: typeof parsed.aiTextTint === "boolean" ? parsed.aiTextTint : fallback.aiTextTint,
       showContinueWindow: typeof parsed.showContinueWindow === "boolean" ? parsed.showContinueWindow : fallback.showContinueWindow,
-      threadState: parseThreadState(parsed.threadState, fallback.threadState),
+      threadState: { ...parseThreadState(parsed.threadState, fallback.threadState), thread: null },
+      threads: parseThreads(parsed.threads),
     };
   } catch {
     return fallback;
@@ -123,6 +126,14 @@ function parseThreadState(value: unknown, fallback: AiThreadState): AiThreadStat
       editModel: typeof value.settings.editModel === "string" ? value.settings.editModel : null,
     },
   };
+}
+
+function parseThreads(value: unknown): Record<string, ResumableGenerateThread> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([key, item]) => {
+    const thread = parseThread(item);
+    return thread ? [[key, thread]] : [];
+  }));
 }
 
 function parseThread(value: unknown): ResumableGenerateThread | null | undefined {

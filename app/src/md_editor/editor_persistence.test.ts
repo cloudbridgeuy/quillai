@@ -29,7 +29,10 @@ const persistedState: PersistedEditorState = {
       continueModel: "continue-choice",
       editModel: "edit-choice",
     },
-    thread: {
+    thread: null,
+  },
+  threads: {
+    "chapter:1:2:3": {
       kind: "resumable_generate",
       instruction: "Continue with restrained dread.",
       generatedRange: { start: 12, end: 32 },
@@ -101,4 +104,14 @@ test("invalid nested thread state falls back safely", () => {
     ...persistedState,
     threadState: initialPersistedEditorState().threadState,
   });
+});
+
+test("legacy global thread is dropped while settings and scoped threads survive", () => {
+  const parsed = parsePersistedEditorState(JSON.stringify({
+    ...persistedState,
+    threadState: { ...persistedState.threadState, thread: persistedState.threads["chapter:1:2:3"] },
+  }));
+  expect(parsed.threadState.thread).toBeNull();
+  expect(parsed.threadState.settings).toEqual(persistedState.threadState.settings);
+  expect(parsed.threads).toEqual(persistedState.threads);
 });

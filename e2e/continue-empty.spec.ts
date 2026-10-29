@@ -56,7 +56,7 @@ test("empty Continue reports length and stop without changing chapter, selection
   const seed = await run("seed");
   expect((await request.post(`${seed}/fragment`, { data: { text: "Seed prose." } })).status()).toBe(200);
   expect((await request.post(`${seed}/finish`, { data: { reason: "length" } })).status()).toBe(200);
-  await expect(page.getByRole("button", { name: "Continue writing with thread", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   const beforeChapterResponse = await request.get(chapterUrl);
   expect(beforeChapterResponse.status()).toBe(200);

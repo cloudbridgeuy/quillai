@@ -45,7 +45,7 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && request.url === "/control/arm") {
       const input: { identity?: unknown; model?: unknown } = JSON.parse(body);
-      const continueIdentity = typeof input.identity === "string" && /^GUZ(?:(807|985)-(Finish|Stop)|866-(seed|length|stop))-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
+      const continueIdentity = typeof input.identity === "string" && /^GUZ(?:(807|985)-(Finish|Stop)|866-(seed|length|stop)|868-[1-4])-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-continue";
       const editIdentity = typeof input.identity === "string" && /^(GUZ865-(commentary|missing|unclosed)|GUZ985-edit)-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-edit";
       const reasoningIdentity = typeof input.identity === "string" && /^GUZ1008-[a-f0-9-]{36}$/.test(input.identity) && (input.model === "e2e-reasoning" || input.model === "e2e-no-reasoning");
       const repeatIdentity = typeof input.identity === "string" && /^GUZ870-[a-f0-9-]{36}$/.test(input.identity) && input.model === "e2e-repeat";

@@ -6,7 +6,7 @@ app/src/components/ErrorBoundary.tsx 1 raw-button
 app/src/index.css 1 hex-colour
 app/src/index.css 20 font-size
 app/src/md_editor/components/ContinueWindow.tsx 1 raw-button
-app/src/md_editor/components/Editor.tsx 13 raw-button
+app/src/md_editor/components/Editor.tsx 12 raw-button
 app/src/md_editor/components/Editor.tsx 5 raw-input
 app/src/md_editor/components/Editor.tsx 3 raw-textarea
 app/src/md_editor/components/Editor.tsx 2 raw-select
