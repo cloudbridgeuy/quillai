@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "../../../app/src/index.css";
 import { Alert } from "../../../app/src/ui/Alert";
@@ -6,6 +7,8 @@ import { Field } from "../../../app/src/ui/Field";
 import { Heading } from "../../../app/src/ui/Heading";
 import { IconButton } from "../../../app/src/ui/IconButton";
 import { ListButton } from "../../../app/src/ui/ListButton";
+import { Modal } from "../../../app/src/ui/Modal";
+import { Popover } from "../../../app/src/ui/Popover";
 import { StickyNote } from "../../../app/src/ui/StickyNote";
 import { TextField } from "../../../app/src/ui/TextField";
 import { Toggle } from "../../../app/src/ui/Toggle";
@@ -20,8 +23,18 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 function Page() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const modalOpener = useRef<HTMLButtonElement>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   return (
     <main className="bg-desk p-6 text-ink">
+      <Section id="modal" title="Modal">
+        <Button ref={modalOpener} onClick={() => setModalOpen(true)}>Open modal</Button>
+        {modalOpen ? <Modal title="Example modal" returnFocusRef={modalOpener} onClose={() => setModalOpen(false)} footer={<Button>Save</Button>}>Modal content</Modal> : null}
+      </Section>
+      <Section id="popover" title="Popover">
+        <Popover trigger={<Button>Toggle popover</Button>} open={popoverOpen} onOpenChange={setPopoverOpen}>Popover content</Popover>
+      </Section>
       <Section id="heading" title="Heading">
         <Heading level="app">QuillAI app heading</Heading>
         <Heading level="section">Section heading</Heading>

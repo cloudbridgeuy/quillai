@@ -44,7 +44,7 @@ Font stacks stay as `--serif`, `--sans` and `--mono`.
 
 ## Primitives (`app/src/ui/`)
 
-Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Planned: `Modal`, `Popover`. Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
+Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton`, `Modal`, `Popover` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
 
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
@@ -56,6 +56,6 @@ Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert
 | `Heading` | `level: "app" \| "section"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
 | `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
 | `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `ui/StickyNote.tsx` (replaces `components/StickyNote.tsx`), green lore text |
-| `Modal` | `title`, `onClose`, children. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |
-| `Popover` | `trigger`, `open`, `onOpenChange`. No Close prop | Settings, Edit box |
+| `Modal` | `title`, `onClose`, children, optional `footer` and stable `returnFocusRef` for the opener. Without a ref, focus returns to the active element captured on mount, except `body`. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |
+| `Popover` | `trigger`, `open`, `onOpenChange`, children. No Close prop | Settings, Edit box |
 | `ListButton` | `pressed`, `tone: "tree" \| "lore"` | manuscript tree rows, lore-window rows |

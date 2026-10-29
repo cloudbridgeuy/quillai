@@ -1,7 +1,7 @@
 # E2E Specs
 
 ### Browser Smoke (`e2e/`)
-`ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.
+`ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, checks Modal and Popover dismissal and Modal focus restoration, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.
 
 `edit-replacement.spec.ts` arms one-use `e2e-edit` identities at 1100px: tags split across fragments with commentary around them leave only the replacement in the editor and server; missing or unclosed tags show the error and restore the selection; a whole-paragraph selection with its line ending keeps the paragraph break (replacement `Revised paragraph` or `Revised paragraph\n`, editor and server GET), and an unclosed tag restores that paragraph.
 

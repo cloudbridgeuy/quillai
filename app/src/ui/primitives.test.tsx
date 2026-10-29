@@ -7,6 +7,8 @@ import { Field } from "./Field";
 import { Heading, headingClassName } from "./Heading";
 import { IconButton, iconButtonClassName } from "./IconButton";
 import { ListButton, listButtonClassName } from "./ListButton";
+import { Modal, modalClassName, modalReturnFocus } from "./Modal";
+import { Popover, popoverClassName } from "./Popover";
 import { StickyNote, stickyNoteClassName } from "./StickyNote";
 import { TextField, textFieldClassName } from "./TextField";
 import { Toggle } from "./Toggle";
@@ -122,5 +124,48 @@ describe("StickyNote", () => {
     const html = renderToStaticMarkup(<StickyNote tone="pink" readOnly rows={3} aria-label="n" value="v" />);
     expect(html).toContain("readOnly");
     expect(html).toContain('rows="3"');
+  });
+});
+
+describe("Modal", () => {
+  test("class and title semantics", () => {
+    expect(modalClassName("extra")).toEndWith("extra");
+    const html = renderToStaticMarkup(<Modal title="Edit" onClose={() => {}} returnFocusRef={createRef<HTMLButtonElement>()}>Body</Modal>);
+    expect(html).toContain("<dialog");
+    expect(html).toContain("aria-labelledby=");
+    expect(html).toContain(">Edit</h2>");
+    expect(html).not.toContain("<footer");
+    expect(html).not.toContain("returnFocusRef");
+  });
+
+  test("return focus prefers explicit target and ignores body fallback", () => {
+    const button = { tagName: "BUTTON", focus() {} };
+    const other = { tagName: "INPUT", focus() {} };
+    const body = { tagName: "BODY", focus() {} };
+    expect(modalReturnFocus(button, body)).toBe(button);
+    expect(modalReturnFocus(button, other)).toBe(button);
+    expect(modalReturnFocus(null, other)).toBe(other);
+    expect(modalReturnFocus(null, body)).toBeNull();
+    expect(modalReturnFocus(null, null)).toBeNull();
+  });
+
+  test("Modal footer renders only its children", () => {
+    const html = renderToStaticMarkup(<Modal title="Edit" onClose={() => {}} footer={<Button>Save</Button>}>Body</Modal>);
+    expect(html.match(/<footer[^>]*>(.*?)<\/footer>/)?.[1]).toBe(renderToStaticMarkup(<Button>Save</Button>));
+    expect(html).not.toContain("Cancel");
+    expect(html).not.toContain("Close");
+  });
+});
+
+describe("Popover", () => {
+  test("class and trigger semantics", () => {
+    expect(popoverClassName("extra")).toEndWith("extra");
+    const html = renderToStaticMarkup(<Popover trigger={<Button>Open</Button>} open onOpenChange={() => {}}>Content</Popover>);
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain("aria-controls=");
+    expect(html).toContain(">Content</div>");
+    const closed = renderToStaticMarkup(<Popover trigger={<Button>Open</Button>} open={false} onOpenChange={() => {}}>Content</Popover>);
+    expect(closed).toContain('aria-expanded="false"');
+    expect(closed).not.toContain("Content");
   });
 });

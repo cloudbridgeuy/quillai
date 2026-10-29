@@ -16,7 +16,7 @@ for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`http://127.0.0.1:${server.port}/`);
 
-    for (const id of ["heading", "button", "icon-button", "list-button", "text-field", "toggle", "field", "alert", "sticky-note"]) {
+    for (const id of ["modal", "popover", "heading", "button", "icon-button", "list-button", "text-field", "toggle", "field", "alert", "sticky-note"]) {
       await expect(page.getByTestId(id)).toBeVisible();
     }
     await expect(page.getByRole("heading", { level: 1, name: "QuillAI app heading" })).toBeVisible();
@@ -55,3 +55,39 @@ for (const width of [1100, 1440]) {
     await page.screenshot({ fullPage: true, path: `../target/guz-884/${testInfo.project.name}/components-${width}.png` });
   });
 }
+
+test("modal dismissal and focus", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${server.port}/`);
+  const opener = page.getByRole("button", { name: "Open modal" });
+  const dialog = page.getByRole("dialog", { name: "Example modal" });
+  await opener.click();
+  await expect(dialog).toBeVisible();
+  await dialog.click({ position: { x: 2, y: 2 } });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await expect(dialog).toBeVisible();
+  await page.mouse.click(1, 1);
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+});
+
+test("popover toggle and dismissal", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${server.port}/`);
+  const trigger = page.getByRole("button", { name: "Toggle popover" });
+  const content = page.getByText("Popover content");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(content).toBeVisible();
+  await trigger.click();
+  await expect(content).toHaveCount(0);
+  await trigger.click();
+  await page.getByRole("heading", { name: "Popover", exact: true }).click();
+  await expect(content).toHaveCount(0);
+  await trigger.click();
+  await page.keyboard.press("Escape");
+  await expect(content).toHaveCount(0);
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
