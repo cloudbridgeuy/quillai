@@ -3,6 +3,9 @@ import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../ui/Button";
 
+const FLAG_MIN_LEFT = 64;
+const FLAG_OFFSET = 210;
+
 type Geometry = { top: number; bottom: number; viewportTop: number; left: number };
 
 export function ContinueWindow({ quill, start, end }: { quill: Quill; start: number; end: number }) {
@@ -36,7 +39,7 @@ export function ContinueWindow({ quill, start, end }: { quill: Quill; start: num
       data-start={start} data-end={end}
       style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }} />, quill.container)}
     {geometry.viewportTop < 0 ? createPortal(<Button size="sm" className="editor-continue-window-flag"
-      style={{ left: Math.max(64, geometry.left - 210) }}
+      style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => window.scrollBy({ top: geometry.viewportTop - 24, behavior: "smooth" })}>
       Continue window

@@ -24,6 +24,13 @@
   --edit-shadow: 0 10px 30px rgba(31, 41, 51, .13);
   --lore-shadow: 0 10px 30px rgba(31, 41, 51, .14);
   --sheet-edge: 1px solid rgba(31, 41, 51, .07);
+  --z-drawer: 8;
+  --z-rail: 9;
+  --z-popover: 10;
+  --z-lore: 11;
+  --z-flag: 15;
+  --z-topbar: 20;
+  --z-modal: 30;
   --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
   --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, Menlo, monospace;

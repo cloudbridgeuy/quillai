@@ -15,7 +15,7 @@ export function iconButtonClassName({ kind, className }: Pick<IconButtonProps, "
     "hover:bg-pi-pink hover:text-ink focus-visible:bg-pi-pink focus-visible:text-ink",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "aria-pressed:bg-pi-green aria-pressed:text-ink",
-    kind === "continue" ? "flex min-h-12 w-14 flex-col items-center gap-0.5 py-0.5 text-title" : "size-9 text-title",
+    kind === "continue" ? "flex min-h-12 w-14 flex-col items-center gap-1 py-1 text-title" : "size-9 text-title",
     className,
   );
 }

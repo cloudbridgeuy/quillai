@@ -1,8 +1,8 @@
 @import "tailwindcss";
 @import "./ui/tokens.css";
 
-.editor-lore-panel { border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 16px; }
-.editor-lore-panel fieldset { border: 0; padding: 0; margin-top: 16px; min-width: 0; }
+.editor-lore-panel { border-top: 1px solid var(--rule); margin-top: calc(var(--spacing) * 5); padding-top: calc(var(--spacing) * 4); }
+.editor-lore-panel fieldset { border: 0; padding: 0; margin-top: calc(var(--spacing) * 4); min-width: 0; }
 
 :root {
   font-family: var(--sans);
@@ -59,24 +59,24 @@ body {
 .editor-shell {
   width: min(1100px, calc(100% - 112px));
   margin: 0 auto;
-  padding: 2rem 1rem 2.5rem;
+  padding: calc(var(--spacing) * 6) calc(var(--spacing) * 4) calc(var(--spacing) * 6);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
 }
 
 .editor-topbar {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
 }
 
 .editor-heading {
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 0.45rem;
+  gap: calc(var(--spacing) * 2);
 }
 
 .editor-topbar p {
@@ -87,11 +87,11 @@ body {
 .editor-status {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: calc(var(--spacing) * 2);
   min-height: 2.75rem;
-  padding: 0.65rem 0.85rem;
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 3);
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--paper);
   white-space: nowrap;
 }
@@ -133,21 +133,21 @@ body {
 .editor-canvas {
   background: var(--paper);
   border: var(--sheet-edge);
-  border-radius: 20px;
+  border-radius: var(--radius-sheet);
   box-shadow: var(--sheet-shadow);
 }
 
 .editor-controls-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.85rem;
+  gap: calc(var(--spacing) * 3);
   align-items: end;
 }
 
 .editor-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: calc(var(--spacing) * 3);
 }
 
 .editor-note {
@@ -161,10 +161,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.8rem 0.9rem;
+  gap: calc(var(--spacing) * 4);
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   border: 1px solid var(--rule);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--paper);
 }
 
@@ -173,7 +173,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.45rem 0.7rem;
+  gap: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
 }
 
 .editor-thread-card strong {
@@ -207,7 +207,7 @@ body {
 }
 
 .editor-chapter-title {
-  margin: 0 0 2.2em;
+  margin: 0 0 calc(var(--spacing) * 6);
   font: 600 var(--text-ui) var(--sans);
   letter-spacing: var(--tracking-section);
   text-transform: uppercase;
@@ -219,20 +219,20 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
 }
 
 .editor-rail {
   position: fixed;
   top: 0;
   bottom: 0;
-  z-index: 9;
+  z-index: var(--z-rail);
   width: 56px;
-  padding: 18px 10px;
+  padding: calc(var(--spacing) * 5) calc(var(--spacing) * 3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: calc(var(--spacing) * 2);
   opacity: .35;
   transition: opacity 160ms ease;
 }
@@ -294,8 +294,8 @@ body {
 .editor-settings-popover {
   position: fixed;
   right: 72px;
-  bottom: 18px;
-  z-index: 9;
+  bottom: calc(var(--spacing) * 5);
+  z-index: var(--z-rail);
   width: 280px;
   max-height: calc(100vh - 36px);
   overflow: auto;
@@ -308,7 +308,7 @@ body {
 .editor-thread-indicator {
   background: var(--pi-blue);
   color: var(--ink);
-  padding: 2px 3px;
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 1);
 }
 
 .editor-drawer {
@@ -316,7 +316,7 @@ body {
   max-height: 70vh;
   overflow: auto;
   overflow-wrap: anywhere;
-  padding: 18px;
+  padding: calc(var(--spacing) * 4);
   border: 1px solid var(--rule);
   border-radius: 0;
   background: var(--paper);
@@ -335,8 +335,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: calc(var(--spacing) * 3);
+  margin-bottom: calc(var(--spacing) * 3);
 }
 
 .editor-context-inspector {
@@ -366,13 +366,13 @@ body {
 
 .editor-save-status::before {
   content: "●";
-  margin-right: 6px;
+  margin-right: calc(var(--spacing) * 2);
   color: var(--pencil);
 }
 
 .editor-save-failed::before {
   content: "●";
-  margin-right: 6px;
+  margin-right: calc(var(--spacing) * 2);
 }
 
 .editor-manuscript-tree,
@@ -382,15 +382,15 @@ body {
 }
 
 .editor-manuscript-tree details {
-  padding-left: 14px;
+  padding-left: calc(var(--spacing) * 4);
 }
 
 .editor-manuscript-tree li {
-  margin: 8px 0;
+  margin: calc(var(--spacing) * 2) 0;
 }
 
 .editor-manuscript-tree summary {
-  margin-left: -14px;
+  margin-left: calc(var(--spacing) * -4);
   cursor: pointer;
   color: var(--slate);
   font-weight: 600;
@@ -452,7 +452,7 @@ body {
   caret-color: var(--slate);
   line-height: 1.75;
   min-height: 60vh;
-  padding: 1.4rem 1.5rem;
+  padding: calc(var(--spacing) * 6) calc(var(--spacing) * 6);
 }
 
 .editor-host .ql-editor.ql-blank::before {
@@ -528,7 +528,9 @@ body {
   width: 9px;
   border: 2px solid var(--st-blue);
   border-right: 0;
-  border-radius: 3px 0 0 3px;
+  border-radius: var(--radius-card);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
   opacity: .6;
   pointer-events: none;
 }
@@ -536,9 +538,9 @@ body {
 .editor-continue-window-flag {
   position: fixed;
   top: 12px;
-  z-index: 15;
+  z-index: var(--z-flag);
   border: 0;
-  padding: 5px 18px 5px 10px;
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 5) calc(var(--spacing) * 1) calc(var(--spacing) * 3);
   background: var(--pi-blue);
   color: var(--ink);
   font: 500 var(--text-meta)/1.3 var(--sans);
@@ -557,11 +559,11 @@ body {
 .editor-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: calc(var(--spacing) * 4);
   background: color-mix(in srgb, var(--ink) 72%, transparent);
   backdrop-filter: blur(12px);
 }
@@ -571,10 +573,10 @@ body {
   max-height: min(90vh, 840px);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.1rem;
+  gap: calc(var(--spacing) * 4);
+  padding: calc(var(--spacing) * 4);
   border: 1px solid var(--rule);
-  border-radius: 24px;
+  border-radius: var(--radius-card);
   background: var(--paper);
   box-shadow: var(--popover-shadow);
 }
@@ -583,7 +585,7 @@ body {
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
 }
 
 .editor-modal-header h2 {
@@ -595,7 +597,7 @@ body {
 }
 
 .editor-modal-header p {
-  margin: 0.45rem 0 0;
+  margin: calc(var(--spacing) * 2) 0 0;
   color: var(--graphite);
   max-width: 56ch;
 }
@@ -603,30 +605,30 @@ body {
 .editor-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
   overflow: auto;
-  padding-right: 0.1rem;
+  padding-right: calc(var(--spacing) * 1);
 }
 
 .editor-preview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: calc(var(--spacing) * 3);
 }
 
 .editor-preview-card,
 .editor-preview-section {
   min-width: 0;
-  padding: 0.9rem;
+  padding: calc(var(--spacing) * 4);
   border: 1px solid var(--rule);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   background: var(--paper);
 }
 
 .editor-preview-card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: calc(var(--spacing) * 1);
 }
 
 .editor-preview-card code {
@@ -644,14 +646,14 @@ body {
 .editor-preview-section {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: calc(var(--spacing) * 3);
 }
 
 .editor-preview-section-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
+  gap: calc(var(--spacing) * 4);
 }
 
 .editor-preview-section-header span {
@@ -663,9 +665,9 @@ body {
 .editor-preview-block {
   margin: 0;
   overflow: auto;
-  padding: 0.85rem 0.95rem;
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   border: 1px solid var(--rule);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   background: var(--desk);
   color: var(--graphite);
   white-space: pre-wrap;
@@ -725,8 +727,8 @@ body {
   width: 100%;
   resize: vertical;
   border: 0;
-  border-radius: 1px;
-  padding: 14px 12px 10px;
+  border-radius: var(--radius-note);
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3) calc(var(--spacing) * 3);
   background-image: linear-gradient(rgba(31, 41, 51, .045), transparent 12px);
   color: var(--ink);
   font: var(--text-ui)/1.5 var(--sans);
@@ -749,7 +751,7 @@ body {
 
 .editor-sticky-note-overhang {
   width: calc(100% + 8px);
-  margin-inline: -4px;
+  margin-inline: calc(var(--spacing) * -1);
 }
 
 .editor-sticky-note[readonly] {
@@ -770,8 +772,8 @@ body {
   position: fixed;
   right: 72px;
   width: 280px;
-  z-index: 10;
-  padding: 12px 14px;
+  z-index: var(--z-popover);
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   background: var(--paper);
   border: 0;
   border-radius: var(--radius-card);
@@ -780,8 +782,8 @@ body {
 
 .editor-edit-flag {
   display: inline-block;
-  margin: 0 0 10px -14px;
-  padding: 5px 18px 5px 10px;
+  margin: 0 0 calc(var(--spacing) * 3) calc(var(--spacing) * -4);
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 5) calc(var(--spacing) * 1) calc(var(--spacing) * 3);
   background: var(--pi-pink);
   color: var(--ink);
   font-weight: 500;
@@ -809,13 +811,13 @@ body {
   }
 
   .editor-topbar {
-    margin: 10px auto 0;
+    margin: calc(var(--spacing) * 2) auto 0;
     width: min(760px, calc(100vw - 400px));
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
     align-items: center;
     position: relative;
-    z-index: 20;
+    z-index: var(--z-topbar);
   }
 
   .editor-save-status {
@@ -852,12 +854,12 @@ body {
 
   .editor-rail-left,
   .editor-rail-right {
-    padding-top: 4px;
+    padding-top: calc(var(--spacing) * 1);
   }
 
   .editor-drawer {
     position: fixed;
-    z-index: 8;
+    z-index: var(--z-drawer);
     top: 0;
     bottom: 0;
     width: 300px;
@@ -874,7 +876,7 @@ body {
 
   .editor-context-inspector > .editor-drawer-header {
     margin: 0;
-    padding: .9rem .9rem 12px;
+    padding: calc(var(--spacing) * 4) calc(var(--spacing) * 4) calc(var(--spacing) * 3);
     border-bottom: 1px solid var(--rule);
     background: var(--paper);
   }
@@ -889,11 +891,11 @@ body {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: .7rem;
+    gap: calc(var(--spacing) * 3);
     min-height: 0;
     overflow: auto;
     overscroll-behavior-y: contain;
-    padding: 12px .9rem .9rem;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4) calc(var(--spacing) * 4);
   }
 
   .editor-context-body > * {
@@ -927,8 +929,8 @@ body {
     flex: 1;
     min-height: 0;
     border-bottom: 1px solid var(--rule);
-    padding-bottom: 20px;
-    margin-bottom: 16px;
+    padding-bottom: calc(var(--spacing) * 5);
+    margin-bottom: calc(var(--spacing) * 4);
     overflow: auto;
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
@@ -943,25 +945,27 @@ body {
 
   .editor-page {
     width: min(760px, calc(100vw - 400px));
-    margin: 24px auto 0;
+    margin: calc(var(--spacing) * 6) auto 0;
     min-height: 100vh;
-    padding: 72px 84px 0;
+    padding: calc(var(--spacing) * 18) calc(var(--spacing) * 21) 0;
     border: var(--sheet-edge);
     border-bottom: 0;
-    border-radius: 2px 2px 0 0;
+    border-radius: var(--radius-sheet);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
     background: var(--paper);
     box-shadow: var(--sheet-shadow);
     clip-path: inset(-40px -40px 0);
   }
 
   .editor-shell:has(.editor-drawer-right:not([hidden]), .editor-settings-popover) {
-    padding-right: 356px;
-    padding-left: 56px;
+    padding-right: calc(var(--spacing) * 89);
+    padding-left: calc(var(--spacing) * 14);
   }
 
   .editor-shell:has(.editor-drawer-left:not([hidden])) {
-    padding-right: 56px;
-    padding-left: 356px;
+    padding-right: calc(var(--spacing) * 14);
+    padding-left: calc(var(--spacing) * 89);
   }
 
   .editor-shell:has(.editor-drawer:not([hidden]), .editor-settings-popover) :is(.editor-topbar, .editor-page) {
@@ -984,16 +988,16 @@ body {
     height: auto;
     min-height: 0;
     overflow: visible;
-    padding: 0 0 72px;
+    padding: 0 0 calc(var(--spacing) * 18);
   }
 
   .editor-host .ql-editor p {
-    margin: 0 0 1em;
+    margin: 0 0 calc(var(--spacing) * 4);
   }
 
   .editor-host .ql-toolbar.ql-snow {
-    margin-bottom: 1em;
-    padding: 0 0 8px;
+    margin-bottom: calc(var(--spacing) * 4);
+    padding: 0 0 calc(var(--spacing) * 2);
   }
 }
 
@@ -1003,7 +1007,7 @@ body {
   }
 
   .editor-shell {
-    padding: 1rem 0.75rem 1.5rem;
+    padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3) calc(var(--spacing) * 6);
   }
 
   .editor-topbar {
@@ -1018,7 +1022,7 @@ body {
   .editor-status {
     width: 100%;
     justify-content: space-between;
-    border-radius: 14px;
+    border-radius: var(--radius-card);
     white-space: normal;
   }
 
@@ -1039,7 +1043,7 @@ body {
 
   .editor-modal {
     max-height: calc(100vh - 1.5rem);
-    padding: 1rem;
+    padding: calc(var(--spacing) * 4);
   }
 
   .editor-modal-header {
@@ -1100,21 +1104,21 @@ body {
   list-style: none;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: calc(var(--spacing) * 2);
 }
 
 .editor-lore-card {
   position: fixed;
   --popover-left: max(12px, min(var(--popover-anchor-x), calc(100vw - 324px)));
   --popover-top: max(12px, min(calc(var(--popover-anchor-y) + 8px), calc(100vh - 300px)));
-  z-index: 11;
+  z-index: var(--z-lore);
   width: 300px;
   max-height: calc(100vh - 24px);
   overflow: auto;
   box-sizing: border-box;
-  padding: 12px 14px;
-  border: 1px solid rgba(31, 41, 51, .07);
-  border-radius: 4px;
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+  border: var(--sheet-edge);
+  border-radius: var(--radius-card);
   background: var(--paper);
   box-shadow: var(--lore-shadow);
   @apply text-ui;
@@ -1122,18 +1126,18 @@ body {
 }
 
 .editor-lore-card h3 {
-  margin: 10px 0 2px;
+  margin: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 1);
 }
 
 .editor-lore-flag {
-  padding: 4px 12px;
-  margin-left: -14px;
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+  margin-left: calc(var(--spacing) * -4);
   background: var(--pi-lav);
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%);
 }
 
 .editor-lore-visible {
-  padding: 12px;
+  padding: calc(var(--spacing) * 3);
   background: var(--pi-green);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

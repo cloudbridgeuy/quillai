@@ -49,6 +49,10 @@ All rules skip `*.test.*` files. TS and TSX checks skip `app/src/ui/`; CSS check
 | Radius | `rounded-none`, `-note`, `-sheet`, `-card`, `-button`, `-icon`, `-pill` | 0 (drawers, guidance), 1px (notes), 2px (sheet), 4px (edit box, lore card), 7px (buttons outside drawers), 10px (rail icons), 999px (fail pill only) |
 | Spacing | `p-1` … `p-6`, `gap-*`, `m-*` | 4, 8, 12, 16, 20, 24px (`--spacing: 4px`; use steps 1–6) |
 
+Stacking uses `--z-drawer` (8), `--z-rail` (9), `--z-popover` (10), `--z-lore` (11), `--z-flag` (15), `--z-topbar` (20), and `--z-modal` (30). Native dialogs use the browser top layer.
+
+The CSS colour waiver covers the registered animation colour initial value. Large layout dimensions use multiples of the spacing unit to preserve the desktop sheet and drawer geometry. Continue window inline styles track measured geometry.
+
 Font stacks stay as `--serif`, `--sans` and `--mono`.
 
 ## Primitives (`app/src/ui/`)

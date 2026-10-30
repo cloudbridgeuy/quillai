@@ -1334,9 +1334,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         {savePresentation.failed ? <Alert tone="fail" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
           title={savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
-          <span id="chapter-save-detail" style={{
-            position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap",
-          }}>{savePresentation.detail}</span>
+          <span id="chapter-save-detail" className="sr-only">{savePresentation.detail}</span>
         </Alert> : <p className="editor-save-status"
           role="status" aria-label="Chapter save status" aria-live="polite" title={savePresentation.detail}>
           <span>{savePresentation.label}</span>

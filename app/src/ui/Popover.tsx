@@ -12,7 +12,7 @@ type PopoverProps = ComponentProps<"div"> & {
   | { anchor?: never; trigger: ReactElement<ComponentProps<"button">> });
 
 export function popoverClassName(className?: string): string {
-  return cx("absolute z-10 rounded-card border border-rule bg-paper p-4 text-ui text-ink shadow-popover", className);
+  return cx("absolute z-(--z-popover) rounded-card border border-rule bg-paper p-4 text-ui text-ink shadow-popover", className);
 }
 
 export function Popover({ trigger, anchor, open, onOpenChange, children, className, style, ignoreRefs, ref: forwardedRef, ...props }: PopoverProps) {
