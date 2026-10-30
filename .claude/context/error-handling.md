@@ -30,19 +30,13 @@ The `Error` enum uses `thiserror` for `Display`/`From` derives. HTTP mapping is 
 
 The compiler enforces exhaustive matching, so missing arms won't compile.
 
-## Frontend (`app/src/api_tester/components/APITester.tsx`)
+## Frontend (`app/src/manuscripts/contract.ts`)
 
-`formatResponseBody()` is a pure function that parses the response:
-
-- **Success**: pretty-printed JSON
-- **API error** (has `error` + `code` fields): `Error [CODE]: message`
-- **Fallback** (non-JSON or unexpected shape): `{status} {statusText}`
-
-The fetch call catches `res.json()` failures so non-JSON responses degrade gracefully.
+`parseApiError()` requires string `error` and `code` fields. The manuscript client preserves the message, code, and HTTP status in `ManuscriptApiError`. Malformed or non-JSON error responses produce `INVALID_RESPONSE`. The lore and settings clients also use the shared parser.
 
 ## Tests
 
 | Layer | Command | What's tested |
 |-------|---------|---------------|
 | Backend | `cargo test -p quillai_api` | `status_code()` and `error_code()` per variant |
-| Frontend | `bun test app/src/api_tester/` | `formatResponseBody()` for all branches |
+| Frontend | `cd app && bun test src/manuscripts/client.test.ts` | HTTP error message, code, status, and malformed responses |

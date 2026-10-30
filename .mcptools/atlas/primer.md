@@ -22,12 +22,11 @@ A lightweight workspace providing a **Quill-based markdown editor** with a **Rus
 | `crates/api/src/<resource>/mod.rs` | Route wiring. |
 | `app/src/md_editor/markdown.ts` | Pure markdown/Delta analysis. |
 | `app/src/md_editor/components/Editor.tsx` | Quill DOM effects, event handling. |
-| `app/src/api_tester/components/APITester.tsx` | Fetch shell + pure formatter. |
 | `app/src/components/ErrorBoundary.tsx` | React error isolation. |
 
 ### 4. Conventions & Placement Rules
 - **New Backend Resource**: Follow the `users` pattern (Migration → Models → Handlers → Mod → Lib → Tests).
-- **New Frontend Feature**: Use feature folders (`md_editor`, `api_tester`) before creating top-level `utils`.
+- **New Frontend Feature**: Use feature folders (`md_editor`, `manuscripts`) before creating top-level `utils`.
 - **Validation**: Next to request types, not inline in handlers.
 - **Errors**: Preserve JSON contract `{ "error": string, "code": string }`.
 - **Entry Points**: Keep `main.rs` and `index.tsx` thin (compose, don't decide).

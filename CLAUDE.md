@@ -58,7 +58,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 ### Frontend (`app/src/`)
 
 - `index.tsx`, `index.html`, `logo.svg`, `tab_title.ts`, `App.tsx`, `frontend.tsx`, `index.css`, `api_config.ts`
-- `landing/`, `components/`, `ui/`, `i18n/`, `manuscripts/`, `settings/`, `md_editor/`, `api_tester/`
+- `landing/`, `components/`, `ui/`, `i18n/`, `manuscripts/`, `settings/`, `md_editor/`
 - `fixtures/prompt/`, `fixtures/delta/`
 
 ### Database

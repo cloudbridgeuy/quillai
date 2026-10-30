@@ -104,9 +104,8 @@ Placement rules:
 Use feature folders first, not generic shared helpers.
 
 1. If the behavior is editor-specific, start in `app/src/md_editor/`.
-2. If the behavior is API-tester-specific, keep it in `app/src/api_tester/`.
-3. If the behavior is app-wide composition, put it in `app/src/App.tsx` or a focused top-level component.
-4. If the behavior is Bun server routing, static files, or SPA serving, put it in `app/src/index.tsx`.
+2. If the behavior is app-wide composition, put it in `app/src/App.tsx` or a focused top-level component.
+3. If the behavior is Bun server routing, static files, or SPA serving, put it in `app/src/index.tsx`.
 
 Placement rules:
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-`ErrorBoundary` catches JavaScript errors in child component trees and renders a fallback UI instead of crashing the entire app. Each major section (`Editor`, `APITester`) is wrapped in its own boundary so crashes are isolated.
+`ErrorBoundary` catches JavaScript errors in child component trees and renders a fallback UI instead of crashing the entire app. `App` wraps the selected landing page or editor route in one shared boundary.
 
 ## Architecture (FC/IS + ADTs)
 
@@ -25,14 +25,8 @@ No `{ hasError: true, error: null }` is possible.
 ```tsx
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Default fallback
 <ErrorBoundary>
-  <Editor />
-</ErrorBoundary>
-
-// Custom fallback
-<ErrorBoundary fallback={({ error, retry }) => <p>{error.message} <button onClick={retry}>Retry</button></p>}>
-  <Editor />
+  {showsLanding(window.location.search) ? <Landing /> : <EditorRoute />}
 </ErrorBoundary>
 ```
 
@@ -41,4 +35,4 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 | File | Role |
 |------|------|
 | `app/src/components/ErrorBoundary.tsx` | Component implementation |
-| `app/src/App.tsx` | Integration — wraps Editor + APITester |
+| `app/src/App.tsx` | Integration — wraps the selected landing page or editor route |
