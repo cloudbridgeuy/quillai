@@ -1,8 +1,7 @@
 import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { Heading } from "../../ui/Heading";
-import { IconButton } from "../../ui/IconButton";
+import { Popover } from "../../ui/Popover";
 import { ListButton } from "../../ui/ListButton";
 import type { buildInjectedLore } from "../context_inspector";
 
@@ -91,26 +90,39 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
     <Heading level="section" as="h3">Lore in window</Heading>
     <p className="editor-note">Continue context · includes pins · excludes leave out and budget skips.</p>
     {lore.injected.length === 0 ? <p>No lore in window.</p> : <ul className="editor-lore-window">
-      {lore.injected.map(entry => <li key={entry.id}><ListButton tone="lore"
-        onMouseDown={event => event.preventDefault()} disabled={entry.occurrences.length === 0}
-        onClick={() => {
-          const mark = marks.find(match => match.entry.id === entry.id);
-          if (!mark) return;
-          window.scrollBy({ top: mark.range.getBoundingClientRect().top - window.innerHeight / 2 });
-          setActive({ id: mark.entry.id, start: mark.start });
-        }}>
-        <strong>{entry.name}</strong><span>{entry.occurrences.length} matches</span>
-        <small>{entry.kind}{entry.reason === "pinned" ? " · pinned" : ""}</small><small>{loreLevel(entry.level)}</small>
-      </ListButton></li>)}
+      {lore.injected.map(entry => {
+        const mark = marks.find(match => match.entry.id === entry.id);
+        const open = selected?.entry.id === entry.id && !!rect;
+        return <li key={entry.id}><Popover open={open} anchor={{ left: rect?.left ?? 0, top: rect?.bottom ?? 0 }}
+          onOpenChange={next => {
+            if (!next) setActive(null);
+            else if (mark) {
+              window.scrollBy({ top: mark.range.getBoundingClientRect().top - window.innerHeight / 2 });
+              setActive({ id: mark.entry.id, start: mark.start });
+            }
+          }}
+          role="dialog" aria-label="Lore match" className="editor-lore-card"
+          trigger={<ListButton tone="lore" onMouseDown={event => event.preventDefault()} disabled={entry.occurrences.length === 0}>
+            <strong>{entry.name}</strong><span>{entry.occurrences.length} matches</span>
+            <small>{entry.kind}{entry.reason === "pinned" ? " · pinned" : ""}</small><small>{loreLevel(entry.level)}</small>
+          </ListButton>}>
+          {selected ? card(selected) : null}
+        </Popover></li>;
+      })}
     </ul>}
-    {selected && rect ? createPortal(<div role="dialog" aria-label="Lore match" className="editor-lore-card"
-      style={{ left: Math.max(12, Math.min(rect.left, window.innerWidth - 324)), top: Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - 300)) }}>
-      <span className="editor-lore-flag">Lore match</span>
-      <IconButton label="Close lore match" glyph="×" className="float-right" onClick={() => setActive(null)} />
-      <h3>{selected.entry.name}</h3>
-      <p>{selected.entry.kind} · {loreLevel(selected.entry.level)}</p>
-      <p className="editor-lore-visible">{selected.entry.visible_text || "No visible text."}</p>
-      <small>Alt+L opens · Esc closes</small>
-    </div>, document.body) : null}
+    {selected && rect && !lore.injected.some(entry => entry.id === selected.entry.id) ? <Popover open anchor={{ left: rect.left, top: rect.bottom }}
+      onOpenChange={open => { if (!open) setActive(null); }} role="dialog" aria-label="Lore match" className="editor-lore-card">
+      {card(selected)}
+    </Popover> : null}
   </section>;
+}
+
+function card(selected: Mark) {
+  return <>
+    <span className="editor-lore-flag">Lore match</span>
+    <h3>{selected.entry.name}</h3>
+    <p>{selected.entry.kind} · {loreLevel(selected.entry.level)}</p>
+    <p className="editor-lore-visible">{selected.entry.visible_text || "No visible text."}</p>
+    <small>Alt+L opens · Esc closes</small>
+  </>;
 }

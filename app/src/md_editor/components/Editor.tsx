@@ -272,6 +272,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const settingsRef = useRef<HTMLDivElement>(null);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
+  const editTriggerRef = useRef<HTMLButtonElement>(null);
+  const editorCanvasRef = useRef<HTMLDivElement>(null);
+  const editAnchor = editTriggerRef.current?.getBoundingClientRect();
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
   const [editInstruction, setEditInstruction] = useState(initialEditorState.editInstruction);
   const [continueInstruction, setContinueInstruction] = useState(initialEditorState.continueInstruction);
@@ -1244,29 +1247,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop} />
-        <IconButton label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title="Edit selection"
-          disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
-          onMouseDown={(event) => event.preventDefault()}
-          aria-controls="edit-instruction-box" aria-expanded={editBoxOpen}
-          onClick={() => editBoxOpen ? closePanels() : setEditBoxOpen(true)} />
-        <IconButton label="Context inspector" glyph={<span aria-hidden="true">◫</span>} title="Context inspector (Ctrl/Cmd+])"
-          aria-controls="context-drawer" aria-expanded={panel === "context"}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => togglePanel("context")} />
-        {desktop ? <Popover open={panel === "settings"} onOpenChange={(open) => { if (!open) setPanel(null); }}
-          ref={settingsRef} className="editor-settings-popover flex flex-col gap-4" role="dialog" aria-labelledby="editor-settings-title"
-          trigger={<IconButton className="editor-settings-button" label="Settings" glyph={<span aria-hidden="true">⚙</span>} title="Settings" aria-haspopup="dialog"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => { event.preventDefault(); togglePanel("settings"); }} />}>
-          <div className="editor-drawer-header">
-            <Heading level="section" id="editor-settings-title">Settings</Heading>
-          </div>
-          {windowSettings}
-          <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
-          <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
-        </Popover> : null}
-      </nav>
-      {editBoxOpen ? <div id="edit-instruction-box" className="editor-edit-box" role="dialog" aria-label="Edit instruction">
+        <Popover anchor={{ left: editAnchor?.left ?? 0, top: editAnchor?.top ?? 0 }}
+          ignoreRefs={[editorCanvasRef]}
+          open={editBoxOpen} onOpenChange={(open) => open ? setEditBoxOpen(true) : closePanels()}
+          className="editor-edit-box" role="dialog" aria-label="Edit instruction"
+          trigger={<IconButton ref={editTriggerRef} label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title="Edit selection"
+            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
+            onMouseDown={(event) => event.preventDefault()} />}>
         <div className="editor-edit-flag">Edit selection</div>
         <div className="-mx-4">
           <StickyNote tone="pink" overhang ref={editInstructionRef} aria-label="Edit instruction" rows={4}
@@ -1287,7 +1274,24 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             onClick={applyEdit} aria-describedby={editRejection ? "edit-instruction-rejection" : undefined}
             disabled={!editAvailable}>Apply</Button>
         </div>
-      </div> : null}
+        </Popover>
+        <IconButton label="Context inspector" glyph={<span aria-hidden="true">◫</span>} title="Context inspector (Ctrl/Cmd+])"
+          aria-controls="context-drawer" aria-expanded={panel === "context"}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => togglePanel("context")} />
+        {desktop ? <Popover open={panel === "settings"} onOpenChange={(open) => { if (!open) setPanel(null); }}
+          ref={settingsRef} className="editor-settings-popover flex flex-col gap-4" role="dialog" aria-labelledby="editor-settings-title"
+          trigger={<IconButton className="editor-settings-button" label="Settings" glyph={<span aria-hidden="true">⚙</span>} title="Settings" aria-haspopup="dialog"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => { event.preventDefault(); togglePanel("settings"); }} />}>
+          <div className="editor-drawer-header">
+            <Heading level="section" id="editor-settings-title">Settings</Heading>
+          </div>
+          {windowSettings}
+          <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
+          <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
+        </Popover> : null}
+      </nav>
       {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
@@ -1365,7 +1369,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       <div className="editor-workspace">
         <div className="editor-page">
           {chapterSync.title !== null && <h2 className="editor-chapter-title">{chapterSync.title}</h2>}
-          <div className="editor-canvas">
+          <div ref={editorCanvasRef} className="editor-canvas">
             <Component
               ref={quillRef}
               readOnly={(isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}

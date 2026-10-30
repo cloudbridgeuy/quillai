@@ -15,6 +15,8 @@
 
 `edit-note.spec.ts` checks the Edit rail toggle, selection restoration, card and note geometry, and matching text sizes at 1100px and 1440px.
 
+`edit-lore-popover.spec.ts` checks Lore match dismissal, no Close button, trigger ARIA, and left-out match hover and Alt+L;  it checks the Edit note appearance, viewport bounds, Escape selection restoration, trigger ARIA and outside dismissal at 1100px and 1440px.
+
 `edit-replacement.spec.ts` arms one-use `e2e-edit` identities at 1100px: tags split across fragments with commentary around them leave only the replacement in the editor and server; missing or unclosed tags show the error and restore the selection; a whole-paragraph selection with its line ending keeps the paragraph break (replacement `Revised paragraph` or `Revised paragraph\n`, editor and server GET), and an unclosed tag restores that paragraph.
 
 `piece-move-lore.spec.ts` at 1100px seeds one universe with lore and two collections, records the Continue lore list for a piece, places the piece in the other collection through `POST /pieces/{id}/placement`, reloads, and checks the same lore list, text, head revision, and universe lore.

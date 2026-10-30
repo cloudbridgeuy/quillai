@@ -756,9 +756,10 @@ body {
 }
 
 .editor-edit-box {
+  --popover-left: auto;
+  --popover-top: 96px;
   position: fixed;
   right: 72px;
-  top: 96px;
   width: 280px;
   z-index: 10;
   padding: 12px 14px;
@@ -1095,6 +1096,8 @@ body {
 
 .editor-lore-card {
   position: fixed;
+  --popover-left: max(12px, min(var(--popover-anchor-x), calc(100vw - 324px)));
+  --popover-top: max(12px, min(calc(var(--popover-anchor-y) + 8px), calc(100vh - 300px)));
   z-index: 11;
   width: 300px;
   max-height: calc(100vh - 24px);

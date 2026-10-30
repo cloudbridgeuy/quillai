@@ -9,4 +9,3 @@ app/src/index.css 7 raw-letter-spacing
 app/src/index.css 72 raw-spacing
 app/src/md_editor/components/ContinueWindow.tsx 2 inline-style
 app/src/md_editor/components/Editor.tsx 1 inline-style
-app/src/md_editor/components/LoreWindow.tsx 1 inline-style

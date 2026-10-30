@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, spyOn } from "bun:test";
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Alert, alertClassName } from "./Alert";
@@ -192,4 +194,65 @@ describe("Popover", () => {
     expect(closed).toContain('aria-expanded="false"');
     expect(closed).not.toContain("Content");
   });
+
+  test.each([false, true])("anchored panel respects ignored areas (%p), outside pointerdown and Escape", (ignoreArea) => {
+    const original = globalThis.document;
+    const target = new EventTarget();
+    const ignoredArea = createRef<HTMLDivElement>();
+    Object.assign(ignoredArea, { current: { contains: (node: unknown) => node === target } });
+    const cleanups: (() => void)[] = [];
+    const effects = spyOn(React, "useEffect").mockImplementation(effect => {
+      const cleanup = effect();
+      if (typeof cleanup === "function") cleanups.push(cleanup);
+    });
+    const portal = spyOn(ReactDOM, "createPortal").mockImplementation((children) => children as ReturnType<typeof ReactDOM.createPortal>);
+    Object.assign(globalThis, { document: Object.assign(target, { body: {} }) });
+    try {
+      const changes: boolean[] = [];
+      const html = renderToStaticMarkup(<Popover anchor={{ left: 25, top: 40 }} ignoreRefs={ignoreArea ? [ignoredArea] : undefined} open onOpenChange={open => changes.push(open)}>Content</Popover>);
+      expect(html).toContain("Content");
+      expect(html).toContain("--popover-anchor-x:25px");
+      expect(html).toContain("--popover-anchor-y:40px");
+      expect(html).toContain("position:fixed");
+      expect(html).toContain("left:var(--popover-left, var(--popover-anchor-x))");
+      expect(html).toContain("top:var(--popover-top, var(--popover-anchor-y))");
+      expect(html).not.toContain("<button");
+      const pointer = new Event("pointerdown", { cancelable: true });
+      target.dispatchEvent(pointer);
+      expect(changes).toEqual(ignoreArea ? [] : [false]);
+      expect(pointer.defaultPrevented).toBe(false);
+      const outside = new Event("pointerdown");
+      Object.defineProperty(outside, "target", { value: new EventTarget() });
+      target.dispatchEvent(outside);
+      target.dispatchEvent(Object.assign(new Event("keydown"), { key: "Escape" }));
+      expect(changes).toEqual(ignoreArea ? [false, false] : [false, false, false]);
+    } finally {
+      cleanups.forEach(cleanup => cleanup());
+      effects.mockRestore();
+      portal.mockRestore();
+      if (original === undefined) Reflect.deleteProperty(globalThis, "document");
+      else Object.assign(globalThis, { document: original });
+    }
+  });
+
+  test("native panel ref receives the internal panel node", () => {
+    const forwardedRef = createRef<HTMLDivElement>();
+    const panel = { tagName: "DIV" };
+    const refs = spyOn(React, "useRef").mockReturnValueOnce({ current: null }).mockReturnValueOnce({ current: panel });
+    let receivedRef: unknown;
+    let receivedPanel: unknown;
+    const handles = spyOn(React, "useImperativeHandle").mockImplementation((ref, createHandle) => {
+      receivedRef = ref;
+      receivedPanel = createHandle();
+    });
+    try {
+      renderToStaticMarkup(<Popover ref={forwardedRef} trigger={<Button>Open</Button>} open onOpenChange={() => {}}>Content</Popover>);
+      expect(receivedRef).toBe(forwardedRef);
+      expect(receivedPanel).toBe(panel);
+    } finally {
+      refs.mockRestore();
+      handles.mockRestore();
+    }
+  });
+
 });
