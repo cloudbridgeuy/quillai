@@ -48,7 +48,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
   const title = page.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true });
   await expect(title).toHaveCSS("font-size", "13px");
   await expect(title).toHaveCSS("font-weight", "600");
-  await expect(title).toHaveCSS("letter-spacing", "2.86px");
+  await expect(title).toHaveCSS("letter-spacing", "2.6px");
   await expect(title).toHaveCSS("text-transform", "uppercase");
   await expect(title).toHaveCSS("text-align", "center");
   expect(await title.evaluate((element) => (element as HTMLElement).isContentEditable)).toBe(false);

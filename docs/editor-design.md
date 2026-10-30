@@ -18,7 +18,6 @@ Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/
 | `--graphite` | `#6F757C` | Muted tools, secondary text |
 | `--pencil` | `#A9ADB1` | Save dot, faint notes |
 | `--rule` | `#EDE3D3` | Hairlines, input borders |
-| `--tan` | `#C4A982` | Declared, unused in the prototype |
 | `--alert` | `#B4412F` | Failed save, "Ignore this match" |
 | `--pi-yellow` | `#F4E8B5` | Post-it: author guidance |
 | `--pi-pink` | `#F3D6D8` | Post-it: Edit instruction; selection; tool hover bg |

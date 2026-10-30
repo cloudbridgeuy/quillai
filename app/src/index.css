@@ -98,9 +98,10 @@ body {
 
 .editor-status-label {
   color: var(--graphite);
-  font-size: 0.82rem;
+  @apply text-ui;
+  line-height: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-section);
 }
 
 .editor-status-running {
@@ -152,7 +153,8 @@ body {
 .editor-note {
   margin: 0;
   color: var(--graphite);
-  font-size: 0.92rem;
+  @apply text-ui;
+  line-height: inherit;
 }
 
 .editor-thread-card {
@@ -184,9 +186,10 @@ body {
 
 .editor-thread-label {
   color: var(--graphite);
-  font-size: 0.78rem;
+  @apply text-label;
+  line-height: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-section);
 }
 
 .editor-thread-resume {
@@ -205,8 +208,8 @@ body {
 
 .editor-chapter-title {
   margin: 0 0 2.2em;
-  font: 600 13px var(--sans);
-  letter-spacing: 0.22em;
+  font: 600 var(--text-ui) var(--sans);
+  letter-spacing: var(--tracking-section);
   text-transform: uppercase;
   color: var(--slate);
   text-align: center;
@@ -248,7 +251,8 @@ body {
 }
 
 .editor-rail button {
-  font-size: 20px;
+  @apply text-title;
+  line-height: inherit;
   transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
@@ -337,7 +341,7 @@ body {
 
 .editor-context-inspector {
   grid-row: 1;
-  font: 13px/1.5 var(--sans);
+  font: var(--text-ui)/1.5 var(--sans);
 }
 
 .editor-context-body {
@@ -355,7 +359,8 @@ body {
 
 .editor-save-status,
 .editor-run-status {
-  font-size: 12px;
+  @apply text-label;
+  line-height: inherit;
   overflow-wrap: anywhere;
 }
 
@@ -393,8 +398,8 @@ body {
 
 .editor-context-inspector h2 {
   margin: 0;
-  font: 600 12px var(--sans);
-  letter-spacing: 0.2em;
+  font: 600 var(--text-label) var(--sans);
+  letter-spacing: var(--tracking-section);
   text-transform: uppercase;
   color: var(--slate);
 }
@@ -440,7 +445,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   min-height: 60vh;
-  font: 21px/1.75 var(--serif);
+  font: var(--text-sheet)/1.75 var(--serif);
 }
 
 .editor-host .ql-editor {
@@ -536,7 +541,7 @@ body {
   padding: 5px 18px 5px 10px;
   background: var(--pi-blue);
   color: var(--ink);
-  font: 500 11px/1.3 var(--sans);
+  font: 500 var(--text-meta)/1.3 var(--sans);
   text-align: left;
   cursor: pointer;
   clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
@@ -545,7 +550,8 @@ body {
 .editor-continue-window-flag small {
   display: block;
   color: var(--graphite);
-  font-size: 10px;
+  @apply text-micro;
+  line-height: inherit;
 }
 
 .editor-modal-backdrop {
@@ -582,8 +588,8 @@ body {
 
 .editor-modal-header h2 {
   margin: 0;
-  font: 600 12px var(--sans);
-  letter-spacing: 0.2em;
+  font: 600 var(--text-label) var(--sans);
+  letter-spacing: var(--tracking-section);
   text-transform: uppercase;
   color: var(--slate);
 }
@@ -629,9 +635,10 @@ body {
 
 .editor-preview-label {
   color: var(--graphite);
-  font-size: 0.82rem;
+  @apply text-ui;
+  line-height: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-section);
 }
 
 .editor-preview-section {
@@ -649,7 +656,8 @@ body {
 
 .editor-preview-section-header span {
   color: var(--graphite);
-  font-size: 0.85rem;
+  @apply text-ui;
+  line-height: inherit;
 }
 
 .editor-preview-block {
@@ -670,23 +678,24 @@ body {
 
 .editor-modal-code,
 .editor-preview-block {
-  font: 12px/1.6 var(--mono);
+  font: var(--text-label)/1.6 var(--mono);
   color: var(--graphite);
 }
 
 .editor-context-inspector :is(.editor-note, .editor-thread-card, summary) {
-  font-size: 13px;
+  @apply text-ui;
+  line-height: inherit;
 }
 
 .editor-context-inspector .editor-thread-label,
-.editor-context-inspector .editor-preview-section-header > span,
 .editor-context-inspector small {
-  font-size: 12px;
+  @apply text-label;
+  line-height: inherit;
 }
 
 .editor-context-inspector .editor-thread-label {
-  font: 600 12px var(--sans);
-  letter-spacing: .2em;
+  font: 600 var(--text-label) var(--sans);
+  letter-spacing: var(--tracking-section);
   text-transform: uppercase;
   color: var(--slate);
 }
@@ -720,7 +729,7 @@ body {
   padding: 14px 12px 10px;
   background-image: linear-gradient(rgba(31, 41, 51, .045), transparent 12px);
   color: var(--ink);
-  font: 13px/1.5 var(--sans);
+  font: var(--text-ui)/1.5 var(--sans);
   box-shadow: var(--sticky-shadow, var(--note-shadow));
   outline: none;
 }
@@ -1108,7 +1117,8 @@ body {
   border-radius: 4px;
   background: var(--paper);
   box-shadow: var(--lore-shadow);
-  font-size: 13px;
+  @apply text-ui;
+  line-height: inherit;
 }
 
 .editor-lore-card h3 {

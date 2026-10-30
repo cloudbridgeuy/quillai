@@ -40,7 +40,7 @@ All rules skip `*.test.*` files. TS and TSX checks skip `app/src/ui/`; CSS check
 
 | Group | CSS variable → utility | Values |
 |-------|------------------------|--------|
-| Colour | `--paper` → `bg-paper`, `text-paper`, … | paper `#FFFFFF`, desk `#F1EEE7`, ink `#1F2933`, slate `#4E6272`, graphite `#6F757C`, pencil `#A9ADB1`, rule `#EDE3D3`, tan `#C4A982`, alert `#B4412F` |
+| Colour | `--paper` → `bg-paper`, `text-paper`, … | paper `#FFFFFF`, desk `#F1EEE7`, ink `#1F2933`, slate `#4E6272`, graphite `#6F757C`, pencil `#A9ADB1`, rule `#EDE3D3`, alert `#B4412F` |
 | Post-it | `--pi-*` → `bg-pi-yellow`, … | yellow `#F4E8B5`, pink `#F3D6D8`, green `#D7E6D0`, blue `#D2E2EC`, lav `#E0D8EC` |
 | Stroke | `--st-*` → `border-st-blue`, … | blue `#7C9BB0`, lav `#9B8BB8`, tan `#B79A6C` |
 | Placeholder | `--placeholder` → `text-placeholder` | `#6b6f73` |

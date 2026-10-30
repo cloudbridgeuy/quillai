@@ -6,7 +6,6 @@
   --graphite: #6F757C;
   --pencil: #A9ADB1;
   --rule: #EDE3D3;
-  --tan: #C4A982;
   --alert: #B4412F;
   --pi-yellow: #F4E8B5;
   --pi-pink: #F3D6D8;
@@ -39,7 +38,6 @@
   --color-graphite: var(--graphite);
   --color-pencil: var(--pencil);
   --color-rule: var(--rule);
-  --color-tan: var(--tan);
   --color-alert: var(--alert);
   --color-pi-yellow: var(--pi-yellow);
   --color-pi-pink: var(--pi-pink);
