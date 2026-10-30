@@ -4,13 +4,14 @@ import type { ModelCatalog } from "./model_catalog";
 
 export type InspectorRun = Readonly<{
   id: number;
+  modelId: string | undefined;
   model: string;
   pricing: CostPricing;
   usage: AiStreamUsageEvent | null;
 }>;
 
 export function beginInspectorRun(id: number, catalog: ModelCatalog | null, modelId: string | undefined): InspectorRun {
-  return { id, model: modelLabel(catalog, modelId), pricing: pricingFor(catalog, modelId), usage: null };
+  return { id, modelId, model: modelLabel(catalog, modelId), pricing: pricingFor(catalog, modelId), usage: null };
 }
 
 export function recordInspectorUsage(run: InspectorRun | null, id: number, usage: AiStreamUsageEvent): InspectorRun | null {
@@ -24,7 +25,7 @@ function pricingFor(catalog: ModelCatalog | null, modelId: string | undefined) {
 
 function modelLabel(catalog: ModelCatalog | null, modelId: string | undefined) {
   const model = catalog?.models.find(({ id }) => id === modelId);
-  return model ? `${model.label} (${model.id})` : "unknown — unresolved model";
+  return model?.label ?? "unknown — unresolved model";
 }
 
 const reasons: Record<Extract<ActualCost, { kind: "unknown" }>["reason"], string> = {
@@ -48,10 +49,11 @@ export function buildInspectorCost(catalog: ModelCatalog | null, modelId: string
   const actual = run ? calculateActualCost(run.pricing, run.usage ? [run.usage] : []) : null;
   return {
     model: modelLabel(catalog, modelId),
+    modelId,
     estimate: pricing.kind === "unknown" ? unknown(pricing.reason) : inputTokens === null ? "unknown — no request preview"
       : `≈ ${formatInspectorUsd({ numerator: BigInt(inputTokens) * pricing.inputUsdPerMillion.numerator, denominator: pricing.inputUsdPerMillion.denominator * 1_000_000n })} · input only`,
     outputRate: pricing.kind === "unknown" ? unknown(pricing.reason) : `${formatInspectorUsd(pricing.outputUsdPerMillion)} / million output tokens`,
-    actualModel: run?.model ?? "No run yet",
+    actualModel: run && run.modelId !== modelId ? run.model : null,
     usage: run?.usage ? `${run.usage.promptTokens} input · ${run.usage.completionTokens} output tokens` : "unknown — missing usage",
     actual: actual === null ? "unknown — no run yet" : actual.kind === "unknown" ? unknown(actual.reason) : formatInspectorUsd(actual.usd),
   };

@@ -7,10 +7,18 @@ const usage = { type: "usage" as const, promptTokens: 1000, completionTokens: 50
 
 test("pending estimate is input only; output is a rate, not estimated usage", () => {
   const view = buildInspectorCost(catalog, "fast", 1000, null);
-  expect(view.model).toBe("Fast (fast)");
+  expect(view.model).toBe("Fast");
   expect(view.estimate).toBe("≈ $0.002 · input only");
   expect(view.outputRate).toBe("$6 / million output tokens");
   expect(view.actual).toBe("unknown — no run yet");
+});
+
+test("request model appears only when model IDs differ", () => {
+  const models = { ...catalog, models: [...catalog.models, { ...catalog.models[0]!, id: "other" }] };
+  const run = beginInspectorRun(1, models, "fast");
+  expect(buildInspectorCost(models, "fast", 100, null).actualModel).toBeNull();
+  expect(buildInspectorCost(models, "fast", 100, run).actualModel).toBeNull();
+  expect(buildInspectorCost(models, "other", 100, run).actualModel).toBe("Fast");
 });
 
 test("actual uses last usage and request pricing snapshot, independent of pending estimate", () => {
