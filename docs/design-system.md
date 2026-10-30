@@ -60,10 +60,10 @@ Built: `Button`, `ButtonLink`, `IconButton`, `TextField`, `Toggle`, `Field`, `He
 | `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. No hover lift inside drawers | pill, small, primary and danger button classes |
 | `ButtonLink` | Button variants and sizes, native anchor props | download links styled as buttons |
 | `IconButton` | `label`, `pressed`, `glyph`, `badge?`, `kind?: "continue"`. Native `aria-label` overrides `label`; Continue shows `label` then `badge`. 36px, radius 10; Continue is the 56px stack | rail buttons |
-| `TextField` | `as: "input" \| "select"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |
+| `TextField` | `as: "input" \| "select" \| "textarea"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |
 | `Toggle` | checkbox plus label | `.editor-toggle` |
 | `Field` | `label`, control child. Label uses the 12px graphite style | `.editor-field` |
-| `Heading` | `level: "app" \| "section"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
+| `Heading` | `level: "app" \| "section"`, optional `as: "h1" \| "h2" \| "h3" \| "h4"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
 | `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
 | `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `ui/StickyNote.tsx` (replaces `components/StickyNote.tsx`), green lore text |
 | `Modal` | `title`, `onClose`, children, optional `footer` and stable `returnFocusRef` for the opener. Without a ref, focus returns to the active element captured on mount, except `body`. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |

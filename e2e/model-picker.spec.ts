@@ -108,7 +108,7 @@ for (const available of [true, false]) {
         expect(await note.evaluate(node => getComputedStyle(node, "::placeholder").fontSize)).toBe("13px");
       }
       for (const name of ["Story Context", "Continue instruction", "Continue model", "Max Output Tokens"]) {
-        await expect(drawer.locator(".editor-field > span").filter({ hasText: new RegExp(`^${name}$`) }))
+        await expect(drawer.locator("label > span").filter({ hasText: new RegExp(`^${name}$`) }))
           .toHaveCSS("font-size", "12px");
       }
       const sizes = await drawer.evaluate(element => [...new Set([...element.querySelectorAll("*")]

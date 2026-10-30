@@ -1,6 +1,7 @@
 import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Heading } from "../../ui/Heading";
 import { IconButton } from "../../ui/IconButton";
 import { ListButton } from "../../ui/ListButton";
 import type { buildInjectedLore } from "../context_inspector";
@@ -87,7 +88,7 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
 
   const rect = selected?.range.getBoundingClientRect();
   return <section className="editor-preview-section" aria-label="Lore in window">
-    <h3>Lore in window</h3>
+    <Heading level="section" as="h3">Lore in window</Heading>
     <p className="editor-note">Continue context · includes pins · excludes leave out and budget skips.</p>
     {lore.injected.length === 0 ? <p>No lore in window.</p> : <ul className="editor-lore-window">
       {lore.injected.map(entry => <li key={entry.id}><ListButton tone="lore"

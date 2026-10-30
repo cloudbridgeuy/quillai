@@ -7,6 +7,10 @@ import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
+import { Field } from "../../ui/Field";
+import { Heading } from "../../ui/Heading";
+import { StickyNote } from "../../ui/StickyNote";
+import { TextField } from "../../ui/TextField";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
@@ -50,7 +54,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
     } finally { setPending(false); }
   }
   return <section className="editor-lore-panel" aria-label="Series lore">
-    <h3>Series lore</h3>
+    <Heading level="section" as="h3">Series lore</Heading>
     {lore.status === "loading" ? <p role="status">Loading lore…</p> : null}
     {lore.status === "failed" ? <Alert tone="inline">{lore.error}<Button size="sm" onClick={lore.retry}>Retry lore</Button></Alert> : null}
     {lore.status === "ready" ? <>
@@ -66,25 +70,24 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
         <Button variant="primary" type="submit" form={formId} disabled={disabled || pending || !draft.name.trim()}>Save lore</Button></>}>
       <form id={formId} onSubmit={event => { event.preventDefault(); void save(); }}>
       <fieldset disabled={disabled || pending}>
-        <label className="editor-field"><span>Kind</span><select className="editor-input" value={draft.kind}
+        <Field className="my-3" label="Kind"><TextField as="select" value={draft.kind}
           onChange={event => setDraft({ ...draft, kind: event.target.value as LoreInput["kind"] })}>
           {["character", "place", "term", "note"].map(kind => <option key={kind}>{kind}</option>)}
-        </select></label>
-        <label className="editor-field"><span>Name</span><input className="editor-input" required value={draft.name}
-          onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
-        {(["keywords", "aliases"] as const).map(field => <label className="editor-field" key={field}>
-          <span>{field === "keywords" ? "Keywords" : "Aliases"} (one per line)</span>
-          <textarea className="editor-textarea" rows={2} defaultValue={draft[field].join("\n")} key={`${editingId}-${field}`}
+        </TextField></Field>
+        <Field className="my-3" label="Name"><TextField required value={draft.name}
+          onChange={event => setDraft({ ...draft, name: event.target.value })} /></Field>
+        {(["keywords", "aliases"] as const).map(field => <Field className="my-3" key={field} label={`${field === "keywords" ? "Keywords" : "Aliases"} (one per line)`}>
+          <StickyNote tone="green" rows={2} defaultValue={draft[field].join("\n")} key={`${editingId}-${field}`}
             onChange={event => setDraft({ ...draft, [field]: parseLoreTerms(event.target.value) })} />
-        </label>)}
-        <label className="editor-field"><span>Visible text (AI context)</span><textarea className="editor-textarea" rows={3}
-          value={draft.visible_text} onChange={event => setDraft({ ...draft, visible_text: event.target.value })} /></label>
-        <label className="editor-field"><span>Hidden notes — author-only, never sent to AI</span><textarea className="editor-textarea" rows={3}
-          value={draft.hidden_notes} onChange={event => setDraft({ ...draft, hidden_notes: event.target.value })} /></label>
-        <label className="editor-field"><span>In AI requests</span><select className="editor-input" value={draft.level}
+        </Field>)}
+        <Field className="my-3" label="Visible text (AI context)"><StickyNote tone="green" rows={3}
+          value={draft.visible_text} onChange={event => setDraft({ ...draft, visible_text: event.target.value })} /></Field>
+        <Field className="my-3" label="Hidden notes — author-only, never sent to AI"><StickyNote tone="green" rows={3}
+          value={draft.hidden_notes} onChange={event => setDraft({ ...draft, hidden_notes: event.target.value })} /></Field>
+        <Field className="my-3" label="In AI requests"><TextField as="select" value={draft.level}
           onChange={event => setDraft({ ...draft, level: event.target.value as LoreInput["level"] })}>
           <option value="include">Include</option><option value="known_dont_reveal">Known, don't reveal</option><option value="leave_out">Leave out</option>
-        </select></label>
+        </TextField></Field>
         <Toggle label="Pin in AI context" checked={draft.pinned}
           onChange={event => setDraft({ ...draft, pinned: event.target.checked })} />
       </fieldset>

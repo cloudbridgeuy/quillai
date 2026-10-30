@@ -5,6 +5,7 @@ export type HeadingLevel = "app" | "section";
 
 type HeadingProps = ComponentProps<"h1"> & {
   level: HeadingLevel;
+  as?: "h1" | "h2" | "h3" | "h4";
 };
 
 const levels: Record<HeadingLevel, string> = {
@@ -16,7 +17,7 @@ export function headingClassName(level: HeadingLevel, className?: string): strin
   return cx("m-0", levels[level], className);
 }
 
-export function Heading({ level, className, ...props }: HeadingProps) {
-  const Tag = level === "app" ? "h1" : "h2";
+export function Heading({ level, as, className, ...props }: HeadingProps) {
+  const Tag = as ?? (level === "app" ? "h1" : "h2");
   return <Tag {...props} className={headingClassName(level, className)} />;
 }

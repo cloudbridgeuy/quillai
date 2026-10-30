@@ -3,7 +3,8 @@ import { cx } from "./cx";
 
 type TextFieldProps =
   | (ComponentProps<"input"> & { as?: "input"; square?: boolean })
-  | (ComponentProps<"select"> & { as: "select"; square?: boolean });
+  | (ComponentProps<"select"> & { as: "select"; square?: boolean })
+  | (ComponentProps<"textarea"> & { as: "textarea"; square?: boolean });
 
 export function textFieldClassName({ square, className }: { square?: boolean; className?: string }): string {
   return cx(
@@ -15,6 +16,10 @@ export function textFieldClassName({ square, className }: { square?: boolean; cl
 }
 
 export function TextField(props: TextFieldProps) {
+  if (props.as === "textarea") {
+    const { as: _as, square, className, ...rest } = props;
+    return <textarea {...rest} className={textFieldClassName({ square, className })} />;
+  }
   if (props.as === "select") {
     const { as: _as, square, className, ...rest } = props;
     return <select {...rest} className={textFieldClassName({ square, className })} />;

@@ -91,6 +91,8 @@ import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
 import { ButtonLink } from "../../ui/ButtonLink";
 import { TextField } from "../../ui/TextField";
+import { Field } from "../../ui/Field";
+import { Heading } from "../../ui/Heading";
 import { Toggle } from "../../ui/Toggle";
 import { Popover } from "../../ui/Popover";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
@@ -1193,11 +1195,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     typeof contextInspector === "string" ? null : contextInspector.totalTokens, inspectorRuns[inspectorAction]);
 
   const windowSettings = <>
-    <label className="editor-field">
-      <span>Window Size</span>
-      <input className="editor-input" type="number" min="0" step="1" value={windowSize}
+    <Field label="Window Size">
+      <TextField type="number" min="0" step="1" value={windowSize}
         onChange={(event) => setWindowSize(event.target.value)} disabled={isBusy} />
-    </label>
+    </Field>
     <Toggle label="Whole document" checked={windowMode === "document"}
       onChange={(event) => setWindowMode(event.target.checked ? "document" : "window")} disabled={isBusy} />
   </>;
@@ -1258,7 +1259,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => { event.preventDefault(); togglePanel("settings"); }} />}>
           <div className="editor-drawer-header">
-            <h2 id="editor-settings-title">Settings</h2>
+            <Heading level="section" id="editor-settings-title">Settings</Heading>
           </div>
           {windowSettings}
           <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
@@ -1290,7 +1291,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
-          <h2 id="manuscript-title">Manuscript</h2>
+          <Heading level="section" id="manuscript-title">Manuscript</Heading>
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
           <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
@@ -1315,7 +1316,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       </aside> : null}
       <div className="editor-topbar">
         <div className="editor-heading">
-          <h1>QuillAI</h1>
+          <Heading level="app">QuillAI</Heading>
           {chapterSync.needsChapter ? <Button variant="primary"
             onClick={() => void chapterSync.bootstrap()}>Create chapter</Button> : null}
           {chapterSync.recovery ? <Alert tone="inline">
@@ -1409,12 +1410,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <aside id="context-drawer" hidden={panel !== "context"}
           className="editor-drawer editor-drawer-right editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <div className="editor-drawer-header">
-            <h2 id="context-inspector-title">Live Prompt Context</h2>
+            <Heading level="section" id="context-inspector-title">Live Prompt Context</Heading>
           </div>
           <div className="editor-context-body">
           {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}
-        <label className="editor-field editor-field-full">
-          <span>Story Context</span>
+        <Field label="Story Context" className="w-full">
           <StickyNote
             tone="yellow"
             value={storyContext}
@@ -1423,11 +1423,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             rows={4}
             disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
           />
-        </label>
+        </Field>
 
         <div className="editor-controls-grid">
-          <label className="editor-field editor-field-grow">
-            <span>Continue instruction</span>
+          <Field label="Continue instruction" className="min-w-0">
             <StickyNote
               tone="yellow"
               value={continueInstruction}
@@ -1436,7 +1435,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               rows={2}
               disabled={isBusy}
             />
-          </label>
+          </Field>
 
           {!desktop ? windowSettings : null}
         </div>
@@ -1459,9 +1458,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             <summary>Advanced AI controls</summary>
             {(["generate", "edit"] as const).map((action) => {
               const setting = action === "generate" ? "continueModel" : "editModel";
-              return <label className="editor-field" key={action}>
-                <span>{action === "generate" ? "Continue model" : "Edit model"}</span>
-                <select className="editor-input"
+              return <Field className="mt-3" label={action === "generate" ? "Continue model" : "Edit model"} key={action}>
+                <TextField as="select" square
                   value={resolveModelChoice(modelCatalog, action, threadState.settings[setting]) ?? ""}
                   disabled={isBusy || !modelCatalog}
                   onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
@@ -1469,45 +1467,41 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                   }))}>
                   {!modelCatalog ? <option value="">Unavailable</option> : modelCatalog.models.map((model) =>
                     <option key={model.id} value={model.id}>{model.label}</option>)}
-                </select>
-              </label>;
+                </TextField>
+              </Field>;
             })}
             {!modelCatalog ? <p className="editor-note">{modelsPending ? "Loading models…" : "Models unavailable. Using server defaults."}</p> : null}
-            <label className="editor-field">
-              <span>Max Output Tokens</span>
-              <input className="editor-input" type="number" min="1" max="4096" step="1"
+            <Field label="Max Output Tokens" className="mt-3">
+              <TextField square type="number" min="1" max="4096" step="1"
                 value={threadState.settings.maxOutputTokens} disabled={isBusy}
                 onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                   maxOutputTokens: Number(event.target.value),
                 }))} />
-            </label>
-            <label className="editor-field">
-              <span>Thread continuation prompt</span>
+            </Field>
+            <Field label="Thread continuation prompt" className="mt-3">
               <StickyNote tone="yellow" rows={2} value={threadState.settings.resumePrompt} disabled={isBusy}
                 onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                   resumePrompt: event.target.value,
                 }))} />
-            </label>
+            </Field>
           </details>
-          <label className="editor-field">
-            <span>Author guidance</span>
+          <Field label="Author guidance">
             <StickyNote tone="yellow" aria-label="Author guidance" rows={5}
               value={guidanceDraft} disabled={isBusy || guidancePending || !guidanceLoaded}
               onChange={(event) => setGuidanceDraft(event.target.value)} />
-          </label>
+          </Field>
           <Button size="sm"
             disabled={isBusy || guidancePending || !guidanceLoaded || guidanceDraft === authorGuidance}
             onClick={() => void saveAuthorGuidance()}>Save author guidance</Button>
           <p className="editor-note">Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only.</p>
           <p className="editor-note" role="status">{guidanceStatus}</p>
-          <label className="editor-field">
-            <span>Request to inspect</span>
-            <select className="editor-input" value={inspectorAction} disabled={isBusy}
+          <Field label="Request to inspect">
+            <TextField as="select" square value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
               <option value="generate">{withThread ? formatMessage(defaultLocale, "thread.resumeOption") : "Continue"}</option>
               <option value="edit">Edit selection</option>
-            </select>
-          </label>
+            </TextField>
+          </Field>
           <p className="editor-note">
             Edit content for the next selected request. Tagged content is escaped; section tags and selection ranges stay fixed. History keeps separate speaker turns. Overrides reset after accepted sends or chapter changes. Limits: 65,536 UTF-8 bytes per section, 262,144 total.
           </p>
@@ -1534,7 +1528,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
               <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
               <section className="editor-preview-section" aria-label="Injected lore">
-                <div className="editor-preview-section-header"><h3>Injected lore</h3></div>
+                <div className="editor-preview-section-header"><Heading level="section" as="h3">Injected lore</Heading></div>
                 <p className="editor-note">Next request · {contextInspector.lore.maxCharacters.toLocaleString()} UTF-16 character budget. Pins can exceed it.</p>
                 <p className="editor-note">Tokens: UTF-8 bytes ÷ 4, rounded up per entry including standalone Lore tags; not additive.</p>
                 {contextInspector.lore.injected.length === 0 ? <p>No lore injected.</p> : <ul>
@@ -1542,7 +1536,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                     <strong>{entry.name}</strong> · {entry.kind} · {entry.reason === "pinned" ? "pin" : "keyword"} · {entry.level === "known_dont_reveal" ? "Known, don't reveal" : "Include"} · {entry.tokens} estimated tokens
                   </li>)}
                 </ul>}
-                <h4>Skipped by budget</h4>
+                <Heading level="section" as="h4">Skipped by budget</Heading>
                 {contextInspector.lore.skipped.length === 0 ? <p>No entries skipped by budget.</p> : <ul>
                   {contextInspector.lore.skipped.map(entry => <li key={entry.id}>
                     <strong>{entry.name}</strong> · {entry.kind} · keyword · {entry.tokens} estimated tokens
@@ -1552,18 +1546,17 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               {contextInspector.sections.map((section) => (
                 <section className="editor-preview-section" key={section.id}>
                   <div className="editor-preview-section-header">
-                    <h3>{section.label}</h3>
+                    <Heading level="section" as="h3">{section.label}</Heading>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
                   {section.id === "system" || section.id === "author_guidance" || section.id === "lore" ? (
-                    <textarea className="editor-textarea" aria-label={`${section.label} prompt section`}
+                    <TextField as="textarea" square className="font-mono text-graphite" aria-label={`${section.label} prompt section`}
                       value={section.text} rows={5} readOnly />
                   ) : section.id === "history" ? (
                     <>
                       {contextInspector.history.map((message, index) => (
-                        <label className="editor-field" key={index}>
-                          <span>{message.role} turn {index + 1}</span>
-                          <textarea className="editor-textarea" value={message.text} rows={3}
+                        <Field label={`${message.role} turn ${index + 1}`} key={index}>
+                          <StickyNote tone="yellow" value={message.text} rows={3}
                             disabled={isBusy || chapterSync.blocked}
                             onChange={(event) => setSectionOverrides((current) => ({
                               ...current,
@@ -1573,7 +1566,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                                   turnIndex === index ? { ...turn, text: event.target.value } : turn),
                               },
                             }))} />
-                        </label>
+                        </Field>
                       ))}
                       {contextInspector.history.length === 0 ? <p>No history turns.</p> : null}
                       {(["user", "assistant"] as const).map((role) => (
@@ -1588,8 +1581,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                           }))}>Add {role} turn</Button>
                       ))}
                     </>
-                  ) : <textarea
-                    className="editor-textarea"
+                  ) : <StickyNote
+                    tone="yellow"
                     aria-label={`${section.label} prompt section`}
                     value={section.editableText}
                     rows={5}

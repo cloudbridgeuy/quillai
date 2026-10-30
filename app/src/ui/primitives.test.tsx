@@ -96,6 +96,10 @@ describe("TextField", () => {
     expect(html).toStartWith("<input");
     expect(html).toContain("readOnly");
     expect(html).not.toContain("as=");
+    const textarea = renderToStaticMarkup(<TextField as="textarea" readOnly rows={5} aria-label="System" />);
+    expect(textarea).toStartWith("<textarea");
+    expect(textarea).toContain("readOnly");
+    expect(textarea).toContain('rows="5"');
   });
 });
 
@@ -119,6 +123,8 @@ describe("Heading", () => {
     expect(headingClassName("section")).toContain("uppercase");
     expect(renderToStaticMarkup(<Heading level="app">A</Heading>)).toStartWith("<h1");
     expect(renderToStaticMarkup(<Heading level="section">A</Heading>)).toStartWith("<h2");
+    expect(renderToStaticMarkup(<Heading level="section" as="h3">A</Heading>)).toStartWith("<h3");
+    expect(renderToStaticMarkup(<Heading level="section" as="h4">A</Heading>)).toStartWith("<h4");
   });
 });
 

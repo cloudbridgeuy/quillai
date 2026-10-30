@@ -2,9 +2,7 @@
 @import "./ui/tokens.css";
 
 .editor-lore-panel { border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 16px; }
-.editor-lore-panel h3 { color: var(--slate); font-size: 12px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
 .editor-lore-panel fieldset { border: 0; padding: 0; margin-top: 16px; min-width: 0; }
-.editor-lore-panel .editor-field { margin: 12px 0; }
 
 :root {
   font-family: var(--sans);
@@ -72,13 +70,6 @@ body {
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
-}
-
-.editor-topbar h1 {
-  margin: 0;
-  color: var(--slate);
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1;
 }
 
 .editor-heading {
@@ -150,62 +141,6 @@ body {
   grid-template-columns: minmax(0, 1fr);
   gap: 0.85rem;
   align-items: end;
-}
-
-.editor-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.editor-field span {
-  color: var(--graphite);
-  font-size: 0.92rem;
-}
-
-.editor-field-full {
-  width: 100%;
-}
-
-.editor-field-grow {
-  min-width: 0;
-}
-
-.editor-field-number {
-  width: 100%;
-}
-
-.editor-input,
-.editor-textarea {
-  width: 100%;
-  border: 1px solid var(--rule);
-  border-radius: 14px;
-  background: var(--paper);
-  padding: 0.8rem 0.9rem;
-  color: var(--ink);
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-
-.editor-input:focus,
-.editor-textarea:focus {
-  outline: none;
-  border-color: var(--slate);
-  background: var(--paper);
-}
-
-.editor-textarea {
-  resize: vertical;
-  min-height: 5.75rem;
-}
-
-.editor-textarea-compact {
-  min-height: 4.25rem;
-}
-
-.editor-input:disabled,
-.editor-textarea:disabled {
-  opacity: 0.75;
-  cursor: not-allowed;
 }
 
 .editor-actions {
@@ -366,15 +301,6 @@ body {
   margin-bottom: 0;
 }
 
-.editor-settings-popover h2 {
-  margin: 0;
-  color: var(--slate);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-}
-
 .editor-thread-indicator {
   background: var(--pi-blue);
   color: var(--ink);
@@ -393,6 +319,10 @@ body {
   box-shadow: var(--sheet-shadow);
 }
 
+.editor-drawer :is(h1, h2, h3, h4, h5, h6) {
+  overflow-wrap: normal;
+}
+
 .editor-drawer[hidden] {
   display: none;
 }
@@ -403,14 +333,6 @@ body {
   align-items: start;
   gap: 12px;
   margin-bottom: 12px;
-}
-
-.editor-drawer h2 {
-  margin: 0;
-  font: 600 12px var(--sans);
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--slate);
 }
 
 .editor-inspector-cost {
@@ -449,10 +371,6 @@ body {
 
 .editor-context-inspector .editor-advanced-section {
   display: block;
-}
-
-.editor-advanced-section > .editor-field {
-  margin-top: 12px;
 }
 
 .editor-save-status,
@@ -749,14 +667,6 @@ body {
   gap: 1rem;
 }
 
-.editor-preview-section-header h3 {
-  margin: 0;
-  font: 600 12px var(--sans);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--slate);
-}
-
 .editor-preview-section-header span {
   color: var(--graphite);
   font-size: 0.85rem;
@@ -779,24 +689,22 @@ body {
 }
 
 .editor-modal-code,
-.editor-preview-block,
-.editor-context-inspector .editor-preview-section .editor-textarea {
+.editor-preview-block {
   font: 12px/1.6 var(--mono);
   color: var(--graphite);
 }
 
-.editor-context-inspector :is(.editor-input, .editor-note, .editor-thread-card, summary) {
+.editor-context-inspector :is(.editor-note, .editor-thread-card, summary) {
   font-size: 13px;
 }
 
-.editor-context-inspector .editor-field > span,
 .editor-context-inspector .editor-thread-label,
 .editor-context-inspector .editor-preview-section-header > span,
 .editor-context-inspector small {
   font-size: 12px;
 }
 
-.editor-context-inspector :is(h2, h3, h4, .editor-thread-label) {
+.editor-context-inspector :is(.editor-inspector-cost h3, .editor-thread-label) {
   font: 600 12px var(--sans);
   letter-spacing: .2em;
   text-transform: uppercase;
@@ -950,13 +858,6 @@ body {
     width: max-content;
     max-width: 100%;
     transform: translateX(-50%);
-  }
-
-  .editor-topbar h1 {
-    color: var(--graphite);
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 1.5;
   }
 
   .editor-rail-left,
