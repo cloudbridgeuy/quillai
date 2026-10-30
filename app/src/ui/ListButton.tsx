@@ -10,7 +10,7 @@ type ListButtonProps = ComponentProps<"button"> & {
 
 const tones: Record<ListButtonTone, string> = {
   tree: "rounded-card border-0 bg-transparent px-2 py-1.5 wrap-anywhere hover:bg-pi-pink focus-visible:bg-pi-pink aria-pressed:bg-pi-blue",
-  lore: "grid gap-x-2 gap-y-1 rounded-card border border-rule bg-paper px-2 py-1.5 text-ink hover:bg-pi-lav focus-visible:bg-pi-lav",
+  lore: "grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 rounded-card border border-rule bg-paper px-2 py-1.5 text-ink hover:bg-pi-lav focus-visible:bg-pi-lav",
 };
 
 export function listButtonClassName({ tone, className }: Pick<ListButtonProps, "tone" | "className">): string {

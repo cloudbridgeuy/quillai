@@ -3,6 +3,7 @@ import { createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Alert, alertClassName } from "./Alert";
 import { Button, buttonClassName } from "./Button";
+import { ButtonLink } from "./ButtonLink";
 import { Field } from "./Field";
 import { Heading, headingClassName } from "./Heading";
 import { IconButton, iconButtonClassName } from "./IconButton";
@@ -36,6 +37,16 @@ describe("Button", () => {
   });
 });
 
+describe("ButtonLink", () => {
+  test("forwards anchor props and shares button variants and sizes", () => {
+    const html = renderToStaticMarkup(<ButtonLink href="/file" download="file.txt" variant="primary" size="sm">Download</ButtonLink>);
+    expect(html).toStartWith("<a ");
+    expect(html).toContain('href="/file"');
+    expect(html).toContain('download="file.txt"');
+    expect(html).toContain(buttonClassName({ variant: "primary", size: "sm" }));
+  });
+});
+
 describe("IconButton", () => {
   test("kinds", () => {
     expect(iconButtonClassName({})).toContain("size-9");
@@ -60,7 +71,7 @@ describe("IconButton", () => {
 describe("ListButton", () => {
   test("tones and className", () => {
     expect(listButtonClassName({ tone: "tree" })).toContain("aria-pressed:bg-pi-blue");
-    expect(listButtonClassName({ tone: "lore" })).toContain("border-rule");
+    expect(listButtonClassName({ tone: "lore" })).toContain("grid-cols-[1fr_auto]");
     expect(listButtonClassName({ tone: "lore", className: "extra" })).toEndWith("extra");
   });
 

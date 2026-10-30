@@ -1,6 +1,7 @@
 import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "../../ui/Button";
 
 type Geometry = { top: number; bottom: number; viewportTop: number; left: number };
 
@@ -34,12 +35,12 @@ export function ContinueWindow({ quill, start, end }: { quill: Quill; start: num
     {createPortal(<div className="editor-continue-window" aria-hidden="true"
       data-start={start} data-end={end}
       style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }} />, quill.container)}
-    {geometry.viewportTop < 0 ? createPortal(<button type="button" className="editor-continue-window-flag"
+    {geometry.viewportTop < 0 ? createPortal(<Button size="sm" className="editor-continue-window-flag"
       style={{ left: Math.max(64, geometry.left - 210) }}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => window.scrollBy({ top: geometry.viewportTop - 24, behavior: "smooth" })}>
       Continue window
       <small>starts ↑ {screensAbove < 1 ? "just above" : `${Math.round(screensAbove)} pages up`}</small>
-    </button>, document.body) : null}
+    </Button>, document.body) : null}
   </>;
 }

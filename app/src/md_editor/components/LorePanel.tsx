@@ -3,6 +3,7 @@ import type { LoreEntry, LoreInput } from "../../manuscripts/lore_client";
 import { newLoreDraft, parseLoreTerms, replaceLoreEntry } from "../../manuscripts/lore_panel";
 import type { useLore } from "../../manuscripts/use_lore";
 import { Button } from "../../ui/Button";
+import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
@@ -51,13 +52,13 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
   return <section className="editor-lore-panel" aria-label="Series lore">
     <h3>Series lore</h3>
     {lore.status === "loading" ? <p role="status">Loading lore…</p> : null}
-    {lore.status === "failed" ? <Alert tone="inline">{lore.error}<button className="editor-button" onClick={lore.retry}>Retry lore</button></Alert> : null}
+    {lore.status === "failed" ? <Alert tone="inline">{lore.error}<Button size="sm" onClick={lore.retry}>Retry lore</Button></Alert> : null}
     {lore.status === "ready" ? <>
       {lore.entries.length === 0 ? <p>No lore yet.</p> : <ul className="editor-manuscript-tree">
-        {lore.entries.map(entry => <li key={entry.id}><button type="button" disabled={disabled || pending}
-          onClick={event => edit(event.currentTarget, entry)}>{entry.name} · {entry.kind}{entry.pinned ? " · pinned" : ""}</button></li>)}
+        {lore.entries.map(entry => <li key={entry.id}><ListButton tone="lore" disabled={disabled || pending}
+          onClick={event => edit(event.currentTarget, entry)}>{entry.name} · {entry.kind}{entry.pinned ? " · pinned" : ""}</ListButton></li>)}
       </ul>}
-      <button className="editor-button" disabled={disabled || pending} onClick={event => edit(event.currentTarget)}>New lore</button>
+      <Button disabled={disabled || pending} onClick={event => edit(event.currentTarget)}>New lore</Button>
     </> : null}
     {draft ? <Modal data-manuscript-draft title={editingId === null ? "Create lore" : "Edit lore"} onClose={close} returnFocusRef={returnFocusRef}
       footer={<>{editingId !== null ? <Button variant="danger" disabled={disabled || pending}

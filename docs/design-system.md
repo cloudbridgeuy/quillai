@@ -53,11 +53,12 @@ Font stacks stay as `--serif`, `--sans` and `--mono`.
 
 ## Primitives (`app/src/ui/`)
 
-Built: `Button`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton`, `Modal`, `Popover` (one `.tsx` per primitive; each exports a pure `*ClassName` function; tests in `primitives.test.tsx`). Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
+Built: `Button`, `ButtonLink`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton`, `Modal`, `Popover` (one `.tsx` per primitive; each exports a pure `*ClassName` function except `ButtonLink`, which shares `buttonClassName`; tests in `primitives.test.tsx`). Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
 
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
 | `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. No hover lift inside drawers | pill, small, primary and danger button classes |
+| `ButtonLink` | Button variants and sizes, native anchor props | download links styled as buttons |
 | `IconButton` | `label`, `pressed`, `glyph`, `badge?`, `kind?: "continue"`. Native `aria-label` overrides `label`; Continue shows `label` then `badge`. 36px, radius 10; Continue is the 56px stack | rail buttons |
 | `TextField` | `as: "input" \| "select"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |
 | `Toggle` | checkbox plus label | `.editor-toggle` |

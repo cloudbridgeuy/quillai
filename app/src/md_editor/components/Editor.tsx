@@ -88,7 +88,8 @@ import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
 import { IconButton } from "../../ui/IconButton";
 import { Alert } from "../../ui/Alert";
-import { Button, buttonClassName } from "../../ui/Button";
+import { Button } from "../../ui/Button";
+import { ButtonLink } from "../../ui/ButtonLink";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import { Popover } from "../../ui/Popover";
@@ -1305,18 +1306,18 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
           lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
-        <a className="editor-button" download="chapter-local.json"
+        <ButtonLink className="shrink-0 self-start" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
           }}>
           Export local chapter
-        </a>
+        </ButtonLink>
       </aside> : null}
       <div className="editor-topbar">
         <div className="editor-heading">
           <h1>QuillAI</h1>
-          {chapterSync.needsChapter ? <button className="editor-button" type="button"
-            onClick={() => void chapterSync.bootstrap()}>Create chapter</button> : null}
+          {chapterSync.needsChapter ? <Button variant="primary"
+            onClick={() => void chapterSync.bootstrap()}>Create chapter</Button> : null}
           {chapterSync.recovery ? <Alert tone="inline">
             Previous unsaved work is available. Export it before closing this tab.
             <a download="chapter-recovery.json"
@@ -1343,14 +1344,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             onChange={(event) => chapterSync.setBlock(parseBlock(event.target.value))}>
             {BLOCK_TYPES.map((type) => <option key={type} value={type}>{blockLabel(type)}</option>)}
           </TextField>
-          <a className={buttonClassName({ size: "sm" })} download={`${chapterSync.title || "script"}.fountain`} href="#"
+          <ButtonLink size="sm" download={`${chapterSync.title || "script"}.fountain`} href="#"
             onClick={(event) => {
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(chapterSync.fountain())}`;
-            }}>Download Fountain</a>
-          <a className={buttonClassName({ size: "sm" })} download={`${chapterSync.title || "script"}.fdx`} href="#"
+            }}>Download Fountain</ButtonLink>
+          <ButtonLink size="sm" download={`${chapterSync.title || "script"}.fdx`} href="#"
             onClick={(event) => {
               event.currentTarget.href = `data:application/xml;charset=utf-8,${encodeURIComponent(chapterSync.fdx())}`;
-            }}>Download FDX</a>
+            }}>Download FDX</ButtonLink>
         </div> : null}
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="fail" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
@@ -1494,9 +1495,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               value={guidanceDraft} disabled={isBusy || guidancePending || !guidanceLoaded}
               onChange={(event) => setGuidanceDraft(event.target.value)} />
           </label>
-          <button className="editor-button editor-button-small" type="button"
+          <Button size="sm"
             disabled={isBusy || guidancePending || !guidanceLoaded || guidanceDraft === authorGuidance}
-            onClick={() => void saveAuthorGuidance()}>Save author guidance</button>
+            onClick={() => void saveAuthorGuidance()}>Save author guidance</Button>
           <p className="editor-note">Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only.</p>
           <p className="editor-note" role="status">{guidanceStatus}</p>
           <label className="editor-field">
@@ -1576,7 +1577,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                       ))}
                       {contextInspector.history.length === 0 ? <p>No history turns.</p> : null}
                       {(["user", "assistant"] as const).map((role) => (
-                        <button className="editor-button editor-button-small" type="button" key={role}
+                        <Button size="sm" key={role}
                           disabled={isBusy || chapterSync.blocked}
                           onClick={() => setSectionOverrides((current) => ({
                             ...current,
@@ -1584,7 +1585,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                               ...current[inspectorAction],
                               history: [...contextInspector.history, { role, text: "" }],
                             },
-                          }))}>Add {role} turn</button>
+                          }))}>Add {role} turn</Button>
                       ))}
                     </>
                   ) : <textarea
@@ -1600,13 +1601,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                     }))}
                   />}
                   {section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore" && sectionOverrides[inspectorAction][section.id] !== undefined ? (
-                    <button className="editor-button editor-button-small" type="button"
+                    <Button size="sm"
                       disabled={isBusy}
                       onClick={() => setSectionOverrides((current) => {
                         const next = { ...current[inspectorAction] };
                         if (section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore") delete next[section.id];
                         return { ...current, [inspectorAction]: next };
-                      })}>Reset {section.label}</button>
+                      })}>Reset {section.label}</Button>
                   ) : null}
                 </section>
               ))}

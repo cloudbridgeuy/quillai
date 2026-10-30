@@ -220,40 +220,6 @@ body {
   font-size: 0.92rem;
 }
 
-.editor-button {
-  min-height: 2.8rem;
-  padding: 0.65rem 1rem;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  background: var(--paper);
-  font-weight: 600;
-  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
-}
-
-.editor-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: var(--graphite);
-  background: var(--pi-pink);
-  color: var(--ink);
-}
-
-.editor-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.editor-button-danger {
-  border-color: var(--alert);
-  background: var(--paper);
-  color: var(--alert);
-}
-
-.editor-button-small {
-  min-height: 2.25rem;
-  padding: 0.45rem 0.75rem;
-  font-size: 0.9rem;
-}
-
 .editor-thread-card {
   display: flex;
   align-items: center;
@@ -819,7 +785,7 @@ body {
   color: var(--graphite);
 }
 
-.editor-context-inspector :is(.editor-input, .editor-button, .editor-note, .editor-thread-card, summary) {
+.editor-context-inspector :is(.editor-input, .editor-note, .editor-thread-card, summary) {
   font-size: 13px;
 }
 
@@ -852,8 +818,6 @@ body {
   border-radius: 0;
 }
 
-.editor-drawer .editor-button,
-.editor-drawer .editor-button:hover:not(:disabled),
 .editor-drawer select {
   box-shadow: none;
   transform: none;
@@ -1056,8 +1020,7 @@ body {
     overflow: hidden;
   }
 
-  .editor-drawer-left > .editor-drawer-header,
-  .editor-drawer-left > .editor-button {
+  .editor-drawer-left > .editor-drawer-header {
     flex-shrink: 0;
     align-self: flex-start;
   }
@@ -1178,10 +1141,6 @@ body {
     flex-direction: column;
   }
 
-  .editor-button {
-    flex: 1 1 0;
-  }
-
   .editor-host .ql-container.ql-snow,
   .editor-host .ql-editor {
     min-height: 52vh;
@@ -1194,10 +1153,6 @@ body {
 
   .editor-modal-header {
     flex-direction: column;
-  }
-
-  .editor-modal-header .editor-button {
-    width: 100%;
   }
 
   .editor-preview-grid,
@@ -1255,10 +1210,6 @@ body {
   padding: 0;
   display: grid;
   gap: 6px;
-}
-
-.editor-lore-window button {
-  grid-template-columns: 1fr auto;
 }
 
 .editor-lore-card {
