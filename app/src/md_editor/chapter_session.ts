@@ -83,6 +83,10 @@ export function createChapterSession(
   function tick(): Promise<void> {
     if (running) return Promise.resolve();
     if (aiReserved || stopped || problem?.kind === "blocked") return Promise.resolve();
+    return runSync();
+  }
+
+  function runSync(): Promise<void> {
     running = synchronize().finally(() => { running = null; });
     return running;
   }
@@ -182,13 +186,11 @@ export function createChapterSession(
     }
   }
 
-  const clean = () => !stopped && problem?.kind !== "blocked" && !hasLocalChanges(state);
-
   return {
     document: () => syncDocument(state),
-    canStartAi: () => !running && !aiReserved && clean(),
+    canStartAi: () => !stopped && !aiReserved && problem?.kind !== "blocked",
     reserveAi() {
-      if (aiReserved || !clean()) return null;
+      if (aiReserved || stopped || problem?.kind === "blocked") return null;
       aiReserved = true;
       let released = false;
       return {
@@ -200,9 +202,15 @@ export function createChapterSession(
             signal.addEventListener("abort", abort, { once: true });
           });
           try {
-            await Promise.race([running, cancelled]);
-            signal.throwIfAborted();
-            if (released || !clean()) throw new Error("Wait for chapter saving and polling to finish before starting AI.");
+            if (running) await Promise.race([running, cancelled]);
+            while (true) {
+              signal.throwIfAborted();
+              if (released || stopped || lastError || problem?.kind === "blocked") {
+                throw new Error(problem?.message ?? lastError ?? "Chapter session stopped.");
+              }
+              if (!hasLocalChanges(state)) break;
+              await Promise.race([runSync(), cancelled]);
+            }
           } finally {
             signal.removeEventListener("abort", abort);
           }

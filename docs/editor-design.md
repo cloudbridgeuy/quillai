@@ -118,6 +118,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Continue
 
 - One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "from a cut-off reply" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
+- Continue and Edit reserve the session and save pending changes before the AI request. The control shows Saving… and remains available as Stop AI; typing remains available while saving. Save errors stop the request.
 - While streaming the same control shows Stop. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
 - The context drawer has one Continue view, labeled "Continue · from a cut-off reply" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 

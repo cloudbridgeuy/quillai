@@ -21,6 +21,7 @@ export type MessageShape<Source> = {
 
 export const en = {
   "action.save": "Save",
+  "action.saving": "Saving…",
   "thread.cutOff": "Continuing from a cut-off reply",
   "thread.discard": "Discard",
   "thread.resumeIndicator": "from a cut-off reply",
@@ -42,6 +43,7 @@ export type MessageKey = keyof typeof en;
 
 export const es = {
   "action.save": "Guardar",
+  "action.saving": "Guardando…",
   "thread.cutOff": "Continuando una respuesta interrumpida",
   "thread.discard": "Descartar",
   "thread.resumeIndicator": "desde una respuesta interrumpida",

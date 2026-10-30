@@ -88,12 +88,10 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       await expect(continueButton).toBeEnabled();
       await continueButton.click();
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
+      await expect(stop).toBeVisible();
       if (outcome === "Unsaved") {
-        await expect(page.getByText("Wait for chapter saving and polling to finish before starting AI.", { exact: true })).toBeVisible();
+        await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
         await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Unsaved changes");
-        await expect(stop).toBeHidden();
-      } else {
-        await expect(stop).toBeVisible();
       }
       await page.clock.runFor(2000);
       expect(generations).toBe(0);
@@ -105,12 +103,14 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       if (outcome === "Typed while waiting") {
         await editor.click();
         await page.keyboard.type("Retained author text");
+        await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
       }
-      releasePoll();
-      if (outcome === "Typed while waiting") {
-        await expect(page.getByText("Wait for chapter saving and polling to finish before starting AI.", { exact: true })).toBeVisible();
+      if (outcome === "Unsaved" || outcome === "Typed while waiting") {
+        await stop.click();
+        await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
         await expect(stop).toBeHidden();
       }
+      releasePoll();
       if (outcome === "Finish" || outcome === "Stop") {
         const stream = await streaming;
         stream.write(`${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "Generated text" }] } })}\n`);

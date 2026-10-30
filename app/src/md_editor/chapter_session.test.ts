@@ -20,7 +20,7 @@ test("serializes polling and posting while retaining edits made during the reque
   session.edit(new Delta().insert("Atext\n"));
   const first = session.tick();
   await session.tick();
-  expect(session.canStartAi()).toBe(false);
+  expect(session.canStartAi()).toBe(true);
   expect(posts).toBe(1);
   expect(gets).toBe(0);
   session.edit(new Delta().insert("ABtext\n"));
@@ -446,27 +446,80 @@ test("chapter switch boundary flush succeeds and loads the selected target after
   expect(urls).toEqual(["http://api/series/1/books/2/chapters/4"]);
 });
 
-test("Continue reservation rejects dirty and unrecovered work then waits successfully after recovery", async () => {
+for (const alreadyRunning of [false, true]) {
+  test(`AI reservation saves pending work and typing during an ${alreadyRunning ? "active" : "idle"} save`, async () => {
+    let resolvePost!: (value: Revision) => void;
+    const revisions: Revision[] = [];
+    const session = createChapterSession({
+      postDelta: async (_scope, request) => {
+        const revision = { rev: revisions.length + 1, delta: request.delta };
+        revisions.push(revision);
+        if (revision.rev === 1) return new Promise((resolve) => { resolvePost = resolve; });
+        return revision;
+      },
+      getDeltas: async (_scope, since) => revisions.filter((revision) => revision.rev > since),
+    }, scope, chapter, () => {});
+    session.edit(new Delta().insert("Atext\n"));
+    if (alreadyRunning) void session.tick();
+    const reservation = session.reserveAi()!;
+    const waiting = reservation.wait(new AbortController().signal);
+    session.edit(new Delta().insert("ABtext\n"));
+    resolvePost(revisions[0]!);
+    await waiting;
+    expect(revisions).toHaveLength(2);
+    expect(session.document().ops).toEqual([{ insert: "ABtext\n" }]);
+    reservation.release();
+  });
+}
+
+test("AI reservation aborts while a save continues", async () => {
+  let resolvePost!: (value: Revision) => void;
+  let dirty = false;
+  const session = createChapterSession({
+    postDelta: async () => new Promise((resolve) => { resolvePost = resolve; }),
+    getDeltas: async () => [ack],
+  }, scope, chapter, (_document, local) => { dirty = local; });
+  session.edit(new Delta().insert("Atext\n"));
+  const saving = session.tick();
+  const reservation = session.reserveAi()!;
+  const controller = new AbortController();
+  const waiting = reservation.wait(controller.signal);
+  controller.abort();
+  await expect(waiting).rejects.toThrow();
+  reservation.release();
+  resolvePost(ack);
+  await saving;
+  expect(dirty).toBe(false);
+  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
+});
+
+test("AI reservation reports a failed save without retrying it", async () => {
   let posts = 0;
-  let gets = 0;
   const session = createChapterSession({
     postDelta: async () => { posts++; throw new TypeError("offline"); },
-    getDeltas: async () => { gets++; return [ack]; },
+    getDeltas: async () => [ack],
   }, scope, chapter, () => {});
   session.edit(new Delta().insert("Atext\n"));
-  expect(session.reserveAi()).toBeNull();
-  await session.tick();
-  expect(session.reserveAi()).toBeNull();
-  expect(gets).toBe(0);
-  await session.tick();
-  const reservation = session.reserveAi();
-  expect(reservation).not.toBeNull();
-  await expect(reservation!.wait(new AbortController().signal)).resolves.toBeUndefined();
+  const reservation = session.reserveAi()!;
+  await expect(reservation.wait(new AbortController().signal)).rejects.toThrow("Save stopped: offline");
   expect(posts).toBe(1);
-  expect(gets).toBe(1);
-  expect(session.document().ops).toEqual([{ insert: "Atext\n" }]);
-  reservation!.release();
-  expect(session.canStartAi()).toBe(true);
+  reservation.release();
+});
+
+test("AI reservation reports a blocked active poll", async () => {
+  let rejectPoll!: (error: Error) => void;
+  const session = createChapterSession({
+    postDelta: async () => ack,
+    getDeltas: async () => new Promise((_resolve, reject) => { rejectPoll = reject; }),
+  }, scope, chapter, () => {});
+  const polling = session.tick();
+  const reservation = session.reserveAi()!;
+  const waiting = reservation.wait(new AbortController().signal);
+  rejectPoll(new Error("bad history"));
+  await polling;
+  await expect(waiting).rejects.toThrow("Save stopped: bad history");
+  reservation.release();
+  expect(session.reserveAi()).toBeNull();
 });
 
 test("piece URL loads the leaf in its universe without a book series", async () => {

@@ -278,7 +278,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [showContinueWindow, setShowContinueWindow] = useState(initialEditorState.showContinueWindow);
   const [desktop, setDesktop] = useState(() => window.matchMedia("(min-width: 1100px)").matches);
   const continueStreamRef = useRef<ContinueStream | null>(null);
-  const desktopContinueWaitingRef = useRef(false);
+  const [waitingForSave, setWaitingForSave] = useState(false);
   const applyingContinueRef = useRef(false);
   const tintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tintEnabledRef = useRef(aiTextTint);
@@ -694,9 +694,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }
 
   async function runAiAction(action: AiAction) {
-    const reservation = action === "generate" ? chapterSync.reserveAi() : null;
-    if (action === "generate" ? !reservation : !chapterSync.canStartAi()) {
-      setAiFailure(action, "Wait for chapter saving and polling to finish before starting AI.");
+    const reservation = chapterSync.reserveAi();
+    if (!reservation) {
+      setAiFailure(action, chapterSync.status);
       return;
     }
     try {
@@ -737,7 +737,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     setEmptyContinueNotice(null);
     const controller = new AbortController();
     if (reservation) {
-      desktopContinueWaitingRef.current = desktop;
+      setWaitingForSave(true);
       abortControllerRef.current = controller;
       updateAiRunState(started.state);
       try {
@@ -754,7 +754,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         }
         return;
       } finally {
-        desktopContinueWaitingRef.current = false;
+        if (isMountedRef.current) setWaitingForSave(false);
         abortControllerRef.current = null;
       }
     }
@@ -1235,10 +1235,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onClick={() => togglePanel("manuscript")} />
       </nav>
       <nav className="editor-rail editor-rail-right" aria-label="AI tools">
-        <IconButton kind="continue" className="editor-continue" label={isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
+        <IconButton kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
           badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
           aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
-          title={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
+          title={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop} />
@@ -1366,7 +1366,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <div className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={(isBusy && !(desktop && aiRunState.status === "continuing" && (continueStreamRef.current !== null || desktopContinueWaitingRef.current))) || !chapterSync.ready || chapterSync.blocked}
+              readOnly={(isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);
