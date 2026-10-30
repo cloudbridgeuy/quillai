@@ -20,8 +20,17 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 |------|----------|-------|
 | `raw-button`, `raw-input`, `raw-textarea`, `raw-select` | the raw tag | `.tsx` outside `app/src/ui/` |
 | `tailwind-bracket` | an arbitrary value, e.g. `w-[262px]` | `.tsx` outside `app/src/ui/` |
-| `hex-colour` | `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` | `.css` except `app/src/ui/tokens.css` |
-| `font-size` | a `font-size:` declaration | `.css` except `app/src/ui/tokens.css` |
+| `hex-colour` | `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` | `.css`, `.ts`, `.tsx` |
+| `font-size` | a `font-size:` declaration | `.css` |
+| `link-button` | an anchor whose `class` or `className` contains `button` | `.tsx` |
+| `inline-style` | a `style={...}` attribute | `.tsx` |
+| `colour-fn` | `rgb()`, `rgba()`, `hsl()`, `hsla()`, `color-mix()` | `.css`, `.tsx` |
+| `font-shorthand` | `font:` with a numeric size in px, rem, em or % | `.css` |
+| `raw-radius`, `raw-shadow`, `raw-z-index`, `raw-letter-spacing` | radius, box shadow, z-index or letter spacing values other than `var(...)`, `0`, `none`, `normal` | `.css` |
+| `raw-spacing` | padding, margin or gap with numeric px, rem or em values | `.css` |
+| `click-non-interactive` | `onClick` on a `div`, `span`, `li`, `p` or `section` opening tag | `.tsx` |
+
+All rules skip `*.test.*` files. TS and TSX checks skip `app/src/ui/`; CSS checks skip `app/src/ui/tokens.css`. These are text counters, not parsers; unusual syntax can escape detection or produce false positives.
 
 `app/src/ui/ALLOWLIST` holds today's debt, one `path count rule` line per file and rule. A file above its count fails. A file below its count also fails until you lower the count (or remove the line at zero), so debt only goes down. Add lines only when a migration ticket moves debt; never to pass a new violation.
 
