@@ -1,10 +1,11 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import page_html from "./fixtures/ui-components/index.html";
+import behaviors_html from "./fixtures/ui-components/behaviors.html";
 
 let server: ReturnType<typeof Bun.serve>;
 
 test.beforeAll(() => {
-  server = Bun.serve({ port: 0, hostname: "127.0.0.1", routes: { "/": page_html } });
+  server = Bun.serve({ port: 0, hostname: "127.0.0.1", routes: { "/": page_html, "/behaviors": behaviors_html } });
 });
 
 test.afterAll(async () => {
@@ -90,4 +91,59 @@ test("popover toggle and dismissal", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(content).toHaveCount(0);
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+for (const opening of ["mouse", "keyboard"] as const) {
+  test(`popover returns focus after ${opening} opening and Escape`, async ({ page }) => {
+    await page.goto(`http://127.0.0.1:${server.port}/behaviors`);
+    const trigger = page.getByRole("button", { name: "Open popover" });
+    if (opening === "mouse") {
+      await trigger.click();
+      await page.getByRole("textbox", { name: "Popover field" }).click();
+    } else {
+      await page.keyboard.press("Tab");
+      await trigger.focus();
+      await expect(trigger).toBeFocused();
+      await page.keyboard.press("Enter");
+      await page.getByRole("textbox", { name: "Popover field" }).focus();
+    }
+    const field = page.getByRole("textbox", { name: "Popover field" });
+    await expect(field).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(field).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+}
+
+test("button has a visible keyboard focus indicator", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${server.port}/behaviors`);
+  await page.keyboard.press("Tab");
+  const button = page.getByRole("button", { name: "Focus button" });
+  await button.focus();
+  await expect(button).toBeFocused();
+  const visible = await button.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return (!["none", "auto"].includes(style.outlineStyle) && parseFloat(style.outlineWidth) > 0 && style.outlineColor !== "rgba(0, 0, 0, 0)") || style.boxShadow !== "none";
+  });
+  expect(visible).toBe(true);
+});
+
+test("outside click keeps focus on the clicked field", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${server.port}/behaviors`);
+  await page.getByRole("button", { name: "Open popover" }).click();
+  const field = page.getByRole("textbox", { name: "Outside field" });
+  await field.click();
+  await expect(page.getByRole("textbox", { name: "Popover field" })).toHaveCount(0);
+  await page.keyboard.type("Outside focus");
+  await expect(field).toHaveValue("Outside focus");
+  await expect(field).toBeFocused();
+});
+
+test("icon and list buttons invoke their click handlers", async ({ page }) => {
+  await page.goto(`http://127.0.0.1:${server.port}/behaviors`);
+  await page.getByRole("button", { name: "Count icon" }).click();
+  await page.getByRole("button", { name: "Count icon" }).click();
+  await page.getByRole("button", { name: "Count list" }).click();
+  await expect(page.getByTestId("icon-count")).toHaveText("2");
+  await expect(page.getByTestId("list-count")).toHaveText("1");
 });

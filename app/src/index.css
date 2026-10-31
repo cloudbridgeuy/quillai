@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./ui/tokens.css";
+@import "./ui/StickyNote.css";
 
 .editor-lore-panel { border-top: 1px solid var(--rule); margin-top: calc(var(--spacing) * 5); padding-top: calc(var(--spacing) * 4); }
 .editor-lore-panel fieldset { border: 0; padding: 0; margin-top: calc(var(--spacing) * 4); min-width: 0; }
@@ -720,50 +721,6 @@ body {
 .editor-drawer select {
   box-shadow: none;
   transform: none;
-}
-
-.editor-sticky-note {
-  display: block;
-  width: 100%;
-  resize: vertical;
-  border: 0;
-  border-radius: var(--radius-note);
-  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3) calc(var(--spacing) * 3);
-  background-image: linear-gradient(rgba(31, 41, 51, .045), transparent 12px);
-  color: var(--ink);
-  font: var(--text-ui)/1.5 var(--sans);
-  box-shadow: var(--sticky-shadow, var(--note-shadow));
-  outline: none;
-}
-
-.editor-sticky-note-yellow {
-  background-color: var(--pi-yellow);
-  --sticky-shadow: var(--sheet-shadow);
-}
-
-.editor-sticky-note-pink {
-  background-color: var(--pi-pink);
-}
-
-.editor-sticky-note-green {
-  background-color: var(--pi-green);
-}
-
-.editor-sticky-note-overhang {
-  width: calc(100% + 8px);
-  margin-inline: calc(var(--spacing) * -1);
-}
-
-.editor-sticky-note[readonly] {
-  resize: none;
-}
-
-.editor-sticky-note::placeholder {
-  color: var(--placeholder);
-}
-
-.editor-sticky-note:focus {
-  box-shadow: 0 0 0 2px rgba(78, 98, 114, .35), var(--sticky-shadow, var(--note-shadow));
 }
 
 .editor-edit-box {

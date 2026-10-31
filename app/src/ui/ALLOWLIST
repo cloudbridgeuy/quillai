@@ -1,4 +1,5 @@
 app/src/index.css 1 hex-colour
-app/src/index.css 4 colour-fn
-app/src/index.css 1 raw-shadow
+app/src/index.css 2 colour-fn
+app/src/ui/StickyNote.css 2 colour-fn
+app/src/ui/StickyNote.css 1 raw-shadow
 app/src/md_editor/components/ContinueWindow.tsx 2 inline-style

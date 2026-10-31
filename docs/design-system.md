@@ -7,9 +7,9 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 - Controls, headings and text styles come from `app/src/ui/` primitives. Do not write a raw `<button>`, `<input>`, `<textarea>` or `<select>` outside `app/src/ui/`.
 - Colours, shadows, type sizes, radii and spacing come from `app/src/ui/tokens.css`. Do not write a hex colour or `font-size:` in another `.css` file, and do not use Tailwind arbitrary values such as `w-[262px]`.
 - One button family: `Button` (quiet, primary, danger). No new pill, link-button or one-off button style.
-- Textareas are sticky notes: white or yellow, no border, paper shadow. Pink is only for the Edit instruction.
+- Sticky notes are yellow. Green is for lore fields only. Pink is only for the Edit instruction. They have no border and use a paper shadow.
 - Lore editing opens in a `Modal`. The modal has no Cancel; Escape and backdrop click discard the draft. Delete is red (danger) and asks for confirmation: the first click arms it ("Delete this entry"), the second click deletes.
-- Popovers close from their trigger (toggle), click outside and Escape. `ignoreRefs` excludes named DOM areas from outside dismissal without blocking their native pointer action. Controlled anchored popovers may omit the trigger for hover or keyboard openings; unanchored popovers require a button trigger. They have no Close button.
+- Popovers close from their trigger (toggle), click outside and Escape. Escape returns focus to the trigger, or to `returnFocusRef` when supplied. Outside clicks keep their native focus behavior. Canceled Escape leaves focus unchanged. `ignoreRefs` excludes named DOM areas from outside dismissal without blocking their native pointer action. Controlled anchored popovers may omit the trigger for hover or keyboard openings and leave focus unchanged on dismissal; unanchored popovers require a button trigger. They have no Close button.
 - Drawers have no Close button. Their rail toggle, bracket shortcut and Escape close them.
 
 ## Enforcement
@@ -71,5 +71,5 @@ Built: `Button`, `ButtonLink`, `IconButton`, `TextField`, `Toggle`, `Field`, `He
 | `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
 | `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `ui/StickyNote.tsx` (replaces `components/StickyNote.tsx`), green lore text |
 | `Modal` | `title`, `onClose`, children, optional `footer` and stable `returnFocusRef` for the opener. Without a ref, focus returns to the active element captured on mount, except `body`. Native `<dialog>`; footer holds action buttons only; no Cancel prop | inline lore form, unused `.editor-modal` |
-| `Popover` | `open`, `onOpenChange`, children; button `trigger` required unless `anchor: { left, top }` is set, where controlled triggerless opening is supported. Optional `ignoreRefs` excludes DOM areas from outside dismissal. No Close prop | Settings, Edit box, Lore match |
+| `Popover` | `open`, `onOpenChange`, children; button `trigger` required unless `anchor: { left, top }` is set, where controlled triggerless opening is supported. Optional `returnFocusRef` overrides the trigger for focus return; `ignoreRefs` excludes DOM areas from outside dismissal. No Close prop | Settings, Edit box, Lore match |
 | `ListButton` | `pressed`, `tone: "tree" \| "lore"` | manuscript tree rows, lore-window rows |

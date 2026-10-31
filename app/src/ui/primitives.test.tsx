@@ -184,6 +184,67 @@ describe("Modal", () => {
 });
 
 describe("Popover", () => {
+  test.each(["Escape", "pointerdown"])("%s returns focus only for triggered popovers", async (dismissal) => {
+    const original = globalThis.document;
+    const target = new EventTarget();
+    const cleanups: (() => void)[] = [];
+    const effects = spyOn(React, "useEffect").mockImplementation(effect => {
+      const cleanup = effect();
+      if (typeof cleanup === "function") cleanups.push(cleanup);
+    });
+    const portal = spyOn(ReactDOM, "createPortal").mockImplementation(children => children as ReturnType<typeof ReactDOM.createPortal>);
+    const returnFocusRef = createRef<HTMLButtonElement>();
+    let focused = 0;
+    Object.assign(returnFocusRef, { current: { focus: () => { focused++; } } });
+    Object.assign(globalThis, { document: Object.assign(target, { body: {} }) });
+    try {
+      for (const triggered of [false, true]) {
+        const changes: boolean[] = [];
+        renderToStaticMarkup(<Popover anchor={{ left: 0, top: 0 }} trigger={triggered ? <Button>Open</Button> : undefined} open onOpenChange={open => changes.push(open)} returnFocusRef={returnFocusRef}>Content</Popover>);
+        target.dispatchEvent(Object.assign(new Event(dismissal === "Escape" ? "keydown" : dismissal), { key: dismissal }));
+        expect(changes).toEqual([false]);
+        if (dismissal === "Escape") expect(focused).toBe(Number(triggered));
+        cleanups.splice(0).forEach(cleanup => cleanup());
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(focused).toBe(Number(triggered && dismissal === "Escape"));
+      }
+    } finally {
+      cleanups.forEach(cleanup => cleanup());
+      effects.mockRestore();
+      portal.mockRestore();
+      if (original === undefined) Reflect.deleteProperty(globalThis, "document");
+      else Object.assign(globalThis, { document: original });
+    }
+  });
+
+  test("canceled Escape leaves the popover open and preserves focus", () => {
+    const original = globalThis.document;
+    const target = new EventTarget();
+    const cleanups: (() => void)[] = [];
+    const effects = spyOn(React, "useEffect").mockImplementation(effect => {
+      const cleanup = effect();
+      if (typeof cleanup === "function") cleanups.push(cleanup);
+    });
+    const returnFocusRef = createRef<HTMLButtonElement>();
+    let focused = false;
+    Object.assign(returnFocusRef, { current: { focus: () => { focused = true; } } });
+    Object.assign(globalThis, { document: target });
+    try {
+      const changes: boolean[] = [];
+      renderToStaticMarkup(<Popover trigger={<Button>Open</Button>} open onOpenChange={open => changes.push(open)} returnFocusRef={returnFocusRef}>Content</Popover>);
+      const event = Object.assign(new Event("keydown", { cancelable: true }), { key: "Escape" });
+      event.preventDefault();
+      target.dispatchEvent(event);
+      expect(changes).toEqual([]);
+      expect(focused).toBe(false);
+    } finally {
+      cleanups.forEach(cleanup => cleanup());
+      effects.mockRestore();
+      if (original === undefined) Reflect.deleteProperty(globalThis, "document");
+      else Object.assign(globalThis, { document: original });
+    }
+  });
+
   test("class and trigger semantics", () => {
     expect(popoverClassName("extra")).toEndWith("extra");
     const html = renderToStaticMarkup(<Popover trigger={<Button>Open</Button>} open onOpenChange={() => {}}>Content</Popover>);

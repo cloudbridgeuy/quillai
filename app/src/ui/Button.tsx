@@ -22,7 +22,7 @@ const sizes: Record<ButtonSize, string> = {
 
 export function buttonClassName({ variant = "quiet", size = "md", className }: Pick<ButtonProps, "variant" | "size" | "className">): string {
   return cx(
-    "border rounded-button font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+    "border rounded-button font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate disabled:cursor-not-allowed disabled:opacity-50",
     variants[variant],
     sizes[size],
     className,

@@ -8,6 +8,7 @@ type PopoverProps = ComponentProps<"div"> & {
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
   ignoreRefs?: readonly RefObject<HTMLElement | null>[];
+  returnFocusRef?: RefObject<HTMLElement | null>;
 } & ({ anchor: { left: number; top: number }; trigger?: ReactElement<ComponentProps<"button">> }
   | { anchor?: never; trigger: ReactElement<ComponentProps<"button">> });
 
@@ -15,9 +16,10 @@ export function popoverClassName(className?: string): string {
   return cx("absolute z-(--z-popover) rounded-card border border-rule bg-paper p-4 text-ui text-ink shadow-popover", className);
 }
 
-export function Popover({ trigger, anchor, open, onOpenChange, children, className, style, ignoreRefs, ref: forwardedRef, ...props }: PopoverProps) {
+export function Popover({ trigger, anchor, open, onOpenChange, children, className, style, ignoreRefs, returnFocusRef, ref: forwardedRef, ...props }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const id = useId();
   useImperativeHandle<HTMLDivElement | null, HTMLDivElement | null>(forwardedRef, () => panelRef.current, [open]);
 
@@ -28,7 +30,11 @@ export function Popover({ trigger, anchor, open, onOpenChange, children, classNa
       if (!ref.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) onOpenChange(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onOpenChange(false);
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        const target = trigger ? returnFocusRef?.current ?? triggerRef.current : null;
+        onOpenChange(false);
+        target?.focus();
+      }
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -36,7 +42,7 @@ export function Popover({ trigger, anchor, open, onOpenChange, children, classNa
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onOpenChange, ignoreRefs]);
+  }, [open, onOpenChange, ignoreRefs, returnFocusRef, trigger]);
 
   const panel = open ? <div {...props} ref={panelRef} id={id} className={popoverClassName(className)}
     style={anchor ? { ...style, position: "fixed", left: "var(--popover-left, var(--popover-anchor-x))", top: "var(--popover-top, var(--popover-anchor-y))", "--popover-anchor-x": `${anchor.left}px`, "--popover-anchor-y": `${anchor.top}px` } as CSSProperties : style}>{children}</div> : null;
@@ -45,7 +51,7 @@ export function Popover({ trigger, anchor, open, onOpenChange, children, classNa
       {trigger ? cloneElement(trigger, {
         "aria-expanded": open,
         "aria-controls": id,
-        onClick: (event) => { trigger.props.onClick?.(event); if (!event.defaultPrevented) onOpenChange(!open); },
+        onClick: (event) => { triggerRef.current = event.currentTarget; trigger.props.onClick?.(event); if (!event.defaultPrevented) onOpenChange(!open); },
       }) : null}
       {anchor && typeof document !== "undefined" && panel ? createPortal(panel, document.body) : panel}
     </div>
