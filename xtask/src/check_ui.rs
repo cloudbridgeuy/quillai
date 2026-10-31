@@ -29,26 +29,6 @@ pub enum Rule {
 }
 
 impl Rule {
-    const ALL: [Rule; 17] = [
-        Rule::RawButton,
-        Rule::RawInput,
-        Rule::RawTextarea,
-        Rule::RawSelect,
-        Rule::TailwindBracket,
-        Rule::HexColour,
-        Rule::FontSize,
-        Rule::LinkButton,
-        Rule::InlineStyle,
-        Rule::ColourFn,
-        Rule::FontShorthand,
-        Rule::RawRadius,
-        Rule::RawShadow,
-        Rule::RawZIndex,
-        Rule::RawLetterSpacing,
-        Rule::RawSpacing,
-        Rule::ClickNonInteractive,
-    ];
-
     fn name(self) -> &'static str {
         match self {
             Rule::RawButton => "raw-button",
@@ -69,10 +49,6 @@ impl Rule {
             Rule::RawSpacing => "raw-spacing",
             Rule::ClickNonInteractive => "click-non-interactive",
         }
-    }
-
-    fn parse(name: &str) -> Option<Rule> {
-        Rule::ALL.into_iter().find(|rule| rule.name() == name)
     }
 
     fn fix_hint(self) -> &'static str {
@@ -351,8 +327,30 @@ fn count_colour_functions(text: &str) -> usize {
         .sum()
 }
 
-pub fn scan(kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
-    let mut counts = vec![(Rule::HexColour, count_hex_colours(text))];
+fn scan_path(path: &str, kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
+    let exempt_hex = if kind == FileKind::Css {
+        let mut parts = text.split('{');
+        let mut header = parts.next().unwrap_or_default();
+        let mut count = 0;
+        for part in parts {
+            if header.rsplit('}').next().unwrap_or_default().trim() == "@property --ai-stream-color"
+            {
+                let body = part.split('}').next().unwrap_or_default();
+                for declaration in body.split(';') {
+                    if let Some(("initial-value", value)) =
+                        declaration.split_once(':').map(|(p, v)| (p.trim(), v))
+                    {
+                        count += count_hex_colours(value);
+                    }
+                }
+            }
+            header = part;
+        }
+        count
+    } else {
+        0
+    };
+    let mut counts = vec![(Rule::HexColour, count_hex_colours(text) - exempt_hex)];
     match kind {
         FileKind::Tsx => {
             counts.extend([
@@ -377,7 +375,13 @@ pub fn scan(kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
                         Rule::InlineStyle,
                         attrs
                             .iter()
-                            .any(|(name, value)| *name == "style" && value.starts_with('{')),
+                            .any(|(name, value)| {
+                                *name == "style" && value.starts_with('{')
+                                    && !(path == "app/src/md_editor/components/ContinueWindow.tsx"
+                                        && matches!(*value,
+                                            "{{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }}"
+                                            | "{{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}"))
+                            }),
                     ),
                     (
                         Rule::ClickNonInteractive,
@@ -409,40 +413,27 @@ pub fn scan(kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
     result
 }
 
+#[cfg(test)]
+fn scan(kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
+    scan_path("", kind, text)
+}
+
 pub type Counts = BTreeMap<(String, Rule), usize>;
 
 pub fn parse_allowlist(text: &str) -> Result<Counts, Vec<String>> {
-    let mut allowed = Counts::new();
-    let mut errors = Vec::new();
-    for (number, line) in text
+    let errors: Vec<_> = text
         .lines()
         .enumerate()
-        .map(|(index, line)| (index + 1, line))
-    {
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.is_empty() {
-            continue;
-        }
-        let parsed = match fields.as_slice() {
-            [path, count, rule] => match (count.parse::<usize>(), Rule::parse(rule)) {
-                (Ok(0), _) => Err("count must be above 0; remove the line instead".to_string()),
-                (Ok(count), Some(rule)) => Ok(((path.to_string(), rule), count)),
-                (Err(_), _) => Err(format!("count `{count}` is not a whole number")),
-                (_, None) => Err(format!("unknown rule `{rule}`")),
-            },
-            _ => Err("expected `path count rule`".to_string()),
-        };
-        match parsed {
-            Ok((key, count)) => {
-                if allowed.insert(key, count).is_some() {
-                    errors.push(format!("{ALLOWLIST_PATH}:{number}: duplicate entry"));
-                }
-            }
-            Err(error) => errors.push(format!("{ALLOWLIST_PATH}:{number}: {error}")),
-        }
-    }
+        .filter(|(_, line)| !line.trim().is_empty())
+        .map(|(index, _)| {
+            format!(
+                "{ALLOWLIST_PATH}:{}: remove this entry; the allowlist must be empty",
+                index + 1
+            )
+        })
+        .collect();
     if errors.is_empty() {
-        Ok(allowed)
+        Ok(Counts::new())
     } else {
         Err(errors)
     }
@@ -501,7 +492,7 @@ pub fn run(root: &Path, log_path: &Path) -> std::io::Result<bool> {
         };
         match std::fs::read_to_string(root.join(file)) {
             Ok(text) => found.extend(
-                scan(kind, &text)
+                scan_path(file, kind, &text)
                     .into_iter()
                     .map(|(rule, count)| ((file.to_string(), rule), count)),
             ),
@@ -680,24 +671,25 @@ mod tests {
     }
 
     #[test]
-    fn allowlist_parses_entries_and_rejects_bad_lines() {
+    fn allowlist_must_be_empty_even_when_counts_match() {
+        assert!(parse_allowlist(" \n").is_ok());
+        assert!(parse_allowlist("app/src/a.tsx 2 raw-button\n").is_err());
+    }
+
+    #[test]
+    fn exemptions_are_limited_to_the_registered_colour_and_caret_styles() {
+        let css = "@property --ai-stream-color { initial-value: #fff; color: #abc; } @property --other { initial-value: #def; } .x { initial-value: #123; }";
+        assert_eq!(scan(FileKind::Css, css).get(&Rule::HexColour), Some(&3));
+        let styles = "<div style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }}/><div style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}/><div style={{ top: geometry.top }}/ >";
+        let path = "app/src/md_editor/components/ContinueWindow.tsx";
         assert_eq!(
-            parse_allowlist("app/src/a.tsx 2 raw-button\n\napp/src/index.css 3 hex-colour\n"),
-            Ok(counts(&[
-                ("app/src/a.tsx", Rule::RawButton, 2),
-                ("app/src/index.css", Rule::HexColour, 3),
-            ]))
+            scan_path(path, FileKind::Tsx, styles).get(&Rule::InlineStyle),
+            Some(&1)
         );
-        let errors = parse_allowlist(
-            "app/src/a.tsx:4 raw-button\napp/src/a.tsx 0 raw-button\napp/src/a.tsx x raw-button\napp/src/a.tsx 1 raw-div\napp/src/b.tsx 1 raw-input\napp/src/b.tsx 2 raw-input\n",
-        )
-        .unwrap_err();
-        assert_eq!(errors.len(), 5);
-        assert!(errors[0].ends_with(":1: expected `path count rule`"));
-        assert!(errors[1].contains(":2: count must be above 0"));
-        assert!(errors[2].contains(":3: count `x`"));
-        assert!(errors[3].contains(":4: unknown rule `raw-div`"));
-        assert!(errors[4].ends_with(":6: duplicate entry"));
+        assert_eq!(
+            scan_path("app/src/other.tsx", FileKind::Tsx, styles).get(&Rule::InlineStyle),
+            Some(&3)
+        );
     }
 
     #[test]
