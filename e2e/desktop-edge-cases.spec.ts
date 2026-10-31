@@ -131,8 +131,8 @@ for (const width of [1100, 1440]) {
       await page.getByRole("button", { name: "Continue writing", exact: true }).click();
       await expect(stop).toBeVisible();
       await send(page, { type: "delta", delta: { ops: [{ insert: "AI first" }] } });
-      await expect(editor.locator("p").nth(1)).toHaveText("AI first");
-      await select(page, 2, 0, 5);
+      await expect(editor.locator("p").nth(0)).toHaveText("OpeAI firstning paragraph");
+      await select(page, 1, 0, 5);
       await page.getByRole("button", { name: "Settings", exact: true }).click();
       await expect(settings).toBeVisible();
       await expect(settings.getByRole("spinbutton", { name: "Window Size", exact: true })).toBeDisabled();
@@ -142,7 +142,7 @@ for (const width of [1100, 1440]) {
       await tint.uncheck();
       expect(await page.evaluate(() => CSS.highlights.get("quillai-stream")?.size)).toBe(0);
       await send(page, { type: "delta", delta: { ops: [{ insert: " second" }] } });
-      await expect(editor.locator("p").nth(1)).toHaveText("AI first second");
+      await expect(editor.locator("p").nth(0)).toHaveText("OpeAI first secondning paragraph");
       await tint.check();
       expect(await page.evaluate(() => Array.from(CSS.highlights.get("quillai-stream") ?? []).map((range) => range.toString()).join(""))).toContain("AI first second");
       if (dismissal === "Escape") {
@@ -155,15 +155,15 @@ for (const width of [1100, 1440]) {
       await expect(settings).toBeHidden();
       await expect(stop).toBeVisible();
       await expectEditorReady(editor);
-      await select(page, 2, 5);
+      await select(page, 1, 5);
       await page.keyboard.type(" AUTHOR");
       await send(page, { type: "delta", delta: { ops: [{ insert: " tail" }] } });
-      await expect(editor).toHaveText("Opening paragraphAI first second tailLater AUTHOR paragraph");
+      await expect(editor).toHaveText("OpeAI first second tailning paragraphLater AUTHOR paragraph");
       await send(page, { type: "done", finishReason: "stop" });
       await expect(stop).toBeHidden();
       await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
       await page.reload();
-      await expect(editor).toHaveText("Opening paragraphAI first second tailLater AUTHOR paragraph");
+      await expect(editor).toHaveText("OpeAI first second tailning paragraphLater AUTHOR paragraph");
     });
   }
 
@@ -180,21 +180,21 @@ for (const width of [1100, 1440]) {
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await expect(stop).toBeVisible();
       await send(page, { type: "delta", delta: { ops: [{ insert: "Generated words" }] } });
-      await expect(editor.locator("p").nth(1)).toHaveText("Generated words");
-      await select(page, 1, 4);
+      await expect(editor.locator("p").nth(0)).toHaveText("OpeGenerated wordsning paragraph");
+      await select(page, 0, 7);
       await page.keyboard.type("KEPT");
-      await expect(editor.locator("p").nth(1)).toHaveText("GeneKEPTrated words");
+      await expect(editor.locator("p").nth(0)).toHaveText("OpeGeneKEPTrated wordsning paragraph");
       await send(page, { type: failure.type });
       await expect(page.getByText(failure.message, { exact: true })).toBeVisible();
       await expect(stop).toBeHidden();
       await expectEditorReady(editor);
-      await expect(editor).toHaveText("Opening paragraphKEPTLater paragraph");
+      await expect(editor).toHaveText("OpeKEPTning paragraphLater paragraph");
       expect(await page.evaluate(() => CSS.highlights.get("quillai-stream")?.size)).toBe(0);
       await page.keyboard.type(" MORE");
-      await expect(editor).toHaveText("Opening paragraphKEPT MORELater paragraph");
+      await expect(editor).toHaveText("OpeKEPT MOREning paragraphLater paragraph");
       await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
       await page.reload();
-      await expect(editor).toHaveText("Opening paragraphKEPT MORELater paragraph");
+      await expect(editor).toHaveText("OpeKEPT MOREning paragraphLater paragraph");
     });
   }
 }
