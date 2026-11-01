@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT content AS \"content!\", snapshot_rev AS \"snapshot_rev!\", head_rev AS \"head_rev!\" FROM pieces WHERE id = ? AND shape = 'leaf'",
+  "query": "SELECT content AS \"content!\", snapshot_rev AS \"snapshot_rev!\", head_rev AS \"head_rev!\" FROM active_pieces WHERE id = ? AND shape = 'leaf'",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       true
     ]
   },
-  "hash": "983a31ee107d23d4cd7e3afdeee6d8974fea8952ea88c42bcaf71d20119abd30"
+  "hash": "6abe2cd48d673ad5ba1cf50a398dcdd6c5339de4e180c4fd834983c981cb35c7"
 }

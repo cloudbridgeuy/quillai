@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id FROM pieces WHERE id = ? AND shape = 'leaf'",
+  "query": "SELECT id FROM active_pieces WHERE id = ? AND shape = 'leaf'",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "5c550d833b3430fdbe1727e9145376b5174bae4be9d26ee10fde29a275d352b0"
+  "hash": "500b993169cb7334449125690ab4a48fef59f1c0557d85fffcf7601cd6ed8fbc"
 }

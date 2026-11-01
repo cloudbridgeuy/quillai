@@ -12,6 +12,10 @@ pub fn routes(pool: SqlitePool) -> Router {
             get(handlers::list_chapters).post(handlers::create_chapter),
         )
         .route(
+            "/series/{id}/books/{book_id}/chapters/{chapter_id}/restore",
+            axum::routing::post(handlers::restore_chapter),
+        )
+        .route(
             "/series/{id}/books/{book_id}/chapters/{chapter_id}/deltas",
             get(sync::get_deltas).post(sync::post_delta),
         )

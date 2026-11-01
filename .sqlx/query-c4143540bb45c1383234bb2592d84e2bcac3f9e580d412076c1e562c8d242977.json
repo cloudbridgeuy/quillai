@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pieces SET head_rev = head_rev WHERE id = ? AND shape = 'leaf' AND head_rev = ? AND id IN (SELECT id FROM active_pieces)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c4143540bb45c1383234bb2592d84e2bcac3f9e580d412076c1e562c8d242977"
+}

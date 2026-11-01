@@ -69,7 +69,7 @@ async fn scene_deltas(
     since: i64,
 ) -> Result<SceneDeltas, Error> {
     let head = sqlx::query_scalar!(
-        r#"SELECT head_rev AS "head_rev!" FROM pieces WHERE id = ? AND shape = 'leaf'"#,
+        r#"SELECT head_rev AS "head_rev!" FROM active_pieces WHERE id = ? AND shape = 'leaf'"#,
         scene_id,
     )
     .fetch_optional(&mut *connection)

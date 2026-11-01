@@ -153,20 +153,29 @@ pub async fn update_chapter(
     Ok(Json(chapter))
 }
 
+async fn trash_piece(
+    pool: &SqlitePool,
+    (series_id, book_id, chapter_id): (i64, i64, i64),
+) -> Result<i64, Error> {
+    sqlx::query_scalar::<_, i64>("SELECT p.id FROM pieces p JOIN legacy_books b ON b.piece_id = p.parent_id WHERE p.legacy_chapter_id = ? AND b.id = ? AND b.series_id = ? AND p.shape = 'leaf' AND p.label IN ('prologue', 'chapter', 'epilogue')")
+        .bind(chapter_id).bind(book_id).bind(series_id).fetch_optional(pool).await?.ok_or(Error::NotFound)
+}
+
 pub async fn delete_chapter(
     State(pool): State<SqlitePool>,
-    Path((series_id, book_id, chapter_id)): Path<(i64, i64, i64)>,
+    Path(path): Path<(i64, i64, i64)>,
+    Query(query): Query<crate::manuscripts::lore::handlers::DeleteQuery>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!(
-        "DELETE FROM pieces WHERE id = (SELECT piece_id FROM legacy_chapters WHERE id = ? AND book_id = ? AND series_id = ?)",
-        chapter_id,
-        book_id,
-        series_id,
-    )
-    .execute(&pool)
-    .await?;
-    if result.rows_affected() == 0 {
-        return Err(Error::NotFound);
-    }
+    let id = trash_piece(&pool, path).await?;
+    crate::manuscripts::pieces::trash::delete(&pool, id, query.permanent).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_chapter(
+    State(pool): State<SqlitePool>,
+    Path(path): Path<(i64, i64, i64)>,
+) -> Result<Json<Chapter>, Error> {
+    let id = trash_piece(&pool, path).await?;
+    crate::manuscripts::pieces::trash::restore(&pool, id).await?;
+    get_chapter(State(pool), Path(path)).await
 }

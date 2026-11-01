@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT head_rev AS \"head_rev!\" FROM pieces WHERE id = ? AND shape = 'leaf'",
+  "query": "SELECT head_rev AS \"head_rev!\" FROM active_pieces WHERE id = ? AND shape = 'leaf'",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "eb4ea42a9056574e798fe169f7b9a5a13247d21c5c0b5d11a8300b588dc198c8"
+  "hash": "6801a24e6589dab0ac58ed89a7312946478e0c9ab76788c96cfb819e6ec35512"
 }

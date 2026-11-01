@@ -17,7 +17,7 @@ pub async fn history(
 ) -> Result<(i64, Vec<Revision>), Error> {
     let mut transaction = pool.begin().await?;
     let head = sqlx::query_scalar!(
-        r#"SELECT head_rev AS "head_rev!" FROM pieces WHERE id = ? AND shape = 'leaf'"#,
+        r#"SELECT head_rev AS "head_rev!" FROM active_pieces WHERE id = ? AND shape = 'leaf'"#,
         piece_id,
     )
     .fetch_optional(&mut *transaction)

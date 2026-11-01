@@ -87,9 +87,18 @@ pub async fn attach(
     if group.shape != "group" {
         return Err(Error::Validation("attach target must be a group".into()));
     }
-    let source = piece(&mut transaction, input.piece_id)
-        .await
-        .map_err(|_| Error::Validation("attach source does not exist".into()))?;
+    let source = match piece(&mut transaction, input.piece_id).await {
+        Err(Error::NotFound)
+            if sqlx::query_scalar::<_, i64>("SELECT id FROM pieces WHERE id = ?")
+                .bind(input.piece_id)
+                .fetch_optional(&mut *transaction)
+                .await?
+                .is_none() =>
+        {
+            return Err(Error::Validation("attach source does not exist".into()));
+        }
+        result => result?,
+    };
     if source.shape != "leaf" || source.parent_id.is_some() {
         return Err(Error::Validation(
             "attach source must be a root leaf".into(),

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE container_id = ? ORDER BY position, id",
+  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE container_id = ? ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "73ecfb1e3556253664dfd6c2ca314ea2f00f598bfa4003bfcd126f9d1c0ed73f"
+  "hash": "dfd0e93510a574a3ea83129343ecdccca203f3fcf5a68de496c7c246e1016ab1"
 }

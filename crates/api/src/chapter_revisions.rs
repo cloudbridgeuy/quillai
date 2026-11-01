@@ -71,7 +71,7 @@ impl RevisionStore {
     ) -> Result<ChapterHead, RevisionError> {
         let mut transaction = self.pool.begin().await?;
         let claimed = sqlx::query!(
-            "UPDATE pieces SET head_rev = head_rev WHERE id = ? AND shape = 'leaf' AND head_rev = ?",
+            "UPDATE pieces SET head_rev = head_rev WHERE id = ? AND shape = 'leaf' AND head_rev = ? AND id IN (SELECT id FROM active_pieces)",
             piece_id,
             expected_head
         )
@@ -79,7 +79,7 @@ impl RevisionStore {
         .await?;
         if claimed.rows_affected() == 0 {
             let exists = sqlx::query_scalar!(
-                "SELECT id FROM pieces WHERE id = ? AND shape = 'leaf'",
+                "SELECT id FROM active_pieces WHERE id = ? AND shape = 'leaf'",
                 piece_id
             )
             .fetch_optional(&mut *transaction)
@@ -137,7 +137,7 @@ pub(crate) async fn load(
     piece_id: i64,
 ) -> Result<ChapterHead, RevisionError> {
     let chapter = sqlx::query!(
-        r#"SELECT content AS "content!", snapshot_rev AS "snapshot_rev!", head_rev AS "head_rev!" FROM pieces WHERE id = ? AND shape = 'leaf'"#,
+        r#"SELECT content AS "content!", snapshot_rev AS "snapshot_rev!", head_rev AS "head_rev!" FROM active_pieces WHERE id = ? AND shape = 'leaf'"#,
         piece_id
     )
     .fetch_optional(&mut *connection)

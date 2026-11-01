@@ -22,7 +22,7 @@ use crate::manuscripts::{
 pub(super) async fn piece(connection: &mut SqliteConnection, id: i64) -> Result<Piece, Error> {
     sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE id = ?"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE id = ?"#,
         id
     )
     .fetch_optional(connection)
@@ -37,7 +37,7 @@ pub(super) async fn detail(
     if piece.shape == "group" {
         let children = sqlx::query_as!(
             Piece,
-            r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE parent_id = ? ORDER BY position, id"#,
+            r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE parent_id = ? ORDER BY position, id"#,
             piece.id
         )
         .fetch_all(connection)
@@ -101,7 +101,7 @@ pub async fn list_loose_pieces(
     existing_universe(&mut transaction, universe_id).await?;
     let pieces = sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id"#,
         universe_id
     )
     .fetch_all(&mut *transaction)
@@ -145,7 +145,7 @@ pub async fn list_container_pieces(
     container_universe(&mut transaction, container_id).await?;
     let pieces = sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM pieces WHERE container_id = ? ORDER BY position, id"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE container_id = ? ORDER BY position, id"#,
         container_id
     )
     .fetch_all(&mut *transaction)
@@ -218,6 +218,7 @@ pub async fn update_piece(
     let input = json_input(input)?;
     input.validate()?;
     let mut transaction = pool.begin().await?;
+    piece(&mut transaction, id).await?;
     let piece = sqlx::query_as!(
         Piece,
         r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format) WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
@@ -239,14 +240,18 @@ pub async fn update_piece(
 pub async fn delete_piece(
     State(pool): State<SqlitePool>,
     Path(id): Path<i64>,
+    Query(query): Query<crate::manuscripts::lore::handlers::DeleteQuery>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!("DELETE FROM pieces WHERE id = ?", id)
-        .execute(&pool)
-        .await?;
-    if result.rows_affected() == 0 {
-        return Err(Error::NotFound);
-    }
+    super::trash::delete(&pool, id, query.permanent).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_piece(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+) -> Result<Json<PieceDetail>, Error> {
+    super::trash::restore(&pool, id).await?;
+    get_piece(State(pool), Path(id)).await
 }
 
 pub async fn get_deltas(

@@ -2,6 +2,7 @@ pub mod handlers;
 pub mod models;
 pub mod moves;
 pub mod scenes;
+pub mod trash;
 
 use axum::{
     routing::{get, post},
@@ -29,6 +30,7 @@ pub fn routes(pool: SqlitePool) -> Router {
                 .put(handlers::update_piece)
                 .delete(handlers::delete_piece),
         )
+        .route("/pieces/{id}/restore", post(handlers::restore_piece))
         .route("/pieces/{id}/scenes", get(scenes::get_scenes))
         .route("/pieces/{id}/scenes/deltas", get(scenes::get_scene_deltas))
         .route(
