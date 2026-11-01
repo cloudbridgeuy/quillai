@@ -883,6 +883,10 @@ body {
     color: var(--ai-stream-color);
   }
 }
+::highlight(quillai-edit-selection) {
+  background-color: var(--pi-pink);
+}
+
 ::highlight(quillai-lore-include) {
   text-decoration: underline dotted var(--st-lav) 1.5px;
 }

@@ -100,6 +100,7 @@ import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { renderContinueTint } from "../continue_tint";
+import { trackEditSelectionHighlight } from "../edit_selection_highlight";
 import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
@@ -461,6 +462,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   useEffect(() => {
     if (editBoxOpen) editInstructionRef.current?.focus();
+  }, [editBoxOpen]);
+
+  useEffect(() => {
+    const quill = quillRef.current;
+    if (!editBoxOpen || !quill) return;
+    return trackEditSelectionHighlight(quill, lastEditSelectionRef.current);
   }, [editBoxOpen]);
 
   useEffect(() => {
