@@ -80,7 +80,7 @@ import { useChapterSync } from "../use_chapter_sync";
 import { useScriptSync } from "../use_script_sync";
 import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
-import { continueSelectionNote } from "../prompt_sections";
+import { continueSelectionNote, formatPromptParts } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
 import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
@@ -96,6 +96,7 @@ import { Field } from "../../ui/Field";
 import { Heading } from "../../ui/Heading";
 import { Toggle } from "../../ui/Toggle";
 import { Popover } from "../../ui/Popover";
+import { Modal } from "../../ui/Modal";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
@@ -279,6 +280,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const continueTriggerRef = useRef<HTMLButtonElement>(null);
+  const fullPromptTriggerRef = useRef<HTMLButtonElement>(null);
   const editorCanvasRef = useRef<HTMLDivElement>(null);
   const editAnchor = editTriggerRef.current?.getBoundingClientRect();
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
@@ -300,6 +302,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
+  const [fullPromptOpen, setFullPromptOpen] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [settingsClient] = useState(createSettingsClient);
   const [authorGuidance, setAuthorGuidance] = useState("");
   const [guidanceDraft, setGuidanceDraft] = useState("");
@@ -490,7 +494,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
-      if (event.key === "Escape" && event.target instanceof Element && event.target.closest("[data-manuscript-draft]")) return;
+      if (event.key === "Escape" && event.target instanceof Element && event.target.closest("dialog[open], [data-manuscript-draft]")) return;
       const aiAction = aiShortcut(event);
       const target = event.target;
       if (aiAction && target instanceof Element && aiShortcutFocusAllowed(
@@ -1580,6 +1584,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               <p className="editor-note">{contextInspector.requestLabel}</p>
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
               <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
+              <Button ref={fullPromptTriggerRef} size="sm" onClick={() => { setCopyFailed(false); setFullPromptOpen(true); }}>
+                {formatMessage(defaultLocale, "inspector.fullPrompt")}
+              </Button>
               <section className="editor-preview-section" aria-label="Injected lore">
                 <div className="editor-preview-section-header"><Heading level="section" as="h3">Injected lore</Heading></div>
                 <p className="editor-note">Next request · {contextInspector.lore.maxCharacters.toLocaleString()} UTF-16 character budget. Pins can exceed it.</p>
@@ -1663,7 +1670,27 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           </div>
         </aside>
       </div>
-
+      {fullPromptOpen && typeof contextInspector !== "string" ? (() => {
+        const parts = formatPromptParts(contextInspector.sections, contextInspector.promptHistory);
+        return <Modal title={formatMessage(defaultLocale, "inspector.fullPrompt")} onClose={() => setFullPromptOpen(false)}
+          returnFocusRef={fullPromptTriggerRef}
+          className="w-full max-w-3xl max-h-full overflow-y-auto"
+          footer={<Button size="sm" onClick={async () => {
+            setCopyFailed(false);
+            try {
+              await navigator.clipboard.writeText(parts.map(part => `${part.label}\n${part.text}`).join("\n\n"));
+            } catch {
+              setCopyFailed(true);
+            }
+          }}>{formatMessage(defaultLocale, "inspector.copy")}</Button>}>
+          <p>{contextInspector.tokenEstimateLabel}: {contextInspector.totalTokens}</p>
+          {copyFailed ? <Alert tone="inline">{formatMessage(defaultLocale, "inspector.copyFailed")}</Alert> : null}
+          <div className="space-y-4">{parts.map((part, index) => <section key={index}>
+            <Heading level="section" as="h3">{part.label}</Heading>
+            <pre className="whitespace-pre-wrap break-words font-mono text-ui">{part.text}</pre>
+          </section>)}</div>
+        </Modal>;
+      })() : null}
     </div>
   );
 };

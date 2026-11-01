@@ -3,6 +3,7 @@ import { DEFAULT_MAX_LORE_CHARACTERS, type AiGenerateRequest } from "./ai_contra
 import { matchLoreEntries, matchLoreOccurrences, type LoreMatchEntry } from "./lore_match";
 import {
   assemblePromptSections,
+  assemblePromptHistory,
   TOKEN_ESTIMATE_LABEL,
   totalEstimatedTokens,
   promptHistory,
@@ -34,6 +35,7 @@ export function buildContextInspector(request: AiGenerateRequest, authorGuidance
   return {
     sections,
     history,
+    promptHistory: assemblePromptHistory(request),
     requestLabel: request.action === "edit" ? "Edit selection" : history.length > 0 ? formatMessage(defaultLocale, "thread.resumeOption") : "Continue",
     totalTokens: totalEstimatedTokens(sections),
     tokenEstimateLabel: TOKEN_ESTIMATE_LABEL,

@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { buildAiRequest, type AiGenerateRequest } from "./ai_contract";
 import {
   assemblePromptSections,
+  assemblePromptHistory,
+  formatPromptParts,
   estimateTokens,
   continueSelectionNote,
   TOKEN_ESTIMATE_LABEL,
@@ -186,4 +188,21 @@ describe("token estimates", () => {
 test("Continue selection note preserves selected Unicode text in both locales", () => {
   expect(continueSelectionNote("quiet 🛥️ harbour", "en")).toBe("Caret after “quiet 🛥️ harbour”: Continue writes here.");
   expect(continueSelectionNote("puerto 🛥️", "es")).toBe("Cursor después de «puerto 🛥️»: Continuar escribe aquí.");
+});
+
+test("full prompt parts retain section order and separate escaped history turns", () => {
+  const input = request({
+    messages: [{ role: "user", content: "Replaced history" }],
+    lore: [{ name: "Mira", kind: "character", visible_text: "Navigator", level: "include" }],
+    sectionOverrides: { document: "Edited document", history: [{ role: "user", text: "first <turn>" }, { role: "assistant", text: "second & last" }] },
+  });
+  const parts = formatPromptParts(assemblePromptSections(input, "Guidance"), assemblePromptHistory(input));
+  expect(parts.map(part => part.label)).toEqual([
+    "System", "Author guidance", "History · user 1", "History · assistant 2", "Instruction", "Story context", "Lore", "Selection", "Document",
+  ]);
+  expect(parts[2]?.text).toBe("first &lt;turn&gt;");
+  expect(parts[3]?.text).toBe("second &amp; last");
+  expect(parts[6]?.text).toContain("Navigator");
+  expect(parts.at(-1)?.text).toContain("Edited document");
+  expect(formatPromptParts(assemblePromptSections(request()), []).find(part => part.label === "History")?.text).toBe("");
 });

@@ -40,6 +40,12 @@ export function totalEstimatedTokens(sections: readonly PromptSection[]): number
   return sections.reduce((total, section) => total + section.tokens, 0);
 }
 
+export function formatPromptParts(sections: readonly PromptSection[], history: readonly AiHistoryMessage[]): { label: string; text: string }[] {
+  return sections.flatMap(section => section.id === "history" && history.length > 0
+    ? history.map((message, index) => ({ label: `${section.label} · ${message.role} ${index + 1}`, text: message.content }))
+    : [{ label: section.label, text: section.text }]);
+}
+
 export function assemblePromptSections(input: AiGenerateRequest, authorGuidance = ""): PromptSection[] {
   const overrides = input.sectionOverrides ?? {};
   const defaultInstruction = input.action === "generate"

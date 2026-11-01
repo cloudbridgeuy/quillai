@@ -20,6 +20,9 @@ export type MessageShape<Source> = {
 };
 
 export const en = {
+  "inspector.fullPrompt": "Full prompt",
+  "inspector.copy": "Copy",
+  "inspector.copyFailed": "Could not copy prompt.",
   "inspector.caretAfterSelection": "Caret after “{text}”: Continue writes here.",
   "action.save": "Save",
   "action.saving": "Saving…",
@@ -49,6 +52,9 @@ export const en = {
 export type MessageKey = keyof typeof en;
 
 export const es = {
+  "inspector.fullPrompt": "Prompt completo",
+  "inspector.copy": "Copiar",
+  "inspector.copyFailed": "No se pudo copiar el prompt.",
   "inspector.caretAfterSelection": "Cursor después de «{text}»: Continuar escribe aquí.",
   "action.save": "Guardar",
   "action.saving": "Guardando…",
