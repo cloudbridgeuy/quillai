@@ -257,7 +257,7 @@ async fn deleting_book_cascades_chapters() {
         request(
             &app,
             "DELETE",
-            &format!("{collection}/{}", book["id"]),
+            &format!("{collection}/{}?permanent=true", book["id"]),
             Value::Null
         )
         .await,
@@ -283,7 +283,7 @@ async fn deleting_series_cascades_books() {
         request(
             &app,
             "DELETE",
-            &format!("/series/{}", book["series_id"]),
+            &format!("/series/{}?permanent=true", book["series_id"]),
             Value::Null
         )
         .await,

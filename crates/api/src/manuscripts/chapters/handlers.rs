@@ -157,7 +157,7 @@ async fn trash_piece(
     pool: &SqlitePool,
     (series_id, book_id, chapter_id): (i64, i64, i64),
 ) -> Result<i64, Error> {
-    sqlx::query_scalar::<_, i64>("SELECT p.id FROM pieces p JOIN legacy_books b ON b.piece_id = p.parent_id WHERE p.legacy_chapter_id = ? AND b.id = ? AND b.series_id = ? AND p.shape = 'leaf' AND p.label IN ('prologue', 'chapter', 'epilogue')")
+    sqlx::query_scalar::<_, i64>("SELECT p.id FROM pieces p JOIN pieces b ON b.id = p.parent_id JOIN containers c ON c.id = b.container_id WHERE p.legacy_chapter_id = ? AND b.legacy_book_id = ? AND c.id = ? AND c.kind = 'book_series' AND b.shape = 'group' AND b.label = 'novel' AND b.format = 'prose' AND p.shape = 'leaf' AND p.label IN ('prologue', 'chapter', 'epilogue')")
         .bind(chapter_id).bind(book_id).bind(series_id).fetch_optional(pool).await?.ok_or(Error::NotFound)
 }
 

@@ -205,6 +205,18 @@ async fn scene_and_group_trash_are_independent() {
         .1;
     assert_eq!(scenes["scenes"].as_array().unwrap().len(), 1);
     assert_eq!(scenes["scenes"][0]["id"], two["id"]);
+    let (_, three) = request(
+        &app,
+        "POST",
+        &children,
+        json!({"title":"Three", "position":2, "label":"scene"}),
+    )
+    .await;
+    let three_path = format!("/pieces/{}", three["id"]);
+    assert_eq!(
+        request(&app, "DELETE", &three_path, Value::Null).await.0,
+        StatusCode::NO_CONTENT
+    );
     assert_eq!(
         request(&app, "DELETE", &group_path, Value::Null).await.0,
         StatusCode::NO_CONTENT
@@ -278,8 +290,24 @@ async fn scene_and_group_trash_are_independent() {
         request(&app, "POST", &format!("{one_path}/restore"), Value::Null)
             .await
             .0,
+        StatusCode::OK
+    );
+    for uri in [&one_path, &group_path] {
+        assert_eq!(
+            request(&app, "GET", uri, Value::Null).await.0,
+            StatusCode::OK
+        );
+    }
+    assert_eq!(
+        request(&app, "GET", &three_path, Value::Null).await.0,
         StatusCode::NOT_FOUND
     );
+    for uri in [&one_path, &group_path] {
+        assert_eq!(
+            request(&app, "DELETE", uri, Value::Null).await.0,
+            StatusCode::NO_CONTENT
+        );
+    }
     assert_eq!(
         request(&app, "POST", &format!("{group_path}/restore"), Value::Null)
             .await

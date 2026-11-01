@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -94,16 +94,23 @@ pub async fn update_book(
 pub async fn delete_book(
     State(pool): State<SqlitePool>,
     Path((series_id, book_id)): Path<(i64, i64)>,
+    Query(query): Query<crate::manuscripts::lore::handlers::DeleteQuery>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!(
-        "DELETE FROM pieces WHERE id = (SELECT piece_id FROM legacy_books WHERE series_id = ? AND id = ?)",
-        series_id,
-        book_id,
-    )
-    .execute(&pool)
-    .await?;
-    if result.rows_affected() == 0 {
-        return Err(Error::NotFound);
-    }
+    let id = trash_piece(&pool, series_id, book_id).await?;
+    crate::manuscripts::pieces::trash::delete(&pool, id, query.permanent).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn trash_piece(pool: &SqlitePool, series_id: i64, book_id: i64) -> Result<i64, Error> {
+    sqlx::query_scalar::<_, i64>("SELECT p.id FROM pieces p JOIN containers c ON c.id = p.container_id WHERE c.id = ? AND c.kind = 'book_series' AND p.legacy_book_id = ? AND p.shape = 'group' AND p.label = 'novel' AND p.format = 'prose'")
+        .bind(series_id).bind(book_id).fetch_optional(pool).await?.ok_or(Error::NotFound)
+}
+
+pub async fn restore_book(
+    State(pool): State<SqlitePool>,
+    Path((series_id, book_id)): Path<(i64, i64)>,
+) -> Result<Json<Book>, Error> {
+    let id = trash_piece(&pool, series_id, book_id).await?;
+    crate::manuscripts::pieces::trash::restore(&pool, id).await?;
+    get_book(State(pool), Path((series_id, book_id))).await
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, title, position FROM universes WHERE id = ?",
+  "query": "SELECT id, title, position FROM universes WHERE id = ? AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "18ea8a0a561d8ae4a8950c352209ed5af9097e186ce8ef49ae5898faa2146774"
+  "hash": "48e3eee8a567761161734d3ccad17da364efec06ed74c950a8cb0a407a0a498f"
 }

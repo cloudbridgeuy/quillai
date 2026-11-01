@@ -3,7 +3,7 @@ use axum::{
 };
 use sqlx::sqlite::SqlitePool;
 
-use super::handlers::{detail, piece};
+use super::handlers::{container_universe, detail, piece};
 use super::models::{Attach, Piece, PieceDetail, Placement, Split};
 use crate::error::Error;
 use crate::manuscripts::{json_input, series::models::validate_position, trigger_rejection};
@@ -19,6 +19,22 @@ pub async fn place(
     let current = piece(&mut transaction, id).await?;
     if current.parent_id.is_some() && input.container_id.is_some() {
         return Err(Error::Validation("a child detaches to storage only".into()));
+    }
+    if let Some(container_id) = input.container_id {
+        match container_universe(&mut transaction, container_id).await {
+            Err(Error::NotFound)
+                if sqlx::query_scalar::<_, i64>("SELECT id FROM containers WHERE id = ?")
+                    .bind(container_id)
+                    .fetch_optional(&mut *transaction)
+                    .await?
+                    .is_none() =>
+            {
+                return Err(Error::Validation(
+                    "placement container does not exist".into(),
+                ));
+            }
+            result => result?,
+        };
     }
     let moved = sqlx::query_as!(
         Piece,

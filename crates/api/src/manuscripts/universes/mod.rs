@@ -32,5 +32,6 @@ pub fn routes(pool: SqlitePool) -> Router {
             "/universes/{id}/lore/{lore_id}/restore",
             post(handlers::restore_lore),
         )
+        .route("/universes/{id}/restore", post(handlers::restore_universe))
         .with_state(pool)
 }

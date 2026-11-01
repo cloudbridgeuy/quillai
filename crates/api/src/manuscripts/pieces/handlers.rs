@@ -124,12 +124,12 @@ pub async fn create_loose_piece(
     Ok((StatusCode::CREATED, Json(piece)))
 }
 
-async fn container_universe(
+pub(super) async fn container_universe(
     connection: &mut SqliteConnection,
     container_id: i64,
 ) -> Result<i64, Error> {
     sqlx::query_scalar!(
-        "SELECT universe_id FROM containers WHERE id = ?",
+        "SELECT universe_id FROM containers WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL)",
         container_id
     )
     .fetch_optional(connection)

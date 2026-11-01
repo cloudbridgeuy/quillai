@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE universes SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? RETURNING id, title, position",
+  "query": "SELECT id, title, position FROM universes WHERE deleted_at IS NULL ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 0
     },
     "nullable": [
       false,
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "e7dc637d57969b88dba7c66c26de91dd06c04f097c33e1a4450d34f033a99444"
+  "hash": "8e823a660de2993db87bdd5a4bb9a1a9542dc0c011c5f6f98db7ae55d50dd40c"
 }

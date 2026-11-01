@@ -20,17 +20,20 @@ pub(crate) async fn existing_universe(
     connection: &mut SqliteConnection,
     id: i64,
 ) -> Result<(), Error> {
-    sqlx::query_scalar!("SELECT id FROM universes WHERE id = ?", id)
-        .fetch_optional(connection)
-        .await?
-        .ok_or(Error::NotFound)?;
+    sqlx::query_scalar!(
+        "SELECT id FROM universes WHERE id = ? AND deleted_at IS NULL",
+        id
+    )
+    .fetch_optional(connection)
+    .await?
+    .ok_or(Error::NotFound)?;
     Ok(())
 }
 
 pub async fn list_universes(State(pool): State<SqlitePool>) -> Result<Json<Vec<Universe>>, Error> {
     let universes = sqlx::query_as!(
         Universe,
-        "SELECT id, title, position FROM universes ORDER BY position, id"
+        "SELECT id, title, position FROM universes WHERE deleted_at IS NULL ORDER BY position, id"
     )
     .fetch_all(&pool)
     .await?;
@@ -60,7 +63,7 @@ pub async fn get_universe(
 ) -> Result<Json<Universe>, Error> {
     let universe = sqlx::query_as!(
         Universe,
-        "SELECT id, title, position FROM universes WHERE id = ?",
+        "SELECT id, title, position FROM universes WHERE id = ? AND deleted_at IS NULL",
         id
     )
     .fetch_optional(&pool)
@@ -78,7 +81,7 @@ pub async fn update_universe(
     input.validate()?;
     let universe = sqlx::query_as!(
         Universe,
-        "UPDATE universes SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? RETURNING id, title, position",
+        "UPDATE universes SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND deleted_at IS NULL RETURNING id, title, position",
         input.title,
         input.position,
         id,
@@ -92,14 +95,42 @@ pub async fn update_universe(
 pub async fn delete_universe(
     State(pool): State<SqlitePool>,
     Path(id): Path<i64>,
+    Query(query): Query<DeleteQuery>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!("DELETE FROM universes WHERE id = ?", id)
+    let sql = if query.permanent {
+        "DELETE FROM universes WHERE id = ?"
+    } else {
+        "UPDATE universes SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL"
+    };
+    if sqlx::query(sql)
+        .bind(id)
         .execute(&pool)
-        .await?;
-    if result.rows_affected() == 0 {
+        .await?
+        .rows_affected()
+        == 0
+    {
         return Err(Error::NotFound);
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_universe(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+) -> Result<Json<Universe>, Error> {
+    let mut transaction = pool.begin().await?;
+    let exists = sqlx::query_scalar::<_, i64>(
+        "SELECT id FROM universes WHERE id = ? AND deleted_at IS NOT NULL",
+    )
+    .bind(id)
+    .fetch_optional(&mut *transaction)
+    .await?;
+    if exists.is_none() {
+        return Err(Error::NotFound);
+    }
+    crate::manuscripts::pieces::trash::restore_universe(&mut transaction, id).await?;
+    transaction.commit().await?;
+    get_universe(State(pool), Path(id)).await
 }
 
 pub async fn list_lore(
@@ -131,6 +162,7 @@ pub async fn get_lore(
     Path((universe_id, lore_id)): Path<(i64, i64)>,
 ) -> Result<Json<UniverseLoreEntry>, Error> {
     let mut connection = pool.acquire().await?;
+    existing_universe(&mut connection, universe_id).await?;
     Ok(Json(
         store::get(&mut connection, universe_id, lore_id).await?,
     ))
@@ -143,6 +175,7 @@ pub async fn update_lore(
 ) -> Result<Json<UniverseLoreEntry>, Error> {
     let input = parse_input(input, false)?;
     let mut connection = pool.acquire().await?;
+    existing_universe(&mut connection, universe_id).await?;
     Ok(Json(
         store::update(&mut connection, universe_id, lore_id, input).await?,
     ))
@@ -154,6 +187,7 @@ pub async fn delete_lore(
     Query(query): Query<DeleteQuery>,
 ) -> Result<StatusCode, Error> {
     let mut connection = pool.acquire().await?;
+    existing_universe(&mut connection, universe_id).await?;
     if query.permanent {
         store::permanent_delete(&mut connection, universe_id, lore_id).await?;
     } else {
@@ -167,6 +201,7 @@ pub async fn restore_lore(
     Path((universe_id, lore_id)): Path<(i64, i64)>,
 ) -> Result<Json<UniverseLoreEntry>, Error> {
     let mut transaction = pool.begin().await?;
+    existing_universe(&mut transaction, universe_id).await?;
     let entry = store::restore(&mut transaction, universe_id, lore_id).await?;
     transaction.commit().await?;
     Ok(Json(entry))

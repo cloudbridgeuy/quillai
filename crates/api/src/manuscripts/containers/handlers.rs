@@ -1,5 +1,5 @@
 use axum::{
-    extract::{rejection::JsonRejection, Path, State},
+    extract::{rejection::JsonRejection, Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -17,7 +17,7 @@ pub async fn list_containers(
     existing_universe(&mut transaction, universe_id).await?;
     let containers = sqlx::query_as!(
         Container,
-        r#"SELECT id AS "id!", universe_id, title, position, kind FROM containers WHERE universe_id = ? ORDER BY position, id"#,
+        r#"SELECT id AS "id!", universe_id, title, position, kind FROM containers WHERE universe_id = ? AND deleted_at IS NULL ORDER BY position, id"#,
         universe_id
     )
     .fetch_all(&mut *transaction)
@@ -55,7 +55,7 @@ pub async fn get_container(
 ) -> Result<Json<Container>, Error> {
     let container = sqlx::query_as!(
         Container,
-        "SELECT id, universe_id, title, position, kind FROM containers WHERE id = ?",
+        "SELECT id, universe_id, title, position, kind FROM containers WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL)",
         id
     )
     .fetch_optional(&pool)
@@ -73,7 +73,7 @@ pub async fn update_container(
     input.validate()?;
     let container = sqlx::query_as!(
         Container,
-        "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? RETURNING id, universe_id, title, position, kind",
+        "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL) RETURNING id, universe_id, title, position, kind",
         input.title,
         input.position,
         id,
@@ -87,12 +87,33 @@ pub async fn update_container(
 pub async fn delete_container(
     State(pool): State<SqlitePool>,
     Path(id): Path<i64>,
+    Query(query): Query<crate::manuscripts::lore::handlers::DeleteQuery>,
 ) -> Result<StatusCode, Error> {
-    let result = sqlx::query!("DELETE FROM containers WHERE id = ?", id)
+    let sql = if query.permanent {
+        "DELETE FROM containers WHERE id = ?"
+    } else {
+        "UPDATE containers SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL)"
+    };
+    if sqlx::query(sql)
+        .bind(id)
         .execute(&pool)
-        .await?;
-    if result.rows_affected() == 0 {
+        .await?
+        .rows_affected()
+        == 0
+    {
         return Err(Error::NotFound);
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_container(
+    State(pool): State<SqlitePool>,
+    Path(id): Path<i64>,
+) -> Result<Json<Container>, Error> {
+    let mut transaction = pool.begin().await?;
+    let universe_id = sqlx::query_scalar::<_, i64>("SELECT universe_id FROM containers WHERE id = ? AND (deleted_at IS NOT NULL OR universe_id IN (SELECT id FROM universes WHERE deleted_at IS NOT NULL))").bind(id).fetch_optional(&mut *transaction).await?.ok_or(Error::NotFound)?;
+    crate::manuscripts::pieces::trash::restore_universe(&mut transaction, universe_id).await?;
+    crate::manuscripts::pieces::trash::restore_container(&mut transaction, id).await?;
+    transaction.commit().await?;
+    get_container(State(pool), Path(id)).await
 }

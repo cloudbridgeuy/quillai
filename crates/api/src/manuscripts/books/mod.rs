@@ -1,7 +1,10 @@
 pub mod handlers;
 pub mod models;
 
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use sqlx::sqlite::SqlitePool;
 
 pub fn routes(pool: SqlitePool) -> Router {
@@ -15,6 +18,10 @@ pub fn routes(pool: SqlitePool) -> Router {
             get(handlers::get_book)
                 .put(handlers::update_book)
                 .delete(handlers::delete_book),
+        )
+        .route(
+            "/series/{id}/books/{book_id}/restore",
+            post(handlers::restore_book),
         )
         .with_state(pool)
 }

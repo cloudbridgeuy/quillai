@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", universe_id, title, position, kind FROM containers WHERE universe_id = ? ORDER BY position, id",
+  "query": "SELECT id AS \"id!\", universe_id, title, position, kind FROM containers WHERE universe_id = ? AND deleted_at IS NULL ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "ce49f673c2d5063bf1d2a3d3787e476aa390281701b8eb55542af6bfd186a718"
+  "hash": "244165e8493fd118652b217e5e74af5d58053574735da8c5887264589268baa3"
 }

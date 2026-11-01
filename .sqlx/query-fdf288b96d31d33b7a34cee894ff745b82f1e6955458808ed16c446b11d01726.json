@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND kind = 'book_series' RETURNING id, title, position",
+  "query": "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND id IN (SELECT id FROM legacy_series) RETURNING id, title, position",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "eea8f7cb61dcad15b14e5a25f1d32accf9f41aec06d8e3e23668ffff6bb27068"
+  "hash": "fdf288b96d31d33b7a34cee894ff745b82f1e6955458808ed16c446b11d01726"
 }

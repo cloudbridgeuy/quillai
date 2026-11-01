@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, universe_id, title, position, kind FROM containers WHERE id = ?",
+  "query": "UPDATE containers SET title = COALESCE(?, title), position = COALESCE(?, position) WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL) RETURNING id, universe_id, title, position, kind",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 3
     },
     "nullable": [
       false,
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "f02ae6ab3a89344bd495fc1eda64dfc6e10799b9b1369763b02841816a1ca8a4"
+  "hash": "9c434a1e2ed1b0dfaa0976579909d25db1934607f07d646bee9e48cf259575b7"
 }

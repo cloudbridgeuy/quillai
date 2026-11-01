@@ -349,7 +349,13 @@ async fn order_by_name_then_id_and_cascade_delete() {
         (StatusCode::OK, json!([moved, first, tied]))
     );
     assert_eq!(
-        request(&app, "DELETE", &format!("/series/{series_id}"), Value::Null).await,
+        request(
+            &app,
+            "DELETE",
+            &format!("/series/{series_id}?permanent=true"),
+            Value::Null
+        )
+        .await,
         (StatusCode::NO_CONTENT, Value::Null)
     );
     let count: i64 = sqlx::query_scalar("SELECT count(*) FROM lore_entries WHERE id <> ?")

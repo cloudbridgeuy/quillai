@@ -108,7 +108,13 @@ async fn universes_crud_validates_and_cascades() {
     )
     .await;
     assert_eq!(
-        status(&app, "DELETE", &uri, Value::Null).await,
+        status(
+            &app,
+            "DELETE",
+            &format!("{uri}?permanent=true"),
+            Value::Null
+        )
+        .await,
         StatusCode::NO_CONTENT
     );
     for method in ["GET", "PUT", "DELETE"] {

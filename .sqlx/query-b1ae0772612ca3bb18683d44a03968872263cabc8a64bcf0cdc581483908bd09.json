@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT universe_id FROM containers WHERE id = ?",
+  "query": "SELECT universe_id FROM containers WHERE id = ? AND deleted_at IS NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL)",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "0e32a6f019ba5e37ea922eeb5aa7d4632cc69426a044ae8a7916a7eb1ece738b"
+  "hash": "b1ae0772612ca3bb18683d44a03968872263cabc8a64bcf0cdc581483908bd09"
 }
