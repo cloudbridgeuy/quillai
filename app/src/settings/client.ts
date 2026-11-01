@@ -1,10 +1,11 @@
+import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import { parseApiError } from "../manuscripts/contract";
 
 export type AuthorGuidance = { text: string };
 
 export class SettingsApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string, readonly kind: "http" | "invalid_response") {
+  constructor(message: string, readonly status: number, readonly code: string, readonly kind: "http" | "invalid_response", readonly detail?: string) {
     super(message);
     this.name = "SettingsApiError";
   }
@@ -34,7 +35,7 @@ export function createSettingsClient({
       } catch {
         throw new SettingsApiError(`HTTP ${response.status}: invalid error response`, response.status, "INVALID_RESPONSE", "invalid_response");
       }
-      throw new SettingsApiError(error.error, response.status, error.code, "http");
+      throw new SettingsApiError(apiErrorMessage(error.code, error.error), response.status, error.code, "http", error.error);
     }
     try {
       if (response.status !== 200) throw new Error("Expected HTTP 200");

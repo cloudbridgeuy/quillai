@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import type { LoreMatchEntry } from "../md_editor/lore_match";
 import { ManuscriptApiError } from "./client";
@@ -50,7 +51,7 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
       try { error = parseApiError(await response.json()); } catch {
         throw new ManuscriptApiError(`HTTP ${response.status}: invalid error response`, response.status, "INVALID_RESPONSE", "invalid_response");
       }
-      throw new ManuscriptApiError(error.error, response.status, error.code, "http");
+      throw new ManuscriptApiError(apiErrorMessage(error.code, error.error), response.status, error.code, "http", error.error);
     }
     try {
       if (response.status !== status) throw new Error(`Expected HTTP ${status}`);

@@ -1,12 +1,12 @@
 import Delta from "quill-delta";
-import type { createManuscriptClient } from "../manuscripts/client";
+import { ManuscriptApiError, type createManuscriptClient } from "../manuscripts/client";
 import { parseDelta, type Chapter, type ChapterScope, type EditorScope, type PieceScope, type Revision } from "../manuscripts/contract";
 import { sameScope } from "../manuscripts/story_tree";
 import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 
 type Client = ReturnType<typeof createManuscriptClient>;
-export type SyncProblem = { kind: "retrying" | "blocked"; message: string };
+export type SyncProblem = { kind: "retrying" | "blocked"; message: string; detail?: string };
 
 export type EditorDocument = Pick<Chapter, "title" | "content" | "head_rev">;
 
@@ -77,6 +77,7 @@ export function createChapterSession(
   let stopped = false;
   let problem: SyncProblem | null = null;
   let lastError: string | null = null;
+  let lastDetail: string | undefined;
   let acknowledgement: Revision | null = null;
   const notify = () => publish(syncDocument(state), hasLocalChanges(state), problem);
 
@@ -98,9 +99,11 @@ export function createChapterSession(
   function rememberFailure(error: unknown, uncertainPost: boolean) {
     const message = errorMessage(error);
     lastError = message;
+    lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
     problem = uncertainPost || !(error instanceof TypeError)
       ? { kind: "blocked", message: `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.` }
       : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` };
+    if (lastDetail) problem.detail = lastDetail;
     notify();
   }
 
@@ -132,6 +135,7 @@ export function createChapterSession(
     if (stopped) return;
     if (acknowledged) {
       lastError = null;
+      lastDetail = undefined;
       problem = null;
       notify();
       return;
@@ -140,6 +144,7 @@ export function createChapterSession(
     problem = {
       kind: "retrying",
       message: `Save stopped: ${lastError ?? "Unknown synchronization error"}. Local work retained; polling will retry.`,
+      ...(lastDetail ? { detail: lastDetail } : {}),
     };
     notify();
   }
@@ -162,9 +167,11 @@ export function createChapterSession(
             if (stopped) return;
             posting = false;
             lastError = errorMessage(error);
+            lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
             problem = {
               kind: "retrying",
               message: `Save stopped: ${lastError}. Local work retained; polling will retry.`,
+              ...(lastDetail ? { detail: lastDetail } : {}),
             };
             notify();
             return;
@@ -178,6 +185,7 @@ export function createChapterSession(
       state = receiveRevisions(state, revisions, acknowledgement);
       acknowledgement = null;
       lastError = null;
+      lastDetail = undefined;
       problem = null;
       notify();
     } catch (error) {

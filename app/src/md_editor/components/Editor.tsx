@@ -104,6 +104,7 @@ import { trackEditSelectionHighlight } from "../edit_selection_highlight";
 import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
+import { apiErrorMessage } from "../../api_error";
 import { getApiBaseUrl } from "../../api_config";
 import { parseModelCatalog, resolveModelChoice, type ModelCatalog } from "../model_catalog";
 import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
@@ -174,22 +175,24 @@ function getStoredEditorState(): PersistedEditorState {
   }
 }
 
-function getAiErrorMessage(responseText: string, status: number): string {
+function getAiErrorMessage(responseText: string, status: number): Error {
   const trimmed = responseText.trim();
   if (trimmed === "") {
-    return `AI request failed (${status}).`;
+    return new Error(`AI request failed (${status}).`);
   }
 
   try {
-    const parsed = JSON.parse(trimmed) as { error?: unknown };
+    const parsed = JSON.parse(trimmed) as { error?: unknown; code?: unknown };
     if (typeof parsed.error === "string" && parsed.error.trim() !== "") {
-      return parsed.error.trim();
+      const detail = parsed.error.trim();
+      const message = apiErrorMessage(typeof parsed.code === "string" ? parsed.code : "", detail);
+      return Object.assign(new Error(message), message === detail ? {} : { detail });
     }
   } catch {
-    return trimmed;
+    return new Error(trimmed);
   }
 
-  return trimmed;
+  return new Error(trimmed);
 }
 
 export const Component = forwardRef<Quill, ComponentPropsT>(
@@ -616,8 +619,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     return error instanceof Error ? error.message : "Unknown AI run failure";
   }
 
-  function setAiFailure(action: AiAction | null, error: string) {
-    updateAiRunState({ status: "failed", action, error });
+  function setAiFailure(action: AiAction | null, error: string, detail?: string) {
+    updateAiRunState({ status: "failed", action, error, ...(detail ? { detail } : {}) });
   }
 
   function updateThreadState(nextState: AiThreadState) {
@@ -879,7 +882,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       );
 
       if (!response.ok) {
-        throw new Error(getAiErrorMessage(await response.text(), response.status));
+        throw getAiErrorMessage(await response.text(), response.status);
       }
 
       setSectionOverrides((current) => ({ ...current, [action]: {} }));
@@ -1112,12 +1115,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         }
       } else {
         const failureMessage = getUnknownAiFailureMessage(error);
-        const failed = failRun(aiRunStateRef.current, failureMessage);
+        const detail = error instanceof Error && "detail" in error && typeof error.detail === "string" ? error.detail : undefined;
+        const failed = failRun(aiRunStateRef.current, failureMessage, detail);
 
         if (failed.ok) {
           updateAiRunState(failed.state);
         } else {
-          setAiFailure(action, failureMessage);
+          setAiFailure(action, failureMessage, detail);
         }
 
         if (concurrentContinue) {
@@ -1379,11 +1383,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           </Alert> : null}
         </div>
         {savePresentation.failed ? <Alert tone="fail" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
-          title={savePresentation.detail} aria-describedby="chapter-save-detail">
+          title={chapterSync.detail ?? savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
-          <span id="chapter-save-detail" className="sr-only">{savePresentation.detail}</span>
+          <span id="chapter-save-detail" className="sr-only">{chapterSync.detail ?? savePresentation.detail}</span>
         </Alert> : <p className="editor-save-status"
-          role="status" aria-label="Chapter save status" aria-live="polite" title={savePresentation.detail}>
+          role="status" aria-label="Chapter save status" aria-live="polite" title={chapterSync.detail ?? savePresentation.detail}>
           <span>{savePresentation.label}</span>
         </p>}
         {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
@@ -1406,7 +1410,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="fail" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
-          editFailure ? <Alert tone="fail" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={editFailure.title}>{editFailure.label}</Alert>
+          editFailure ? <Alert tone="fail" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={aiRunState.status === "failed" ? aiRunState.detail ?? editFailure.title : editFailure.title}>{editFailure.label}{aiRunState.status === "failed" && aiRunState.detail ? <span className="sr-only">{aiRunState.detail}</span> : null}</Alert>
             : <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
       </div>

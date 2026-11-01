@@ -5,7 +5,7 @@ export type AiRunState =
   | { status: "continuing"; action: "generate" }
   | { status: "editing"; action: "edit" }
   | { status: "cancelling"; action: AiAction }
-  | { status: "failed"; action: AiAction | null; error: string }
+  | { status: "failed"; action: AiAction | null; error: string; detail?: string }
   | { status: "finished"; action: AiAction; outcome: "done" | "cancelled" };
 
 export type AiStateTransitionResult =
@@ -52,6 +52,7 @@ export function finishRun(
 export function failRun(
   state: AiRunState,
   error: string,
+  detail?: string,
 ): AiStateTransitionResult {
   if (!canFail(state)) {
     return invalidTransition(state, "failed");
@@ -61,6 +62,7 @@ export function failRun(
     status: "failed",
     action: state.action,
     error: normalizeErrorMessage(error),
+    ...(detail ? { detail } : {}),
   });
 }
 

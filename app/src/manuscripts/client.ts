@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import {
   parseApiError, parseBook, parseChapter, parseChapterSummary, parseContainer, parseList, parsePiece,
@@ -15,6 +16,7 @@ export class ManuscriptApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly kind: "http" | "invalid_response",
+    readonly detail?: string,
   ) {
     super(message);
     this.name = "ManuscriptApiError";
@@ -82,7 +84,7 @@ export function createManuscriptClient({
           `HTTP ${response.status}: invalid error response`, response.status, "INVALID_RESPONSE", "invalid_response",
         );
       }
-      throw new ManuscriptApiError(error.error, response.status, error.code, "http");
+      throw new ManuscriptApiError(apiErrorMessage(error.code, error.error), response.status, error.code, "http", error.error);
     }
     try {
       if (response.status !== status) throw new Error(`Expected HTTP ${status}`);

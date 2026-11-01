@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import Delta from "quill-delta";
-import { createManuscriptClient } from "../manuscripts/client";
+import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
 import type { EditorScope, PieceScope, ScriptGroup } from "../manuscripts/contract";
 import { createChapterSession, type SyncProblem } from "./chapter_session";
 import { chapterDelta } from "./chapter_sync";
@@ -52,6 +52,7 @@ export function useScriptSync(
   groupId: number,
 ) {
   const [status, setStatus] = useState("Loading script…");
+  const [detail, setDetail] = useState<string>();
   const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -115,6 +116,7 @@ export function useScriptSync(
       const scenes = scenesRef.current;
       const failing = scenes.find((scene) => scene.problem !== null);
       setBlocked(scenes.some((scene) => scene.problem?.kind === "blocked"));
+      setDetail(failing?.problem?.detail);
       setStatus(failing?.problem
         ? `${failing.title}: ${failing.problem.message}`
         : `${groupTitle} · ${scenes.some((scene) => scene.dirty) ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
@@ -191,7 +193,10 @@ export function useScriptSync(
     queueMicrotask(() => {
       if (disposed) return;
       void client.getScriptGroup({ pieceId: groupId }).then(open).catch((error: unknown) => {
-        if (!disposed) setStatus(error instanceof Error ? error.message : "Script load failed.");
+        if (!disposed) {
+          setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
+          setStatus(error instanceof Error ? error.message : "Script load failed.");
+        }
       });
     });
     const timer = window.setInterval(() => {
@@ -326,11 +331,13 @@ export function useScriptSync(
     if (leavingRef.current || activeRef.current()) return false;
     leavingRef.current = true;
     setReady(false);
+    setDetail(undefined);
     setStatus(message);
     try {
       for (const scene of scenesRef.current) await scene.session.flush();
       return true;
     } catch (error) {
+      setDetail(scenesRef.current.find((scene) => scene.problem !== null)?.problem?.detail);
       setStatus(`Leaving stopped: ${error instanceof Error ? error.message : "Unknown error"} Current script retained.`);
       leavingRef.current = false;
       setReady(true);
@@ -390,6 +397,7 @@ export function useScriptSync(
     ready,
     blocked,
     status,
+    detail,
     title,
     scope,
     treeScope: scope && caretScene !== null ? { universeId: scope.universeId, pieceId: caretScene } : scope,

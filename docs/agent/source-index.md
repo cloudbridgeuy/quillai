@@ -44,6 +44,7 @@
 
 | File | Purpose |
 |------|---------|
+| `api_error.ts` | Maps storage error codes to localized messages while callers retain raw detail. |
 | `index.tsx` | Bun.serve entry — routes, static assets, HMR. Port via `PORT` env var |
 | `index.html`, `logo.svg`, `tab_title.ts` | HTML shell with QuillAI fallback title and palette quill favicon; pure chapter-aware tab title applied by Editor, covered by Bun and `e2e/tab-title.spec.ts` |
 | `App.tsx` | Root React component — renders the landing page when the URL has no `pieceId`, `seriesId`/`bookId`/`chapterId` or `editor` parameter, otherwise the editor, inside an ErrorBoundary. `?editor=1` opens the editor with its old first-chapter fallback. See [error boundary context](../../.claude/context/error-boundary.md) |

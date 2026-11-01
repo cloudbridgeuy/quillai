@@ -163,7 +163,7 @@ test("maps backend error messages, codes, and statuses", async () => {
       throw new Error("Expected rejection");
     } catch (error) {
       expect(error).toBeInstanceOf(ManuscriptApiError);
-      expect(error).toMatchObject({ message: "backend message", status, code, kind: "http" });
+      expect(error).toMatchObject({ message: code === "SQLX" ? "Couldn't reach your manuscript's storage. Your text is still here; try again." : "backend message", status, code, kind: "http", ...(code === "SQLX" ? { detail: "backend message" } : {}) });
     }
   }
 });

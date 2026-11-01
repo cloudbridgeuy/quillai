@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
-import { createManuscriptClient } from "../manuscripts/client";
+import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
 import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter, loadEditorDocument, NoEditorChapter, type EditorDocument } from "./chapter_session";
 import type { EditorScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
@@ -16,6 +16,7 @@ export function useChapterSync(
   onRemoteChange: () => void,
 ) {
   const [status, setStatus] = useState("Loading chapter…");
+  const [detail, setDetail] = useState<string>();
   const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -97,6 +98,7 @@ export function useChapterSync(
           remoteRef.current();
         }
         setBlocked(problem?.kind === "blocked");
+        setDetail(problem?.detail);
         setStatus(problem?.message ?? `${chapter.title} · ${dirty ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
         if (diffDocuments(quill.getContents(), document).ops.length > 0) session.edit(quill.getContents());
       });
@@ -106,6 +108,7 @@ export function useChapterSync(
       openedRef.current = JSON.stringify({ scope, title: chapter.title });
       setScope(scope);
       setBlocked(false);
+      setDetail(undefined);
       setTitle(chapter.title);
       setStatus(`${chapter.title} · Saved${storageFailed ? " · Recovery storage unavailable" : ""}`);
       setReady(true);
@@ -117,6 +120,7 @@ export function useChapterSync(
       if (!quill || !session || !canSwitchChapter(currentScope, target, switchingRef.current || activeRef.current())) return;
       switchingRef.current = true;
       setReady(false);
+      setDetail(undefined);
       setStatus("Saving current chapter before opening…");
       try {
         session.edit(quill.getContents());
@@ -127,6 +131,7 @@ export function useChapterSync(
         if (disposed) return;
         openChapter(target, chapter);
       } catch (error) {
+        if (!disposed && error instanceof ManuscriptApiError && error.detail !== error.message) setDetail(error.detail);
         if (!disposed) setStatus(`Chapter switch failed: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
       } finally {
         switchingRef.current = false;
@@ -137,6 +142,7 @@ export function useChapterSync(
       if (disposed) return;
       void loadEditorChapter(client, window.location.search).then(({ scope, chapter }) => openChapter(scope, chapter)).catch((error: unknown) => {
         if (!disposed) {
+          setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
           setStatus(error instanceof Error ? error.message : "Chapter load failed.");
           setNeedsChapter(error instanceof NoEditorChapter);
         }
@@ -166,6 +172,7 @@ export function useChapterSync(
     ready,
     blocked,
     status,
+    detail,
     title,
     scope,
     switchChapter: (target: EditorScope) => switchRef.current?.(target),
@@ -194,6 +201,7 @@ export function useChapterSync(
     needsChapter,
     async bootstrap() {
       setNeedsChapter(false);
+      setDetail(undefined);
       setStatus("Creating chapter…");
       try {
         const scope = await bootstrapEditorChapter(createManuscriptClient());
@@ -201,6 +209,7 @@ export function useChapterSync(
         for (const [key, value] of Object.entries(scope)) url.searchParams.set(key, String(value));
         window.location.assign(url);
       } catch (error) {
+        setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
         setStatus(error instanceof Error ? error.message : "Chapter creation failed.");
         setNeedsChapter(true);
       }

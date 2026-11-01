@@ -2,6 +2,8 @@
 
 ### Browser Smoke (`e2e/`)
 
+`server-errors.spec.ts` checks friendly errors for chapter load and lore save at 1100px and 1440px using HTTP 500 SQLX responses.
+
 `ai-shortcuts.spec.ts` independently checks Continue start, Stop, Edit note focus, unconsumed Edit without selection, instruction submission, saved selection from body and rail focus, untouched lore modal shortcuts, and accessibility metadata with the fake AI provider at 1100px and 1440px.
 
 `editor-buttons.spec.ts` checks editor button and download link names, roles and non-pill radii, including lore and the Continue window flag.
