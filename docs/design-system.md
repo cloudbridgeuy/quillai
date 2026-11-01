@@ -60,6 +60,8 @@ Font stacks stay as `--serif`, `--sans` and `--mono`.
 
 Built: `Button`, `ButtonLink`, `IconButton`, `TextField`, `Toggle`, `Field`, `Heading`, `Alert`, `StickyNote`, `ListButton`, `Modal`, `Popover` (one `.tsx` per primitive; each exports a pure `*ClassName` function except `ButtonLink`, which shares `buttonClassName`; tests in `primitives.test.tsx`). Component page for visual review: `e2e/fixtures/ui-components/` via `e2e/ui-components.spec.ts`, screenshots in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`. `ListButton` `tree` is a borderless full-width row with pink hover and blue pressed; `lore` is a bordered paper row with lavender hover and a two-column grid. `TextField` also takes `square` for radius 0 in drawers. `StickyNote` `overhang` widens the note by 4px each side; `readOnly` removes the resize handle. `tracking-section` (0.2em) is a token for section headings.
 
+Manuscript tree rows show a small Delete `IconButton` on hover or keyboard focus. Deletion is immediate; an `Alert` offers Undo and Recently deleted.
+
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
 | `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. Rail icons lift on hover and focus; buttons do not lift | pill, small, primary and danger button classes |

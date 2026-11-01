@@ -70,6 +70,7 @@ export function createTrashClient({ baseUrl = getApiBaseUrl(), fetch: fetchReque
   }
   return {
     list: () => request("/trash", "GET", 200, value => parseList(value, parseItem)),
+    restoreResource: async (resourcePath: string) => { await request(`${path(resourcePath)}/restore`, "POST", 200, object); },
     restore: async (item: TrashItem) => { await ancestors(item); await request(`${item.resourcePath}/restore`, "POST", 200, object); },
     deleteForever: async (item: TrashItem) => {
       await ancestors(item);

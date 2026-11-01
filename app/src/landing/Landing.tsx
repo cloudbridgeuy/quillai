@@ -60,6 +60,7 @@ export function Landing() {
   const [resume, setResume] = useState(initialResume);
   const [client] = useState(createResumeClient);
   const [libraryRevision, setLibraryRevision] = useState(0);
+  const [trashRevision, setTrashRevision] = useState(0);
 
   useEffect(() => {
     if (resume.status !== "checking") return;
@@ -87,9 +88,12 @@ export function Landing() {
     <section className="landing-library flex flex-col gap-2" role="region" aria-labelledby="landing-library">
       <Heading level="section" id="landing-library">Library</Heading>
       <ManuscriptTree key={libraryRevision} selectedChapter={null} disabled={false} collapsedExcept={resume.status === "ready" ? resume.universeId : null}
-        onSelect={open} />
+        onSelect={open} onChange={() => {
+          setTrashRevision(value => value + 1);
+          setResume(initialResume());
+        }} />
     </section>
-    <RecentlyDeleted onChange={() => {
+    <RecentlyDeleted key={trashRevision} onChange={() => {
       setLibraryRevision(value => value + 1);
       setResume(initialResume());
     }} />

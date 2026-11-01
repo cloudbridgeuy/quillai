@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { Button } from "../../ui/Button";
+import { ButtonLink } from "../../ui/ButtonLink";
+import { IconButton } from "../../ui/IconButton";
 import { ListButton } from "../../ui/ListButton";
 import { TextField } from "../../ui/TextField";
 import { Alert } from "../../ui/Alert";
@@ -12,29 +14,101 @@ import {
 } from "../../manuscripts/create_draft";
 import { containerKindLabel, facadeBook, pieceRoots, pieceScope, sameScope, treeUniverses, type StoryContainer, type StoryRoot, type StoryUniverse } from "../../manuscripts/story_tree";
 import { treeScrollTarget } from "./tree_scroll";
-import { scriptGroupId } from "../../landing/routes";
+import { landingUrl, scriptGroupId } from "../../landing/routes";
+import { createTrashClient } from "../../manuscripts/trash_client";
 
 type TreeState =
   | { status: "loading" }
   | { status: "failed"; message: string }
   | ({ status: "ready" } & ManuscriptTreeData);
 
-export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, collapsedExcept, onSelect }: {
+export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, collapsedExcept, onSelect, onDelete, onLeave, onChange, activeScript }: {
   selectedChapter: EditorScope | null;
   disabled: boolean;
   savesBeforeOpening?: boolean;
   collapsedExcept?: number | null;
   onSelect: (scope: EditorScope, opensScript: boolean) => void;
+  onDelete?: (remove: () => Promise<void>, path: string, title: string) => Promise<void>;
+  onLeave?: (target: URL) => Promise<void>;
+  onChange?: () => void;
+  activeScript?: number;
 }) {
   const [client] = useState(createManuscriptClient);
+  const [trash] = useState(createTrashClient);
+  const [deleted, setDeleted] = useState<{ title: string; resourcePath: string } | null>(() => {
+    const params = new URL(window.location.href).searchParams;
+    const resourcePath = params.get("deleted");
+    const title = params.get("deletedTitle");
+    return resourcePath && title ? { title, resourcePath } : null;
+  });
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [state, setState] = useState<TreeState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [draft, dispatch] = useReducer(draftTransition, null);
   const [createdUniverses, setCreatedUniverses] = useState<number[]>([]);
   const submitting = useRef(false);
+  const deleteBusy = useRef(false);
   const treeRef = useRef<HTMLDivElement>(null);
   const selectedKey = JSON.stringify(selectedChapter);
   const draftKey = draft && JSON.stringify(draft.target);
+
+  async function remove(title: string, path: string, action: () => Promise<void>, affected: boolean) {
+    if (disabled || deleteBusy.current || draft?.pending) return;
+    deleteBusy.current = true;
+    setDeleting(true);
+    setDeleted(null);
+    setDeleteError("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("deleted");
+    url.searchParams.delete("deletedTitle");
+    window.history.replaceState(null, "", url);
+    let removed = false;
+    const removeItem = async () => {
+      await action();
+      removed = true;
+      setDeleted({ title, resourcePath: path });
+      setAttempt(value => value + 1);
+      onChange?.();
+    };
+    try {
+      if (affected && onDelete) return await onDelete(removeItem, path, title);
+      await removeItem();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Action failed.";
+      setDeleteError(removed ? `Item deleted, but returning to the library failed: ${message} Use Undo to restore it.` : message);
+    } finally {
+      deleteBusy.current = false;
+      setDeleting(false);
+    }
+  }
+
+  function deleteButton(title: string, path: string, action: () => Promise<void>, affected: boolean) {
+    return <IconButton className="tree-delete" tabIndex={0} label={`Delete '${title}'`} glyph={<svg aria-hidden="true" className="mx-auto size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>}
+      disabled={disabled || deleting || Boolean(draft?.pending)} onClick={event => { event.preventDefault(); event.stopPropagation(); void remove(title, path, action, affected); }} />;
+  }
+
+  async function undo() {
+    if (!deleted || disabled || deleteBusy.current || draft?.pending) return;
+    deleteBusy.current = true;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await trash.restoreResource(deleted.resourcePath);
+      setDeleted(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("deleted");
+      url.searchParams.delete("deletedTitle");
+      window.history.replaceState(null, "", url);
+      setAttempt(value => value + 1);
+      onChange?.();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not restore item.");
+    } finally {
+      deleteBusy.current = false;
+      setDeleting(false);
+    }
+  }
 
   useLayoutEffect(() => {
     const tree = treeRef.current;
@@ -56,7 +130,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   }, [draftKey]);
 
   async function create() {
-    if (!draft || disabled || submitting.current || state.status !== "ready") return;
+    if (!draft || disabled || deleting || submitting.current || state.status !== "ready") return;
     const title = createTitle(draft.fields.title);
     dispatch({ type: "submit" });
     if (!title) return;
@@ -107,9 +181,9 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
 
   function createAction(target: CreateTarget, button: string, noun: string) {
     const active = draft && draftKey === JSON.stringify(target);
-    if (!active) return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+    if (!active) return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
       onClick={() => dispatch({ type: "start", target })}>+ {button}</ListButton>;
-    const locked = disabled || draft.pending;
+    const locked = disabled || deleting || draft.pending;
     const labels = labelOptions(target);
     return <form data-manuscript-draft className="flex scroll-my-2 flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
       onKeyDown={event => {
@@ -207,21 +281,26 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
     ? treeUniverses(state.universes, selectedChapter)
     : state.universes.map(universe => ({ universe, open: universe.id === collapsedExcept }));
 
+  function includesPiece(piece: StoryRoot) {
+    const selected = selectedChapter && "pieceId" in selectedChapter ? selectedChapter.pieceId : null;
+    return piece.id === selected || piece.children.some(child => child.id === selected) || piece.id === activeScript;
+  }
+
   function pieceButton(story: StoryUniverse, piece: Piece) {
     const scope = pieceScope(story, piece);
-    return <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending) || !scope}
+    return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending) || !scope}
       pressed={sameScope(selectedChapter, scope)} onClick={() => { if (scope) onSelect(scope, scriptGroupId(piece) !== undefined); }}>{piece.title}</ListButton>;
   }
 
   function rootItem(story: StoryUniverse, piece: StoryRoot) {
     const noun = childName(piece.format);
     return <li key={`piece-${piece.id}`}>
-      {piece.shape === "leaf" ? pieceButton(story, piece) : <details open>
-        <summary>{piece.format === "script" ? <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+      {piece.shape === "leaf" ? <div className="tree-row">{pieceButton(story, piece)}{deleteButton(piece.title, `/pieces/${piece.id}`, () => client.deletePiece({ pieceId: piece.id }), includesPiece(piece))}</div> : <details open>
+        <summary className="tree-row">{piece.format === "script" ? <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
           pressed={sameScope(selectedChapter, { universeId: story.id, pieceId: piece.id })}
-          onClick={() => onSelect({ universeId: story.id, pieceId: piece.id }, true)}>{piece.title}</ListButton> : piece.title}</summary>
+          onClick={() => onSelect({ universeId: story.id, pieceId: piece.id }, true)}>{piece.title}</ListButton> : piece.title}{deleteButton(piece.title, `/pieces/${piece.id}`, () => client.deletePiece({ pieceId: piece.id }), includesPiece(piece))}</summary>
         {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
-          {piece.children.map((child) => <li key={`piece-${child.id}`}>{pieceButton(story, child)}</li>)}
+          {piece.children.map((child) => <li key={`piece-${child.id}`} className="tree-row">{pieceButton(story, child)}{deleteButton(child.title, `/pieces/${child.id}`, () => client.deletePiece({ pieceId: child.id }), activeScript === piece.id || sameScope(selectedChapter, pieceScope(story, child)))}</li>)}
         </ul>}
         {createAction({ kind: "child", universeId: story.id, pieceId: piece.id, format: piece.format }, noun, noun)}
       </details>}
@@ -232,12 +311,13 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
     if (container.kind !== "book_series") return [];
     return (series.find(item => item.id === container.id)?.books ?? []).map((book) => <li key={`book-${book.id}`}>
       <details open>
-        <summary>{book.title}</summary>
+        <summary className="tree-row">{book.title}{deleteButton(book.title, `/series/${container.id}/books/${book.id}`, () => client.deleteBook({ seriesId: container.id, bookId: book.id }), Boolean(selectedChapter && "bookId" in selectedChapter && selectedChapter.seriesId === container.id && selectedChapter.bookId === book.id))}</summary>
         {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
-          {book.chapters.map((chapter) => <li key={chapter.id}>
-            <ListButton tone="tree" disabled={disabled || Boolean(draft?.pending)}
+          {book.chapters.map((chapter) => <li key={chapter.id} className="tree-row">
+            <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
               pressed={sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id })}
               onClick={() => onSelect({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }, false)}>{chapter.title}</ListButton>
+            {deleteButton(chapter.title, `/series/${container.id}/books/${book.id}/chapters/${chapter.id}`, () => client.deleteChapter({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }), sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id }))}
           </li>)}
         </ul>}
         {createAction({ kind: "chapter", seriesId: container.id, bookId: book.id }, "Chapter", "Chapter")}
@@ -246,19 +326,27 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   }
 
   return <>
+    {deleteError ? <Alert tone="inline">{deleteError}</Alert> : null}
+    {deleted ? <Alert tone="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={disabled || deleting || Boolean(draft?.pending)} onClick={() => void undo()}>Undo</Button>{" "}
+      <ButtonLink size="sm" aria-disabled={disabled || deleting} href={(() => { const url = landingUrl(window.location.href); url.searchParams.delete("deleted"); url.searchParams.delete("deletedTitle"); url.hash = "recently-deleted"; return url.toString(); })()}
+        onClick={event => {
+          if (!disabled && !deleting && !onLeave) return;
+          event.preventDefault();
+          if (!disabled && !deleting && onLeave) void onLeave(new URL(event.currentTarget.href));
+        }}>Recently deleted</ButtonLink></Alert> : null}
     {savesBeforeOpening ? <p className="editor-note">Opening a chapter saves current changes first.</p> : null}
     <div ref={treeRef} className="editor-manuscript-tree">
     {createAction({ kind: "universe" }, "Universe", "Universe")}
     {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>
       {universes.map(({ universe, open }) => <li key={`universe-${universe.id}`}>
         <details open={open || createdUniverses.includes(universe.id)}>
-          <summary>{universe.title}</summary>
+          <summary className="tree-row">{universe.title}{deleteButton(universe.title, `/universes/${universe.id}`, () => client.deleteUniverse({ universeId: universe.id }), Boolean(selectedChapter && ("universeId" in selectedChapter ? selectedChapter.universeId === universe.id : universe.containers.some(container => container.id === selectedChapter.seriesId))))}</summary>
           {universe.containers.length === 0 && universe.loose.length === 0 ? <p>No works yet.</p> : <ul>
             {universe.containers.map((container) => {
               const items = [...bookItems(container), ...pieceRoots(container).map((piece) => rootItem(universe, piece))];
               return <li key={`container-${container.id}`}>
                 <details open>
-                  <summary>{container.title} · {containerKindLabel[container.kind]}</summary>
+                  <summary className="tree-row">{container.title} · {containerKindLabel[container.kind]}{deleteButton(container.title, container.kind === "book_series" ? `/series/${container.id}` : `/containers/${container.id}`, () => container.kind === "book_series" ? client.deleteSeries({ seriesId: container.id }) : client.deleteContainer({ containerId: container.id }), Boolean(selectedChapter && ("seriesId" in selectedChapter ? selectedChapter.seriesId === container.id : container.pieces.some(includesPiece))))}</summary>
                   {items.length === 0 ? <p>No pieces yet.</p> : <ul>{items}</ul>}
                   {createAction({ kind: "piece", universeId: universe.id, container: { id: container.id, kind: container.kind } }, "Piece", "Piece")}
                 </details>

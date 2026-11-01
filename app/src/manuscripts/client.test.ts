@@ -48,7 +48,11 @@ describe("manuscript request contracts", () => {
     { name: "post delta", call: (c) => c.postDelta(scope, submission), path: `${root}/deltas`, method: "POST", status: 200, response: revision, body: submission },
     { name: "list universes", call: (c) => c.listUniverses(), path: "/universes", method: "GET", status: 200, response: [series] },
     { name: "create universe", call: (c) => c.createUniverse(metadata), path: "/universes", method: "POST", status: 201, response: series, body: metadata },
+    { name: "delete universe", call: (c) => c.deleteUniverse({ universeId: 5 }), path: "/universes/5", method: "DELETE", status: 204 },
+    { name: "restore universe", call: (c) => c.restoreUniverse({ universeId: 5 }), path: "/universes/5/restore", method: "POST", status: 200, response: series },
     { name: "create container", call: (c) => c.createContainer({ universeId: 5 }, { ...metadata, kind: "collection" }), path: "/universes/5/containers", method: "POST", status: 201, response: container, body: { ...metadata, kind: "collection" } },
+    { name: "delete container", call: (c) => c.deleteContainer({ containerId: 1 }), path: "/containers/1", method: "DELETE", status: 204 },
+    { name: "restore container", call: (c) => c.restoreContainer({ containerId: 1 }), path: "/containers/1/restore", method: "POST", status: 200, response: container },
     { name: "create loose piece", call: (c) => c.createLoosePiece({ universeId: 5 }, newPiece), path: "/universes/5/pieces", method: "POST", status: 201, response: piece, body: newPiece },
     { name: "create container piece", call: (c) => c.createContainerPiece({ containerId: 1 }, newPiece), path: "/containers/1/pieces", method: "POST", status: 201, response: piece, body: newPiece },
     { name: "create child", call: (c) => c.createChild({ pieceId: 10 }, { ...metadata, label: "scene" }), path: "/pieces/10/children", method: "POST", status: 201, response: group.children[0], body: { ...metadata, label: "scene" } },
@@ -56,6 +60,8 @@ describe("manuscript request contracts", () => {
     { name: "list loose pieces", call: (c) => c.listLoosePieces({ universeId: 5 }), path: "/universes/5/pieces?container=none", method: "GET", status: 200, response: [piece] },
     { name: "list container pieces", call: (c) => c.listContainerPieces({ containerId: 1 }), path: "/containers/1/pieces", method: "GET", status: 200, response: [piece] },
     { name: "get leaf piece", call: (c) => c.getPiece(pieceScope), path: "/pieces/9", method: "GET", status: 200, response: pieceDetail },
+    { name: "delete piece", call: (c) => c.deletePiece(pieceScope), path: "/pieces/9", method: "DELETE", status: 204 },
+    { name: "restore piece", call: (c) => c.restorePiece(pieceScope), path: "/pieces/9/restore", method: "POST", status: 200, response: pieceDetail },
     { name: "get group piece", call: (c) => c.getPiece({ pieceId: 10 }), path: "/pieces/10", method: "GET", status: 200, response: group },
     { name: "get piece deltas", call: (c) => c.getDeltas(pieceScope, 2), path: "/pieces/9/deltas?since=2", method: "GET", status: 200, response: [revision] },
     { name: "post piece delta", call: (c) => c.postDelta(pieceScope, submission), path: "/pieces/9/deltas", method: "POST", status: 200, response: revision, body: submission },
@@ -78,6 +84,19 @@ describe("manuscript request contracts", () => {
       });
       expect(await entry.call(client)).toEqual(entry.response);
     });
+  }
+});
+
+test("delete and restore reject invalid responses and preserve errors", async () => {
+  const calls: Array<(client: Client) => Promise<unknown>> = [
+    c => c.deleteUniverse({ universeId: 5 }), c => c.deleteContainer({ containerId: 1 }), c => c.deletePiece(pieceScope),
+    c => c.restoreUniverse({ universeId: 5 }), c => c.restoreContainer({ containerId: 1 }), c => c.restorePiece(pieceScope),
+  ];
+  for (const call of calls) {
+    const invalid = createManuscriptClient({ fetch: async () => Response.json({}, { status: 200 }) });
+    await expect(call(invalid)).rejects.toMatchObject({ status: 200, kind: "invalid_response" });
+    const rejected = createManuscriptClient({ fetch: async () => Response.json({ error: "Missing", code: "NOT_FOUND" }, { status: 404 }) });
+    await expect(call(rejected)).rejects.toMatchObject({ status: 404, kind: "http", code: "NOT_FOUND" });
   }
 });
 

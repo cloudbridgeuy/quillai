@@ -98,7 +98,7 @@ import { Toggle } from "../../ui/Toggle";
 import { Popover } from "../../ui/Popover";
 import { Modal } from "../../ui/Modal";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
-import { editorUrl } from "../../landing/routes";
+import { editorUrl, landingUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { editTintRemoval, renderContinueTint } from "../continue_tint";
 import { trackEditSelectionHighlight } from "../edit_selection_highlight";
@@ -356,6 +356,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [, setContextRevision] = useState(0);
 
   const quillRef = useRef<Quill | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deleteAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => deleteAbortRef.current?.abort(), []);
   const aiRunStateRef = useRef(aiRunState);
   const abortControllerRef = useRef<AbortController | null>(null);
   const threadStateRef = useRef(threadState);
@@ -382,6 +385,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const chapterSync = scriptGroupId === undefined
     ? useChapterSync(quillRef, isAiActive, onRemoteChange)
     : useScriptSync(quillRef, isAiActive, onRemoteChange, scriptGroupId);
+  const editorAvailableRef = useRef(false);
+  editorAvailableRef.current = chapterSync.ready && !chapterSync.blocked;
 
   const tabTitle = getTabTitle(chapterSync.title, chapterSync.ready);
   useEffect(() => {
@@ -494,6 +499,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+      if (deleteAbortRef.current && (aiShortcut(event) || panelShortcut(event))) {
+        event.preventDefault();
+        return;
+      }
       if (event.key === "Escape" && event.target instanceof Element && event.target.closest("dialog[open], [data-manuscript-draft]")) return;
       const aiAction = aiShortcut(event);
       const target = event.target;
@@ -571,6 +580,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }
 
   const isBusy =
+    deleting ||
     aiRunState.status === "continuing" ||
     aiRunState.status === "editing" ||
     aiRunState.status === "cancelling";
@@ -733,6 +743,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }
 
   async function runAiAction(action: AiAction) {
+    if (deleteAbortRef.current) return;
     const reservation = chapterSync.reserveAi();
     if (!reservation) {
       setAiFailure(action, chapterSync.status);
@@ -1352,8 +1363,43 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Heading level="section" id="manuscript-title">Manuscript</Heading>
         </div>
         <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
+          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
+            onLeave={target => chapterSync.leave(target)}
+            onDelete={async (remove, path, title) => {
+              const quill = quillRef.current;
+              if (deleteAbortRef.current || isAiActive()) throw new Error("Wait for the current action before deleting.");
+              if (!chapterSync.ready || !chapterSync.scope || !quill) throw new Error("Editor is not ready to delete this item.");
+              const reservation = chapterSync.reserveAi();
+              if (!reservation) throw new Error("Could not save the open document before deleting.");
+              const controller = new AbortController();
+              deleteAbortRef.current = controller;
+              quill.enable(false);
+              setDeleting(true);
+              let leaving = false;
+              try {
+                await reservation.wait(controller.signal);
+                controller.signal.throwIfAborted();
+                if (!isMountedRef.current || quillRef.current !== quill) throw new Error("Editor changed before deleting this item.");
+                await remove();
+                controller.signal.throwIfAborted();
+                if (!isMountedRef.current || quillRef.current !== quill) return;
+                reservation.release();
+                const url = landingUrl(window.location.href);
+                url.searchParams.set("deleted", path);
+                url.searchParams.set("deletedTitle", title);
+                await chapterSync.leave(url);
+                leaving = true;
+              } finally {
+                reservation.release();
+                deleteAbortRef.current = null;
+                if (!leaving && isMountedRef.current && quillRef.current === quill) {
+                  quill.enable(editorAvailableRef.current);
+                  setDeleting(false);
+                }
+              }
+            }}
             onSelect={(scope, opensScript) => {
+              if (deleteAbortRef.current) return;
               if ("focusScene" in chapterSync && "pieceId" in scope && chapterSync.focusScene(scope.pieceId)) return;
               if (opensScript && !chapterSync.needsChapter) void chapterSync.leave(editorUrl(window.location.href, scope));
               else if (chapterSync.needsChapter) {
@@ -1424,7 +1470,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <div ref={editorCanvasRef} className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={(isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
+              readOnly={deleting || (isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);

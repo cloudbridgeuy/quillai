@@ -365,6 +365,25 @@ body {
   font-weight: 600;
 }
 
+.editor-manuscript-tree .tree-row {
+  position: relative;
+  padding-right: calc(var(--spacing) * 9);
+}
+
+.editor-manuscript-tree .tree-delete {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+.editor-manuscript-tree .tree-row:hover > .tree-delete,
+.editor-manuscript-tree .tree-row:focus-visible > .tree-delete,
+.editor-manuscript-tree .tree-row:has(:focus-visible) > .tree-delete {
+  opacity: 1;
+}
+
 .editor-context-inspector h2 {
   margin: 0;
   font: 600 var(--text-label) var(--sans);
