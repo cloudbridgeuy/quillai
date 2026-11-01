@@ -5,6 +5,7 @@ pub mod leaf_sync;
 pub mod lore;
 pub mod pieces;
 pub mod series;
+pub mod trash;
 pub mod universes;
 
 use axum::{extract::rejection::JsonRejection, Json, Router};
@@ -19,7 +20,8 @@ pub fn routes(pool: SqlitePool) -> Router {
         .merge(chapters::routes(pool.clone()))
         .merge(universes::routes(pool.clone()))
         .merge(containers::routes(pool.clone()))
-        .merge(pieces::routes(pool))
+        .merge(pieces::routes(pool.clone()))
+        .merge(trash::routes(pool))
 }
 
 pub(crate) fn json_input<T>(input: Result<Json<T>, JsonRejection>) -> Result<T, Error> {

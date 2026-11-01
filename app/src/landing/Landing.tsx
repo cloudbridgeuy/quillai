@@ -7,6 +7,7 @@ import { Button } from "../ui/Button";
 import { Heading } from "../ui/Heading";
 import { editorUrl, LAST_EDITED_KEY, parseLastEdited, type LastEdited } from "./routes";
 import { resolveResume, type ResumeClient, type ResumeState } from "./resume";
+import { RecentlyDeleted } from "./RecentlyDeleted";
 import "./landing.css";
 
 function readLastEdited(): LastEdited | null {
@@ -58,6 +59,7 @@ function ResumeCard({ resume, onForget }: { resume: ResumeState; onForget: () =>
 export function Landing() {
   const [resume, setResume] = useState(initialResume);
   const [client] = useState(createResumeClient);
+  const [libraryRevision, setLibraryRevision] = useState(0);
 
   useEffect(() => {
     if (resume.status !== "checking") return;
@@ -84,8 +86,12 @@ export function Landing() {
     </section>
     <section className="landing-library flex flex-col gap-2" role="region" aria-labelledby="landing-library">
       <Heading level="section" id="landing-library">Library</Heading>
-      <ManuscriptTree selectedChapter={null} disabled={false} collapsedExcept={resume.status === "ready" ? resume.universeId : null}
+      <ManuscriptTree key={libraryRevision} selectedChapter={null} disabled={false} collapsedExcept={resume.status === "ready" ? resume.universeId : null}
         onSelect={open} />
     </section>
+    <RecentlyDeleted onChange={() => {
+      setLibraryRevision(value => value + 1);
+      setResume(initialResume());
+    }} />
   </main>;
 }

@@ -76,3 +76,5 @@
 `ai-thread.spec.ts` uses a fake provider to check cut-off reply resume, discard, and chapter isolation.
 
 `full-prompt.spec.ts` checks read-only full prompt order and Escape at 1100px and 1440px.
+
+`recently-deleted.spec.ts` at 1100px and 1440px checks trash item types and dates, restore and library refresh, ancestor confirmation, and permanent deletion with descendant counts.
