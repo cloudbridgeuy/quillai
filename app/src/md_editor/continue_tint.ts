@@ -1,9 +1,13 @@
 import type Quill from "quill";
-import type Delta from "quill-delta";
+import Delta from "quill-delta";
 import { continueOwnedRanges } from "./continue_stream";
 
+export function editTintRemoval(anchor: number, end: number, enabled: boolean) {
+  return enabled && end > anchor ? new Delta().retain(anchor).delete(end - anchor) : null;
+}
+
 export function renderContinueTint(quill: Quill, removal: Delta, enabled: boolean) {
-  if (typeof Highlight === "undefined" || !CSS.highlights) return;
+  if (typeof CSS === "undefined" || !CSS.highlights || typeof Highlight === "undefined") return;
   const ranges = enabled ? continueOwnedRanges(removal).flatMap(({ start, end }) => {
     const [first, firstOffset] = quill.getLeaf(start);
     const [last, lastOffset] = quill.getLeaf(end);

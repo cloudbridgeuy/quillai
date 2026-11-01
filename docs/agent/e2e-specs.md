@@ -8,6 +8,7 @@
 `inspector-fields.spec.ts` checks inspector, settings, manuscript and lore headings and field semantics at 1100px and 1440px.
 
 `inspector-selection.spec.ts` checks Continue caret display, selection token estimates and Edit selection at 1100px.
+`edit-tint.spec.ts` checks applied Edit tint, typing cleanup, preference and the 1100px breakpoint.
 
 `inspector-cost.spec.ts` uses a fake provider at 1100px and 1440px to check readable cost fields, the selected model label and ID tooltip, and request model visibility when selected and run IDs match or differ.
 

@@ -99,7 +99,7 @@ import { Popover } from "../../ui/Popover";
 import { BLOCK_TYPES, blockLabel, parseBlock } from "../script_blocks";
 import { editorUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
-import { renderContinueTint } from "../continue_tint";
+import { editTintRemoval, renderContinueTint } from "../continue_tint";
 import { trackEditSelectionHighlight } from "../edit_selection_highlight";
 import { ContinueWindow } from "./ContinueWindow";
 import { LoreWindow } from "./LoreWindow";
@@ -420,6 +420,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     const quill = quillRef.current;
     if (!quill) return;
     const refreshContext = (event: string, delta: Delta) => {
+      if (event === Quill.events.TEXT_CHANGE && tintTimerRef.current !== null) clearContinueTint();
       if (event === Quill.events.TEXT_CHANGE && continueStreamRef.current && !applyingContinueRef.current) {
         if (lastCursorRangeRef.current) lastCursorRangeRef.current = transformContinueSelection(lastCursorRangeRef.current, delta);
         if (lastEditSelectionRef.current) lastEditSelectionRef.current = transformContinueSelection(lastEditSelectionRef.current, delta);
@@ -447,6 +448,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   useEffect(() => {
     const quill = quillRef.current;
+    if (!aiTextTint || !desktop) {
+      if (tintTimerRef.current !== null) clearContinueTint();
+    }
     if (quill && continueStreamRef.current) renderContinueTint(quill, continueStreamRef.current.removal, aiTextTint && desktop);
   }, [aiTextTint, desktop]);
 
@@ -748,6 +752,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       return;
     }
 
+    clearContinueTint();
     setEmptyContinueNotice(null);
     const controller = new AbortController();
     if (reservation) {
@@ -811,7 +816,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     let heldLineEnding: Delta | null = null;
     let didDeleteSelection = false;
     const concurrentContinue = action === "generate" && desktop;
-    clearContinueTint();
     if (concurrentContinue) {
       continueStreamRef.current = createContinueStream(quill.getText(), anchor);
       quill.root.dataset.aiTint = "streaming";
@@ -1030,6 +1034,16 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       }
 
       if (!concurrentContinue) setCursorState(quill, nextInsertIndex);
+      if (action === "edit" && terminalOutcome === "done") {
+        const removal = editTintRemoval(anchor, nextInsertIndex, tintEnabledRef.current && window.matchMedia("(min-width: 1100px)").matches);
+        if (removal) {
+          renderContinueTint(quill, removal, true);
+          quill.root.dataset.aiTint = "streaming";
+          getComputedStyle(quill.root).getPropertyValue("--ai-stream-color");
+          quill.root.dataset.aiTint = "fading";
+          tintTimerRef.current = setTimeout(clearContinueTint, 2050);
+        }
+      }
     } catch (error) {
       const wasAborted =
         (error instanceof DOMException && error.name === "AbortError") ||
