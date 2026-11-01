@@ -103,7 +103,7 @@ for (const width of [1100, 1440]) {
       const system = await expectField(inspector, "System prompt section", "textbox", "textarea");
       await expect(system).toHaveAttribute("readonly", "");
       const document = await expectField(inspector, "Document prompt section", "textbox", "textarea");
-      await expect(document).not.toHaveAttribute("readonly");
+      await expect(document).toHaveAttribute("readonly", "");
       for (const role of ["user", "assistant"]) await inspector.getByRole("button", { name: `Add ${role} turn`, exact: true }).click();
       await expectField(inspector, "user turn 1", "textbox", "textarea");
       await expectField(inspector, "assistant turn 2", "textbox", "textarea");

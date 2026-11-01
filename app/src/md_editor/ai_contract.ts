@@ -8,6 +8,8 @@ export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "hi
   history?: PromptHistoryMessage[];
 };
 
+export type EditablePromptSectionOverrides = Pick<PromptSectionOverrides, "instruction" | "story_context" | "history">;
+
 export type AiAction = "generate" | "edit";
 
 export const DEFAULT_MAX_OUTPUT_TOKENS = 512;
@@ -57,7 +59,7 @@ type BuildAiRequestBase = {
   model?: string;
   loreEntries?: readonly LoreMatchEntry[];
   maxLoreCharacters?: number;
-  sectionOverrides?: PromptSectionOverrides;
+  sectionOverrides?: EditablePromptSectionOverrides;
   document: AiDocumentSlice;
   window: DocumentWindow;
   storyContext?: string | null;
@@ -127,11 +129,17 @@ export function buildAiRequest(input: BuildAiRequestInput): AiGenerateRequest {
     level === "leave_out" ? [] : [{ name, kind, visible_text, level }],
   );
 
+  const overrides = input.sectionOverrides;
+  const sectionOverrides = {
+    ...(overrides?.instruction !== undefined ? { instruction: overrides.instruction } : {}),
+    ...(overrides?.story_context !== undefined ? { story_context: overrides.story_context } : {}),
+    ...(overrides?.history !== undefined ? { history: overrides.history } : {}),
+  };
+
   return {
     ...(input.model !== undefined ? { model: input.model } : {}),
     ...(lore ? { lore } : {}),
-    ...(input.sectionOverrides && Object.keys(input.sectionOverrides).length > 0
-      ? { sectionOverrides: { ...input.sectionOverrides } } : {}),
+    ...(Object.keys(sectionOverrides).length > 0 ? { sectionOverrides } : {}),
     action,
     document,
     selection: toRelativeSelection(action, selection, window, document),

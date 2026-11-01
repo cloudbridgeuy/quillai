@@ -9,6 +9,8 @@
 `editor-buttons.spec.ts` checks editor button and download link names, roles and non-pill radii, including lore and the Continue window flag.
 `rail-buttons.spec.ts` checks rail geometry, names, titles, selection preservation, panel toggles and pending Continue at 1100px and 1440px.
 `lore-modal.spec.ts` checks draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence.
+`inspector-readonly.spec.ts` checks read-only Document and Selection, absent reset controls, and editable Instruction and Story context in Full prompt at 1100px and 1440px.
+
 `inspector-fields.spec.ts` checks inspector, settings, manuscript and lore headings and field semantics at 1100px and 1440px.
 
 `inspector-selection.spec.ts` checks Continue caret display, selection token estimates and Edit selection at 1100px.
@@ -73,4 +75,4 @@
 
 `ai-thread.spec.ts` uses a fake provider to check cut-off reply resume, discard, and chapter isolation.
 
-`full-prompt.spec.ts` checks read-only full prompt order, overrides, and Escape at 1100px and 1440px.
+`full-prompt.spec.ts` checks read-only full prompt order and Escape at 1100px and 1440px.

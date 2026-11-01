@@ -51,6 +51,20 @@ test("buildAiRequest omits absent or undefined model for both actions", () => {
   }
 });
 
+test("buildAiRequest strips legacy document and selection overrides for both actions", () => {
+  for (const action of ["generate", "edit"] as const) {
+    const sectionOverrides = { document: "Wrong document", selection: "Wrong selection", instruction: "", story_context: "", history: [] };
+    const request = buildAiRequest({
+      action,
+      document: documentSlice,
+      window: { start: 0, end: 13 },
+      selection: { delta: { ops: [{ insert: "Opening" }] }, text: "Opening", range: { index: 0, length: 7 } },
+      sectionOverrides,
+    });
+    expect(JSON.parse(JSON.stringify(request)).sectionOverrides).toEqual({ instruction: "", story_context: "", history: [] });
+  }
+});
+
 test("buildAiRequest creates a generate payload with null optional fields", () => {
   expect(
     buildAiRequest({

@@ -112,6 +112,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - If `CSS.highlights` or `Highlight` is unavailable, omit underlines and lavender hover coloring without errors. Cards still use DOM ranges: pointer hover, list navigation, Alt+L, and Escape remain functional. Chromium coverage deletes both APIs before startup; real Firefox/WebKit runs remain GUZ-762.
 - Card: name, kind, request level (Include | Known, don't reveal | Leave out), and read-only visible text on green. Hidden notes never appear. Editing radios, story-point selects, and per-match ignore/note controls remain prototype-only.
 - Underline style per level: include dotted lavender; known-don't-reveal dashed tan; leave out dotted pencil.
+- Inspector Document and Selection show read-only request content. Instruction, Story context, and history remain editable for the next request.
 - The inspector Full prompt button opens a read-only modal with ordered prompt parts, estimated tokens, and Copy. Escape closes it.
 - Inspector section "Lore in window": the lore Continue would send, with type, match count, and level. It shares `context_inspector.ts`'s injected lore model and budget, even when inspecting Edit. Leave-out entries and budget skips are absent; unmatched pins remain with zero matches and disabled navigation. Click a matched entry to scroll to its first match and open its card.
 

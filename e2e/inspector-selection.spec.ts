@@ -41,7 +41,7 @@ for (const openFirst of [false, true]) {
     await expectEditorReady(editor);
     await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
     const inspector = openFirst ? await openInspector(page) : page.locator("#context-drawer");
-    if (openFirst) await expect(inspector.getByRole("textbox", { name: "Selection prompt section" })).toHaveValue("none");
+    if (openFirst) await expect(inspector.getByRole("textbox", { name: "Selection prompt section" })).toHaveValue("<selection>\nnone\n</selection>\n");
     await selectText(editor);
     await expect(page.getByRole("button", { name: "Edit selection", exact: true })).toBeEnabled();
     if (!openFirst) await openInspector(page);
@@ -52,8 +52,8 @@ for (const openFirst of [false, true]) {
     const tokenLabel = await section.locator(".editor-preview-section-header span").innerText();
     await inspector.getByText("Advanced AI controls", { exact: true }).click();
     await inspector.getByRole("combobox", { name: "Request to inspect" }).selectOption("edit");
-    await expect(selection).toHaveValue("quiet harbour");
-    await expect(selection).not.toHaveAttribute("readonly", "");
+    await expect(selection).toHaveValue("<selection>\nindex=2, length=13, text=quiet harbour\n</selection>\n");
+    await expect(selection).toHaveAttribute("readonly", "");
     await inspector.getByRole("combobox", { name: "Request to inspect" }).selectOption("generate");
     await inspector.getByRole("combobox", { name: "Continue model" }).selectOption("e2e-continue");
     const before = await (await request.get(`${provider}/control`)).json();

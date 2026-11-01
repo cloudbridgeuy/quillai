@@ -15,7 +15,7 @@ import {
   buildAiRequestPreview,
   type AiAction,
   type AiRequestPreview,
-  type PromptSectionOverrides,
+  type EditablePromptSectionOverrides,
 } from "../ai_contract";
 import {
   continueClickAction,
@@ -300,7 +300,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [emptyContinueNotice, setEmptyContinueNotice] = useState<string | null>(null);
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
-  const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, PromptSectionOverrides>>({ generate: {}, edit: {} });
+  const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, EditablePromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
   const [fullPromptOpen, setFullPromptOpen] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -1221,8 +1221,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     isResumingOutput,
   );
   const inspectorSelection = quillRef.current?.getSelection() ?? range ?? lastCursorRangeRef.current;
-  const showContinueSelectionNote = inspectorAction === "generate" && (inspectorSelection?.length ?? 0) > 0
-    && sectionOverrides.generate.selection === undefined;
+  const showContinueSelectionNote = inspectorAction === "generate" && (inspectorSelection?.length ?? 0) > 0;
   const contextInspector = (() => {
     const quill = quillRef.current;
     if (!quill || !chapterSync.ready) return "Editor is not ready yet.";
@@ -1609,9 +1608,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                     <Heading level="section" as="h3">{section.label}</Heading>
                     <span>{section.tokens} estimated tokens</span>
                   </div>
-                  {section.id === "system" || section.id === "author_guidance" || section.id === "lore" ? (
+                  {section.id === "system" || section.id === "author_guidance" || section.id === "lore" || section.id === "selection" || section.id === "document" ? (
                     <TextField as="textarea" square className="font-mono text-graphite" aria-label={`${section.label} prompt section`}
-                      value={section.text} rows={5} readOnly />
+                      value={section.id === "selection" && showContinueSelectionNote ? section.editableText : section.text} rows={5} readOnly />
                   ) : section.id === "history" ? (
                     <>
                       {contextInspector.history.map((message, index) => (
@@ -1646,7 +1645,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                     aria-label={`${section.label} prompt section`}
                     value={section.editableText}
                     rows={5}
-                    readOnly={section.id === "selection" && showContinueSelectionNote}
                     disabled={isBusy || chapterSync.blocked}
                     onChange={(event) => setSectionOverrides((current) => ({
                       ...current, [inspectorAction]: {
@@ -1654,12 +1652,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                       },
                     }))}
                   />}
-                  {section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore" && sectionOverrides[inspectorAction][section.id] !== undefined ? (
+                  {(section.id === "instruction" || section.id === "story_context" || section.id === "history") && sectionOverrides[inspectorAction][section.id] !== undefined ? (
                     <Button size="sm"
                       disabled={isBusy}
                       onClick={() => setSectionOverrides((current) => {
                         const next = { ...current[inspectorAction] };
-                        if (section.id !== "system" && section.id !== "author_guidance" && section.id !== "lore") delete next[section.id];
+                        if (section.id === "instruction" || section.id === "story_context" || section.id === "history") delete next[section.id];
                         return { ...current, [inspectorAction]: next };
                       })}>Reset {section.label}</Button>
                   ) : null}

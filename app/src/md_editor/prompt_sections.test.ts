@@ -39,15 +39,7 @@ describe("assemblePromptSections", () => {
       const sectionOverrides = edited.id === "history"
         ? { history: [{ role: "assistant" as const, text }, { role: "user" as const, text: "Next" }] }
         : { [edited.id]: text };
-      const built = buildAiRequest({
-        ...base,
-        action,
-        selection: base.selection!,
-        window: { start: 0, end: 5 },
-        sectionOverrides,
-      });
-      const sent = JSON.parse(JSON.stringify(built)) as AiGenerateRequest;
-      expect(sent.sectionOverrides).toEqual(sectionOverrides);
+      const sent: AiGenerateRequest = { ...base, sectionOverrides };
       for (const actual of assemblePromptSections(sent)) {
         if (actual.id === edited.id) {
           if (edited.id === "history") {
