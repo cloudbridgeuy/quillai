@@ -1,3 +1,4 @@
+import { formatMessage } from "../i18n/messages";
 import type { AiGenerateRequest, AiHistoryMessage, PromptHistoryMessage } from "./ai_contract";
 
 export type PromptSectionId =
@@ -26,6 +27,10 @@ const EDIT_RULES = "You are editing a passage of fiction. Rewrite only the selec
   + "Reply with only the replacement text for the selection, wrapped in <replacement></replacement>. ";
 
 export const TOKEN_ESTIMATE_LABEL = "Estimated tokens (UTF-8 bytes ÷ 4, rounded up per section; excludes chat framing)";
+
+export function continueSelectionNote(text: string, locale: string): string {
+  return formatMessage(locale, "inspector.caretAfterSelection", { text });
+}
 
 export function estimateTokens(text: string): number {
   return Math.ceil(new TextEncoder().encode(text).length / 4);

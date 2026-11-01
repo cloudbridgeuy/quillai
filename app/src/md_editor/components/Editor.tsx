@@ -80,6 +80,7 @@ import { useChapterSync } from "../use_chapter_sync";
 import { useScriptSync } from "../use_script_sync";
 import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
+import { continueSelectionNote } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
 import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
@@ -1176,6 +1177,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     normalizedInstructionText(),
     isResumingOutput,
   );
+  const inspectorSelection = quillRef.current?.getSelection() ?? range ?? lastCursorRangeRef.current;
+  const showContinueSelectionNote = inspectorAction === "generate" && (inspectorSelection?.length ?? 0) > 0
+    && sectionOverrides.generate.selection === undefined;
   const contextInspector = (() => {
     const quill = quillRef.current;
     if (!quill || !chapterSync.ready) return "Editor is not ready yet.";
@@ -1187,7 +1191,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       if (inspectorAction === "edit" && (!selection || selection.length === 0)) {
         return "Select text to inspect the Edit request.";
       }
-      return buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request, authorGuidance, loreEntries);
+      const inspector = buildContextInspector(buildRequestPreview(inspectorAction, quill, selection).request, authorGuidance, loreEntries);
+      if (!showContinueSelectionNote || !inspectorSelection) return inspector;
+      const note = continueSelectionNote(quill.getText(inspectorSelection.index, inspectorSelection.length), defaultLocale);
+      return { ...inspector, sections: inspector.sections.map(section =>
+        section.id === "selection" ? { ...section, editableText: note } : section) };
     } catch (error) {
       return `Context unavailable: ${getUnknownAiFailureMessage(error)}`;
     }
@@ -1588,6 +1596,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                     aria-label={`${section.label} prompt section`}
                     value={section.editableText}
                     rows={5}
+                    readOnly={section.id === "selection" && showContinueSelectionNote}
                     disabled={isBusy || chapterSync.blocked}
                     onChange={(event) => setSectionOverrides((current) => ({
                       ...current, [inspectorAction]: {

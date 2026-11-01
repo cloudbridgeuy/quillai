@@ -7,6 +7,8 @@
 `lore-modal.spec.ts` checks draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence.
 `inspector-fields.spec.ts` checks inspector, settings, manuscript and lore headings and field semantics at 1100px and 1440px.
 
+`inspector-selection.spec.ts` checks Continue caret display, selection token estimates and Edit selection at 1100px.
+
 `inspector-cost.spec.ts` uses a fake provider at 1100px and 1440px to check readable cost fields, the selected model label and ID tooltip, and request model visibility when selected and run IDs match or differ.
 
 `settings-popover.spec.ts` checks Settings dismissal and equal row gaps at 1100px and 1440px.

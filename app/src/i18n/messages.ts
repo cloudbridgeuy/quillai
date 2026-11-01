@@ -20,6 +20,7 @@ export type MessageShape<Source> = {
 };
 
 export const en = {
+  "inspector.caretAfterSelection": "Caret after “{text}”: Continue writes here.",
   "action.save": "Save",
   "action.saving": "Saving…",
   "thread.cutOff": "Continuing from a cut-off reply",
@@ -42,6 +43,7 @@ export const en = {
 export type MessageKey = keyof typeof en;
 
 export const es = {
+  "inspector.caretAfterSelection": "Cursor después de «{text}»: Continuar escribe aquí.",
   "action.save": "Guardar",
   "action.saving": "Guardando…",
   "thread.cutOff": "Continuando una respuesta interrumpida",

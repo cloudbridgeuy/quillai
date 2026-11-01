@@ -3,6 +3,7 @@ import { buildAiRequest, type AiGenerateRequest } from "./ai_contract";
 import {
   assemblePromptSections,
   estimateTokens,
+  continueSelectionNote,
   TOKEN_ESTIMATE_LABEL,
   totalEstimatedTokens,
 } from "./prompt_sections";
@@ -180,4 +181,9 @@ describe("token estimates", () => {
     }
     expect(totalEstimatedTokens([])).toBe(0);
   });
+});
+
+test("Continue selection note preserves selected Unicode text in both locales", () => {
+  expect(continueSelectionNote("quiet 🛥️ harbour", "en")).toBe("Caret after “quiet 🛥️ harbour”: Continue writes here.");
+  expect(continueSelectionNote("puerto 🛥️", "es")).toBe("Cursor después de «puerto 🛥️»: Continuar escribe aquí.");
 });
