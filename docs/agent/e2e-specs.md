@@ -2,6 +2,8 @@
 
 ### Browser Smoke (`e2e/`)
 
+`ai-shortcuts.spec.ts` independently checks Continue start, Stop, Edit note focus, unconsumed Edit without selection, instruction submission, saved selection from body and rail focus, untouched lore modal shortcuts, and accessibility metadata with the fake AI provider at 1100px and 1440px.
+
 `editor-buttons.spec.ts` checks editor button and download link names, roles and non-pill radii, including lore and the Continue window flag.
 `rail-buttons.spec.ts` checks rail geometry, names, titles, selection preservation, panel toggles and pending Continue at 1100px and 1440px.
 `lore-modal.spec.ts` checks draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence.

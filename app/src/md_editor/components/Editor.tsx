@@ -82,7 +82,7 @@ import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
 import { continueSelectionNote } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
-import { panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
+import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
 import { LorePanel } from "./LorePanel";
 import { useLore } from "../../manuscripts/use_lore";
@@ -275,6 +275,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
+  const continueTriggerRef = useRef<HTMLButtonElement>(null);
   const editorCanvasRef = useRef<HTMLDivElement>(null);
   const editAnchor = editTriggerRef.current?.getBoundingClientRect();
   const [storyContext, setStoryContext] = useState(initialEditorState.storyContext);
@@ -487,6 +488,19 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.key === "Escape" && event.target instanceof Element && event.target.closest("[data-manuscript-draft]")) return;
+      const aiAction = aiShortcut(event);
+      const target = event.target;
+      if (aiAction && target instanceof Element && aiShortcutFocusAllowed(
+        quillRef.current?.root.contains(target) ?? false,
+        Boolean(target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')),
+        Boolean(target.closest('dialog[open], [role="dialog"], .shadow-popover')),
+      )) {
+        const trigger = aiAction === "continue" ? continueTriggerRef.current : editTriggerRef.current;
+        if (!trigger || trigger.disabled) return;
+        event.preventDefault();
+        trigger.click();
+        return;
+      }
       const action = panelShortcut(event);
       if (action === null) return;
       if (action === "close") {
@@ -1255,6 +1269,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     }
   })();
 
+  const continueTitle = waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue");
+
   return (
     <div className="editor-shell">
       {desktop && showContinueWindow && chapterSync.ready && markerQuill ? <ContinueWindow
@@ -1269,10 +1285,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onClick={() => togglePanel("manuscript")} />
       </nav>
       <nav className="editor-rail editor-rail-right" aria-label="AI tools">
-        <IconButton kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
+        <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
           badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
           aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
-          title={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
+          title={formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" })}
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop} />
@@ -1280,7 +1297,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           ignoreRefs={[editorCanvasRef]}
           open={editBoxOpen} onOpenChange={(open) => open ? setEditBoxOpen(true) : closePanels()}
           className="editor-edit-box" role="dialog" aria-label="Edit instruction"
-          trigger={<IconButton ref={editTriggerRef} label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title="Edit selection"
+          trigger={<IconButton ref={editTriggerRef} label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "shortcut.edit"), keys: "Ctrl/Cmd+K" })}
+            aria-keyshortcuts="Control+K Meta+K"
             disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
             onMouseDown={(event) => event.preventDefault()} />}>
         <div className="editor-edit-flag">Edit selection</div>

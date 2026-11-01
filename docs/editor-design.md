@@ -132,6 +132,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 |------|--------|--------|
 | Ctrl/Cmd+[ | Toggle manuscript panel | Implemented |
 | Ctrl/Cmd+] | Toggle context inspector | Implemented |
+| Ctrl/Cmd+Enter | Continue or stop AI from the manuscript, page body, or non-text control outside dialogs and popovers | Implemented |
+| Ctrl/Cmd+K | Open Edit note for selected manuscript text; leave browser default when unavailable | Implemented |
 | Alt+L | Open lore card for nearest in-window match | Implemented on desktop |
 | Esc | Close panels, Settings, Edit note, and lore card; restore editor selection/focus | Implemented |
 | Enter (in edit note) | Apply edit; Shift+Enter inserts a newline | Implemented |

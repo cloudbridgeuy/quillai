@@ -3,8 +3,8 @@ import { expect, test, type APIRequestContext, type Page } from "../app/node_mod
 const rails = [
   { name: "Library", title: "Back to library", glyph: "⌂" },
   { name: "Manuscript", title: "Manuscript (Ctrl/Cmd+[)", glyph: "☰" },
-  { name: "Continue writing", title: "Continue writing", glyph: "➤" },
-  { name: "Edit selection", title: "Edit selection", glyph: "✎" },
+  { name: "Continue writing", title: "Continue writing (Ctrl/Cmd+Enter)", glyph: "➤" },
+  { name: "Edit selection", title: "Edit selection (Ctrl/Cmd+K)", glyph: "✎" },
   { name: "Context inspector", title: "Context inspector (Ctrl/Cmd+])", glyph: "◫" },
   { name: "Settings", title: "Settings", glyph: "⚙" },
 ];
@@ -155,12 +155,12 @@ for (const width of [1100, 1440]) {
     expect(upstream.identity).toBe(identity);
     const stop = page.getByRole("button", { name: "Stop AI", exact: true });
     await expect(stop).toHaveAccessibleName("Stop AI");
-    await expect(stop).toHaveAttribute("title", "Stop AI");
+    await expect(stop).toHaveAttribute("title", "Stop AI (Ctrl/Cmd+Enter)");
     const control = `${provider}/control/${upstream.id}`;
     expect((await request.post(`${control}/fragment`, { data: { text: "A cut-off reply." } })).status()).toBe(200);
     expect((await request.post(`${control}/finish`, { data: { reason: "length" } })).status()).toBe(200);
     const resume = page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true });
-    await expect(resume).toHaveAttribute("title", "Continue writing from a cut-off reply");
+    await expect(resume).toHaveAttribute("title", "Continue writing from a cut-off reply (Ctrl/Cmd+Enter)");
     await expect(resume.locator(".editor-thread-indicator")).toHaveText("from a cut-off reply");
   });
 }
