@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE lore_entries SET deleted_at = CURRENT_TIMESTAMP WHERE universe_id = ? AND id = ? AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "934959e93cd28dba8b7405554fd3056498469af817159f0daef4ca35fc8c86b0"
+}

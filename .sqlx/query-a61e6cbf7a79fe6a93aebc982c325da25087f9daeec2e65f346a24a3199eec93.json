@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level FROM lore_entries WHERE universe_id = ? ORDER BY name, id",
+  "query": "SELECT id AS \"id!\", universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level FROM lore_entries WHERE universe_id = ? AND deleted_at IS NULL ORDER BY name, id",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "aa1bc0fd2b0b70c91a58656d9393799cad7557b11c2f34e2f26405cf5be87041"
+  "hash": "a61e6cbf7a79fe6a93aebc982c325da25087f9daeec2e65f346a24a3199eec93"
 }

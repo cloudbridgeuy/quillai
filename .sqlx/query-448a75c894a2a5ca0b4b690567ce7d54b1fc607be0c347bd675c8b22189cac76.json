@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE lore_entries SET kind = COALESCE(?, kind), name = COALESCE(?, name), keywords = COALESCE(?, keywords), aliases = COALESCE(?, aliases), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes), pinned = COALESCE(?, pinned), level = COALESCE(?, level) WHERE universe_id = ? AND id = ? RETURNING id, universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level",
+  "query": "UPDATE lore_entries SET kind = COALESCE(?, kind), name = COALESCE(?, name), keywords = COALESCE(?, keywords), aliases = COALESCE(?, aliases), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes), pinned = COALESCE(?, pinned), level = COALESCE(?, level) WHERE universe_id = ? AND id = ? AND deleted_at IS NULL RETURNING id, universe_id, kind, name, keywords AS \"keywords: SqlJson<Vec<String>>\", aliases AS \"aliases: SqlJson<Vec<String>>\", visible_text, hidden_notes, pinned AS \"pinned: bool\", level",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "b392b4ebc46e2ddad8ffdbc0b29d41dab69e04265d982c46e4a56f8fa347a74c"
+  "hash": "448a75c894a2a5ca0b4b690567ce7d54b1fc607be0c347bd675c8b22189cac76"
 }

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{rejection::JsonRejection, Path, State},
+    extract::{rejection::JsonRejection, Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -87,13 +87,35 @@ pub async fn update_lore(
     Ok(Json(LoreEntry::in_series(entry, series_id)))
 }
 
+#[derive(serde::Deserialize, Default)]
+pub struct DeleteQuery {
+    #[serde(default)]
+    pub permanent: bool,
+}
+
 pub async fn delete_lore(
     State(pool): State<SqlitePool>,
     Path((series_id, lore_id)): Path<(i64, i64)>,
+    Query(query): Query<DeleteQuery>,
 ) -> Result<StatusCode, Error> {
     let mut transaction = pool.begin().await?;
     let universe_id = series_universe(&mut transaction, series_id).await?;
-    store::delete(&mut transaction, universe_id, lore_id).await?;
+    if query.permanent {
+        store::permanent_delete(&mut transaction, universe_id, lore_id).await?;
+    } else {
+        store::delete(&mut transaction, universe_id, lore_id).await?;
+    }
     transaction.commit().await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_lore(
+    State(pool): State<SqlitePool>,
+    Path((series_id, lore_id)): Path<(i64, i64)>,
+) -> Result<Json<LoreEntry>, Error> {
+    let mut transaction = pool.begin().await?;
+    let universe_id = series_universe(&mut transaction, series_id).await?;
+    let entry = store::restore(&mut transaction, universe_id, lore_id).await?;
+    transaction.commit().await?;
+    Ok(Json(LoreEntry::in_series(entry, series_id)))
 }

@@ -22,7 +22,7 @@
 - `POST /series/{id}/lore` — Create lore with required kind (character/place/term/note) and nonblank name; optional fields retain migration defaults (201 + JSON, 404, or standard JSON 422 for invalid fields/types). Keywords/aliases are arrays of nonblank strings; pinned is boolean; level is include/known_dont_reveal/leave_out
 - `GET /series/{id}/lore/{lore_id}` — Get author lore scoped to series, including hidden notes (200 JSON or 404)
 - `PUT /series/{id}/lore/{lore_id}` — Partial lore update scoped to series (200 JSON, 404, or standard JSON 422); omitted/null fields unchanged, including pinned=false as an explicit update
-- `DELETE /series/{id}/lore/{lore_id}` — Delete lore scoped to series (204 or 404)
+- `DELETE /series/{id}/lore/{lore_id}` — Soft-delete lore scoped to series; `?permanent=true` permanently deletes active or deleted lore (204 or 404)
 - `GET /series/{id}/books/{book_id}/chapters` — List chapters ordered by position, then ID; default returns only id, title, position, kind, head_rev without reading content or revisions. `?content=true` returns full chapters with book_id and rebuilt head content; any other supplied content value, including false or empty, returns 422 (JSON array, 404, or 422)
 - `POST /series/{id}/books/{book_id}/chapters` — Create chapter with title, position, kind (chapter/prologue/epilogue), and optional Delta content; snapshot at revision zero (201 + JSON, 404, or 422). Delta input requires an object with an ops array and valid operations; omitted content defaults to an empty Delta
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}` — Get chapter rebuilt head content and head_rev, scoped to book and series (JSON or 404)
@@ -30,9 +30,10 @@
 - `DELETE /series/{id}/books/{book_id}/chapters/{chapter_id}` — Delete chapter scoped to book and series (204 or 404)
 - `POST /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas` — Submit `{baseRev, delta}`; transform against later retained revisions with server priority, append atomically, return `{rev, delta}` (200, 404, 409 unavailable/future history, or 422 malformed JSON/Delta or compose failure)
 - `GET /series/{id}/books/{book_id}/chapters/{chapter_id}/deltas?since=rev` — Return missed revisions ordered ascending as `[{rev, delta}]`; current head returns `[]` (200, 404, 409 unavailable/future history, or 422 invalid query)
+- `POST /series/{id}/lore/{lore_id}/restore` — Restore deleted lore (200 JSON or 404); deleted lore is excluded from list, get, and update
 - Old `/series`, `/books`, `/chapters`, deltas, and lore routes are a façade over the story model with unchanged JSON: series are `book_series` containers, books are prose `novel` groups (id = `legacy_book_id`), chapters are their prologue/chapter/epilogue leaves (id = `legacy_chapter_id`), and series lore is the container's universe lore (shared by series in one universe). `POST /series` creates a universe plus container; `DELETE /series/{id}` deletes the universe too when it has no containers or pieces left
 - `GET/POST /universes`, `GET/PUT/DELETE /universes/{id}` — title/position, series rules (201, 404, 422); DELETE cascades containers, pieces, lore
-- `GET/POST /universes/{id}/lore`, `GET/PUT/DELETE /universes/{id}/lore/{lore_id}` — lore fields as series lore, JSON `universe_id`
+- `GET/POST /universes/{id}/lore`, `GET/PUT/DELETE /universes/{id}/lore/{lore_id}` — lore fields and deletion semantics as series lore, JSON `universe_id`; `POST /universes/{id}/lore/{lore_id}/restore` restores deleted lore
 - `GET/POST /universes/{id}/containers`, `GET/PUT/DELETE /containers/{id}` — `{id, universeId, title, position, kind}`; `kind` or `universeId` on PUT is 422
 - `GET /universes/{id}/pieces?container=none` — loose roots; other or missing `container` is 422. `POST /universes/{id}/pieces` — root in storage `{title, position, label, shape, format?}`; format defaults to script for screenplay/tv_script/episode, else prose; a leaf starts with an empty Delta
 - `GET/POST /containers/{id}/pieces` — root pieces; book_series allows novel/novella, tv_series tv_script/episode (422 otherwise)

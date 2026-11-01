@@ -9,7 +9,7 @@ pub async fn list(
 ) -> Result<Vec<UniverseLoreEntry>, Error> {
     Ok(sqlx::query_as!(
         UniverseLoreEntry,
-        r#"SELECT id AS "id!", universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level FROM lore_entries WHERE universe_id = ? ORDER BY name, id"#,
+        r#"SELECT id AS "id!", universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level FROM lore_entries WHERE universe_id = ? AND deleted_at IS NULL ORDER BY name, id"#,
         universe_id,
     )
     .fetch_all(connection)
@@ -47,7 +47,7 @@ pub async fn get(
 ) -> Result<UniverseLoreEntry, Error> {
     sqlx::query_as!(
         UniverseLoreEntry,
-        r#"SELECT id, universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level FROM lore_entries WHERE universe_id = ? AND id = ?"#,
+        r#"SELECT id, universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level FROM lore_entries WHERE universe_id = ? AND id = ? AND deleted_at IS NULL"#,
         universe_id,
         lore_id,
     )
@@ -66,7 +66,7 @@ pub async fn update(
     let aliases = input.aliases.map(SqlJson);
     sqlx::query_as!(
         UniverseLoreEntry,
-        r#"UPDATE lore_entries SET kind = COALESCE(?, kind), name = COALESCE(?, name), keywords = COALESCE(?, keywords), aliases = COALESCE(?, aliases), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes), pinned = COALESCE(?, pinned), level = COALESCE(?, level) WHERE universe_id = ? AND id = ? RETURNING id, universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level"#,
+        r#"UPDATE lore_entries SET kind = COALESCE(?, kind), name = COALESCE(?, name), keywords = COALESCE(?, keywords), aliases = COALESCE(?, aliases), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes), pinned = COALESCE(?, pinned), level = COALESCE(?, level) WHERE universe_id = ? AND id = ? AND deleted_at IS NULL RETURNING id, universe_id, kind, name, keywords AS "keywords: SqlJson<Vec<String>>", aliases AS "aliases: SqlJson<Vec<String>>", visible_text, hidden_notes, pinned AS "pinned: bool", level"#,
         input.kind,
         input.name,
         keywords,
@@ -84,6 +84,42 @@ pub async fn update(
 }
 
 pub async fn delete(
+    connection: &mut SqliteConnection,
+    universe_id: i64,
+    lore_id: i64,
+) -> Result<(), Error> {
+    let result = sqlx::query!(
+        "UPDATE lore_entries SET deleted_at = CURRENT_TIMESTAMP WHERE universe_id = ? AND id = ? AND deleted_at IS NULL",
+        universe_id,
+        lore_id,
+    )
+    .execute(connection)
+    .await?;
+    if result.rows_affected() == 0 {
+        return Err(Error::NotFound);
+    }
+    Ok(())
+}
+
+pub async fn restore(
+    connection: &mut SqliteConnection,
+    universe_id: i64,
+    lore_id: i64,
+) -> Result<UniverseLoreEntry, Error> {
+    let result = sqlx::query!(
+        "UPDATE lore_entries SET deleted_at = NULL WHERE universe_id = ? AND id = ? AND deleted_at IS NOT NULL",
+        universe_id,
+        lore_id,
+    )
+    .execute(&mut *connection)
+    .await?;
+    if result.rows_affected() == 0 {
+        return Err(Error::NotFound);
+    }
+    get(connection, universe_id, lore_id).await
+}
+
+pub async fn permanent_delete(
     connection: &mut SqliteConnection,
     universe_id: i64,
     lore_id: i64,

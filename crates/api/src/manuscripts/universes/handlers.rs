@@ -1,5 +1,5 @@
 use axum::{
-    extract::{rejection::JsonRejection, Path, State},
+    extract::{rejection::JsonRejection, Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -9,7 +9,7 @@ use crate::error::Error;
 use crate::manuscripts::{
     json_input,
     lore::{
-        handlers::parse_input,
+        handlers::{parse_input, DeleteQuery},
         models::{LoreInput, UniverseLoreEntry},
         store,
     },
@@ -151,8 +151,23 @@ pub async fn update_lore(
 pub async fn delete_lore(
     State(pool): State<SqlitePool>,
     Path((universe_id, lore_id)): Path<(i64, i64)>,
+    Query(query): Query<DeleteQuery>,
 ) -> Result<StatusCode, Error> {
     let mut connection = pool.acquire().await?;
-    store::delete(&mut connection, universe_id, lore_id).await?;
+    if query.permanent {
+        store::permanent_delete(&mut connection, universe_id, lore_id).await?;
+    } else {
+        store::delete(&mut connection, universe_id, lore_id).await?;
+    }
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_lore(
+    State(pool): State<SqlitePool>,
+    Path((universe_id, lore_id)): Path<(i64, i64)>,
+) -> Result<Json<UniverseLoreEntry>, Error> {
+    let mut transaction = pool.begin().await?;
+    let entry = store::restore(&mut transaction, universe_id, lore_id).await?;
+    transaction.commit().await?;
+    Ok(Json(entry))
 }
