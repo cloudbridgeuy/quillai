@@ -5,7 +5,6 @@ import { expectEditorReady } from "./editor-ready";
 type Op = { insert?: unknown; attributes?: Record<string, unknown> };
 type SpecWindow = { specQuill: Quill };
 
-const unsaved = "Wait for chapter saving and polling to finish before starting AI.";
 const acrossBreak = "Select text inside one scene to use Edit.";
 
 async function attachQuill(page: Page) {
@@ -132,8 +131,11 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await expect(list).toContainText("1 matches");
   });
 
-  await test.step("an unsaved scene blocks Continue", async () => {
-    const before = await providerCount();
+  await test.step("Continue waits for a scene-two save and stays inside scene two", async () => {
+    const identity = `GUZ985-Finish-${crypto.randomUUID()}`;
+    await fillInstruction(identity);
+    const before = await arm(identity, "e2e-continue");
+    const postsBefore = posts.length;
     let held!: Route;
     const holding = new Promise<void>((resolve) => {
       void page.route(`${api}/pieces/${two.id}/deltas`, (route) => {
@@ -142,15 +144,23 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
       });
     });
     await select(page, await sceneTwoStart());
-    await page.keyboard.type("Mist. ");
+    await page.keyboard.type("Mi");
     await holding;
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
-    await expect(page.getByText(unsaved, { exact: true })).toBeVisible();
+    await expect(stop).toBeVisible();
+    await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
     expect(await providerCount()).toBe(before);
     expect(await serverText(two.id)).toBe("Rain falls.\n");
     await held.continue();
     await page.unroute(`${api}/pieces/${two.id}/deltas`);
+    await expect.poll(providerCount).toBe(before + 1);
+    const run = await upstream(before, identity, "e2e-continue");
+    await run.fragment("st. ");
+    await run.finish();
+    await expect(stop).toBeHidden();
     await expectScenes("Kettle boils.\n", "Mist. Rain falls.\n");
+    expect(posts.slice(postsBefore).every((piece) => piece === two.id)).toBe(true);
+    expect(posts.slice(postsBefore)).not.toHaveLength(0);
   });
 
   await test.step("Edit across a break is disabled; Edit inside scene 2 saves only scene 2", async () => {
