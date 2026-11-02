@@ -103,7 +103,7 @@ Default to using Bun instead of Node.js.
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Bun automatically loads .env, so don't use dotenv.
-- Every ticket fixing or changing browser-visible behaviour ships with an E2E regression spec.
+- Every ticket fixing or changing browser-visible behaviour ships with an E2E regression spec. Write the spec but do not run it inside the ticket.
 
 ### Bun APIs
 
@@ -118,7 +118,7 @@ Default to using Bun instead of Node.js.
 ### Rust Conventions
 
 - Delta parity: see [Delta parity](docs/agent/delta-parity.md).
-- Workers run `cargo xtask lint` plus only the specs they add or change, in Chromium (`cargo xtask e2e e2e/<spec> --project chromium`; `--project` is variadic, so spec paths go first); the full three-browser suite is the owner's check, run out of band.
+- Workers run `cargo xtask lint` and never `cargo xtask e2e`. Red/green uses a unit or integration test. Browser specs run nightly (GUZ-1206); see [testing policy](docs/agent/testing.md).
 - MSRV is Rust 1.95.0 or higher, set as `rust-version` in the workspace `Cargo.toml` and inherited by every member crate.
 - Workspace crates under `crates/`. New crates go there.
 - `cargo xtask` for build automation — extend `xtask/src/main.rs` for new tasks.
@@ -156,6 +156,7 @@ CLAUDE.md is an index capped at 16,000 bytes (`cargo xtask lint` check). Put tic
 | File | Lookup purpose |
 |------|----------------|
 | [source-index.md](docs/agent/source-index.md) | Source file behaviour |
+| [testing.md](docs/agent/testing.md) | Test layers, red/green, and commit gate |
 | [e2e-specs.md](docs/agent/e2e-specs.md) | Browser smoke coverage |
 | [api-routes.md](docs/agent/api-routes.md) | API routes |
 | [database.md](docs/agent/database.md) | Database schema and migrations |
