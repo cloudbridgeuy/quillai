@@ -18,6 +18,7 @@ mod dev_database;
 mod e2e;
 mod hooks;
 mod nightly;
+mod nightly_launchd;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
@@ -48,6 +49,11 @@ pub enum Commands {
     Lint(LintArgs),
     #[command(about = "Install the tracked pre-commit lint hook")]
     InstallHooks,
+    #[command(about = "Install or remove the nightly launchd job")]
+    InstallNightly {
+        #[arg(long)]
+        uninstall: bool,
+    },
     #[command(about = "Run the isolated chapter-sync browser smoke test")]
     E2e(E2eArgs),
     #[command(about = "Run nightly browser tests and write a report")]
@@ -185,6 +191,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::E2e(args) => e2e::run(args),
         Commands::Nightly => nightly::run(),
         Commands::InstallHooks => hooks::run(),
+        Commands::InstallNightly { uninstall } => nightly_launchd::run(uninstall),
         Commands::Lint(args) => {
             if !lint(args)? {
                 std::process::exit(1);

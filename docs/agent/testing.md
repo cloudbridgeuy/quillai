@@ -25,7 +25,7 @@ Every ticket fixing or changing browser-visible behaviour still ships with an E2
 
 Run `cargo xtask nightly` to test all three browsers in the sandbox. Reports are written to `target/nightly/YYYY-MM-DD/report.md`; raw results and logs are in the same directory. Test failures do not make the command fail; a missing or invalid result does.
 
-The tracked `e2e/known-failures.txt` uses `browser spec:line ticket`, with `*` for any browser, entire spec, or line (for example, `firefox * GUZ-1209` or `* example.spec.ts:* GUZ-123`). Each entry requires a `GUZ-` ticket number. Lines starting with `#` and blank lines are ignored. Scheduling is tracked in GUZ-1214.
+The tracked `e2e/known-failures.txt` uses `browser spec:line ticket`, with `*` for any browser, entire spec, or line (for example, `firefox * GUZ-1209` or `* example.spec.ts:* GUZ-123`). Each entry requires a `GUZ-` ticket number. Lines starting with `#` and blank lines are ignored. On macOS, run `cargo xtask install-nightly` from the main folder. At 02:00 local time, launchd runs whatever is checked out in that main folder at run time. launchd runs a missed job when the Mac wakes. Run `cargo xtask install-nightly --uninstall` to remove the job. The installer writes `~/Library/LaunchAgents/com.quillai.nightly.plist`; launchd logs are `target/nightly/launchd.out.log` and `target/nightly/launchd.err.log`. Report delivery to the ralph inbox is tracked in GUZ-1208.
 
 ## Commit gate
 
