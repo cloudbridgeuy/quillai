@@ -48,12 +48,18 @@ for (const width of [1100, 1440]) {
     await post(`${api}/containers/${container.id}/pieces`, { title: `${prefix} member`, position: 0, label: "short_story", shape: "leaf" });
     const loose = await post(`${api}/universes/${universe.id}/pieces`, { title: `${prefix} loose`, position: 0, label: "short_story", shape: "leaf" });
 
+    // GUZ-1164: The shared E2E database can contain chapters from other tests.
+    const seriesUrl = (url: URL) => url.href === `${api}/series`;
+    await page.route(seriesUrl, (route) => route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
+      : route.continue());
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     const drawer = page.locator("#manuscript-drawer");
     await expect(drawer.getByText("Open a piece or chapter to manage its universe lore.", { exact: true })).toBeVisible();
 
+    await page.unroute(seriesUrl);
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, universeId: String(universe.id), pieceId: String(loose.id) })}`);
     await expectEditorReady(page.locator(".ql-editor"));
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
