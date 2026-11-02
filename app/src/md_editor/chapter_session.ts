@@ -195,6 +195,10 @@ export function createChapterSession(
   }
 
   return {
+    revision: () => state.rev,
+    hasPendingWork: () => hasLocalChanges(state) || acknowledgement !== null || problem?.kind === "retrying",
+    isBusy: () => running !== null,
+    isReserved: () => aiReserved,
     document: () => syncDocument(state),
     canStartAi: () => !stopped && !aiReserved && problem?.kind !== "blocked",
     reserveAi() {

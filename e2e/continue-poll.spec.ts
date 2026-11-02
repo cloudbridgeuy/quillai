@@ -2,6 +2,9 @@ import { createServer, type ServerResponse } from "node:http";
 import { once } from "node:events";
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { installFakeEventSource } from "./fixtures/fake-event-source";
+
+const fakeChapterPieceId = 1;
 
 for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while waiting"] as const) {
   test(`${outcome}: Continue reserves a clean chapter during polling`, async ({ context, page, request }) => {
@@ -26,8 +29,9 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
     const chapterUrl = `${chaptersUrl}/${chapter.id}`;
     const query = new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) });
     const second = await context.newPage();
+    await page.addInitScript(installFakeEventSource);
     await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
-    await page.clock.pauseAt(new Date("2026-01-01T00:00:00Z"));
+    await page.clock.pauseAt(new Date("2026-01-02T00:00:00Z"));
     for (const tab of [page, second]) {
       tab.on("pageerror", error => failures.push(error.message));
       await tab.setViewportSize({ width: 1100, height: 1000 });
@@ -77,7 +81,8 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       return route.continue({ url: `http://127.0.0.1:${address.port}/ai/generate` });
     });
     try {
-      await page.clock.runFor(1000);
+      await page.waitForFunction(() => (window as unknown as { fakeEventSource: { sources: unknown[] } }).fakeEventSource.sources.length > 0);
+      await page.evaluate(pieceId => (window as unknown as { fakeEventSource: { ready: (index: number, ids: number[]) => void } }).fakeEventSource.ready(0, [pieceId]), fakeChapterPieceId);
       await held;
       const editor = page.locator(".ql-editor");
       if (outcome === "Unsaved") {
@@ -89,6 +94,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       await continueButton.click();
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await expect(stop).toBeVisible();
+      await page.evaluate(() => (window as unknown as { fakeEventSource: { resync: (index: number) => void } }).fakeEventSource.resync(0));
       if (outcome === "Unsaved") {
         await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
         await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Unsaved changes");

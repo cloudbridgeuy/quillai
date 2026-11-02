@@ -1,5 +1,8 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { installFakeEventSource } from "./fixtures/fake-event-source";
+
+const fakeChapterPieceId = 1;
 
 test("offline tab rebases a stale submission without losing either tab's edits", async ({ context, page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -31,6 +34,7 @@ test("offline tab rebases a stale submission without losing either tab's edits",
     seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id),
   });
   const second = await context.newPage();
+  await page.addInitScript(installFakeEventSource);
   const failures: string[] = [];
   for (const tab of [page, second]) {
     tab.on("pageerror", (error) => failures.push(error.message));
@@ -107,6 +111,7 @@ test("offline tab rebases a stale submission without losing either tab's edits",
   release();
   const accepted = await stalePost;
   await page.unroute(`${deltaUrl}*`);
+  await page.evaluate(pieceId => (window as unknown as { fakeEventSource: { ready: (index: number, ids: number[]) => void } }).fakeEventSource.ready(0, [pieceId]), fakeChapterPieceId);
   expect(accepted.status()).toBe(200);
   expect((await accepted.json()).rev).toBe(remote.head_rev + 1);
 

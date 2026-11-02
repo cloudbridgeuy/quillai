@@ -50,6 +50,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         });
         tab.on("response", (response) => {
           if (!response.url().startsWith(apiUrl)) return;
+          if (response.headers()["content-type"]?.startsWith("text/event-stream")) return;
           recordings.push((async () => {
             const entry = {
               tab: index, method: response.request().method(), url: response.url(),
@@ -209,6 +210,7 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
         tab.on("requestfailed", (req) => events.push({ tab: index, url: req.url(), request: req.postData(), failure: req.failure() }));
         tab.on("response", (response) => {
           if (!response.url().startsWith(apiUrl)) return;
+          if (response.headers()["content-type"]?.startsWith("text/event-stream")) return;
           recordings.push((async () => {
             const entry = { tab: index, received: Date.now(), method: response.request().method(), url: response.url(), request: response.request().postData(), status: response.status(), response: await response.text().catch(String) };
             events.push(entry);

@@ -7,6 +7,7 @@ import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
 import { LAST_EDITED_KEY, landingUrl } from "../landing/routes";
+import { createSyncPush } from "./sync_push";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -24,6 +25,7 @@ export function useChapterSync(
   const [needsChapter, setNeedsChapter] = useState(false);
   const [scope, setScope] = useState<EditorScope | null>(null);
   const sessionRef = useRef<ReturnType<typeof createChapterSession> | null>(null);
+  const pushRef = useRef<ReturnType<typeof createSyncPush> | null>(null);
   const switchRef = useRef<((target: EditorScope) => Promise<void>) | null>(null);
   const switchingRef = useRef(false);
   const applyingRef = useRef(false);
@@ -36,6 +38,7 @@ export function useChapterSync(
 
   useEffect(() => {
     let disposed = false;
+    let pageHidden = false;
     let storageFailed = false;
     try {
       const previous = window.sessionStorage.getItem(RECOVERY_KEY);
@@ -60,6 +63,7 @@ export function useChapterSync(
     function openChapter(scope: EditorScope, chapter: EditorDocument) {
       const quill = quillRef.current;
       if (disposed || !quill) return;
+      pushRef.current?.close();
       sessionRef.current?.stop();
       const url = new URL(window.location.href);
       for (const key of ["seriesId", "bookId", "chapterId", "universeId", "pieceId"]) url.searchParams.delete(key);
@@ -105,6 +109,7 @@ export function useChapterSync(
       let latestRecovery: string | null = null;
       sessionRef.current = session;
       currentScope = scope;
+      pushRef.current = createSyncPush(scope, session, () => activeRef.current() || switchingRef.current, pageHidden);
       openedRef.current = JSON.stringify({ scope, title: chapter.title });
       setScope(scope);
       setBlocked(false);
@@ -126,11 +131,14 @@ export function useChapterSync(
         session.edit(quill.getContents());
         await session.flush();
         if (disposed) return;
+        pushRef.current?.close();
+        pushRef.current = null;
         setStatus("Loading chapter…");
         const chapter = await loadEditorDocument(client, target);
         if (disposed) return;
         openChapter(target, chapter);
       } catch (error) {
+        if (!disposed && !pushRef.current && currentScope) pushRef.current = createSyncPush(currentScope, session, () => activeRef.current() || switchingRef.current, pageHidden);
         if (!disposed && error instanceof ManuscriptApiError && error.detail !== error.message) setDetail(error.detail);
         if (!disposed) setStatus(`Chapter switch failed: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
       } finally {
@@ -149,7 +157,7 @@ export function useChapterSync(
       });
     });
     const timer = window.setInterval(() => {
-      if (!activeRef.current() && !switchingRef.current) void sessionRef.current?.tick();
+      pushRef.current?.check();
     }, 1000);
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (dirtyRef.current) {
@@ -157,11 +165,19 @@ export function useChapterSync(
         event.returnValue = "";
       }
     };
+    const pageHide = () => { pageHidden = true; pushRef.current?.hide(); };
+    const pageShow = () => { pageHidden = false; pushRef.current?.show(); };
+    window.addEventListener("pagehide", pageHide);
+    window.addEventListener("pageshow", pageShow);
     window.addEventListener("beforeunload", beforeUnload);
     return () => {
       disposed = true;
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
+      window.removeEventListener("pagehide", pageHide);
+      window.removeEventListener("pageshow", pageShow);
+      pushRef.current?.close();
+      pushRef.current = null;
       sessionRef.current?.stop();
       sessionRef.current = null;
       switchRef.current = null;
@@ -194,6 +210,8 @@ export function useChapterSync(
           return;
         }
       }
+      pushRef.current?.close();
+      pushRef.current = null;
       window.location.assign(target);
     },
     notice: null,
