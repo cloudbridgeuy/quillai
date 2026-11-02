@@ -27,7 +27,7 @@ type Session = { revision(): number; hasPendingWork(): boolean; isBusy(): boolea
 
 export function createSyncPush(scope: EditorScope, session: Session, unavailable: () => boolean, suspended = false) {
   let state = { ...pushState(Date.now()), suspended };
-  let source: EventSource | null = null;
+  let stream: ReturnType<typeof createSyncStream> | null = null;
   let pieceId = "pieceId" in scope ? scope.pieceId : null;
   let closed = false;
   const check = () => {
@@ -40,40 +40,19 @@ export function createSyncPush(scope: EditorScope, session: Session, unavailable
     if (result.tick) void session.tick();
   };
   const open = () => {
-    if (closed || state.suspended || typeof EventSource === "undefined") return;
-    const path = "pieceId" in scope
-      ? `/sync/events?pieceIds=${scope.pieceId}`
-      : `/series/${scope.seriesId}/books/${scope.bookId}/chapters/${scope.chapterId}/events`;
-    try {
-      const stream = new EventSource(`${getApiBaseUrl()}${path}`);
-      source = stream;
-      stream.addEventListener("ready", (event) => {
-        if (source !== stream) return;
-        try {
-          const ids = JSON.parse((event as MessageEvent).data).pieceIds;
-          if (!Array.isArray(ids) || ids.length !== 1 || !Number.isSafeInteger(ids[0]) || ids[0] <= 0 || (pieceId !== null && ids[0] !== pieceId)) return;
-          pieceId = ids[0];
-          state = requestRefetch(state);
-          check();
-        } catch {}
-      });
-      stream.addEventListener("resync", () => {
-        if (source !== stream) return;
-        state = requestRefetch(state);
+    if (closed || state.suspended) return;
+    const path = "pieceId" in scope ? undefined : `/series/${scope.seriesId}/books/${scope.bookId}/chapters/${scope.chapterId}/events`;
+    stream = createSyncStream(pieceId === null ? [] : [pieceId], {
+      ready(ids) { pieceId = ids[0]!; state = requestRefetch(state); check(); },
+      refetch() { state = requestRefetch(state); check(); },
+      changed(id, revision) {
+        if (id !== pieceId || revision <= session.revision() || revision <= state.revision) return;
+        state = requestRevision(state, revision);
         check();
-      });
-      stream.addEventListener("changed", (event) => {
-        if (source !== stream) return;
-        try {
-          const data = JSON.parse((event as MessageEvent).data);
-          if (pieceId === null || data.pieceId !== pieceId || !Number.isSafeInteger(data.rev) || data.rev <= session.revision() || data.rev <= state.revision) return;
-          state = requestRevision(state, data.rev);
-          check();
-        } catch {}
-      });
-    } catch {}
+      },
+    }, path);
   };
-  const disconnect = () => { source?.close(); source = null; };
+  const disconnect = () => { stream?.close(); stream = null; };
   open();
   return {
     check,
@@ -86,4 +65,38 @@ export function createSyncPush(scope: EditorScope, session: Session, unavailable
     },
     close() { closed = true; disconnect(); },
   };
+}
+
+export function createSyncStream(ids: readonly number[], handlers: {
+  ready?: (ids: number[]) => void;
+  refetch: () => void;
+  changed: (id: number, revision: number) => void;
+}, path = `/sync/events?pieceIds=${ids.join(",")}`) {
+  let source: EventSource | null = null;
+  let activeIds = ids;
+  if (typeof EventSource !== "undefined") {
+    try {
+      const stream = new EventSource(`${getApiBaseUrl()}${path}`);
+      source = stream;
+      stream.addEventListener("ready", (event) => {
+        if (source !== stream) return;
+        try {
+          const received = JSON.parse((event as MessageEvent).data).pieceIds;
+          if (!Array.isArray(received) || received.length !== (activeIds.length || 1) || !received.every((id: unknown) => Number.isSafeInteger(id) && (id as number) > 0) || (activeIds.length > 0 && (new Set(received).size !== activeIds.length || activeIds.some((id) => !received.includes(id))))) return;
+          activeIds = received;
+          if (handlers.ready) handlers.ready(received);
+          else handlers.refetch();
+        } catch {}
+      });
+      stream.addEventListener("resync", () => { if (source === stream) handlers.refetch(); });
+      stream.addEventListener("changed", (event) => {
+        if (source !== stream) return;
+        try {
+          const data = JSON.parse((event as MessageEvent).data);
+          if (activeIds.includes(data.pieceId) && Number.isSafeInteger(data.rev) && data.rev > 0) handlers.changed(data.pieceId, data.rev);
+        } catch {}
+      });
+    } catch {}
+  }
+  return { close() { source?.close(); source = null; } };
 }

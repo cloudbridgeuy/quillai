@@ -127,3 +127,39 @@ test("stream events and lifecycle request reads without timers", () => {
     globalThis.EventSource = original;
   }
 });
+
+test("multiplexed stream routes valid changes and refetch events", async () => {
+  const { createSyncStream } = await import("./sync_push");
+  const original = globalThis.EventSource;
+  class FakeSource extends EventTarget {
+    static instance: FakeSource;
+    constructor(readonly url: string) { super(); FakeSource.instance = this; }
+    close() {}
+    emit(name: string, data: unknown) { this.dispatchEvent(new MessageEvent(name, { data: JSON.stringify(data) })); }
+  }
+  globalThis.EventSource = FakeSource as unknown as typeof EventSource;
+  try {
+    const changes: number[][] = [];
+    let refetches = 0;
+    const stream = createSyncStream([1, 2], { changed: (id, rev) => changes.push([id, rev]), refetch: () => { refetches++; } });
+    const source = FakeSource.instance;
+    expect(source.url.endsWith("/sync/events?pieceIds=1,2")).toBe(true);
+    source.emit("ready", { pieceIds: [1, 2] });
+    source.emit("changed", { pieceId: 2, rev: 8 });
+    source.emit("changed", { pieceId: 3, rev: 9 });
+    source.emit("changed", { pieceId: 1, rev: 0 });
+    source.emit("changed", { pieceId: 1, rev: 1.5 });
+    source.emit("resync", {});
+    expect(changes).toEqual([[2, 8]]);
+    expect(refetches).toBe(2);
+    stream.close();
+    source.emit("changed", { pieceId: 2, rev: 9 });
+    expect(changes).toEqual([[2, 8]]);
+    const legacy = createSyncStream([], { refetch: () => { refetches++; }, changed: () => {} }, "/legacy/events");
+    const alias = FakeSource.instance;
+    alias.emit("ready", { pieceIds: [9] });
+    alias.emit("ready", { pieceIds: [10] });
+    expect(refetches).toBe(3);
+    legacy.close();
+  } finally { globalThis.EventSource = original; }
+});

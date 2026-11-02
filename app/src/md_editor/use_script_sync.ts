@@ -9,6 +9,8 @@ import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
 import { composeScenes, placeRemote, SCENE_BREAK, splitChange, type ScriptLayout } from "./script_layout";
 import { createScenePoll } from "./script_poll";
+import { createSyncStream } from "./sync_push";
+import { checkScript, scriptNudge, scriptRefetch, scriptSchedule, scriptSuspend } from "./script_scheduler";
 import { sceneTitles } from "./scene_break";
 import { crossesBreak, offBreak, scriptKeyAction, startsList } from "./script_keys";
 import { blockAttribute, cycleBlock, parseBlock, SCRIPT_BLOCK, splitLineDelta, type BlockType } from "./script_blocks";
@@ -67,6 +69,7 @@ export function useScriptSync(
   const caretRef = useRef<number | null>(null);
   const rangeRef = useRef<{ index: number; length: number } | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
+  const streamRef = useRef<ReturnType<typeof createSyncStream> | null>(null);
   const layoutRef = useRef<ScriptLayout>([]);
   const applyingRef = useRef(false);
   const leavingRef = useRef(false);
@@ -79,6 +82,13 @@ export function useScriptSync(
   useEffect(() => {
     let disposed = false;
     let storageFailed = false;
+    let pageHidden = false;
+    let hidden = document.hidden;
+    let schedule = scriptSchedule(Date.now());
+    if (hidden) schedule = scriptSuspend(schedule, true);
+    let membership = "";
+    let running = false;
+    let queued = false;
     let groupTitle = "";
     try {
       const copies: string[] = [];
@@ -111,6 +121,53 @@ export function useScriptSync(
         return poll.getDeltas(scope.pieceId, since);
       },
     };
+
+    function check() {
+      if (disposed) return;
+      const scenes = scenesRef.current;
+      const ids = scenes.map(({ id }) => id);
+      const nextMembership = ids.join(",");
+      if (nextMembership !== membership || streamRef.current === null) {
+        membership = nextMembership;
+        streamRef.current?.close();
+        streamRef.current = null;
+        if (!hidden && !pageHidden && ids.length > 0 && ids.length <= 256 && !leavingRef.current) {
+          streamRef.current = createSyncStream(ids, {
+            refetch() { schedule = scriptRefetch(schedule); if (running) queued = true; else check(); },
+            changed(id, revision) { schedule = scriptNudge(schedule, id, revision); if (running) queued = true; else check(); },
+          });
+        }
+      }
+      const result = checkScript(schedule, scenes.map(({ id, session }) => ({
+        id, revision: session.revision(), pending: session.hasPendingWork(),
+        busy: running || session.isBusy(), reserved: session.isReserved() || activeRef.current() || leavingRef.current,
+      })), Date.now());
+      schedule = result.state;
+      const targets = scenes.filter(({ id }) => result.ids.includes(id));
+      if (targets.length === 0) return;
+      running = true;
+      const ticks: Promise<void>[] = [];
+      poll.tick(targets.map(({ id, session }) => ({ id, tick: () => {
+        const tick = session.tick();
+        ticks.push(tick);
+        return tick;
+      } })));
+      void Promise.all(ticks).finally(() => {
+        running = false;
+        if (queued) { queued = false; check(); }
+      });
+    }
+    function visibility() {
+      const suspended = document.hidden || pageHidden;
+      if (hidden === suspended) return;
+      hidden = suspended;
+      schedule = scriptSuspend(schedule, hidden);
+      if (hidden) { streamRef.current?.close(); streamRef.current = null; }
+      membership = "";
+      if (!hidden) check();
+    }
+    const pageHide = () => { pageHidden = true; visibility(); };
+    const pageShow = () => { pageHidden = false; visibility(); };
 
     function refresh() {
       const scenes = scenesRef.current;
@@ -188,6 +245,7 @@ export function useScriptSync(
       refresh();
       setReady(true);
       for (const scene of scenesRef.current) scene.session.edit(withNewline(scene.session.document()));
+      check();
     }
 
     queueMicrotask(() => {
@@ -199,9 +257,10 @@ export function useScriptSync(
         }
       });
     });
-    const timer = window.setInterval(() => {
-      if (!activeRef.current() && !leavingRef.current) poll.tick(scenesRef.current.map(({ id, session }) => ({ id, tick: session.tick })));
-    }, 1000);
+    const timer = window.setInterval(check, 1000);
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", pageHide);
+    window.addEventListener("pageshow", pageShow);
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (scenesRef.current.some((scene) => scene.dirty)) {
         event.preventDefault();
@@ -282,6 +341,11 @@ export function useScriptSync(
       quill?.off("selection-change", selection);
       quill?.off("text-change", textChange);
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", pageHide);
+      window.removeEventListener("pageshow", pageShow);
+      streamRef.current?.close();
+      streamRef.current = null;
       window.removeEventListener("beforeunload", beforeUnload);
       for (const scene of scenesRef.current) scene.session.stop();
       scenesRef.current = [];
@@ -335,6 +399,8 @@ export function useScriptSync(
     setStatus(message);
     try {
       for (const scene of scenesRef.current) await scene.session.flush();
+      streamRef.current?.close();
+      streamRef.current = null;
       return true;
     } catch (error) {
       setDetail(scenesRef.current.find((scene) => scene.problem !== null)?.problem?.detail);

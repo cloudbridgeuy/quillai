@@ -116,6 +116,19 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     };
   };
 
+  await page.addInitScript(() => {
+    const NativeEventSource = window.EventSource;
+    class ObservedEventSource extends NativeEventSource {
+      constructor(url: string | URL, options?: EventSourceInit) {
+        super(url, options);
+        this.addEventListener("changed", event => {
+          const state = window as unknown as { scriptChanges: number[] };
+          state.scriptChanges.push(JSON.parse(event.data).pieceId);
+        });
+      }
+    }
+    Object.assign(window, { EventSource: ObservedEventSource, scriptChanges: [] });
+  });
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, pieceId: String(group.id) })}`);
   await expectEditorReady(editor);
@@ -200,6 +213,7 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await select(page, await sceneOneEnd());
     const id = await arm(identity, "e2e-continue");
     const postsBefore = posts.length;
+    await expect(saveStatus).toHaveText("Saved");
     aiRunning = true;
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
     const run = await upstream(id, identity, "e2e-continue");
@@ -209,7 +223,9 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await expect(editor).toHaveAttribute("data-ai-tint", "streaming");
     await expect(page.locator(".editor-continue-window")).toBeVisible();
     const remote = await server(two.id);
+    const changes = await page.evaluate(id => (window as unknown as { scriptChanges: number[] }).scriptChanges.filter(piece => piece === id).length, two.id);
     await post(`${api}/pieces/${two.id}/deltas`, { baseRev: remote.headRev, delta: { ops: [{ insert: "Far " }] } }, 200);
+    await expect.poll(() => page.evaluate(id => (window as unknown as { scriptChanges: number[] }).scriptChanges.filter(piece => piece === id).length, two.id)).toBeGreaterThan(changes);
     await run.fragment(" Lid rattles.");
     await expect.poll(() => sceneTexts(page)).toEqual(["Kettle boils.\nSteam rises. Lid rattles.\n", "Mist. Snow falls.\n"]);
     expect(await serverText(one.id)).toBe("Kettle boils.\n");
