@@ -4,7 +4,7 @@ use axum::{
         Path, Query, State,
     },
     http::StatusCode,
-    Json,
+    Extension, Json,
 };
 use sqlx::{sqlite::SqlitePool, SqliteConnection};
 
@@ -266,10 +266,11 @@ pub async fn get_deltas(
 
 pub async fn post_delta(
     State(pool): State<SqlitePool>,
+    Extension(events): Extension<super::super::sync_events::Sender>,
     Path(id): Path<i64>,
     input: Result<Json<SubmitDelta>, JsonRejection>,
 ) -> Result<Json<Revision>, Error> {
     let Json(input) = input.map_err(|error| Error::Validation(error.body_text()))?;
-    let revision = leaf_sync::submit(&pool, id, input.base_rev, &input.delta).await?;
+    let revision = leaf_sync::submit(&pool, &events, id, input.base_rev, &input.delta).await?;
     Ok(Json(revision))
 }

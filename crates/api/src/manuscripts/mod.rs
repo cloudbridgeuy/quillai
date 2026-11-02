@@ -5,6 +5,7 @@ pub mod leaf_sync;
 pub mod lore;
 pub mod pieces;
 pub mod series;
+pub mod sync_events;
 pub mod trash;
 pub mod universes;
 
@@ -21,6 +22,7 @@ pub fn routes(pool: SqlitePool) -> Router {
         .merge(universes::routes(pool.clone()))
         .merge(containers::routes(pool.clone()))
         .merge(pieces::routes(pool.clone()))
+        .merge(sync_events::routes(pool.clone()))
         .merge(trash::routes(pool))
 }
 

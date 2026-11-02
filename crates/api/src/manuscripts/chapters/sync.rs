@@ -3,14 +3,14 @@ use axum::{
         rejection::{JsonRejection, QueryRejection},
         Path, Query, State,
     },
-    Json,
+    Extension, Json,
 };
 use sqlx::SqlitePool;
 
 use super::models::{MissedDeltas, SubmitDelta};
 use crate::{chapter_revisions::Revision, error::Error, manuscripts::leaf_sync};
 
-async fn chapter_piece(
+pub(in crate::manuscripts) async fn chapter_piece(
     pool: &SqlitePool,
     (series_id, book_id, chapter_id): (i64, i64, i64),
 ) -> Result<i64, Error> {
@@ -38,11 +38,13 @@ pub async fn get_deltas(
 
 pub async fn post_delta(
     State(pool): State<SqlitePool>,
+    Extension(events): Extension<super::super::sync_events::Sender>,
     Path(path): Path<(i64, i64, i64)>,
     input: Result<Json<SubmitDelta>, JsonRejection>,
 ) -> Result<Json<Revision>, Error> {
     let Json(input) = input.map_err(|error| Error::Validation(error.body_text()))?;
     let piece_id = chapter_piece(&pool, path).await?;
-    let revision = leaf_sync::submit(&pool, piece_id, input.base_rev, &input.delta).await?;
+    let revision =
+        leaf_sync::submit(&pool, &events, piece_id, input.base_rev, &input.delta).await?;
     Ok(Json(revision))
 }

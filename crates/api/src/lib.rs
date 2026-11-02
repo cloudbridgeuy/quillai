@@ -41,10 +41,11 @@ pub fn app(pool: SqlitePool) -> Router {
 
 pub fn app_with_cors(pool: SqlitePool, origins: Vec<HeaderValue>) -> Router {
     let user_routes = users::routes(pool.clone());
+    let (events, _) = tokio::sync::broadcast::channel::<manuscripts::sync_events::Change>(256);
 
     Router::new()
         .merge(user_routes)
-        .merge(manuscripts::routes(pool.clone()))
+        .merge(manuscripts::routes(pool.clone()).layer(axum::Extension(events)))
         .merge(settings::routes(pool.clone()))
         .merge(ai::routes(pool))
         .layer(cors(origins))

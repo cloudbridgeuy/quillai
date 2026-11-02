@@ -30,6 +30,7 @@ pub async fn history(
 
 pub async fn submit(
     pool: &SqlitePool,
+    events: &super::sync_events::Sender,
     piece_id: i64,
     base_rev: i64,
     delta: &Delta,
@@ -42,10 +43,14 @@ pub async fn submit(
         });
         match store.append(piece_id, head, &delta).await {
             Ok(head) => {
+                let _ = events.send(super::sync_events::Change {
+                    piece_id,
+                    rev: head.head_rev,
+                });
                 return Ok(Revision {
                     rev: head.head_rev,
                     delta,
-                })
+                });
             }
             Err(RevisionError::StaleHead) => tokio::task::yield_now().await,
             Err(error) => return Err(error.into()),
