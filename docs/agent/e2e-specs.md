@@ -2,6 +2,8 @@
 
 ### Browser Smoke (`e2e/`)
 
+`chapter-switch-no-flash.spec.ts` samples chapter switch and creation at 1100px and 1440px with a 200ms fetch delay, and checks the busy status with a 1s delay.
+
 `server-errors.spec.ts` checks friendly errors for chapter load and lore save at 1100px and 1440px using HTTP 500 SQLX responses.
 
 `ai-shortcuts.spec.ts` independently checks Continue start, Stop, Edit note focus, unconsumed Edit without selection, instruction submission, saved selection from body and rail focus, untouched lore modal shortcuts, and accessibility metadata with the fake AI provider at 1100px and 1440px.

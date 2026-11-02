@@ -22,9 +22,11 @@ type TreeState =
   | { status: "failed"; message: string }
   | ({ status: "ready" } & ManuscriptTreeData);
 
-export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening = false, collapsedExcept, onSelect, onDelete, onLeave, onChange, activeScript }: {
+export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreatePending, savesBeforeOpening = false, collapsedExcept, onSelect, onDelete, onLeave, onChange, activeScript }: {
   selectedChapter: EditorScope | null;
   disabled: boolean;
+  busy?: boolean;
+  onCreatePending?: (pending: boolean) => void;
   savesBeforeOpening?: boolean;
   collapsedExcept?: number | null;
   onSelect: (scope: EditorScope, opensScript: boolean) => void;
@@ -85,7 +87,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
 
   function deleteButton(title: string, path: string, action: () => Promise<void>, affected: boolean) {
     return <IconButton className="tree-delete" tabIndex={0} label={`Delete '${title}'`} glyph={<svg aria-hidden="true" className="mx-auto size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>}
-      disabled={disabled || deleting || Boolean(draft?.pending)} onClick={event => { event.preventDefault(); event.stopPropagation(); void remove(title, path, action, affected); }} />;
+      disabled={disabled || deleting || Boolean(draft?.pending && busy)} onClick={event => { event.preventDefault(); event.stopPropagation(); void remove(title, path, action, affected); }} />;
   }
 
   async function undo() {
@@ -135,6 +137,8 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
     dispatch({ type: "submit" });
     if (!title) return;
     submitting.current = true;
+    const opensChapter = draft.target.kind === "chapter" || draft.target.kind === "child" || (draft.target.kind === "piece" && pieceShape(draft.fields.label) === "leaf");
+    if (opensChapter) onCreatePending?.(true);
     try {
       const { target, fields } = draft;
       const input = { title, position: targetPosition(state, target) };
@@ -176,14 +180,15 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
       dispatch({ type: "failed", message: error instanceof Error ? error.message : "Could not create manuscript item." });
     } finally {
       submitting.current = false;
+      if (opensChapter) onCreatePending?.(false);
     }
   }
 
   function createAction(target: CreateTarget, button: string, noun: string) {
     const active = draft && draftKey === JSON.stringify(target);
-    if (!active) return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
+    if (!active) return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending && busy)}
       onClick={() => dispatch({ type: "start", target })}>+ {button}</ListButton>;
-    const locked = disabled || deleting || draft.pending;
+    const locked = disabled || deleting || (draft.pending && busy);
     const labels = labelOptions(target);
     return <form data-manuscript-draft className="flex scroll-my-2 flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
       onKeyDown={event => {
@@ -222,7 +227,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
         <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>Cancel</Button>
       </div>
       {draft.error ? <Alert tone="error" variant="inline">{draft.error}</Alert> : null}
-      {draft.pending ? <p role="status">Creating {noun.toLowerCase()}…</p> : null}
+      {draft.pending && busy ? <p role="status">Creating {noun.toLowerCase()}…</p> : null}
     </form>;
   }
 
@@ -288,7 +293,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
 
   function pieceButton(story: StoryUniverse, piece: Piece) {
     const scope = pieceScope(story, piece);
-    return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending) || !scope}
+    return <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending && busy) || !scope}
       pressed={sameScope(selectedChapter, scope)} onClick={() => { if (scope) onSelect(scope, scriptGroupId(piece) !== undefined); }}>{piece.title}</ListButton>;
   }
 
@@ -296,7 +301,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
     const noun = childName(piece.format);
     return <li key={`piece-${piece.id}`}>
       {piece.shape === "leaf" ? <div className="tree-row">{pieceButton(story, piece)}{deleteButton(piece.title, `/pieces/${piece.id}`, () => client.deletePiece({ pieceId: piece.id }), includesPiece(piece))}</div> : <details open>
-        <summary className="tree-row">{piece.format === "script" ? <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
+        <summary className="tree-row">{piece.format === "script" ? <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending && busy)}
           pressed={sameScope(selectedChapter, { universeId: story.id, pieceId: piece.id })}
           onClick={() => onSelect({ universeId: story.id, pieceId: piece.id }, true)}>{piece.title}</ListButton> : piece.title}{deleteButton(piece.title, `/pieces/${piece.id}`, () => client.deletePiece({ pieceId: piece.id }), includesPiece(piece))}</summary>
         {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
@@ -314,7 +319,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
         <summary className="tree-row">{book.title}{deleteButton(book.title, `/series/${container.id}/books/${book.id}`, () => client.deleteBook({ seriesId: container.id, bookId: book.id }), Boolean(selectedChapter && "bookId" in selectedChapter && selectedChapter.seriesId === container.id && selectedChapter.bookId === book.id))}</summary>
         {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
           {book.chapters.map((chapter) => <li key={chapter.id} className="tree-row">
-            <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending)}
+            <ListButton tone="tree" disabled={disabled || deleting || Boolean(draft?.pending && busy)}
               pressed={sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id })}
               onClick={() => onSelect({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }, false)}>{chapter.title}</ListButton>
             {deleteButton(chapter.title, `/series/${container.id}/books/${book.id}/chapters/${chapter.id}`, () => client.deleteChapter({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }), sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id }))}
@@ -327,7 +332,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
 
   return <>
     {deleteError ? <Alert tone="error" variant="inline">{deleteError}</Alert> : null}
-    {deleted ? <Alert tone="success" variant="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={disabled || deleting || Boolean(draft?.pending)} onClick={() => void undo()}>Undo</Button>{" "}
+    {deleted ? <Alert tone="success" variant="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={disabled || deleting || Boolean(draft?.pending && busy)} onClick={() => void undo()}>Undo</Button>{" "}
       <ButtonLink size="sm" aria-disabled={disabled || deleting} href={(() => { const url = landingUrl(window.location.href); url.searchParams.delete("deleted"); url.searchParams.delete("deletedTitle"); url.hash = "recently-deleted"; return url.toString(); })()}
         onClick={event => {
           if (!disabled && !deleting && !onLeave) return;

@@ -77,6 +77,7 @@ import {
 } from "../ai_thread";
 import { calculateDocumentWindow, type DocumentWindowMode } from "../window";
 import { useChapterSync } from "../use_chapter_sync";
+import { scheduleChapterBusy } from "../chapter_busy";
 import { useScriptSync } from "../use_script_sync";
 import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
@@ -382,13 +383,33 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       updateThreadState(resetThread(threadStateRef.current));
     }
   };
+  const createStartRef = useRef<number | null>(null);
+  const createStatusRef = useRef<string | null>(null);
+  const cancelCreateBusyRef = useRef<(() => void) | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  useEffect(() => () => cancelCreateBusyRef.current?.(), []);
+  function setCreatePending(pending: boolean) {
+    cancelCreateBusyRef.current?.();
+    createStartRef.current = pending ? Date.now() : null;
+    if (pending) createStatusRef.current = chapterSync.status;
+    setCreating(pending);
+    setCreateBusy(false);
+    if (pending) cancelCreateBusyRef.current = scheduleChapterBusy(createStartRef.current!, () => setCreateBusy(true));
+  }
   const chapterSync = scriptGroupId === undefined
-    ? useChapterSync(quillRef, isAiActive, onRemoteChange)
+    ? useChapterSync(quillRef, isAiActive, onRemoteChange, createStartRef, createStatusRef)
     : useScriptSync(quillRef, isAiActive, onRemoteChange, scriptGroupId);
   const editorAvailableRef = useRef(false);
-  editorAvailableRef.current = chapterSync.ready && !chapterSync.blocked;
+  editorAvailableRef.current = chapterSync.ready && !chapterSync.blocked && !creating;
 
-  const tabTitle = getTabTitle(chapterSync.title, chapterSync.ready);
+  const switching = "switching" in chapterSync && chapterSync.switching;
+  const pending = switching || creating;
+  const showBusy = ("showBusy" in chapterSync && chapterSync.showBusy) || createBusy;
+  const visuallyReady = (chapterSync.ready && !(creating && showBusy)) || (switching && !showBusy);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  const tabTitle = getTabTitle(chapterSync.title, visuallyReady);
   useEffect(() => {
     document.title = tabTitle;
     return () => { document.title = "QuillAI"; };
@@ -499,6 +520,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+      if (pendingRef.current) {
+        if (aiShortcut(event) || panelShortcut(event)) event.preventDefault();
+        return;
+      }
       if (deleteAbortRef.current && (aiShortcut(event) || panelShortcut(event))) {
         event.preventDefault();
         return;
@@ -1207,10 +1232,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     else void runAiAction("generate");
   }
 
-  const editAvailable = canApplyEdit(isBusy, hasSelection, chapterSync.ready, chapterSync.blocked) && editRejection === null;
+  const editAvailable = canApplyEdit(isBusy, hasSelection, visuallyReady, chapterSync.blocked) && editRejection === null;
 
   function applyEdit() {
-    if (editRejection !== null || !canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
+    if (pending || editRejection !== null || !canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
     setEditBoxOpen(false);
     void runAiAction("edit");
   }
@@ -1219,7 +1244,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const editFailure = aiRunState.status === "failed" && aiRunState.action === "edit"
     ? getEditFailurePresentation(aiRunState.error)
     : null;
-  const savePresentation = getSavePresentation(chapterSync.status, chapterSync.title, chapterSync.blocked);
+  const savePresentation = getSavePresentation(createBusy ? "Loading chapter…" : creating ? createStatusRef.current ?? chapterSync.status : chapterSync.status, chapterSync.title, chapterSync.blocked);
   const withThread = activeContinueWithThread ?? shouldContinueWithThread(
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
   );
@@ -1291,9 +1316,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   return (
     <div className="editor-shell">
-      {desktop && showContinueWindow && chapterSync.ready && markerQuill ? <ContinueWindow
+      {desktop && showContinueWindow && (chapterSync.ready || pending) && markerQuill ? <ContinueWindow
         quill={markerQuill} start={markerWindow.start} end={markerWindow.end} /> : null}
-      <nav className="editor-rail editor-rail-left" aria-label="Navigation">
+      <nav inert={pending || undefined} className="editor-rail editor-rail-left" aria-label="Navigation">
         <IconButton label="Library" title="Back to library" glyph="⌂" disabled={isBusy}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => void chapterSync.leave()} />
@@ -1302,27 +1327,27 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("manuscript")} />
       </nav>
-      <nav className="editor-rail editor-rail-right" aria-label="AI tools">
+      <nav inert={pending || undefined} className="editor-rail editor-rail-right" aria-label="AI tools">
         <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
           badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
           aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
           title={formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" })}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          disabled={!isBusy && (!chapterSync.ready || chapterSync.blocked)}
+          disabled={!isBusy && (!visuallyReady || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop} />
         <Popover anchor={{ left: editAnchor?.left ?? 0, top: editAnchor?.top ?? 0 }}
           ignoreRefs={[editorCanvasRef]}
           open={editBoxOpen} onOpenChange={(open) => open ? setEditBoxOpen(true) : closePanels()}
-          className="editor-edit-box" role="dialog" aria-label="Edit instruction"
+          className="editor-edit-box" inert={pending || undefined} role="dialog" aria-label="Edit instruction"
           trigger={<IconButton ref={editTriggerRef} label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "shortcut.edit"), keys: "Ctrl/Cmd+K" })}
             aria-keyshortcuts="Control+K Meta+K"
-            disabled={isBusy || !hasSelection || !chapterSync.ready || chapterSync.blocked}
+            disabled={isBusy || !hasSelection || !visuallyReady || chapterSync.blocked}
             onMouseDown={(event) => event.preventDefault()} />}>
         <div className="editor-edit-flag">Edit selection</div>
         <div className="-mx-4">
           <StickyNote tone="pink" overhang ref={editInstructionRef} aria-label="Edit instruction" rows={4}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            disabled={isBusy || !visuallyReady || chapterSync.blocked}
             aria-describedby="edit-instruction-hint" value={editInstruction}
             placeholder="How should the selected text change?"
             onChange={(event) => setEditInstruction(event.target.value)}
@@ -1357,14 +1382,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
         </Popover> : null}
       </nav>
-      {panel === "manuscript" ? <aside id="manuscript-drawer" className="editor-drawer editor-drawer-left"
+      {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
           <Heading level="section" id="manuscript-title">Manuscript</Heading>
         </div>
-        <div className="editor-manuscript-outline" role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} savesBeforeOpening disabled={isBusy || (!chapterSync.ready && !chapterSync.needsChapter) || chapterSync.blocked}
-            onLeave={target => chapterSync.leave(target)}
+        <div className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label="Manuscript outline" tabIndex={0}>
+          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} savesBeforeOpening disabled={isBusy || (!visuallyReady && !chapterSync.needsChapter) || chapterSync.blocked} busy={creating ? showBusy : true}
+            onCreatePending={setCreatePending} onLeave={target => chapterSync.leave(target)}
             onDelete={async (remove, path, title) => {
               const quill = quillRef.current;
               if (deleteAbortRef.current || isAiActive()) throw new Error("Wait for the current action before deleting.");
@@ -1410,7 +1435,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }} />
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
-          lore={lore} disabled={isBusy || !chapterSync.ready || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
+          lore={lore} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
         <ButtonLink className="shrink-0 self-start" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
@@ -1443,7 +1468,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
         {"addScene" in chapterSync ? <div className="editor-script-tools">
           <TextField as="select" aria-label="Block type" value={chapterSync.blockType}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            disabled={isBusy || !visuallyReady || chapterSync.blocked}
             onChange={(event) => chapterSync.setBlock(parseBlock(event.target.value))}>
             {BLOCK_TYPES.map((type) => <option key={type} value={type}>{blockLabel(type)}</option>)}
           </TextField>
@@ -1467,10 +1492,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       <div className="editor-workspace">
         <div className="editor-page">
           {chapterSync.title !== null && <h2 className="editor-chapter-title">{chapterSync.title}</h2>}
-          <div ref={editorCanvasRef} className="editor-canvas">
+          <div ref={editorCanvasRef} inert={pending || undefined} className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={deleting || (isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
+              readOnly={creating || deleting || (isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);
@@ -1509,7 +1534,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             />
           </div>
         </div>
-        <aside id="context-drawer" hidden={panel !== "context"}
+        <aside inert={pending || undefined} id="context-drawer" hidden={panel !== "context"}
           className="editor-drawer editor-drawer-right editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <div className="editor-drawer-header">
             <Heading level="section" id="context-inspector-title">Live Prompt Context</Heading>
@@ -1523,7 +1548,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             onChange={(event) => setStoryContext(event.target.value)}
             placeholder="Series premise, tone, point of view, or scene notes"
             rows={4}
-            disabled={isBusy || !chapterSync.ready || chapterSync.blocked}
+            disabled={isBusy || !visuallyReady || chapterSync.blocked}
           />
         </Field>
 

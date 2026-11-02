@@ -9,6 +9,7 @@ import { selectionBoundary } from "./selection_boundary";
 import { LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 import { createSyncPush } from "./sync_push";
 import { createCaretTracker } from "./caret_position";
+import { scheduleChapterBusy, showChapterBusy } from "./chapter_busy";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -16,8 +17,14 @@ export function useChapterSync(
   quillRef: RefObject<Quill | null>,
   isAiActive: () => boolean,
   onRemoteChange: () => void,
+  createStart: RefObject<number | null>,
+  createStatus: RefObject<string | null>,
 ) {
   const [status, setStatus] = useState("Loading chapter…");
+  const [switchStatus, setSwitchStatus] = useState<string | null>(null);
+  const [showBusy, setShowBusy] = useState(false);
+  const statusRef = useRef(status);
+  statusRef.current = status;
   const [detail, setDetail] = useState<string>();
   const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -64,6 +71,7 @@ export function useChapterSync(
     }
     const client = createManuscriptClient();
     let currentScope: EditorScope | null = null;
+    let cancelBusy: (() => void) | undefined;
     function openChapter(scope: EditorScope, chapter: EditorDocument) {
       const quill = quillRef.current;
       if (disposed || !quill) return;
@@ -131,15 +139,17 @@ export function useChapterSync(
       tracker?.flush();
       switchingRef.current = true;
       setReady(false);
+      setSwitchStatus(createStart.current === null ? statusRef.current : createStatus.current ?? statusRef.current);
+      const start = createStart.current ?? Date.now();
+      setShowBusy(showChapterBusy(start, Date.now()));
+      cancelBusy = scheduleChapterBusy(start, () => setShowBusy(true));
       setDetail(undefined);
-      setStatus("Saving current chapter before opening…");
       try {
         session.edit(quill.getContents());
         await session.flush();
         if (disposed) return;
         pushRef.current?.close();
         pushRef.current = null;
-        setStatus("Loading chapter…");
         const chapter = await loadEditorDocument(client, target);
         if (disposed) return;
         openChapter(target, chapter);
@@ -149,7 +159,13 @@ export function useChapterSync(
         if (!disposed) setStatus(`Chapter switch failed: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
       } finally {
         switchingRef.current = false;
-        if (!disposed) setReady(true);
+        cancelBusy?.();
+        cancelBusy = undefined;
+        if (!disposed) {
+          setSwitchStatus(null);
+          setShowBusy(false);
+          setReady(true);
+        }
       }
     };
     queueMicrotask(() => {
@@ -180,6 +196,7 @@ export function useChapterSync(
       tracker?.close();
       caretTrackerRef.current = null;
       disposed = true;
+      cancelBusy?.();
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
       window.removeEventListener("pagehide", pageHide);
@@ -190,14 +207,16 @@ export function useChapterSync(
       sessionRef.current = null;
       switchRef.current = null;
     };
-  }, [quillRef]);
+  }, [quillRef, createStart, createStatus]);
 
   useLayoutEffect(() => { caretTrackerRef.current?.finish(); }, [ready, title]);
 
   return {
     ready,
     blocked,
-    status,
+    status: switchStatus === null ? status : showBusy ? "Loading chapter…" : switchStatus,
+    showBusy,
+    switching: switchStatus !== null,
     detail,
     title,
     scope,
