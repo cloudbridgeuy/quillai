@@ -38,7 +38,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-882 | Lore editing in a Modal with confirmed red Delete | Backlog | a | needed |
 | GUZ-883 | API tester: mount through primitives or delete | Backlog | c | nothing to test |
 | GUZ-884 | ListButton for the manuscript tree and lore-window rows | In Progress | a | needed |
-| GUZ-886 | Rename the "Retry manuscript" action | Backlog | a | needed |
+| GUZ-886 | Rename the "Retry manuscript" action | Backlog | a | `e2e/tree-load-retry.spec.ts` checks the approved label and recovery after one failed tree fetch at 1100px and 1440px; written, not run |
 | GUZ-887 | Centre the chapter title | Backlog | a | needed |
 | GUZ-888 | Remember caret and scroll position per chapter | Backlog | a | `e2e/caret-restore.spec.ts` checks switch and reload restoration before the first populated frame |
 | GUZ-889 | Real exports instead of the recovery dump | Backlog | a | needed |
@@ -93,7 +93,6 @@ These tickets need this acceptance line: `ships with an E2E regression spec`.
 - GUZ-881 Inspector and lore fields use TextField, StickyNote and Heading
 - GUZ-882 Lore editing in a Modal with confirmed red Delete
 - GUZ-884 ListButton for the manuscript tree and lore-window rows
-- GUZ-886 Rename the "Retry manuscript" action
 - GUZ-887 Centre the chapter title
 - GUZ-889 Real exports instead of the recovery dump
 - GUZ-890 Favicon and a real tab title

@@ -65,6 +65,8 @@
 
 `tree-delete.spec.ts` covers row controls, immediate deletion, Undo and Recently deleted for six item kinds at 1100px and 1440px. It gates an open chapter save to check deletion waits for pending text.
 
+`tree-load-retry.spec.ts` at 1100px and 1440px fails the tree fetch once, checks the exact "Try loading again" button and absence of "Retry manuscript", then retries and checks the seeded chapter is visible. Written; not run for GUZ-886.
+
 `create-form-fit.spec.ts` at 1100px and 1440px checks every field and button of the container and loose piece create forms sits inside the tree area without manual scrolling (the open form scrolls itself into view; Label and Format sit side by side), create controls align with sibling rows, and the no-scope lore wording. The initial no-scope visit mocks an empty series list to isolate it from the shared E2E database; screenshots in `target/guz-971/<browser>/`.
 
 `landing.spec.ts` at 1100px and 1440px opens `/` with no target: three seeded universes show as collapsed cards (narrower than half the page) and an opened universe card spans the grid row; an edited leaf (not one only opened) becomes the Resume card with its universe · container path and Open, and its universe starts open; the empty state shows when nothing is stored; a stored leaf deleted on the server shows "no longer in the library" with Forget instead of opening the editor; a chapter-scope (series/book/chapter) Resume shows its universe · series · book path and Open reopens it; the editor's Library button saves and returns; a loose piece created from landing opens and stays listed after reload. Screenshots in `target/guz-978/<browser>/`.

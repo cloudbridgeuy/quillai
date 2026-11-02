@@ -323,7 +323,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
   if (state.status === "loading") return <p role="status">Loading manuscript…</p>;
   if (state.status === "failed") return <Alert tone="error" variant="inline">
     <p>{state.message}</p>
-    <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
+    <Button onClick={() => setAttempt((value) => value + 1)}>Try loading again</Button>
   </Alert>;
 
   const series = state.series;
