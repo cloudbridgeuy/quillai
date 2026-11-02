@@ -10,7 +10,7 @@ Workers never launch browsers or run `cargo xtask e2e` inside tickets. Back chan
 | Rust integration tests | API and SQLite behaviour in `crates/api/tests/`. Run with `cargo test -p quillai_api --test <test_file> <test_name>`. |
 | Bun unit tests | Frontend logic in `app/src/*.test.ts` and subdirectories. Run by `cargo xtask lint`; target a file with `bun test src/<path>.test.ts` from `app/`. |
 | Component/DOM tests | Planned in GUZ-1207; not available yet. |
-| Playwright E2E specs | Real-browser behaviour. Nightly only (GUZ-1206, not built yet). |
+| Playwright E2E specs | Real-browser behaviour. Nightly only (`cargo xtask nightly`). |
 
 ## Red/green
 
@@ -23,7 +23,9 @@ Workers never launch browsers or run `cargo xtask e2e` inside tickets. Back chan
 
 Every ticket fixing or changing browser-visible behaviour still ships with an E2E regression spec. Examples include layout, focus, and real-browser quirks. Write the spec, register it in the `e2e/playwright.config.ts` allowlist, and document its coverage in [e2e-specs.md](e2e-specs.md). Listing specs with Playwright's `--list` is optional; do not launch browsers inside the ticket.
 
-The nightly run (GUZ-1206) will classify failures against a tracked known-failures list. Every entry must name a ticket. Its report will go to the ralph inbox for next-day triage.
+Run `cargo xtask nightly` to test all three browsers in the sandbox. Reports are written to `target/nightly/YYYY-MM-DD/report.md`; raw results and logs are in the same directory. Test failures do not make the command fail; a missing or invalid result does.
+
+The tracked `e2e/known-failures.txt` uses `browser spec:line ticket`, with `*` for any browser, entire spec, or line (for example, `firefox * GUZ-1209` or `* example.spec.ts:* GUZ-123`). Each entry requires a `GUZ-` ticket number. Lines starting with `#` and blank lines are ignored. Scheduling is tracked in GUZ-1214.
 
 ## Commit gate
 

@@ -66,14 +66,14 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .ok_or("xtask has no workspace directory")?;
     std::env::set_current_dir(root)?;
     if args.verbose {
-        return sandbox(args, root, &mut None, None);
+        return sandbox(args, root, &mut None, None, None);
     }
     let directory = root.join("target/xtask-e2e");
     fs::create_dir_all(&directory)?;
     let summary = directory.join("summary.txt");
     let _ = fs::remove_file(&summary);
     let mut log = Some(File::create(directory.join("e2e.log"))?);
-    let result = sandbox(args, root, &mut log, Some(&summary));
+    let result = sandbox(args, root, &mut log, Some(&summary), None);
     if let Ok(text) = fs::read_to_string(&summary) {
         println!("{}", text.trim_end());
     }
@@ -81,11 +81,12 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
     result
 }
 
-fn sandbox(
+pub(super) fn sandbox(
     args: E2eArgs,
     root: &Path,
     log: &mut Option<File>,
     summary: Option<&Path>,
+    json: Option<&Path>,
 ) -> Result<(), Box<dyn Error>> {
     let app_reservation = TcpListener::bind(("127.0.0.1", args.port.unwrap_or(0)))?;
     let app_port = app_reservation.local_addr()?.port();
@@ -194,6 +195,9 @@ fn sandbox(
     }
     if let Some(summary) = summary {
         playwright.env("QUILLAI_E2E_SUMMARY", summary);
+    }
+    if let Some(json) = json {
+        playwright.env("PLAYWRIGHT_JSON_OUTPUT_FILE", json);
     }
     run_tool(playwright, &mut children, &tx, &rx, &shutdown, log)?;
     Ok(())

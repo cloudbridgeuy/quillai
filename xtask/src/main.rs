@@ -17,6 +17,7 @@ mod check_ui;
 mod dev_database;
 mod e2e;
 mod hooks;
+mod nightly;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
@@ -49,6 +50,8 @@ pub enum Commands {
     InstallHooks,
     #[command(about = "Run the isolated chapter-sync browser smoke test")]
     E2e(E2eArgs),
+    #[command(about = "Run nightly browser tests and write a report")]
+    Nightly,
 }
 
 #[derive(Debug, Parser)]
@@ -180,6 +183,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Dev(args) => dev(args),
         Commands::AiSmoke(args) => ai_smoke::run(args),
         Commands::E2e(args) => e2e::run(args),
+        Commands::Nightly => nightly::run(),
         Commands::InstallHooks => hooks::run(),
         Commands::Lint(args) => {
             if !lint(args)? {
