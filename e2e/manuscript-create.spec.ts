@@ -13,7 +13,7 @@ for (const width of [1100, 1440]) {
     page.on("pageerror", error => errors.push(error.message));
     page.on("requestfailed", req => {
       const error = req.failure()?.errorText;
-      const cancelledCatalog = req.url() === `${api}/ai/models` && error === "net::ERR_ABORTED";
+      const cancelledCatalog = req.url() === `${api}/ai/models` && (error === "net::ERR_ABORTED" || error === "cancelled");
       if (req.url().startsWith(api) && !cancelledCatalog) errors.push(`${error} ${req.url()}`);
     });
     page.on("request", req => {
