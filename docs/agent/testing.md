@@ -27,4 +27,6 @@ The nightly run (GUZ-1206) will classify failures against a tracked known-failur
 
 ## Commit gate
 
-`cargo xtask lint` must print `All 11 checks passed.` before commit. A pre-commit hook will enforce this in GUZ-1205; the hook is not built yet. Never use `--no-verify`.
+`cargo xtask lint` must print `All 11 checks passed.` before commit. Run `cargo xtask install-hooks` once per clone to install the tracked pre-commit hook; worktrees share this configuration. The installer refuses to replace an existing `core.hooksPath` other than `.githooks`.
+
+The hook runs the full lint on the working tree, not only staged files. If `app/node_modules` is missing, run `bun install --frozen-lockfile` in `app/` first. Never use `--no-verify`.

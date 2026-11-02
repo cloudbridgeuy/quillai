@@ -16,6 +16,7 @@ mod check_claude_md;
 mod check_ui;
 mod dev_database;
 mod e2e;
+mod hooks;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
@@ -44,6 +45,8 @@ pub enum Commands {
         about = "Run read-only quality checks with short output; full logs in target/xtask-lint"
     )]
     Lint(LintArgs),
+    #[command(about = "Install the tracked pre-commit lint hook")]
+    InstallHooks,
     #[command(about = "Run the isolated chapter-sync browser smoke test")]
     E2e(E2eArgs),
 }
@@ -177,6 +180,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Dev(args) => dev(args),
         Commands::AiSmoke(args) => ai_smoke::run(args),
         Commands::E2e(args) => e2e::run(args),
+        Commands::InstallHooks => hooks::run(),
         Commands::Lint(args) => {
             if !lint(args)? {
                 std::process::exit(1);
