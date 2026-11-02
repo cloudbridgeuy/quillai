@@ -25,6 +25,9 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
 | Lint, tests, and project tsc (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
+| [Pre-commit lint hook](docs/agent/testing.md) | `cargo xtask install-hooks` | `xtask/src/hooks.rs` |
+| [Nightly browser tests](docs/agent/testing.md) | `cargo xtask nightly` | `xtask/src/nightly.rs` |
+| [Nightly launchd job](docs/agent/testing.md) | `cargo xtask install-nightly [--uninstall]` | `xtask/src/nightly_launchd.rs` |
 | Isolated browser smoke (random frontend port) | `cargo xtask e2e` (or `cargo xtask e2e --port 3107`); prints only failures and a summary line, full log in `target/xtask-e2e/e2e.log`; `--verbose` prints full output | `xtask/src/e2e.rs`, `e2e/playwright.config.ts` |
 | Live AI smoke (opt-in) | `cargo xtask ai-smoke [--model ID] [--ai-models FILE]` | `xtask/src/ai_smoke.rs` |
 | API server only | `cargo run -p quillai_api --bin api` | `crates/api/src/main.rs` |
@@ -49,7 +52,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 ### Rust — Build (`xtask/src/`)
 
-- `main.rs`, `dev_database.rs`, `check_ui.rs`, `check_claude_md.rs`, `e2e.rs`
+- `main.rs`, `dev_database.rs`, `check_ui.rs`, `check_claude_md.rs`, `e2e.rs`, `ai_smoke.rs`, `hooks.rs`, `nightly.rs`, `nightly_launchd.rs`
 
 ### Browser Smoke (`e2e/`)
 
