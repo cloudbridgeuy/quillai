@@ -1388,7 +1388,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Heading level="section" id="manuscript-title">Manuscript</Heading>
         </div>
         <div className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label="Manuscript outline" tabIndex={0}>
-          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} savesBeforeOpening disabled={isBusy || (!visuallyReady && !chapterSync.needsChapter) || chapterSync.blocked} busy={creating ? showBusy : true}
+          <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} disabled={isBusy || (!visuallyReady && !chapterSync.needsChapter) || chapterSync.blocked} busy={creating ? showBusy : true}
             onCreatePending={setCreatePending} onLeave={target => chapterSync.leave(target)}
             onDelete={async (remove, path, title) => {
               const quill = quillRef.current;

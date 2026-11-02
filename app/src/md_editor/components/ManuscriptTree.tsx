@@ -22,12 +22,11 @@ type TreeState =
   | { status: "failed"; message: string }
   | ({ status: "ready" } & ManuscriptTreeData);
 
-export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreatePending, savesBeforeOpening = false, collapsedExcept, onSelect, onDelete, onLeave, onChange, activeScript }: {
+export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreatePending, collapsedExcept, onSelect, onDelete, onLeave, onChange, activeScript }: {
   selectedChapter: EditorScope | null;
   disabled: boolean;
   busy?: boolean;
   onCreatePending?: (pending: boolean) => void;
-  savesBeforeOpening?: boolean;
   collapsedExcept?: number | null;
   onSelect: (scope: EditorScope, opensScript: boolean) => void;
   onDelete?: (remove: () => Promise<void>, path: string, title: string) => Promise<void>;
@@ -339,7 +338,6 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
           event.preventDefault();
           if (!disabled && !deleting && onLeave) void onLeave(new URL(event.currentTarget.href));
         }}>Recently deleted</ButtonLink></Alert> : null}
-    {savesBeforeOpening ? <p className="editor-note">Opening a chapter saves current changes first.</p> : null}
     <div ref={treeRef} className="editor-manuscript-tree">
     {createAction({ kind: "universe" }, "Universe", "Universe")}
     {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>

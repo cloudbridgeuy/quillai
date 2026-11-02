@@ -49,7 +49,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-894 | Landing page | Backlog | a | needed |
 | GUZ-895 | Rename series, books and chapters; optional chapter numbers | Backlog | a | needed |
 | GUZ-896 | No flash when switching chapters | Backlog | a | `e2e/chapter-switch-no-flash.spec.ts` checks fast switches and creation, plus slow-load status |
-| GUZ-897 | Remove the "Opening a chapter saves current changes first." hint | Backlog | a | needed |
+| GUZ-897 | Remove the "Opening a chapter saves current changes first." hint | Backlog | a | `e2e/lore.spec.ts:163` checks the hint is absent after the chapter button is visible in the Manuscript outline |
 | GUZ-899 | Tint edited text for a while after Edit | Backlog | a | needed |
 | GUZ-900 | Explain raw "sqlx error" messages | Backlog | a | needed |
 | GUZ-901 | Keyboard shortcuts for Continue and Edit | Backlog | a | needed |
@@ -102,7 +102,6 @@ These tickets need this acceptance line: `ships with an E2E regression spec`.
 - GUZ-893 Empty state as an alert with an inline create link
 - GUZ-894 Landing page
 - GUZ-895 Rename series, books and chapters; optional chapter numbers
-- GUZ-897 Remove the "Opening a chapter saves current changes first." hint
 - GUZ-899 Tint edited text for a while after Edit
 - GUZ-900 Explain raw "sqlx error" messages
 - GUZ-901 Keyboard shortcuts for Continue and Edit

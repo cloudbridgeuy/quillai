@@ -159,7 +159,8 @@ test("series lore persists, matches near the caret, and excludes author-only not
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-  await expect(page.getByText("Opening a chapter saves current changes first.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Manuscript outline", exact: true }).getByRole("button", { name: "Lore chapter", exact: true })).toBeVisible();
+  await expect(page.getByText("Opening a chapter saves current changes first.", { exact: true })).toHaveCount(0);
   const lore = page.getByRole("region", { name: "Series lore", exact: true });
   await lore.getByRole("button", { name: "New lore", exact: true }).click();
   await lore.getByLabel("Name", { exact: true }).fill("Mira");
@@ -226,7 +227,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   expect(JSON.parse(bodies[1]!).action).toBe("edit");
   expect(JSON.parse(bodies[1]!).lore).toHaveLength(1);
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-  await expect(page.getByText("Opening a chapter saves current changes first.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Manuscript outline", exact: true }).getByRole("button", { name: "Lore chapter", exact: true })).toBeVisible();
   await lore.getByRole("button", { name: "Mira · character", exact: true }).click();
   await expect(lore.getByText("Edit lore", { exact: true })).toBeVisible();
   await lore.getByRole("button", { name: "Delete lore", exact: true }).click();
