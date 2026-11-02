@@ -128,7 +128,7 @@ test("rail mousedown preserves selection and panels toggle", async ({ page, requ
         };
       })).toEqual({ anchor: true, anchorOffset: 0, focus: true, focusOffset: 7, ranges: [{ start: true, startOffset: 0, end: true, endOffset: 7 }] });
     }
-    for (const [name, selector] of [["Manuscript", "#manuscript-drawer"], ["Context inspector", "#context-drawer"], ["Edit selection", "#edit-instruction-box"], ["Settings", '[role="dialog"][aria-labelledby="editor-settings-title"]']]) {
+    for (const [name, selector] of [["Manuscript", "#manuscript-drawer"], ["Context inspector", "#context-drawer"], ["Edit selection", '[role="dialog"][aria-label="Edit instruction"]'], ["Settings", '[role="dialog"][aria-labelledby="editor-settings-title"]']]) {
       await selectText(page);
       const button = page.getByRole("button", { name, exact: true });
       const panel = page.locator(selector);
