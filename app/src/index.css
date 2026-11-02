@@ -711,7 +711,7 @@ body {
 
   .editor-context-inspector > .editor-drawer-header {
     margin: 0;
-    padding: calc(var(--spacing) * 4) calc(var(--spacing) * 4) calc(var(--spacing) * 3);
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4) calc(var(--spacing) * 3);
     border-bottom: 1px solid var(--rule);
     background: var(--paper);
   }
