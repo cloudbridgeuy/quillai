@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import Delta from "quill-delta";
 import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
@@ -17,6 +17,7 @@ import { blockAttribute, cycleBlock, parseBlock, SCRIPT_BLOCK, splitLineDelta, t
 import { toFdx } from "./fdx";
 import { toFountain } from "./fountain";
 import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
+import { createCaretTracker } from "./caret_position";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
@@ -66,6 +67,7 @@ export function useScriptSync(
   const [addError, setAddError] = useState<string | null>(null);
   const [caretScene, setCaretScene] = useState<number | null>(null);
   const [blockType, setBlockType] = useState<BlockType>("action");
+  const caretTrackerRef = useRef<ReturnType<typeof createCaretTracker> | null>(null);
   const caretRef = useRef<number | null>(null);
   const rangeRef = useRef<{ index: number; length: number } | null>(null);
   const scenesRef = useRef<SceneState[]>([]);
@@ -80,6 +82,8 @@ export function useScriptSync(
   remoteRef.current = onRemoteChange;
 
   useEffect(() => {
+    const tracker = quillRef.current ? createCaretTracker(quillRef.current) : null;
+    caretTrackerRef.current = tracker;
     let disposed = false;
     let storageFailed = false;
     let pageHidden = false;
@@ -166,7 +170,7 @@ export function useScriptSync(
       membership = "";
       if (!hidden) check();
     }
-    const pageHide = () => { pageHidden = true; visibility(); };
+    const pageHide = () => { tracker?.flush(); pageHidden = true; visibility(); };
     const pageShow = () => { pageHidden = false; visibility(); };
 
     function refresh() {
@@ -226,10 +230,12 @@ export function useScriptSync(
       const composed = composeScenes(group.scenes.map((scene) => ({ id: scene.id, content: chapterDelta(scene.content) })));
       applyingRef.current = true;
       quill.setContents(composed.document, "api");
+      const restored = tracker?.open(groupScope, !composed.layout.some((span) => span.sceneId === requested));
       quill.history.clear();
       applyingRef.current = false;
       layoutRef.current = composed.layout;
-      caretRef.current = (composed.layout.find((span) => span.sceneId === requested) ?? composed.layout[0])?.start ?? null;
+      if (restored) selection(quill.getSelection(), null);
+      caretRef.current = restored ? null : (composed.layout.find((span) => span.sceneId === requested) ?? composed.layout[0])?.start ?? null;
       remoteRef.current();
       groupTitle = group.title;
       scenesRef.current = group.scenes.map((scene) => {
@@ -333,6 +339,8 @@ export function useScriptSync(
     quill?.on("selection-change", selection);
     quill?.on("text-change", textChange);
     return () => {
+      tracker?.close();
+      caretTrackerRef.current = null;
       disposed = true;
       host?.removeEventListener("keydown", keydown, true);
       host?.removeEventListener("paste", clipboard, true);
@@ -351,6 +359,8 @@ export function useScriptSync(
       scenesRef.current = [];
     };
   }, [quillRef, groupId]);
+
+  useLayoutEffect(() => { caretTrackerRef.current?.finish(); }, [ready, title]);
 
   useEffect(() => {
     const quill = quillRef.current;
@@ -393,6 +403,7 @@ export function useScriptSync(
 
   async function flushAll(message: string): Promise<boolean> {
     if (leavingRef.current || activeRef.current()) return false;
+    caretTrackerRef.current?.flush();
     leavingRef.current = true;
     setReady(false);
     setDetail(undefined);

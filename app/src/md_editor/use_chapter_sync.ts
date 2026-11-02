@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
 import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter, loadEditorDocument, NoEditorChapter, type EditorDocument } from "./chapter_session";
@@ -8,6 +8,7 @@ import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
 import { LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 import { createSyncPush } from "./sync_push";
+import { createCaretTracker } from "./caret_position";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -24,6 +25,7 @@ export function useChapterSync(
   const [recovery, setRecovery] = useState<string | null>(null);
   const [needsChapter, setNeedsChapter] = useState(false);
   const [scope, setScope] = useState<EditorScope | null>(null);
+  const caretTrackerRef = useRef<ReturnType<typeof createCaretTracker> | null>(null);
   const sessionRef = useRef<ReturnType<typeof createChapterSession> | null>(null);
   const pushRef = useRef<ReturnType<typeof createSyncPush> | null>(null);
   const switchRef = useRef<((target: EditorScope) => Promise<void>) | null>(null);
@@ -37,6 +39,8 @@ export function useChapterSync(
   remoteRef.current = onRemoteChange;
 
   useEffect(() => {
+    const tracker = quillRef.current ? createCaretTracker(quillRef.current) : null;
+    caretTrackerRef.current = tracker;
     let disposed = false;
     let pageHidden = false;
     let storageFailed = false;
@@ -71,6 +75,7 @@ export function useChapterSync(
       window.history.replaceState(null, "", url);
       applyingRef.current = true;
       quill.setContents(chapterDelta(chapter.content), "api");
+      tracker?.open(scope);
       quill.history.clear();
       applyingRef.current = false;
       remoteRef.current();
@@ -123,6 +128,7 @@ export function useChapterSync(
       const quill = quillRef.current;
       const session = sessionRef.current;
       if (!quill || !session || !canSwitchChapter(currentScope, target, switchingRef.current || activeRef.current())) return;
+      tracker?.flush();
       switchingRef.current = true;
       setReady(false);
       setDetail(undefined);
@@ -165,12 +171,14 @@ export function useChapterSync(
         event.returnValue = "";
       }
     };
-    const pageHide = () => { pageHidden = true; pushRef.current?.hide(); };
+    const pageHide = () => { tracker?.flush(); pageHidden = true; pushRef.current?.hide(); };
     const pageShow = () => { pageHidden = false; pushRef.current?.show(); };
     window.addEventListener("pagehide", pageHide);
     window.addEventListener("pageshow", pageShow);
     window.addEventListener("beforeunload", beforeUnload);
     return () => {
+      tracker?.close();
+      caretTrackerRef.current = null;
       disposed = true;
       window.clearInterval(timer);
       window.removeEventListener("beforeunload", beforeUnload);
@@ -183,6 +191,8 @@ export function useChapterSync(
       switchRef.current = null;
     };
   }, [quillRef]);
+
+  useLayoutEffect(() => { caretTrackerRef.current?.finish(); }, [ready, title]);
 
   return {
     ready,
@@ -197,6 +207,7 @@ export function useChapterSync(
       const session = sessionRef.current;
       if (switchingRef.current || activeRef.current()) return;
       if (quill && session) {
+        caretTrackerRef.current?.flush();
         switchingRef.current = true;
         setReady(false);
         setStatus("Saving before leaving…");

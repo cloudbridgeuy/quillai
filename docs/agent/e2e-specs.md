@@ -85,3 +85,5 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `recently-deleted.spec.ts` at 1100px and 1440px checks trash item types and dates, restore and library refresh, ancestor confirmation, and permanent deletion with descendant counts.
 
 `sync-push-screenplay.spec.ts` checks idle grouped reads, native remote scene delivery, scroll preservation and deleted-scene fallback at 1100px and 1440px. `sync-push-chapter.spec.ts` checks idle delta reads, native stream remote saves, deleted-leaf fallback and page lifecycle reconnect for legacy chapters and pieces at 1100px and 1440px. `fixtures/fake-event-source.ts` provides controllable EventSource events for deterministic fixture tests.
+
+`caret-restore.spec.ts` checks chapter switch and reload selection and viewport restoration from the first populated frame at 1100px and 1440px.

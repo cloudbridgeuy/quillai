@@ -40,7 +40,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-884 | ListButton for the manuscript tree and lore-window rows | In Progress | a | needed |
 | GUZ-886 | Rename the "Retry manuscript" action | Backlog | a | needed |
 | GUZ-887 | Centre the chapter title | Backlog | a | needed |
-| GUZ-888 | Remember caret and scroll position per chapter | Backlog | a | needed |
+| GUZ-888 | Remember caret and scroll position per chapter | Backlog | a | `e2e/caret-restore.spec.ts` checks switch and reload restoration before the first populated frame |
 | GUZ-889 | Real exports instead of the recovery dump | Backlog | a | needed |
 | GUZ-890 | Favicon and a real tab title | Backlog | a | needed |
 | GUZ-891 | Create chapters, books and series from the app | Backlog | a | needed |
@@ -95,7 +95,6 @@ These tickets need this acceptance line: `ships with an E2E regression spec`.
 - GUZ-884 ListButton for the manuscript tree and lore-window rows
 - GUZ-886 Rename the "Retry manuscript" action
 - GUZ-887 Centre the chapter title
-- GUZ-888 Remember caret and scroll position per chapter
 - GUZ-889 Real exports instead of the recovery dump
 - GUZ-890 Favicon and a real tab title
 - GUZ-891 Create chapters, books and series from the app
