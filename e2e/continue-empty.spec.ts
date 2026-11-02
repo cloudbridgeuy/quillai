@@ -75,10 +75,13 @@ test("empty Continue reports length and stop without changing chapter, selection
   ] as const) {
     const before = await editor.evaluate(snapshot, selection);
     const control = await run(kind);
-    if (kind === "stop") await expect(page.getByRole("alert")).toHaveCount(0);
+    if (kind === "stop") {
+      await expect(page.locator('.editor-scene-notice')).toHaveCount(0);
+      await expect(page.getByRole('alert')).toHaveCount(0);
+    }
     if (kind === "length") expect((await request.post(`${control}/usage`)).status()).toBe(200);
     expect((await request.post(`${control}/finish`, { data: { reason: kind } })).status()).toBe(200);
-    await expect.soft(page.getByRole("alert")).toHaveText(message);
+    await expect.soft(page.locator('.editor-scene-notice[data-tone="warning"][role="status"]')).toHaveText(message);
     expect.soft(await editor.evaluate(snapshot)).toEqual(before);
     const chapterResponse = await request.get(chapterUrl);
     const pieceResponse = await request.get(pieceUrl);
@@ -90,5 +93,6 @@ test("empty Continue reports length and stop without changing chapter, selection
   }
   await editor.press("ArrowRight");
   await page.keyboard.type("x");
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator('.editor-scene-notice')).toHaveCount(0);
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });

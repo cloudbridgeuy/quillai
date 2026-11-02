@@ -303,7 +303,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, EditablePromptSectionOverrides>>({ generate: {}, edit: {} });
   const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
   const [fullPromptOpen, setFullPromptOpen] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
+  const [copyNotice, setCopyNotice] = useState<{ prompt: string; tone: "success" | "error" } | null>(null);
   const [settingsClient] = useState(createSettingsClient);
   const [authorGuidance, setAuthorGuidance] = useState("");
   const [guidanceDraft, setGuidanceDraft] = useState("");
@@ -1423,7 +1423,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Heading level="app">QuillAI</Heading>
           {chapterSync.needsChapter ? <Button variant="primary"
             onClick={() => void chapterSync.bootstrap()}>Create chapter</Button> : null}
-          {chapterSync.recovery ? <Alert tone="inline">
+          {chapterSync.recovery ? <Alert tone="error" variant="inline">
             Previous unsaved work is available. Export it before closing this tab.
             <a download="chapter-recovery.json"
               href={`data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.recovery)}`}>
@@ -1431,7 +1431,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             </a>
           </Alert> : null}
         </div>
-        {savePresentation.failed ? <Alert tone="fail" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
+        {savePresentation.failed ? <Alert tone="error" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
           title={chapterSync.detail ?? savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
           <span id="chapter-save-detail" className="sr-only">{chapterSync.detail ?? savePresentation.detail}</span>
@@ -1456,10 +1456,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               event.currentTarget.href = `data:application/xml;charset=utf-8,${encodeURIComponent(chapterSync.fdx())}`;
             }}>Download FDX</ButtonLink>
         </div> : null}
-        {chapterSync.notice ? <Alert tone="fail" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
-        {emptyContinueNotice ? <Alert tone="fail" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
+        {chapterSync.notice ? <Alert tone="warning" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
+        {emptyContinueNotice ? <Alert tone="warning" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
-          editFailure ? <Alert tone="fail" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={aiRunState.status === "failed" ? aiRunState.detail ?? editFailure.title : editFailure.title}>{editFailure.label}{aiRunState.status === "failed" && aiRunState.detail ? <span className="sr-only">{aiRunState.detail}</span> : null}</Alert>
+          editFailure ? <Alert tone="error" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={aiRunState.status === "failed" ? aiRunState.detail ?? editFailure.title : editFailure.title}>{editFailure.label}{aiRunState.status === "failed" && aiRunState.detail ? <span className="sr-only">{aiRunState.detail}</span> : null}</Alert>
             : <p className={`editor-run-status editor-status-${statusPresentation.tone}`} role="status">{statusPresentation.label}</p>
         ) : null}
       </div>
@@ -1596,7 +1596,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             disabled={isBusy || guidancePending || !guidanceLoaded || guidanceDraft === authorGuidance}
             onClick={() => void saveAuthorGuidance()}>Save author guidance</Button>
           <p className="editor-note">Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only.</p>
-          <p className="editor-note" role="status">{guidanceStatus}</p>
+          {guidanceStatus === "Author guidance saved." ? <Alert tone="success" variant="inline">{guidanceStatus}</Alert> : <p className="editor-note" role="status">{guidanceStatus}</p>}
           <Field label="Request to inspect">
             <TextField as="select" square value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
@@ -1629,7 +1629,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               <p className="editor-note">{contextInspector.requestLabel}</p>
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
               <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
-              <Button ref={fullPromptTriggerRef} size="sm" onClick={() => { setCopyFailed(false); setFullPromptOpen(true); }}>
+              <Button ref={fullPromptTriggerRef} size="sm" onClick={() => { setCopyNotice(null); setFullPromptOpen(true); }}>
                 {formatMessage(defaultLocale, "inspector.fullPrompt")}
               </Button>
               <section className="editor-preview-section" aria-label="Injected lore">
@@ -1716,19 +1716,21 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       </div>
       {fullPromptOpen && typeof contextInspector !== "string" ? (() => {
         const parts = formatPromptParts(contextInspector.sections, contextInspector.promptHistory);
+        const prompt = parts.map(part => `${part.label}\n${part.text}`).join("\n\n");
         return <Modal title={formatMessage(defaultLocale, "inspector.fullPrompt")} onClose={() => setFullPromptOpen(false)}
           returnFocusRef={fullPromptTriggerRef}
           className="w-full max-w-3xl max-h-full overflow-y-auto"
           footer={<Button size="sm" onClick={async () => {
-            setCopyFailed(false);
+            setCopyNotice(null);
             try {
-              await navigator.clipboard.writeText(parts.map(part => `${part.label}\n${part.text}`).join("\n\n"));
+              await navigator.clipboard.writeText(prompt);
+              setCopyNotice({ prompt, tone: "success" });
             } catch {
-              setCopyFailed(true);
+              setCopyNotice({ prompt, tone: "error" });
             }
           }}>{formatMessage(defaultLocale, "inspector.copy")}</Button>}>
           <p>{contextInspector.tokenEstimateLabel}: {contextInspector.totalTokens}</p>
-          {copyFailed ? <Alert tone="inline">{formatMessage(defaultLocale, "inspector.copyFailed")}</Alert> : null}
+          {copyNotice?.prompt === prompt ? <Alert tone={copyNotice.tone} variant="inline">{copyNotice.tone === "success" ? "Copied" : formatMessage(defaultLocale, "inspector.copyFailed")}</Alert> : null}
           <div className="space-y-4">{parts.map((part, index) => <section key={index}>
             <Heading level="section" as="h3">{part.label}</Heading>
             <pre className="whitespace-pre-wrap break-words font-mono text-ui">{part.text}</pre>

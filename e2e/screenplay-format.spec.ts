@@ -231,7 +231,7 @@ for (const width of [1100, 1440]) {
       const { group, one, two, serverOps } = await seed(request, `${browserName} ${width} break`);
       await open(page, group.id);
       await page.evaluate(() => (window as unknown as SpecWindow).specQuill.formatLine(0, 1, "script-block", "dialogue", "user"));
-      await expect(page.getByRole("alert").filter({ hasText: "Edits across a scene break are not saved" })).toBeVisible();
+      await expect(page.getByRole("status").filter({ hasText: "Edits across a scene break are not saved" })).toBeVisible();
       await expect.poll(async () => blocks(await contents(page))).toEqual([]);
       await page.waitForTimeout(1500);
       expect(blocks(await serverOps(one.id))).toEqual([]);

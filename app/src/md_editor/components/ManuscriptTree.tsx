@@ -221,7 +221,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
         <Button type="submit" variant="primary" size="sm" disabled={locked}>Create</Button>
         <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>Cancel</Button>
       </div>
-      {draft.error ? <Alert tone="inline">{draft.error}</Alert> : null}
+      {draft.error ? <Alert tone="error" variant="inline">{draft.error}</Alert> : null}
       {draft.pending ? <p role="status">Creating {noun.toLowerCase()}…</p> : null}
     </form>;
   }
@@ -271,7 +271,7 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   }, [client, attempt]);
 
   if (state.status === "loading") return <p role="status">Loading manuscript…</p>;
-  if (state.status === "failed") return <Alert tone="inline">
+  if (state.status === "failed") return <Alert tone="error" variant="inline">
     <p>{state.message}</p>
     <Button onClick={() => setAttempt((value) => value + 1)}>Retry manuscript</Button>
   </Alert>;
@@ -326,8 +326,8 @@ export function ManuscriptTree({ selectedChapter, disabled, savesBeforeOpening =
   }
 
   return <>
-    {deleteError ? <Alert tone="inline">{deleteError}</Alert> : null}
-    {deleted ? <Alert tone="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={disabled || deleting || Boolean(draft?.pending)} onClick={() => void undo()}>Undo</Button>{" "}
+    {deleteError ? <Alert tone="error" variant="inline">{deleteError}</Alert> : null}
+    {deleted ? <Alert tone="success" variant="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={disabled || deleting || Boolean(draft?.pending)} onClick={() => void undo()}>Undo</Button>{" "}
       <ButtonLink size="sm" aria-disabled={disabled || deleting} href={(() => { const url = landingUrl(window.location.href); url.searchParams.delete("deleted"); url.searchParams.delete("deletedTitle"); url.hash = "recently-deleted"; return url.toString(); })()}
         onClick={event => {
           if (!disabled && !deleting && !onLeave) return;

@@ -78,6 +78,8 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 
 `ai-thread.spec.ts` uses a fake provider to check cut-off reply resume, discard, and chapter isolation.
 
+`notices.spec.ts` checks notice tones and roles for scene breaks, empty Continue, guidance save, tree deletion and prompt copy at 1100px and 1440px.
+
 `full-prompt.spec.ts` checks read-only full prompt order and Escape at 1100px and 1440px.
 
 `recently-deleted.spec.ts` at 1100px and 1440px checks trash item types and dates, restore and library refresh, ancestor confirmation, and permanent deletion with descendant counts.

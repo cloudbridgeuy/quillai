@@ -86,8 +86,8 @@ function Page() {
         <Field label="Model"><TextField as="select"><option>Fast</option></TextField></Field>
       </Section>
       <Section id="alert" title="Alert">
-        <Alert tone="fail">Not saved</Alert>
-        <Alert tone="inline">Could not load lore</Alert>
+        <Alert tone="error">Not saved</Alert>
+        <Alert tone="error" variant="inline">Could not load lore</Alert>
       </Section>
       <Section id="sticky-note" title="StickyNote">
         <StickyNote tone="yellow" aria-label="Yellow note" defaultValue="Yellow" rows={2} />

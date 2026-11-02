@@ -32,7 +32,7 @@ for (const configured of [true, false]) {
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model } })).status()).toBe(200);
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
     if (!configured) {
-      await expect(page.getByRole("alert")).toHaveText("The model used its whole budget without writing any text. Try again or pick another model.");
+      await expect(page.locator('.editor-scene-notice[role="status"]')).toHaveText("The model used its whole budget without writing any text. Try again or pick another model.");
       await expect(editor).toHaveText(`Opening ${identity}`);
       const saved = await request.get(`${chapters}/${chapter.id}`);
       expect(saved.status()).toBe(200);

@@ -87,7 +87,7 @@ for (const width of [1100, 1440]) {
 
     const editor = page.locator(".ql-editor");
     const breaks = editor.locator(".ql-scene-break");
-    const notice = page.getByRole("alert").filter({ hasText: NOTICE });
+    const notice = page.getByRole("status").filter({ hasText: NOTICE });
     const drawer = page.locator("#manuscript-drawer");
     const manuscript = page.getByRole("button", { name: "Manuscript", exact: true });
     const twoStart = 2 + longScene.length;

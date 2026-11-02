@@ -111,7 +111,7 @@ for (const width of [1100, 1440]) {
         await button.click();
         expect((await response).status()).toBe(204);
         await expect(item).toHaveCount(0);
-        const alert = page.getByRole("alert").filter({ hasText: `Deleted '${data.titles[kind]}'.` });
+        const alert = page.getByRole("status").filter({ hasText: `Deleted '${data.titles[kind]}'.` });
         await expect(alert).toContainText(`Deleted '${data.titles[kind]}'.`);
         await expect(alert.getByRole("button", { name: "Undo", exact: true })).toBeVisible();
         await expect(alert.getByRole("link", { name: "Recently deleted", exact: true }).or(alert.getByRole("button", { name: "Recently deleted", exact: true }))).toBeVisible();

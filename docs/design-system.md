@@ -7,7 +7,7 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 - Controls, headings and text styles come from `app/src/ui/` primitives. Do not write a raw `<button>`, `<input>`, `<textarea>` or `<select>` outside `app/src/ui/`.
 - Colours, shadows, type sizes, radii and spacing come from `app/src/ui/tokens.css`. Do not write a hex colour or `font-size:` in another `.css` file, and do not use Tailwind arbitrary values such as `w-[262px]`.
 - One button family: `Button` (quiet, primary, danger). No new pill, link-button or one-off button style.
-- Sticky notes are yellow. Green is for lore fields only. Pink notes are for the Edit instruction only. Notes have no border and use a paper shadow. Control hover states also use pink.
+- Sticky notes are yellow. Green is for lore fields and success notices. Pink notes are for the Edit instruction only. Notes have no border and use a paper shadow. Control hover states also use pink.
 - Lore editing opens in a `Modal`. The modal has no Cancel; Escape and backdrop click discard the draft. Delete is red (danger) and asks for confirmation: the first click arms it ("Delete lore"), the second click ("Confirm delete") deletes.
 - Popovers close from their trigger (toggle), click outside and Escape. Escape returns focus to the trigger, or to `returnFocusRef` when supplied. Outside clicks keep their native focus behavior. Canceled Escape leaves focus unchanged. `ignoreRefs` excludes named DOM areas from outside dismissal without blocking their native pointer action. Controlled anchored popovers may omit the trigger for hover or keyboard openings and leave focus unchanged on dismissal; unanchored popovers require a button trigger. They have no Close button.
 - Drawers have no Close button. Their rail toggle, bracket shortcut and Escape close them.
@@ -71,7 +71,7 @@ Manuscript tree rows show a small Delete `IconButton` on hover or keyboard focus
 | `Toggle` | checkbox plus label | `.editor-toggle` |
 | `Field` | `label`, control child. Label uses the 12px graphite style | `.editor-field` |
 | `Heading` | `level: "app" \| "section"`, optional `as: "h1" \| "h2" \| "h3" \| "h4"`. App 16px; section 12px uppercase | clamp `h1`, drawer and inspector headings |
-| `Alert` | `tone: "fail" \| "inline"` | save pill, `role="alert"` lines |
+| `Alert` | `tone: "error" \| "warning" \| "success" \| "info"`, `variant: "pill" \| "inline"` (default pill), optional `onDismiss` and role override. Error defaults to `alert`; other tones default to `status`. Pills use alert, pi-yellow, pi-green or pi-blue fills; inline errors use red alert text, other inline tones use ink text, and all inline tones use a coloured dot marker. | save pill, inline notices |
 | `StickyNote` | `tone: "yellow" \| "pink" \| "green"`, `overhang?`, `readOnly?`, native textarea props | `ui/StickyNote.tsx` (replaces `components/StickyNote.tsx`), green lore text |
 | `Modal` | `title`, `onClose`, children, optional `footer` and stable `returnFocusRef` for the opener. Without a ref, focus returns to the active element captured on mount, except `body`. Native `<dialog>`; footer holds action buttons only; no Cancel prop | native dialog surfaces |
 | `Popover` | `open`, `onOpenChange`, children; button `trigger` required unless `anchor: { left, top }` is set, where controlled triggerless opening is supported. Optional `returnFocusRef` overrides the trigger for focus return; `ignoreRefs` excludes DOM areas from outside dismissal. No Close prop | Settings, Edit box, Lore match |

@@ -87,7 +87,7 @@ test("the script surface moves across scene breaks and blocks merging edits", as
   await post(`${api}/pieces/${two.id}/deltas`, { baseRev: 0, delta: { ops: [{ insert: "Rain falls.\n" }] } }, 200);
 
   const editor = page.locator(".ql-editor");
-  const notice = page.getByRole("alert").filter({ hasText: "scene break" });
+  const notice = page.getByRole("status").filter({ hasText: "scene break" });
   const drawer = page.locator("#manuscript-drawer");
   const expectBoth = async (oneText: string, twoText: string) => {
     await expect.poll(async () => sceneSlices((await contents(page)).ops)).toEqual({ breaks: [one.id, two.id], scenes: [oneText, twoText] });

@@ -69,7 +69,7 @@ for (const width of [1100, 1440]) {
     const child = row(name("Deleted child chapter"));
     await expect(child).toBeVisible();
     await child.getByRole("button", { name: "Restore", exact: true }).click();
-    await expect(child.getByRole("alert")).toContainText(name("Deleted parent book"));
+    await expect(child.getByRole("status")).toContainText(name("Deleted parent book"));
     expect((await request.get(`${warningBookUrl}/chapters/${warningChapter.id}`)).status()).toBe(404);
     await child.getByRole("button", { name: "Confirm restore", exact: true }).click();
     await expect(child).toHaveCount(0);

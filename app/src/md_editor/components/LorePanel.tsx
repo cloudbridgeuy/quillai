@@ -56,7 +56,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
   return <section className="editor-lore-panel" aria-label="Series lore">
     <Heading level="section" as="h3">Series lore</Heading>
     {lore.status === "loading" ? <p role="status">Loading lore…</p> : null}
-    {lore.status === "failed" ? <Alert tone="inline">{lore.error}<Button size="sm" onClick={lore.retry}>Retry lore</Button></Alert> : null}
+    {lore.status === "failed" ? <Alert tone="error" variant="inline">{lore.error}<Button size="sm" onClick={lore.retry}>Retry lore</Button></Alert> : null}
     {lore.status === "ready" ? <>
       {lore.entries.length === 0 ? <p>No lore yet.</p> : <ul className="editor-manuscript-tree">
         {lore.entries.map(entry => <li key={entry.id}><ListButton tone="lore" disabled={disabled || pending}
@@ -92,7 +92,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
           onChange={event => setDraft({ ...draft, pinned: event.target.checked })} />
       </fieldset>
       </form>
-      {error ? <Alert tone="inline">{error}</Alert> : null}
+      {error ? <Alert tone="error" variant="inline">{error}</Alert> : null}
     </Modal> : null}
   </section>;
 }

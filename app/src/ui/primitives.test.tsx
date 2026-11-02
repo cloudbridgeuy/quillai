@@ -131,11 +131,27 @@ describe("Heading", () => {
 });
 
 describe("Alert", () => {
-  test("tones and role", () => {
-    expect(alertClassName("fail")).toContain("shadow-fail");
-    expect(alertClassName("inline")).toContain("text-alert");
-    expect(renderToStaticMarkup(<Alert tone="inline">x</Alert>)).toContain('role="alert"');
-    expect(renderToStaticMarkup(<Alert tone="fail" role="status">x</Alert>)).toContain('role="status"');
+  test("tones, variants and roles", () => {
+    for (const tone of ["error", "warning", "success", "info"] as const) {
+      const html = renderToStaticMarkup(<Alert tone={tone}>Notice</Alert>);
+      expect(html).toContain(`data-tone="${tone}"`);
+      expect(html).toContain(`role="${tone === "error" ? "alert" : "status"}"`);
+    }
+    expect(alertClassName("error")).toContain("shadow-fail");
+    expect(alertClassName("warning")).toContain("bg-pi-yellow");
+    expect(alertClassName("success")).toContain("bg-pi-green");
+    expect(alertClassName("info")).toContain("bg-pi-blue");
+    expect(renderToStaticMarkup(<Alert tone="error" variant="inline" role="status">Notice</Alert>)).toContain('role="status"');
+    expect(alertClassName("error", "inline")).not.toContain("shadow-fail");
+  });
+
+  test("dismiss control is optional and forwards its handler", () => {
+    const dismiss = () => {};
+    const element = Alert({ tone: "info", onDismiss: dismiss });
+    const button = React.Children.toArray(element.props.children).find(child => React.isValidElement<{ onClick?: () => void }>(child) && child.props.onClick === dismiss);
+    expect(button).toBeDefined();
+    expect(renderToStaticMarkup(<Alert tone="info" onDismiss={dismiss}>Notice</Alert>)).toContain('aria-label="Dismiss"');
+    expect(renderToStaticMarkup(<Alert tone="info">Notice</Alert>)).not.toContain('aria-label="Dismiss"');
   });
 });
 
