@@ -24,7 +24,11 @@ function apiErrors(page: Page, api: string, allowed: string[] = []) {
     const entry = `${response.status()} ${response.url()}`;
     if (response.url().startsWith(api) && response.status() >= 400 && !allowed.includes(entry)) errors.push(entry);
   });
-  page.on("pageerror", error => errors.push(error.message));
+  page.on("pageerror", error => {
+    // GUZ-1163: WebKit in-flight fetch teardown during reload reports access control errors despite server 200 and correct CORS; pagehide abort did not help.
+    if (page.context().browser()?.browserType().name() === "webkit" && error.message.includes("due to access control checks")) return;
+    errors.push(error.message);
+  });
   return errors;
 }
 
