@@ -57,7 +57,10 @@ pub enum Commands {
     #[command(about = "Run the isolated chapter-sync browser smoke test")]
     E2e(E2eArgs),
     #[command(about = "Run nightly browser tests and write a report")]
-    Nightly,
+    Nightly {
+        #[arg(long)]
+        timeout: Option<u64>,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -189,7 +192,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Dev(args) => dev(args),
         Commands::AiSmoke(args) => ai_smoke::run(args),
         Commands::E2e(args) => e2e::run(args),
-        Commands::Nightly => nightly::run(),
+        Commands::Nightly { timeout } => nightly::run(timeout),
         Commands::InstallHooks => hooks::run(),
         Commands::InstallNightly { uninstall } => nightly_launchd::run(uninstall),
         Commands::Lint(args) => {

@@ -1,5 +1,5 @@
 import { createServer, type ServerResponse } from "node:http";
-import { writeFileSync, renameSync } from "node:fs";
+import { appendFileSync, writeFileSync, renameSync } from "node:fs";
 import { EventEmitter, once } from "node:events";
 
 type RecordedRequest = { id: number; identity: string; model: string; stream: true; closed: boolean; completed: boolean };
@@ -9,7 +9,10 @@ const armed = new Map<string, string>();
 let unarmed = 0;
 const events = new EventEmitter();
 function audit() {
-  console.log(`E2E provider audit: ${JSON.stringify({ unarmed, streamed: requests.map(({ id, identity, model }) => ({ id, identity, model })) })}`);
+  const line = `E2E provider audit: ${JSON.stringify({ unarmed, streamed: requests.map(({ id, identity, model }) => ({ id, identity, model })) })}`;
+  const target = process.env.QUILLAI_E2E_PROVIDER_AUDIT;
+  if (target) appendFileSync(target, `${line}\n`);
+  else console.log(line);
 }
 function rejectUnarmed(response: ServerResponse) {
   unarmed++;

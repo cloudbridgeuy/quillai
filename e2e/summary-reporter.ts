@@ -1,7 +1,7 @@
-import { writeFileSync } from "node:fs";
+import { appendFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 import { stripVTControlCharacters } from "node:util";
-import type { FullConfig, FullResult, Reporter, Suite } from "../app/node_modules/@playwright/test/reporter";
+import type { FullConfig, FullResult, Reporter, Suite, TestCase, TestResult } from "../app/node_modules/@playwright/test/reporter";
 
 const MAX_ERROR_LINES = 20;
 
@@ -17,6 +17,16 @@ export default class SummaryReporter implements Reporter {
   onBegin(config: FullConfig, suite: Suite) {
     this.root = dirname(config.rootDir);
     this.suite = suite;
+  }
+
+  onTestEnd(test: TestCase, result: TestResult) {
+    const file = relative(this.root, test.location.file);
+    const project = test.parent.project()?.name ?? "";
+    const target = process.env.QUILLAI_E2E_RESULTS_JSONL;
+    if (target) {
+      appendFileSync(target, `${JSON.stringify({ file, line: test.location.line, title: test.title, project, status: result.status, retry: result.retry })}\n`);
+    }
+    console.log(`${file}:${test.location.line} [${project}] ${result.status} ${duration(result.duration)}`);
   }
 
   onEnd(result: FullResult) {
