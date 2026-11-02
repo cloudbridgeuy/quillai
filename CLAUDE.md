@@ -151,6 +151,8 @@ Default to using Bun instead of Node.js.
 
 CLAUDE.md is an index capped at 16,000 bytes (`cargo xtask lint` check). Put ticket-level detail (file behaviour, spec coverage, routes, schema) in the matching docs/agent/ file, not here.
 
+- [Sync push design](docs/sync-push.md) — SSE change nudges, existing delta reads, and slow fallback (GUZ-905).
+
 | File | Lookup purpose |
 |------|----------------|
 | [source-index.md](docs/agent/source-index.md) | Source file behaviour |
