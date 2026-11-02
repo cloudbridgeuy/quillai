@@ -219,6 +219,7 @@ export function useChapterSync(
     switching: switchStatus !== null,
     detail,
     title,
+    setTitle,
     scope,
     switchChapter: (target: EditorScope) => switchRef.current?.(target),
     async leave(target: URL = landingUrl(window.location.href)) {

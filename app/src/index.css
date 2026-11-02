@@ -367,7 +367,7 @@ body {
 
 .editor-manuscript-tree .tree-row {
   position: relative;
-  padding-right: calc(var(--spacing) * 9);
+  padding-right: calc(var(--spacing) * 18);
 }
 
 .editor-manuscript-tree .tree-delete {
@@ -382,6 +382,10 @@ body {
 .editor-manuscript-tree .tree-row:focus-visible > .tree-delete,
 .editor-manuscript-tree .tree-row:has(:focus-visible) > .tree-delete {
   opacity: 1;
+}
+
+.editor-manuscript-tree .tree-rename {
+  right: calc(var(--spacing) * 9);
 }
 
 .editor-context-inspector h2 {
