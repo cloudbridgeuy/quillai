@@ -2,16 +2,16 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-function documentXml(bytes: Buffer): string {
+function zipFile(bytes: Buffer, path: string): string {
   let offset = 0;
   while (bytes.readUInt32LE(offset) === 0x04034b50) {
     const size = bytes.readUInt32LE(offset + 18);
     const nameLength = bytes.readUInt16LE(offset + 26);
     const start = offset + 30 + nameLength + bytes.readUInt16LE(offset + 28);
-    if (bytes.subarray(offset + 30, offset + 30 + nameLength).toString() === "word/document.xml") return bytes.subarray(start, start + size).toString();
+    if (bytes.subarray(offset + 30, offset + 30 + nameLength).toString() === path) return bytes.subarray(start, start + size).toString();
     offset = start + size;
   }
-  throw new Error("Missing word/document.xml");
+  throw new Error(`Missing ${path}`);
 }
 
 for (const width of [1100, 1440]) {
@@ -48,7 +48,7 @@ for (const width of [1100, 1440]) {
       if (name === "Download Word") {
         const content = readFileSync((await download.path())!);
         expect(content.subarray(0, 4).toString("hex")).toBe("504b0304");
-        expect(documentXml(content)).toContain("Export chapter");
+        expect(zipFile(content, "word/document.xml")).toContain("Export chapter");
       }
       if (name === "Download Markdown") {
         const content = readFileSync((await download.path())!, "utf8");
@@ -71,16 +71,25 @@ for (const width of [1100, 1440]) {
       await page.keyboard.press("ControlOrMeta+End");
       await page.keyboard.insertText(" unsaved live text");
       await held;
-      for (const [name, filename] of [["Markdown", "export-book.md"], ["text", "export-book.txt"], ["Word", "export-book.docx"]]) {
+      for (const [name, filename] of [["Markdown", "export-book.md"], ["text", "export-book.txt"], ["Word", "export-book.docx"], ["EPUB", "export-book.epub"]]) {
         const downloading = page.waitForEvent("download");
         await page.getByRole("link", { name, exact: true }).click();
         const download = await downloading;
         expect(download.suggestedFilename()).toBe(filename);
         const bytes = readFileSync((await download.path())!);
         const content = bytes.toString("utf8");
+        if (name === "EPUB") {
+          expect(bytes.subarray(0, 4).toString("hex")).toBe("504b0304");
+          expect(bytes.subarray(38, 58).toString()).toBe("application/epub+zip");
+          expect(zipFile(bytes, "mimetype")).toBe("application/epub+zip");
+          expect(zipFile(bytes, "META-INF/container.xml")).toContain("OEBPS/content.opf");
+          expect(zipFile(bytes, "OEBPS/chapter-1.xhtml")).toContain("unsaved live text");
+          expect(zipFile(bytes, "OEBPS/chapter-2.xhtml")).toContain("Second chapter text");
+          continue;
+        }
         if (name === "Word") {
           expect(bytes.subarray(0, 4).toString("hex")).toBe("504b0304");
-          const xml = documentXml(bytes);
+          const xml = zipFile(bytes, "word/document.xml");
           expect(xml).toContain("unsaved live text");
           expect(xml).toContain("Second chapter text");
           expect(xml.indexOf("Export chapter")).toBeLessThan(xml.indexOf("Second chapter"));

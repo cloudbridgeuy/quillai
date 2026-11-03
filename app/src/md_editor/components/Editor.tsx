@@ -37,6 +37,7 @@ import {
 import { getEditFailurePresentation } from "../edit_failure";
 import { bookExport, toMarkdown, toPlainText } from "../export_text";
 import { bookDocx, toDocx } from "../docx_export";
+import { bookEpub } from "../epub_export";
 import { createManuscriptClient } from "../../manuscripts/client";
 import { chapterDelta } from "../chapter_sync";
 import { finalizeAiStreamRemainder, parseAiStreamChunk } from "../ai_stream";
@@ -430,7 +431,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
   }
 
-  async function downloadBook(format: "markdown" | "text" | "docx") {
+  async function downloadBook(format: "markdown" | "text" | "docx" | "epub") {
     const scope = chapterSync.scope;
     const delta = quillRef.current?.getContents();
     const title = chapterSync.title ?? "";
@@ -445,11 +446,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         : { title: chapter.title, delta: chapterDelta(chapter.content) });
       const link = bookDownloadRef.current;
       if (link) {
-        link.download = `${book.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "book"}.${format === "markdown" ? "md" : format === "text" ? "txt" : "docx"}`;
-        const url = format === "docx" ? wordUrl(bookDocx(book.title, bookChapters)) : `data:text/plain;charset=utf-8,${encodeURIComponent(bookExport(book.title, bookChapters, format))}`;
+        link.download = `${book.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "book"}.${format === "markdown" ? "md" : format === "text" ? "txt" : format}`;
+        const url = format === "docx" ? wordUrl(bookDocx(book.title, bookChapters)) : format === "epub" ? URL.createObjectURL(new Blob([new Uint8Array(bookEpub(book.title, bookChapters, { id: `urn:uuid:${crypto.randomUUID()}`, modified: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), lang: defaultLocale }))], { type: "application/epub+zip" })) : `data:text/plain;charset=utf-8,${encodeURIComponent(bookExport(book.title, bookChapters, format))}`;
         link.href = url;
         link.click();
-        if (format === "docx") setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        if (format === "docx" || format === "epub") setTimeout(() => URL.revokeObjectURL(url), 30_000);
       }
     } catch {
       setBookExportError(true);
@@ -1501,7 +1502,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         }}>Download Word</ButtonLink>
         {chapterExportError ? <Alert tone="error" variant="inline">Could not export chapter. Try again.</Alert> : null}
         {chapterSync.scope && "chapterId" in chapterSync.scope ? <>
-          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"], ["Word", "docx"] ] as const).map(([label, format], index) => <span key={format}>
+          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"], ["Word", "docx"], ["EPUB", "epub"] ] as const).map(([label, format], index) => <span key={format}>
             {index ? " · " : ""}<ButtonLink href="#" variant="link" aria-disabled={bookExportPending} onClick={event => {
               event.preventDefault();
               void downloadBook(format);
