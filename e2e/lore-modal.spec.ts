@@ -18,6 +18,9 @@ test("lore modal discards drafts, restores focus, and confirms deletion", async 
   const create = page.getByRole("dialog", { name: "Create lore", exact: true });
   await expect(create).toBeVisible();
   await expect(create.locator("form")).toBeVisible();
+  const pinHint = "Sent with every AI request unless set to Leave out, even when the text doesn't mention it, and never dropped for space.";
+  await expect(create.getByText(pinHint, { exact: true })).toBeVisible();
+  await expect(create.getByLabel("Pin in AI context")).toHaveAccessibleDescription(pinHint);
   await expect(create.getByRole("button", { name: /cancel/i })).toHaveCount(0);
   await create.getByLabel("Kind").selectOption("place");
   await create.getByLabel("Name", { exact: true }).fill("Discarded");

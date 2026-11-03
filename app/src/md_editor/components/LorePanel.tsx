@@ -11,6 +11,7 @@ import { Field } from "../../ui/Field";
 import { Heading } from "../../ui/Heading";
 import { StickyNote } from "../../ui/StickyNote";
 import { TextField } from "../../ui/TextField";
+import { PIN_HINT } from "./lore_pin_hint";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
@@ -88,8 +89,9 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
           onChange={event => setDraft({ ...draft, level: event.target.value as LoreInput["level"] })}>
           <option value="include">Include</option><option value="known_dont_reveal">Known, don't reveal</option><option value="leave_out">Leave out</option>
         </TextField></Field>
-        <Toggle label="Pin in AI context" checked={draft.pinned}
+        <Toggle label="Pin in AI context" checked={draft.pinned} aria-describedby={`${formId}-pin-hint`}
           onChange={event => setDraft({ ...draft, pinned: event.target.checked })} />
+        <p id={`${formId}-pin-hint`} className="text-ui text-graphite">{PIN_HINT}</p>
       </fieldset>
       </form>
       {error ? <Alert tone="error" variant="inline">{error}</Alert> : null}
