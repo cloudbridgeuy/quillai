@@ -36,6 +36,7 @@ import {
 } from "../editor_ai";
 import { getEditFailurePresentation } from "../edit_failure";
 import { bookExport, toMarkdown, toPlainText } from "../export_text";
+import { bookDocx, toDocx } from "../docx_export";
 import { createManuscriptClient } from "../../manuscripts/client";
 import { chapterDelta } from "../chapter_sync";
 import { finalizeAiStreamRemainder, parseAiStreamChunk } from "../ai_stream";
@@ -282,6 +283,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const settingsRef = useRef<HTMLDivElement>(null);
   const bookDownloadRef = useRef<HTMLAnchorElement>(null);
   const [bookExportError, setBookExportError] = useState(false);
+  const [chapterExportError, setChapterExportError] = useState(false);
   const [bookExportPending, setBookExportPending] = useState(false);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
@@ -424,7 +426,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const lore = useLore(chapterSync.scope);
   const loreEntries = suppliedLoreEntries ?? lore.entries;
 
-  async function downloadBook(format: "markdown" | "text") {
+  function wordUrl(bytes: Uint8Array): string {
+    return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+  }
+
+  async function downloadBook(format: "markdown" | "text" | "docx") {
     const scope = chapterSync.scope;
     const delta = quillRef.current?.getContents();
     const title = chapterSync.title ?? "";
@@ -434,14 +440,16 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     try {
       const client = createManuscriptClient();
       const [book, chapters] = await Promise.all([client.getBook(scope), client.listChaptersWithContent(scope)]);
-      const content = bookExport(book.title, chapters.map(chapter => chapter.id === scope.chapterId
+      const bookChapters = chapters.map(chapter => chapter.id === scope.chapterId
         ? { title, delta }
-        : { title: chapter.title, delta: chapterDelta(chapter.content) }), format);
+        : { title: chapter.title, delta: chapterDelta(chapter.content) });
       const link = bookDownloadRef.current;
       if (link) {
-        link.download = `${book.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "book"}.${format === "markdown" ? "md" : "txt"}`;
-        link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(content)}`;
+        link.download = `${book.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "book"}.${format === "markdown" ? "md" : format === "text" ? "txt" : "docx"}`;
+        const url = format === "docx" ? wordUrl(bookDocx(book.title, bookChapters)) : `data:text/plain;charset=utf-8,${encodeURIComponent(bookExport(book.title, bookChapters, format))}`;
+        link.href = url;
         link.click();
+        if (format === "docx") setTimeout(() => URL.revokeObjectURL(url), 30_000);
       }
     } catch {
       setBookExportError(true);
@@ -1478,8 +1486,22 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               const delta = quillRef.current?.getContents();
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(delta ? convert(chapterSync.title ?? "", delta) : "")}`;
             }}>Download {label}</ButtonLink>)}
+        <ButtonLink className="shrink-0 self-start" href="#" download={`${(chapterSync.title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "chapter"}.docx`} onClick={event => {
+          try {
+            const delta = quillRef.current?.getContents();
+            if (!delta) throw new Error("Editor unavailable");
+            const url = wordUrl(toDocx(chapterSync.title ?? "", delta));
+            event.currentTarget.href = url;
+            setTimeout(() => URL.revokeObjectURL(url), 30_000);
+            setChapterExportError(false);
+          } catch {
+            event.preventDefault();
+            setChapterExportError(true);
+          }
+        }}>Download Word</ButtonLink>
+        {chapterExportError ? <Alert tone="error" variant="inline">Could not export chapter. Try again.</Alert> : null}
         {chapterSync.scope && "chapterId" in chapterSync.scope ? <>
-          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"] ] as const).map(([label, format], index) => <span key={format}>
+          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"], ["Word", "docx"] ] as const).map(([label, format], index) => <span key={format}>
             {index ? " · " : ""}<ButtonLink href="#" variant="link" aria-disabled={bookExportPending} onClick={event => {
               event.preventDefault();
               void downloadBook(format);

@@ -2,6 +2,18 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
+function documentXml(bytes: Buffer): string {
+  let offset = 0;
+  while (bytes.readUInt32LE(offset) === 0x04034b50) {
+    const size = bytes.readUInt32LE(offset + 18);
+    const nameLength = bytes.readUInt16LE(offset + 26);
+    const start = offset + 30 + nameLength + bytes.readUInt16LE(offset + 28);
+    if (bytes.subarray(offset + 30, offset + 30 + nameLength).toString() === "word/document.xml") return bytes.subarray(start, start + size).toString();
+    offset = start + size;
+  }
+  throw new Error("Missing word/document.xml");
+}
+
 for (const width of [1100, 1440]) {
   test(`chapter downloads at ${width}px`, async ({ page, request, browserName }) => {
     const api = process.env.QUILLAI_E2E_API_URL;
@@ -26,13 +38,18 @@ for (const width of [1100, 1440]) {
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     await expectEditorReady(page.locator(".ql-editor"));
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-    for (const [name, filename] of [["Download Markdown", "export-chapter.md"], ["Download text", "export-chapter.txt"], ["Download backup", "chapter-local.json"]]) {
+    for (const [name, filename] of [["Download Markdown", "export-chapter.md"], ["Download text", "export-chapter.txt"], ["Download Word", "export-chapter.docx"], ["Download backup", "chapter-local.json"]]) {
       const link = page.getByRole("link", { name, exact: true });
       await expect(link).toBeVisible();
       const downloading = page.waitForEvent("download");
       await link.click();
       const download = await downloading;
       expect(download.suggestedFilename()).toBe(filename);
+      if (name === "Download Word") {
+        const content = readFileSync((await download.path())!);
+        expect(content.subarray(0, 4).toString("hex")).toBe("504b0304");
+        expect(documentXml(content)).toContain("Export chapter");
+      }
       if (name === "Download Markdown") {
         const content = readFileSync((await download.path())!, "utf8");
         expect(content).toContain("# Export chapter\n");
@@ -54,12 +71,21 @@ for (const width of [1100, 1440]) {
       await page.keyboard.press("ControlOrMeta+End");
       await page.keyboard.insertText(" unsaved live text");
       await held;
-      for (const [name, filename] of [["Markdown", "export-book.md"], ["text", "export-book.txt"]]) {
+      for (const [name, filename] of [["Markdown", "export-book.md"], ["text", "export-book.txt"], ["Word", "export-book.docx"]]) {
         const downloading = page.waitForEvent("download");
         await page.getByRole("link", { name, exact: true }).click();
         const download = await downloading;
         expect(download.suggestedFilename()).toBe(filename);
-        const content = readFileSync((await download.path())!, "utf8");
+        const bytes = readFileSync((await download.path())!);
+        const content = bytes.toString("utf8");
+        if (name === "Word") {
+          expect(bytes.subarray(0, 4).toString("hex")).toBe("504b0304");
+          const xml = documentXml(bytes);
+          expect(xml).toContain("unsaved live text");
+          expect(xml).toContain("Second chapter text");
+          expect(xml.indexOf("Export chapter")).toBeLessThan(xml.indexOf("Second chapter"));
+          continue;
+        }
         expect(content).toContain("unsaved live text");
         expect(content).toContain("Second chapter text");
         const firstHeading = name === "Markdown" ? "## Export chapter\n" : "\n\nExport chapter\n";
