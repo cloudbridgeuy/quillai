@@ -41,7 +41,7 @@ for (const width of [1100, 1440]) {
     const drawer = page.locator("#manuscript-drawer");
     const outline = page.getByRole("region", { name: "Manuscript outline", exact: true });
     const lore = drawer.getByRole("button", { name: "Mira · character", exact: true });
-    const exportLink = drawer.getByRole("link", { name: "Export local chapter", exact: true });
+    const exportLink = drawer.getByRole("link", { name: "Download Markdown", exact: true });
     await expect(drawer.getByRole("status")).toHaveText("Loading manuscript…");
     await expect(lore).toBeInViewport();
     await expect(exportLink).toBeInViewport();
@@ -58,7 +58,7 @@ for (const width of [1100, 1440]) {
     await expect(editForm).toBeHidden();
     const downloadStarted = page.waitForEvent("download");
     await exportLink.click();
-    expect((await downloadStarted).suggestedFilename()).toBe("chapter-local.json");
+    expect((await downloadStarted).suggestedFilename()).toBe("current-chapter.md");
     await expect(drawer.getByRole("status")).toHaveText("Loading manuscript…");
     const interacted = { outline: await outline.boundingBox(), lore: await lore.boundingBox(), export: await exportLink.boundingBox() };
     expect(interacted).toEqual(before);

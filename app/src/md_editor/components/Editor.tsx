@@ -35,6 +35,7 @@ import {
   shouldRollbackFailedEditSelection,
 } from "../editor_ai";
 import { getEditFailurePresentation } from "../edit_failure";
+import { toMarkdown, toPlainText } from "../export_text";
 import { finalizeAiStreamRemainder, parseAiStreamChunk } from "../ai_stream";
 import { toContractDeltaDocument, toQuillDeltaDocument } from "../delta_bridge";
 import {
@@ -1440,11 +1441,17 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
           lore={lore} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
+        {([ ["Markdown", "md", toMarkdown], ["text", "txt", toPlainText] ] as const).map(([label, extension, convert]) =>
+          <ButtonLink key={extension} className="shrink-0 self-start" download={`${(chapterSync.title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "chapter"}.${extension}`}
+            href="#" onClick={(event) => {
+              const delta = quillRef.current?.getContents();
+              event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(delta ? convert(chapterSync.title ?? "", delta) : "")}`;
+            }}>Download {label}</ButtonLink>)}
         <ButtonLink className="shrink-0 self-start" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
           }}>
-          Export local chapter
+          Download backup
         </ButtonLink>
       </aside> : null}
       <div className="editor-topbar">

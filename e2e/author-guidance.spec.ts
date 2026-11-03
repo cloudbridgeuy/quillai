@@ -59,7 +59,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/idle-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-    await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
+    await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Download Markdown", exact: true })).toBeVisible();
     await page.screenshot({ path: `../target/guz-755/${test.info().project.name}/manuscript-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   }
@@ -429,7 +429,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await expect(page.getByRole("region", { name: "Manuscript outline", exact: true }).getByRole("button", { name: "Settings chapter", exact: true })).toBeVisible();
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Export local chapter", exact: true }).click();
-  expect((await download).suggestedFilename()).toBe("chapter-local.json");
+  await page.getByRole("link", { name: "Download Markdown", exact: true }).click();
+  expect((await download).suggestedFilename()).toBe("settings-chapter.md");
   expect(saveAttempts).toBeGreaterThanOrEqual(1);
 });

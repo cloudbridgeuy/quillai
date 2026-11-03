@@ -221,7 +221,7 @@ test("tree opens a second chapter only after saving and keeps text when saving f
   await expect(failedSave).toHaveAttribute("aria-live", "assertive");
   await expect(failedSave).toHaveCSS("background-color", "rgb(180, 65, 47)");
   await expect(failedSave).toHaveCSS("color", "rgb(255, 255, 255)");
-  await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Export local chapter", exact: true })).toBeVisible();
+  await expect(page.locator("#manuscript-drawer").getByRole("link", { name: "Download backup", exact: true })).toBeVisible();
   await expect(editor).toHaveText("Second unsaved text retained");
   await expect(page.getByRole("heading", { name: `Switch second ${test.info().project.name}`, exact: true })).toBeVisible();
   await expect(secondButton).toHaveAttribute("aria-pressed", "true");

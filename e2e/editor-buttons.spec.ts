@@ -49,7 +49,7 @@ test("editor and lore controls", async ({ page, request }) => {
   await chapter(page, request);
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   const lore = page.getByRole("region", { name: "Series lore", exact: true });
-  await expectShape(page.getByRole("link", { name: "Export local chapter", exact: true }), "Export local chapter");
+  await expectShape(page.getByRole("link", { name: "Download backup", exact: true }), "Download backup");
   const retry = lore.getByRole("button", { name: "Retry lore", exact: true });
   await expectShape(retry, "Retry lore");
   failLore = false;

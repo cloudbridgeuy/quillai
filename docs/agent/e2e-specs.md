@@ -95,3 +95,5 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `caret-restore.spec.ts` checks chapter switch and reload selection and viewport restoration from the first populated frame at 1100px and 1440px.
 
 `tree-rename.spec.ts` checks series, book, chapter and piece rename at 1100px and 1440px: Enter/blur saves trimmed titles, Escape cancels, blank titles fail, unchanged titles send no request, server titles persist, and the open chapter header and tab update. Written; not run for GUZ-895.
+
+`chapter-export.spec.ts` checks Markdown, text, and backup download names and Markdown content at 1100px and 1440px. Written; not run for GUZ-1236.
