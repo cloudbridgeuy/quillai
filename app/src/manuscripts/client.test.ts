@@ -40,6 +40,7 @@ describe("manuscript request contracts", () => {
     { name: "update book", call: (c) => c.updateBook(scope, update), path: "/series/1/books/2", method: "PUT", status: 200, response: book, body: update },
     { name: "delete book", call: (c) => c.deleteBook(scope), path: "/series/1/books/2", method: "DELETE", status: 204 },
     { name: "list chapters", call: (c) => c.listChapters(scope), path: "/series/1/books/2/chapters", method: "GET", status: 200, response: [chapterSummary] },
+    { name: "list chapters with content", call: (c) => c.listChaptersWithContent(scope), path: "/series/1/books/2/chapters?content=true", method: "GET", status: 200, response: [chapter] },
     { name: "create chapter", call: (c) => c.createChapter(scope, createChapter), path: "/series/1/books/2/chapters", method: "POST", status: 201, response: chapter, body: createChapter },
     { name: "get chapter", call: (c) => c.getChapter(scope), path: root, method: "GET", status: 200, response: chapter },
     { name: "update chapter", call: (c) => c.updateChapter(scope, { kind: null }), path: root, method: "PUT", status: 200, response: chapter, body: { kind: null } },
@@ -165,6 +166,7 @@ test("rejects malformed resource, collection, and revision responses at the boun
     [[series, {}], (c) => c.listSeries()],
     [[book, {}], (c) => c.listBooks(scope)],
     [[chapter, {}], (c) => c.listChapters(scope)],
+    [[{ ...chapter, content: { ops: [{ insert: false }] } }], (c) => c.listChaptersWithContent(scope)],
     [[{ ...revision, rev: -1 }], (c) => c.getDeltas(scope, 0)],
     [{ ...revision, delta: {} }, (c) => c.postDelta(scope, submission)],
   ];

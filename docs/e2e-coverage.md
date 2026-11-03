@@ -41,7 +41,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-886 | Rename the "Retry manuscript" action | Backlog | a | `e2e/tree-load-retry.spec.ts` checks the approved label and recovery after one failed tree fetch at 1100px and 1440px; written, not run |
 | GUZ-887 | Centre the chapter title | Backlog | a | needed |
 | GUZ-888 | Remember caret and scroll position per chapter | Backlog | a | `e2e/caret-restore.spec.ts` checks switch and reload restoration before the first populated frame |
-| GUZ-889 / GUZ-1236 | Chapter exports and backup | Written, not run | a | chapter-export.spec.ts |
+| GUZ-889 / GUZ-1236 / GUZ-1238 | Chapter and book exports and backup | Written, not run | a | chapter-export.spec.ts checks book order, unsaved text, formats, and failure |
 | GUZ-890 | Favicon and a real tab title | Backlog | a | needed |
 | GUZ-891 | Create chapters, books and series from the app | Backlog | a | needed |
 | GUZ-892 | Standalone stories outside books and series | Backlog | a | needed |

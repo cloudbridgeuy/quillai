@@ -132,3 +132,13 @@ export function toMarkdown(title: string, delta: Delta): string {
 export function toPlainText(title: string, delta: Delta): string {
   return render(title, delta, false);
 }
+
+export function bookExport(title: string, chapters: { title: string; delta: Delta }[], format: "markdown" | "text"): string {
+  const markdown = format === "markdown";
+  const convert = markdown ? toMarkdown : toPlainText;
+  const heading = markdown ? `# ${escapeText(title)}` : title;
+  return [heading, ...chapters.map((chapter) => {
+    const text = convert(chapter.title, chapter.delta).slice(0, -1);
+    return markdown ? `#${text}` : text;
+  })].join("\n\n") + "\n";
+}

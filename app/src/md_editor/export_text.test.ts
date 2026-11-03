@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import Delta from "quill-delta";
-import { toMarkdown, toPlainText } from "./export_text";
+import { bookExport, toMarkdown, toPlainText } from "./export_text";
 
 describe("toMarkdown", () => {
   test("writes a title, paragraphs, and inline emphasis with trailing spaces outside markers", () => {
@@ -157,5 +157,22 @@ describe("toPlainText", () => {
 
   test("writes an empty chapter", () => {
     expect(toPlainText("Title", new Delta().insert("\n"))).toBe("Title\n");
+  });
+});
+
+describe("bookExport", () => {
+  test("writes ordered chapter headings and bodies in both formats", () => {
+    const chapters = [
+      { title: "Second *chapter*", delta: new Delta().insert("Bold", { bold: true }).insert("\n") },
+      { title: "Empty", delta: new Delta().insert("\n") },
+      { title: "First", delta: new Delta().insert("Last\n") },
+    ];
+    expect(bookExport("A *book*", chapters, "markdown")).toBe("# A \\*book\\*\n\n## Second \\*chapter\\*\n\n**Bold**\n\n## Empty\n\n## First\n\nLast\n");
+    expect(bookExport("A *book*", chapters, "text")).toBe("A *book*\n\nSecond *chapter*\n\nBold\n\nEmpty\n\nFirst\n\nLast\n");
+  });
+
+  test("writes the title of an empty book", () => {
+    expect(bookExport("Book", [], "markdown")).toBe("# Book\n");
+    expect(bookExport("Book", [], "text")).toBe("Book\n");
   });
 });

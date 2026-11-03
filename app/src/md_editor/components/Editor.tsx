@@ -35,7 +35,9 @@ import {
   shouldRollbackFailedEditSelection,
 } from "../editor_ai";
 import { getEditFailurePresentation } from "../edit_failure";
-import { toMarkdown, toPlainText } from "../export_text";
+import { bookExport, toMarkdown, toPlainText } from "../export_text";
+import { createManuscriptClient } from "../../manuscripts/client";
+import { chapterDelta } from "../chapter_sync";
 import { finalizeAiStreamRemainder, parseAiStreamChunk } from "../ai_stream";
 import { toContractDeltaDocument, toQuillDeltaDocument } from "../delta_bridge";
 import {
@@ -278,6 +280,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [range, setRange] = useState<RangeT | null>(null);
   const [panel, setPanel] = useState<PanelState>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const bookDownloadRef = useRef<HTMLAnchorElement>(null);
+  const [bookExportError, setBookExportError] = useState(false);
+  const [bookExportPending, setBookExportPending] = useState(false);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
@@ -418,6 +423,32 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   const lore = useLore(chapterSync.scope);
   const loreEntries = suppliedLoreEntries ?? lore.entries;
+
+  async function downloadBook(format: "markdown" | "text") {
+    const scope = chapterSync.scope;
+    const delta = quillRef.current?.getContents();
+    const title = chapterSync.title ?? "";
+    if (!scope || !("chapterId" in scope) || !delta || bookExportPending) return;
+    setBookExportPending(true);
+    setBookExportError(false);
+    try {
+      const client = createManuscriptClient();
+      const [book, chapters] = await Promise.all([client.getBook(scope), client.listChaptersWithContent(scope)]);
+      const content = bookExport(book.title, chapters.map(chapter => chapter.id === scope.chapterId
+        ? { title, delta }
+        : { title: chapter.title, delta: chapterDelta(chapter.content) }), format);
+      const link = bookDownloadRef.current;
+      if (link) {
+        link.download = `${book.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "book"}.${format === "markdown" ? "md" : "txt"}`;
+        link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(content)}`;
+        link.click();
+      }
+    } catch {
+      setBookExportError(true);
+    } finally {
+      setBookExportPending(false);
+    }
+  }
 
   function persistEditorState() {
     if (typeof window === "undefined") {
@@ -1447,6 +1478,16 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               const delta = quillRef.current?.getContents();
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(delta ? convert(chapterSync.title ?? "", delta) : "")}`;
             }}>Download {label}</ButtonLink>)}
+        {chapterSync.scope && "chapterId" in chapterSync.scope ? <>
+          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"] ] as const).map(([label, format], index) => <span key={format}>
+            {index ? " · " : ""}<ButtonLink href="#" variant="link" aria-disabled={bookExportPending} onClick={event => {
+              event.preventDefault();
+              void downloadBook(format);
+            }}>{label}</ButtonLink>
+          </span>)}</span>
+          <ButtonLink ref={bookDownloadRef} hidden className="hidden!" href="#" download />
+          {bookExportError ? <Alert tone="error" variant="inline">Could not export book. Try again.</Alert> : null}
+        </> : null}
         <ButtonLink className="shrink-0 self-start" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
