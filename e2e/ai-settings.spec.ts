@@ -4,7 +4,7 @@ import { expectEditorReady } from "./editor-ready";
 test("AI settings save without exposing or resending the key and refresh models", async ({ page, request }) => {
   const api = process.env.QUILLAI_E2E_API_URL;
   if (!api) throw new Error("Run with cargo xtask e2e");
-  let settings = { base_url: "https://env.example/v1" as string | null, model: null as string | null, key_set: false, sources: { base_url: "env", model: "none", api_key: "none" } };
+  let settings = { base_url: "https://env.example/v1" as string | null, model: null as string | null, key_set: true, sources: { base_url: "env", model: "none", api_key: "env" } };
   const writes: Record<string, string>[] = [];
   await page.route(`${api}/settings/ai`, async route => {
     if (route.request().method() === "PUT") {
@@ -14,11 +14,11 @@ test("AI settings save without exposing or resending the key and refresh models"
       settings = {
         base_url: body.base_url === undefined ? settings.base_url : body.base_url || "https://env.example/v1",
         model: body.model === undefined ? settings.model : body.model || null,
-        key_set: body.api_key === undefined ? settings.key_set : body.api_key !== "",
+        key_set: true,
         sources: {
           base_url: body.base_url === undefined ? settings.sources.base_url : body.base_url ? "saved" : "env",
           model: body.model === undefined ? settings.sources.model : body.model ? "saved" : "none",
-          api_key: body.api_key === undefined ? settings.sources.api_key : body.api_key ? "saved" : "none",
+          api_key: body.api_key === undefined ? settings.sources.api_key : body.api_key ? "saved" : "env",
         },
       };
     }
@@ -36,8 +36,10 @@ test("AI settings save without exposing or resending the key and refresh models"
   await expect(page.getByText("AI isn't set up yet. Open Settings → AI to add your provider.")).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Settings" });
-  await dialog.getByText("AI", { exact: true }).click();
-  await expect(dialog.getByText("From quillai.env", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "AI", level: 3 })).toBeVisible();
+  await expect(dialog.getByLabel("Base URL", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Set in quillai.env. Edit that file to change it.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toHaveCount(0);
   await dialog.getByLabel("Base URL", { exact: true }).fill("bad");
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Invalid URL");
@@ -56,10 +58,12 @@ test("AI settings save without exposing or resending the key and refresh models"
   await expect.poll(() => writes.length).toBe(3);
   expect(writes[2]).toEqual({ model: "next-model" });
   await dialog.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(dialog.getByText("The saved key will be removed on save. The quillai.env key, if present, will be used instead.")).toBeVisible();
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
   await expect.poll(() => writes.length).toBe(4);
   expect(writes[3]).toEqual({ api_key: "" });
-  await expect(dialog.getByText("No key set · Not set")).toBeVisible();
+  await expect(dialog.getByText("Key saved · From quillai.env")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const advanced = page.locator(".editor-advanced-section");

@@ -4,7 +4,7 @@
 
 `ai-not-configured.spec.ts` checks friendly 503 messages in the model picker, Continue status and Edit alert without exposing server details.
 
-`ai-settings.spec.ts` covers AI settings validation, key redaction, partial updates, and model picker refresh. Written; not run for GUZ-1256.
+`ai-settings.spec.ts` covers AI settings visibility, key source and removal, validation, key redaction, partial updates, and model picker refresh. Written; not run for GUZ-1256 and GUZ-1257.
 
 `empty-book.spec.ts` checks the empty notice and first chapter creation at 1100px and 1440px, isolating the seeded series from shared data. Written; not run for GUZ-893.
 

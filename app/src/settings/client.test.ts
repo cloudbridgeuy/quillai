@@ -1,5 +1,18 @@
 import { expect, test } from "bun:test";
-import { aiSettingsUpdate, createSettingsClient, SettingsApiError } from "./client";
+import { aiKeyDecision, aiSettingsUpdate, createSettingsClient, SettingsApiError } from "./client";
+
+test("AI key decisions reflect the winning source and explicit action", () => {
+  expect(aiKeyDecision("env", { action: "keep" })).toEqual({ showRemove: false, note: "Set in quillai.env. Edit that file to change it.", keyToSend: undefined });
+  expect(aiKeyDecision("none", { action: "keep" })).toEqual({ showRemove: false, note: "No API key is set.", keyToSend: undefined });
+  expect(aiKeyDecision("saved", { action: "keep" })).toEqual({ showRemove: true, note: "", keyToSend: undefined });
+  expect(aiKeyDecision("saved", { action: "remove" })).toEqual({ showRemove: true, note: "The saved key will be removed on save. The quillai.env key, if present, will be used instead.", keyToSend: "" });
+  for (const source of ["saved", "env", "none"] as const) {
+    expect(aiKeyDecision(source, { action: "replace", value: " secret " }).keyToSend).toBe("secret");
+    expect(aiKeyDecision(source, { action: "replace", value: "  " }).keyToSend).toBeUndefined();
+  }
+  expect(aiKeyDecision("env", { action: "remove" }).keyToSend).toBeUndefined();
+  expect(aiKeyDecision("none", { action: "remove" }).keyToSend).toBeUndefined();
+});
 
 test("settings client parses server guidance, sends JSON, and preserves structured failures", async () => {
   const calls: { url: string; init?: RequestInit }[] = [];

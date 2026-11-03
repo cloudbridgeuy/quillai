@@ -9,14 +9,21 @@ export type AiSettings = { base_url: string | null; model: string | null; key_se
 export type AiSettingsUpdate = { base_url?: string; api_key?: string; model?: string };
 export type AiSettingsForm = { base_url: string; model: string; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
 
+export function aiKeyDecision(source: Source, form: AiSettingsForm["key"]): { showRemove: boolean; note: string; keyToSend: string | undefined } {
+  const showRemove = source === "saved";
+  const note = source === "env" ? "Set in quillai.env. Edit that file to change it." : source === "none" ? "No API key is set." : form.action === "remove" ? "The saved key will be removed on save. The quillai.env key, if present, will be used instead." : "";
+  const keyToSend = form.action === "replace" ? form.value.trim() || undefined : form.action === "remove" && showRemove ? "" : undefined;
+  return { showRemove, note, keyToSend };
+}
+
 export function aiSettingsUpdate(settings: AiSettings, form: AiSettingsForm): AiSettingsUpdate {
   const base_url = form.base_url.trim();
   const model = form.model.trim();
   const update: AiSettingsUpdate = {};
   if (base_url !== (settings.base_url ?? "").trim()) update.base_url = base_url;
   if (model !== (settings.model ?? "").trim()) update.model = model;
-  if (form.key.action === "remove") update.api_key = "";
-  if (form.key.action === "replace" && form.key.value.trim()) update.api_key = form.key.value.trim();
+  const { keyToSend } = aiKeyDecision(settings.sources.api_key, form.key);
+  if (keyToSend !== undefined) update.api_key = keyToSend;
   return update;
 }
 
