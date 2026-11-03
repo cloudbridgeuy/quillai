@@ -193,7 +193,7 @@ function getAiErrorMessage(responseText: string, status: number): Error {
     if (typeof parsed.error === "string" && parsed.error.trim() !== "") {
       const detail = parsed.error.trim();
       const message = apiErrorMessage(typeof parsed.code === "string" ? parsed.code : "", detail);
-      return Object.assign(new Error(message), message === detail ? {} : { detail });
+      return Object.assign(new Error(message), message === detail || parsed.code === "AI_NOT_CONFIGURED" ? {} : { detail });
     }
   } catch {
     return new Error(trimmed);
@@ -354,10 +354,18 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const inspectorRunId = useRef(0);
   const [inspectorRuns, setInspectorRuns] = useState<Record<AiAction, InspectorRun | null>>({ generate: null, edit: null });
   const [modelsPending, setModelsPending] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${getApiBaseUrl()}/ai/models`, { signal: controller.signal })
-      .then(async (response) => response.ok ? parseModelCatalog(await response.json()) : null)
+      .then(async (response) => {
+        if (response.ok) return parseModelCatalog(await response.json());
+        const body = await response.json().catch(() => null) as { code?: unknown; error?: unknown } | null;
+        if (body?.code === "AI_NOT_CONFIGURED" && !controller.signal.aborted) {
+          setModelsError(apiErrorMessage(body.code, typeof body.error === "string" ? body.error : ""));
+        }
+        return null;
+      })
       .then((catalog) => { if (!controller.signal.aborted) setModelCatalog(catalog); })
       .catch(() => { if (!controller.signal.aborted) setModelCatalog(null); })
       .finally(() => { if (!controller.signal.aborted) setModelsPending(false); });
@@ -1671,7 +1679,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                 </TextField>
               </Field>;
             })}
-            {!modelCatalog ? <p className="editor-note">{modelsPending ? "Loading models…" : "Models unavailable. Using server defaults."}</p> : null}
+            {!modelCatalog ? <p className="editor-note">{modelsPending ? "Loading models…" : modelsError ?? "Models unavailable. Using server defaults."}</p> : null}
             <Field label="Max Output Tokens" className="mt-3">
               <TextField square type="number" min="1" max="4096" step="1"
                 value={threadState.settings.maxOutputTokens} disabled={isBusy}

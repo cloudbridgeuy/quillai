@@ -17,7 +17,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-859 | Dev build compiles without SQLX_OFFLINE | Backlog | c | nothing to test |
 | GUZ-860 | Remove the cargo `xtask` alias shadowing warning | Backlog | c | nothing to test |
 | GUZ-861 | Persistent dev database by default | Done | a | `e2e/persistent-dev-database.spec.ts:168` chapter text survives an API restart on the default file database |
-| GUZ-862 | Writer-facing AI error and in-app AI setup | Backlog | a | needed |
+| GUZ-862 | Writer-facing AI error and in-app AI setup | Backlog | a | `e2e/ai-not-configured.spec.ts` checks the model picker, Continue status and Edit alert for friendly setup errors |
 | GUZ-863 | Start the app without a long environment-variable command | Backlog | c | nothing to test |
 | GUZ-865 | Edit writes extra text into the manuscript | Done | a | `e2e/edit-replacement.spec.ts:68` Edit keeps only the replacement and drops commentary around it; `e2e/edit-replacement.spec.ts:88` Edit with a missing replacement tag restores the selection, and Edit with a unclosed replacement tag restores the selection |
 | GUZ-866 | Continue fails silently when the model spends its budget on reasoning | Backlog | a | needed |

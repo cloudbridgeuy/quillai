@@ -18,8 +18,7 @@ use crate::error::Error;
 pub async fn models(
     catalog: Option<axum::Extension<std::sync::Arc<ModelCatalog>>>,
 ) -> Result<Json<serde_json::Value>, Error> {
-    let axum::Extension(catalog) =
-        catalog.ok_or_else(|| Error::AiProviderConfig("model catalog is not configured".into()))?;
+    let axum::Extension(catalog) = catalog.ok_or(Error::AiNotConfigured)?;
     let models: Vec<_> = catalog
         .models()
         .iter()
@@ -63,12 +62,17 @@ pub async fn generate(
         Some(axum::Extension(catalog)) => {
             let model = selected_model.unwrap_or_else(|| catalog.resolve(input.action));
             (
-                OpenAiCompatibleConfig::from_env_with_model(model.id.clone())?,
+                OpenAiCompatibleConfig::from_env_with_model(model.id.clone())
+                    .map_err(missing_config)?,
                 model.include_usage,
                 model.reasoning_effort,
             )
         }
-        None => (OpenAiCompatibleConfig::from_env()?, true, None),
+        None => (
+            OpenAiCompatibleConfig::from_env().map_err(missing_config)?,
+            true,
+            None,
+        ),
     };
     let provider = OpenAiCompatibleProvider::new(config)?
         .with_include_usage(include_usage)
@@ -104,4 +108,17 @@ pub async fn generate(
         .header(header::CONTENT_TYPE, "application/x-ndjson")
         .body(Body::from_stream(body_stream))
         .map_err(|err| Error::Internal(format!("failed to build AI response: {err}")))
+}
+
+fn missing_config(error: Error) -> Error {
+    match error {
+        Error::AiProviderConfig(ref detail)
+            if (detail == "missing required environment variable QUILLAI_AI_MODEL"
+                && std::env::var_os("QUILLAI_AI_MODEL").is_none())
+                || detail == "missing required environment variable QUILLAI_AI_API_KEY" =>
+        {
+            Error::AiNotConfigured
+        }
+        error => error,
+    }
 }

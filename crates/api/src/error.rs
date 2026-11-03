@@ -18,6 +18,8 @@ pub enum Error {
     Validation(String),
     #[error("invalid json: {0}")]
     InvalidJson(String),
+    #[error("AI is not configured")]
+    AiNotConfigured,
     #[error("AI provider configuration error: {0}")]
     AiProviderConfig(String),
     #[error("internal server error: {0}")]
@@ -33,6 +35,7 @@ impl Error {
             Error::Conflict => StatusCode::CONFLICT,
             Error::Validation(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Error::InvalidJson(_) => StatusCode::BAD_REQUEST,
+            Error::AiNotConfigured => StatusCode::SERVICE_UNAVAILABLE,
             Error::AiProviderConfig(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -46,6 +49,7 @@ impl Error {
             Error::Conflict => "CONFLICT",
             Error::Validation(_) => "VALIDATION_ERROR",
             Error::InvalidJson(_) => "INVALID_JSON",
+            Error::AiNotConfigured => "AI_NOT_CONFIGURED",
             Error::AiProviderConfig(_) => "AI_PROVIDER_CONFIG_ERROR",
             Error::Internal(_) => "INTERNAL_SERVER_ERROR",
         }

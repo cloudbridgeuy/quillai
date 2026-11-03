@@ -231,12 +231,12 @@ async fn models_without_catalog_returns_configuration_error() {
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(
         json_body(response).await,
         json!({
-            "error": "AI provider configuration error: model catalog is not configured",
-            "code": "AI_PROVIDER_CONFIG_ERROR"
+            "error": "AI is not configured",
+            "code": "AI_NOT_CONFIGURED"
         })
     );
 }
