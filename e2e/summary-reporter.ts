@@ -24,7 +24,19 @@ export default class SummaryReporter implements Reporter {
     const project = test.parent.project()?.name ?? "";
     const target = process.env.QUILLAI_E2E_RESULTS_JSONL;
     if (target) {
-      appendFileSync(target, `${JSON.stringify({ file, line: test.location.line, title: test.title, project, status: result.status, retry: result.retry })}\n`);
+      const failures = test.results.filter((attempt) => ["failed", "timedOut", "interrupted"].includes(attempt.status));
+      const first = failures[0]?.errors[0] ?? failures[0]?.error;
+      const assertionLine = first?.location?.file === test.location.file
+        ? first.location.line
+        : (first?.stack ?? first?.message ?? "").split(`${test.location.file}:`)[1]?.match(/^(\d+):\d+/)?.[1];
+      const details = failures.length ? {
+        error: [...stripVTControlCharacters(first?.message ?? first?.value ?? first?.stack ?? "").replace(/\s+/g, " ").trim()].slice(0, 500).join("") || undefined,
+        location: assertionLine ? `${file}:${assertionLine}` : undefined,
+        artifacts: [...new Set(failures.flatMap((attempt) => attempt.attachments.flatMap((attachment) =>
+          attachment.path && (attachment.path.endsWith("trace.zip") || attachment.path.endsWith("error-context.md")) ? [attachment.path] : [],
+        )))],
+      } : {};
+      appendFileSync(target, `${JSON.stringify({ file, line: test.location.line, title: test.title, project, status: result.status, retry: result.retry, ...details })}\n`);
     }
     console.log(`${file}:${test.location.line} [${project}] ${result.status} ${duration(result.duration)}`);
   }

@@ -12,6 +12,9 @@ struct TestResult {
     title: String,
     project: String,
     outcome: Outcome,
+    error: Option<String>,
+    location: Option<String>,
+    artifacts: Vec<String>,
 }
 #[derive(Debug, Clone)]
 struct Known {
@@ -35,6 +38,85 @@ struct Meta {
     failed: usize,
     flaky: usize,
     skipped: usize,
+}
+fn short_error(message: &str) -> String {
+    message
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(500)
+        .collect()
+}
+fn assertion_location(value: &serde_json::Value, file: &str) -> Option<String> {
+    let first = &value["errors"][0];
+    for location in [
+        &first["location"],
+        &value["error"]["location"],
+        &value["errorLocation"],
+    ] {
+        if let (Some(path), Some(line)) = (location["file"].as_str(), location["line"].as_u64()) {
+            if line > 0
+                && (path == file || path.strip_suffix(file).is_some_and(|p| p.ends_with('/')))
+            {
+                return Some(format!("{file}:{line}"));
+            }
+        }
+    }
+    let marker = format!("{file}:");
+    [
+        &value["error"]["stack"],
+        &first["message"],
+        &value["error"]["message"],
+    ]
+    .into_iter()
+    .filter_map(|v| v.as_str())
+    .flat_map(str::lines)
+    .find_map(|line| {
+        let (prefix, suffix) = line.rsplit_once(&marker)?;
+        if !prefix.is_empty() && !prefix.ends_with(['/', '(', ' ']) {
+            return None;
+        }
+        let number = suffix.split(':').next()?.parse::<u64>().ok()?;
+        (number > 0).then(|| format!("{file}:{number}"))
+    })
+}
+fn record_failure(result: &mut TestResult, value: &serde_json::Value) {
+    if result.error.is_none() {
+        result.error = [
+            &value["error"],
+            &value["errors"][0]["message"],
+            &value["error"]["message"],
+            &value["error"]["value"],
+            &value["error"]["stack"],
+        ]
+        .into_iter()
+        .filter_map(|v| v.as_str())
+        .map(short_error)
+        .find(|s| !s.is_empty());
+    }
+    if result.location.is_none() {
+        result.location = value["location"]
+            .as_str()
+            .map(short_error)
+            .or_else(|| assertion_location(value, &result.file));
+    }
+    if let Some(paths) = value
+        .get("artifacts")
+        .or_else(|| value.get("attachments"))
+        .and_then(|v| v.as_array())
+    {
+        for path in paths
+            .iter()
+            .filter_map(|v| v.as_str().or_else(|| v["path"].as_str()))
+        {
+            if (path.ends_with("trace.zip") || path.ends_with("error-context.md"))
+                && !result.artifacts.iter().any(|p| p == path)
+            {
+                result.artifacts.push(path.into());
+            }
+        }
+    }
 }
 fn parse_results(input: &str) -> Result<Vec<TestResult>, String> {
     let json: serde_json::Value = serde_json::from_str(input).map_err(|e| e.to_string())?;
@@ -72,7 +154,16 @@ fn parse_results(input: &str) -> Result<Vec<TestResult>, String> {
                             .and_then(|v| v.as_array())
                             .ok_or("missing results")?;
                         let mut failed = false;
-                        let mut outcome = Outcome::Skipped;
+                        let mut result = TestResult {
+                            file: file.into(),
+                            line,
+                            title: title.into(),
+                            project: project.into(),
+                            outcome: Outcome::Skipped,
+                            error: None,
+                            location: None,
+                            artifacts: Vec::new(),
+                        };
                         for attempt in attempts {
                             let status = attempt
                                 .get("status")
@@ -82,24 +173,19 @@ fn parse_results(input: &str) -> Result<Vec<TestResult>, String> {
                                 .get("retry")
                                 .and_then(|v| v.as_u64())
                                 .ok_or("missing retry")?;
-                            outcome = match status {
+                            result.outcome = match status {
                                 "passed" if failed && retry > 0 => Outcome::Flaky,
                                 "passed" => Outcome::Passed,
                                 "skipped" => Outcome::Skipped,
                                 "failed" | "timedOut" | "interrupted" => {
                                     failed = true;
+                                    record_failure(&mut result, attempt);
                                     Outcome::Failed
                                 }
                                 _ => return Err(format!("unknown status {status}")),
                             };
                         }
-                        results.push(TestResult {
-                            file: file.into(),
-                            line,
-                            title: title.into(),
-                            project: project.into(),
-                            outcome,
-                        });
+                        results.push(result);
                     }
                 }
             }
@@ -226,7 +312,13 @@ fn render(c: &Classification, meta: &Meta, limit: usize) -> String {
             "Known failures",
             c.known_failures
                 .iter()
-                .map(|(r, ticket)| format!("{} ({ticket})", format_result(r)))
+                .map(|(r, ticket)| {
+                    let row = format_result(r);
+                    match row.split_once('\n') {
+                        Some((head, details)) => format!("{head} ({ticket})\n{details}"),
+                        None => format!("{row} ({ticket})"),
+                    }
+                })
                 .collect(),
         ),
         ("Flaky", c.flaky.iter().map(format_result).collect()),
@@ -252,19 +344,34 @@ fn render(c: &Classification, meta: &Meta, limit: usize) -> String {
     lines.join("\n") + "\n"
 }
 fn format_result(r: &TestResult) -> String {
-    format!(
+    let mut row = format!(
         "{}:{} [{}] {}",
         r.file,
         r.line,
         r.project,
         r.title.replace(['\n', '\r'], " ")
-    )
+    );
+    if matches!(r.outcome, Outcome::Failed | Outcome::Flaky) {
+        if let Some(location) = &r.location {
+            row.push_str(&format!("\n  Assertion: {location}"));
+        }
+        if let Some(error) = &r.error {
+            row.push_str(&format!("\n  Error: {}", short_error(error)));
+        }
+        for path in &r.artifacts {
+            row.push_str(&format!(
+                "\n  Artifact: {}",
+                path.replace(['\n', '\r'], " ")
+            ));
+        }
+    }
+    row
 }
 #[cfg(test)]
 fn render_summary(c: &Classification, meta: &Meta) -> String {
     render(c, meta, 7)
         .lines()
-        .filter(|line| !line.is_empty())
+        .filter(|line| !line.is_empty() && !line.starts_with("  "))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -300,12 +407,15 @@ fn parse_stream(input: &str) -> Result<Vec<TestResult>, String> {
             "failed" | "timedOut" | "interrupted" => Outcome::Failed,
             status => return Err(format!("unknown status {status}")),
         };
-        let result = TestResult {
+        let mut result = TestResult {
             file: file.into(),
             line,
             title: title.into(),
             project: project.into(),
             outcome,
+            error: None,
+            location: None,
+            artifacts: Vec::new(),
         };
         if let Some((old, failed)) = rows.iter_mut().find(|(old, _)| {
             old.file == result.file
@@ -314,11 +424,13 @@ fn parse_stream(input: &str) -> Result<Vec<TestResult>, String> {
                 && old.project == result.project
         }) {
             *failed |= old.outcome == Outcome::Failed;
-            *old = result;
+            record_failure(old, &value);
+            old.outcome = result.outcome;
             if old.outcome == Outcome::Passed && *failed {
                 old.outcome = Outcome::Flaky;
             }
         } else {
+            record_failure(&mut result, &value);
             rows.push((result, false));
         }
     }
@@ -521,6 +633,7 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
             verbose: false,
             playwright_args: vec![
                 "--retries=1".into(),
+                format!("--output={}", directory.join("artifacts").display()),
                 format!(
                     "--reporter={},json",
                     snapshot.join("e2e/summary-reporter.ts").display()
@@ -596,208 +709,5 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn stream_ignores_torn_tail_and_last_status_wins() {
-        let input = concat!(
-            "{\"file\":\"a.spec.ts\",\"line\":5,\"title\":\"test\",\"project\":\"chromium\",\"status\":\"failed\",\"retry\":1}\n",
-            "{\"file\":\"a.spec.ts\",\"line\":5,\"title\":\"test\",\"project\":\"chromium\",\"status\":\"passed\",\"retry\":0}\n",
-            "{\"file\":\"a.spec.ts\",\"line\":5,\"title\":\"test\",\"project\":\"firefox\",\"status\":\"passed\",\"retry\":1}\n",
-            "{\"file\":\"a.spec.ts\",\"line\":5,\"title\":\"test\",\"project\":\"firefox\",\"status\":\"failed\",\"retry\":0}\n",
-            "{\"file\":"
-        );
-        let results = parse_stream(input).unwrap();
-        assert_eq!(results.len(), 2);
-        assert_eq!(results[0].outcome, Outcome::Flaky);
-        assert_eq!(results[1].outcome, Outcome::Failed);
-        let complete = input
-            .strip_suffix("{\"file\":")
-            .expect("torn tail")
-            .trim_end();
-        assert_eq!(parse_stream(complete).expect("valid final record"), results);
-        assert!(parse_stream("{\n").is_err());
-    }
-    #[test]
-    fn partial_timeout_report_keeps_counts_failures_and_sha() {
-        let current = parse_stream(concat!(
-            "{\"file\":\"a.spec.ts\",\"line\":5,\"title\":\"passes\",\"project\":\"chromium\",\"status\":\"passed\",\"retry\":0}\n",
-            "{\"file\":\"a.spec.ts\",\"line\":9,\"title\":\"fails\",\"project\":\"chromium\",\"status\":\"failed\",\"retry\":0}\n",
-        )).expect("valid stream");
-        let report = report(&current, &[], None, "2026-11-02", 10, "abc123", Some(10));
-        assert!(report.contains("abc123"));
-        assert!(report.contains("incomplete (timed out after 10s)"));
-        assert!(report.contains("Tests: 2 | Passed: 1 | Failed: 1"));
-        assert!(report.contains(&format_result(&current[1])));
-    }
-    #[test]
-    fn worktree_commands_are_detached_and_remove_stale_snapshot() {
-        let path = std::path::Path::new("/repo/target/nightly/2026-11-02/src");
-        assert_eq!(
-            snapshot_args(path, "abc"),
-            vec![
-                "worktree",
-                "add",
-                "--detach",
-                "/repo/target/nightly/2026-11-02/src",
-                "abc"
-            ]
-        );
-        assert_eq!(
-            cleanup_args(path),
-            vec![
-                "worktree",
-                "remove",
-                "--force",
-                "/repo/target/nightly/2026-11-02/src"
-            ]
-        );
-    }
-    #[test]
-    fn timeout_flag_env_and_default() {
-        assert_eq!(timeout_seconds(None, None).unwrap(), 7200);
-        assert_eq!(timeout_seconds(None, Some("12")).unwrap(), 12);
-        assert_eq!(timeout_seconds(Some(3), Some("12")).unwrap(), 3);
-        assert!(timeout_seconds(None, Some("0")).is_err());
-    }
-    fn fixture() -> Vec<TestResult> {
-        parse_results(include_str!("nightly_fixtures/results.json")).expect("valid fixture")
-    }
-    #[test]
-    fn parses_nested_results_and_retry_outcomes() {
-        let results = fixture();
-        assert_eq!(
-            results.iter().map(|r| &r.outcome).collect::<Vec<_>>(),
-            vec![
-                &Outcome::Passed,
-                &Outcome::Flaky,
-                &Outcome::Failed,
-                &Outcome::Skipped
-            ]
-        );
-        assert_eq!(
-            (
-                &results[0].file[..],
-                results[0].line,
-                &results[0].title[..],
-                &results[0].project[..]
-            ),
-            ("a.spec.ts", 5, "passes", "chromium")
-        );
-        assert!(parse_results("{}").is_err());
-        for status in ["timedOut", "interrupted"] {
-            let input = include_str!("nightly_fixtures/results.json").replace("failed", status);
-            assert_eq!(parse_results(&input).expect("valid status"), results);
-        }
-    }
-    #[test]
-    fn known_entries_require_valid_tickets() {
-        assert_eq!(
-            parse_known_failures("# entries\nfirefox * GUZ-1209\n* a.spec.ts:5 GUZ-1210\n")
-                .expect("valid known failures")
-                .len(),
-            2
-        );
-        for entry in [
-            "firefox *",
-            "safari * GUZ-1",
-            "firefox a.spec.ts GUZ-1",
-            "firefox :5 GUZ-1",
-            "firefox a.spec.ts:0 GUZ-1",
-            "firefox a.spec.ts:x GUZ-1",
-            "firefox * GUZ-",
-            "firefox * GUZ-x",
-        ] {
-            assert!(parse_known_failures(entry).is_err(), "{entry}");
-        }
-    }
-    #[test]
-    fn classifies_failures_fixed_and_stale() {
-        let current = fixture();
-        let known = parse_known_failures("webkit a.spec.ts:9 GUZ-1\nchromium a.spec.ts:5 GUZ-2")
-            .expect("valid known failures");
-        let mut previous = current.clone();
-        previous[0].outcome = Outcome::Failed;
-        let c = classify(&current, &known, Some(&previous));
-        assert_eq!(
-            (
-                c.new_failures.len(),
-                c.known_failures.len(),
-                c.flaky.len(),
-                c.fixed.len(),
-                c.stale.len()
-            ),
-            (0, 1, 1, 1, 1)
-        );
-        assert_eq!(c.known_failures[0].1, "GUZ-1");
-        let c = classify(&current, &[], None);
-        assert_eq!(
-            (c.new_failures.len(), c.known_failures.len(), c.fixed.len()),
-            (1, 0, 0)
-        );
-    }
-    #[test]
-    fn matches_wildcards_without_marking_failed_or_skipped_entries_stale() {
-        let current = fixture();
-        let mut failure = current[2].clone();
-        failure.file = "/tmp/a.spec.ts".into();
-        for entry in [
-            "* * GUZ-1",
-            "webkit * GUZ-1",
-            "* a.spec.ts:9 GUZ-1",
-            "webkit a.spec.ts:* GUZ-1",
-        ] {
-            let known = parse_known_failures(entry).expect("valid wildcard");
-            assert!(matches(&known[0], &failure), "{entry}");
-            assert_eq!(
-                classify(&[failure.clone()], &known, None)
-                    .known_failures
-                    .len(),
-                1
-            );
-        }
-        let known = parse_known_failures("firefox * GUZ-1").expect("valid browser");
-        assert!(!matches(&known[0], &failure));
-        let known = parse_known_failures("* a.spec.ts:* GUZ-1").expect("valid wildcard");
-        for result in [&current[2], &current[3]] {
-            assert!(
-                classify(&[current[0].clone(), result.clone()], &known, None)
-                    .stale
-                    .is_empty()
-            );
-        }
-    }
-    #[test]
-    fn renders_report_and_bounded_summary() {
-        let rows = vec![fixture()[2].clone(); 100];
-        let c = Classification {
-            new_failures: rows.clone(),
-            known_failures: vec![(fixture()[2].clone(), "GUZ-1".into()); 100],
-            flaky: rows.clone(),
-            fixed: rows,
-            stale: vec![parse_known_failures("* * GUZ-1").expect("valid wildcard")[0].clone(); 100],
-        };
-        let meta = Meta {
-            date: "2026-11-02".into(),
-            duration: 10,
-            count: 100,
-            passed: 0,
-            failed: 100,
-            flaky: 0,
-            skipped: 0,
-        };
-        assert!(render_report(&c, &meta).contains("2026-11-02"));
-        let summary = render_summary(&c, &meta);
-        assert!(summary.lines().count() <= 50);
-        assert_eq!(summary.matches("... and 93 more").count(), 5);
-        for title in [
-            "New failures",
-            "Known failures",
-            "Flaky",
-            "Fixed since previous",
-            "Stale known failures",
-        ] {
-            assert!(summary.contains(&format!("## {title} (100)")), "{title}");
-        }
-    }
-}
+#[path = "nightly_tests.rs"]
+mod tests;
