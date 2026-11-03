@@ -24,6 +24,7 @@
 **/target/
 
 .env
+/quillai.env
 *.db
 .mcptools/atlas/index.db
 .claude

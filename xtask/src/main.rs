@@ -15,6 +15,7 @@ mod ai_smoke;
 mod check_claude_md;
 mod check_ui;
 mod dev_database;
+mod dev_env;
 mod e2e;
 mod hooks;
 mod nightly;
@@ -368,6 +369,35 @@ fn check_file_lengths(root: &std::path::Path, path: &std::path::Path) -> std::io
 }
 
 fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
+    let root = workspace_root()?;
+    let env_path = root.join("quillai.env");
+    let file = match std::fs::read_to_string(&env_path) {
+        Ok(text) => Some(
+            dev_env::parse(&text).map_err(|error| format!("{}: {error}", env_path.display()))?,
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(format!("{}: {error}", env_path.display()).into()),
+    };
+    if Command::new("git")
+        .args(["ls-files", "--error-unmatch", "--", "quillai.env"])
+        .current_dir(root)
+        .output()?
+        .status
+        .success()
+    {
+        log_supervisor_line(
+            "warning: quillai.env is tracked; remove it from Git to protect AI credentials".into(),
+        );
+    }
+    let ai_env = dev_env::resolve(
+        file.as_deref().unwrap_or_default(),
+        |key| std::env::var_os(key),
+        dev_env::CliSettings {
+            model: args.ai_model.as_deref(),
+            models: args.ai_models.as_deref(),
+            base_url: args.ai_base_url.as_deref(),
+        },
+    );
     ensure_app_dependencies()?;
 
     let shutdown = Arc::new(AtomicBool::new(false));
@@ -375,21 +405,27 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
 
     let (tx, rx) = mpsc::channel();
     let mut children = ManagedChildren::new(Vec::new());
-    let database_args = dev_database::api_database_args(workspace_root()?, args.db_url.as_deref());
+    let database_args = dev_database::api_database_args(root, args.db_url.as_deref());
     children.children.push(spawn_api(
         args.api_port,
-        args.ai_model.as_deref(),
-        args.ai_models.as_deref(),
-        args.ai_base_url.as_deref(),
+        &ai_env,
         &database_args,
         tx.clone(),
     )?);
     children.children.push(spawn_app(args.app_port, tx)?);
 
-    let ai_model = args.ai_model.as_deref().unwrap_or("env:QUILLAI_AI_MODEL");
+    let ai_model = ai_env
+        .iter()
+        .find(|(key, _)| *key == "QUILLAI_AI_MODEL")
+        .map(|(_, model)| model.to_string_lossy())
+        .unwrap_or_else(|| "(unset)".into());
     log_supervisor_line(format!(
-        "dev started: api=http://127.0.0.1:{} app=http://127.0.0.1:{} ai_model={}",
-        args.api_port, args.app_port, ai_model
+        "dev started: api=http://127.0.0.1:{} app=http://127.0.0.1:{} ai_env={}{} ai_model={}",
+        args.api_port,
+        args.app_port,
+        env_path.display(),
+        if file.is_some() { "" } else { " (absent)" },
+        ai_model
     ));
 
     let exit_status = supervise(children.as_mut_slice(), rx, shutdown);
@@ -421,9 +457,7 @@ fn ensure_app_dependencies() -> Result<(), Box<dyn Error>> {
 
 fn spawn_api(
     port: u16,
-    ai_model: Option<&str>,
-    ai_models: Option<&std::path::Path>,
-    ai_base_url: Option<&str>,
+    ai_env: &[(&str, std::ffi::OsString)],
     database_args: &[String],
     tx: Sender<SupervisorEvent>,
 ) -> Result<ManagedChild, Box<dyn Error>> {
@@ -440,17 +474,7 @@ fn spawn_api(
     ]);
     command.args(database_args);
 
-    if let Some(model) = ai_model {
-        command.env("QUILLAI_AI_MODEL", model);
-    }
-
-    if let Some(path) = ai_models {
-        command.arg("--ai-models").arg(path);
-    }
-
-    if let Some(base_url) = ai_base_url {
-        command.env("QUILLAI_AI_BASE_URL", base_url);
-    }
+    command.envs(ai_env.iter().cloned());
 
     spawn_managed(Service::Api, command, tx)
 }

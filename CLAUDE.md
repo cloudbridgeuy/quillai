@@ -24,6 +24,7 @@ prototypes/    — Static HTML design prototypes, not built or tested (`prototyp
 | What | Command | File |
 |------|---------|------|
 | Full dev | `cargo xtask dev` | `xtask/src/main.rs` |
+| Dev AI settings | Copy `quillai.env.example` to ignored `quillai.env`; API only, CLI flags > shell env > file | `xtask/src/dev_env.rs` |
 | Lint, tests, and project tsc (short output) | `cargo xtask lint` | `xtask/src/main.rs` |
 | [Pre-commit lint hook](docs/agent/testing.md) | `cargo xtask install-hooks` | `xtask/src/hooks.rs` |
 | [Nightly browser tests](docs/agent/testing.md) | `cargo xtask nightly` | `xtask/src/nightly.rs` |

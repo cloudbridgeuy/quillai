@@ -20,6 +20,8 @@ The current product code is concentrated in `crates/api/src/ai/`, `crates/api/sr
 
 ## Start Here
 
+For `cargo xtask dev`, copy `quillai.env.example` to ignored `quillai.env` for API-only AI settings; CLI flags override shell variables, which override the file.
+
 When you need context, read in this order:
 
 1. `primer.md`
