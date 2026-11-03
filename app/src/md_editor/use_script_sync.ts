@@ -18,11 +18,11 @@ import { toFdx } from "./fdx";
 import { toFountain } from "./fountain";
 import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
 import { createCaretTracker } from "./caret_position";
+import { scriptNotice } from "./script_notice";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
 const BREAK_NOTICE = "Edits across a scene break are not saved";
-const SCENES_CHANGED = "Scenes changed; reload";
 const EDIT_ACROSS_BREAK = "Select text inside one scene to use Edit.";
 
 type SceneState = {
@@ -453,6 +453,8 @@ export function useScriptSync(
     else setAdding(false);
   }
 
+  const displayedNotice = scriptNotice(addError, changed, notice);
+
   return {
     addScene,
     blockType,
@@ -492,7 +494,8 @@ export function useScriptSync(
     async leave(target: URL = landingUrl(window.location.href)) {
       if (await flushAll("Saving before leaving…")) window.location.assign(target);
     },
-    notice: addError ?? (changed ? SCENES_CHANGED : notice),
+    notice: displayedNotice?.text ?? null,
+    noticeTone: displayedNotice?.tone ?? "warning",
     recovery,
     needsChapter: false,
     async bootstrap() {},

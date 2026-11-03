@@ -197,7 +197,7 @@ for (const width of [1100, 1440]) {
       await open(page, group.id);
       const response = await request.post(`${api}/pieces/${group.id}/children`, { data: { title: "Elsewhere", position: 2, label: "scene" } });
       expect(response.status()).toBe(201);
-      const changed = page.getByRole("alert").filter({ hasText: "Scenes changed; reload" });
+      const changed = page.getByRole("status").filter({ hasText: "Scenes changed; reload" });
       await expect(changed).toBeVisible();
       await page.keyboard.type("x");
       await expect(changed).toBeVisible();

@@ -1484,7 +1484,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }}>Download FDX</ButtonLink>
         </div> : null}
         {chapterSync.needsChapter ? <Alert tone="info" className="editor-scene-notice">No chapters yet. <Button variant="link" onClick={() => void chapterSync.bootstrap()}>Create the first chapter</Button></Alert> : null}
-        {chapterSync.notice ? <Alert tone="warning" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
+        {chapterSync.notice ? <Alert tone={chapterSync.noticeTone} className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="warning" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
           editFailure ? <Alert tone="error" className={`editor-run-status editor-status-${statusPresentation.tone}`} title={aiRunState.status === "failed" ? aiRunState.detail ?? editFailure.title : editFailure.title}>{editFailure.label}{aiRunState.status === "failed" && aiRunState.detail ? <span className="sr-only">{aiRunState.detail}</span> : null}</Alert>

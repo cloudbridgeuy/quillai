@@ -246,6 +246,7 @@ export function useChapterSync(
       window.location.assign(target);
     },
     notice: null,
+    noticeTone: "warning" as const,
     recovery,
     needsChapter,
     async bootstrap() {
