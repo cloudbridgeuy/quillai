@@ -88,6 +88,7 @@ import { getTabTitle } from "../../tab_title";
 import { buildContextInspector } from "../context_inspector";
 import { continueSelectionNote, formatPromptParts } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
+import { AiSettings } from "../../settings/AiSettings";
 import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
 import { LorePanel } from "./LorePanel";
@@ -354,9 +355,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const inspectorRunId = useRef(0);
   const [inspectorRuns, setInspectorRuns] = useState<Record<AiAction, InspectorRun | null>>({ generate: null, edit: null });
   const [modelsPending, setModelsPending] = useState(true);
+  const [modelsRevision, setModelsRevision] = useState(0);
   const [modelsError, setModelsError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
+    setModelsPending(true);
+    setModelsError(null);
     fetch(`${getApiBaseUrl()}/ai/models`, { signal: controller.signal })
       .then(async (response) => {
         if (response.ok) return parseModelCatalog(await response.json());
@@ -370,7 +374,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       .catch(() => { if (!controller.signal.aborted) setModelCatalog(null); })
       .finally(() => { if (!controller.signal.aborted) setModelsPending(false); });
     return () => controller.abort();
-  }, []);
+  }, [modelsRevision]);
   const [, setContextRevision] = useState(0);
 
   const quillRef = useRef<Quill | null>(null);
@@ -1429,6 +1433,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           {windowSettings}
           <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
           <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
+          <AiSettings client={settingsClient} onSaved={() => setModelsRevision(value => value + 1)} />
         </Popover> : null}
       </nav>
       {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"
@@ -1648,6 +1653,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
           {!desktop ? windowSettings : null}
         </div>
+        {!desktop ? <AiSettings client={settingsClient} onSaved={() => setModelsRevision(value => value + 1)} /> : null}
 
         {threadPresentation.mode !== "completion" ? <div className={`editor-thread-card editor-thread-${threadPresentation.mode}`}>
           <div>

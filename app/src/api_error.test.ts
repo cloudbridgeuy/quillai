@@ -46,6 +46,6 @@ test("blocked storage detail survives repeated flush failures without another pu
 });
 
 test("hides server details when AI is not configured", () => {
-  expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_API_KEY", "en")).toBe("AI isn't set up yet. Add your AI provider details to quillai.env and restart QuillAI.");
-  expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_MODEL", "es")).toBe("La IA aún no está configurada. Agrega los datos de tu proveedor de IA a quillai.env y reinicia QuillAI.");
+  expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_API_KEY", "en")).toBe("AI isn't set up yet. Open Settings → AI to add your provider.");
+  expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_MODEL", "es")).toBe("La IA aún no está configurada. Abre Configuración → IA para agregar tu proveedor.");
 });

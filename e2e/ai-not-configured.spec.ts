@@ -1,7 +1,7 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-const friendly = "AI isn't set up yet. Add your AI provider details to quillai.env and restart QuillAI.";
+const friendly = "AI isn't set up yet. Open Settings → AI to add your provider.";
 const secret = "AI provider configuration error: missing required environment variable QUILLAI_AI_API_KEY";
 
 test("AI setup errors are friendly across the editor", async ({ page, request }) => {

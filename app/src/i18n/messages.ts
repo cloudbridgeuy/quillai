@@ -45,7 +45,7 @@ export const en = {
   "draft.words": "{count} words",
   "edit.summary": "Edited {when} for {price}",
   "edit.failure": "The model didn't return an edit. Try again or switch models.",
-  "error.aiNotConfigured": "AI isn't set up yet. Add your AI provider details to quillai.env and restart QuillAI.",
+  "error.aiNotConfigured": "AI isn't set up yet. Open Settings → AI to add your provider.",
   "error.storage": "Couldn't reach your manuscript's storage. Your text is still here; try again.",
   "error.server": "Something went wrong on the server. Your text is still here; try again.",
 } as const satisfies Record<string, string | PluralMessage>;
@@ -78,7 +78,7 @@ export const es = {
   "draft.words": "{count} palabras",
   "edit.summary": "Editado el {when} por {price}",
   "edit.failure": "El modelo no devolvió una edición. Inténtalo de nuevo o cambia de modelo.",
-  "error.aiNotConfigured": "La IA aún no está configurada. Agrega los datos de tu proveedor de IA a quillai.env y reinicia QuillAI.",
+  "error.aiNotConfigured": "La IA aún no está configurada. Abre Configuración → IA para agregar tu proveedor.",
   "error.storage": "No se pudo acceder al almacenamiento de tu manuscrito. Tu texto sigue aquí; inténtalo de nuevo.",
   "error.server": "Ocurrió un error en el servidor. Tu texto sigue aquí; inténtalo de nuevo.",
 } as const satisfies MessageShape<typeof en>;
