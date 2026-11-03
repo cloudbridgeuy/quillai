@@ -39,7 +39,7 @@ test("create chapter", async ({ page }) => {
   const api = apiUrl();
   await page.route(`${api}/series`, route => route.fulfill({ json: [] }));
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
-  await expectShape(page.getByRole("button", { name: "Create chapter", exact: true }), "Create chapter");
+  await expectShape(page.getByRole("button", { name: "Create the first chapter", exact: true }), "Create the first chapter");
 });
 
 test("editor and lore controls", async ({ page, request }) => {

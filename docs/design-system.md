@@ -6,7 +6,7 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 
 - Controls, headings and text styles come from `app/src/ui/` primitives. Do not write a raw `<button>`, `<input>`, `<textarea>` or `<select>` outside `app/src/ui/`.
 - Colours, shadows, type sizes, radii and spacing come from `app/src/ui/tokens.css`. Do not write a hex colour or `font-size:` in another `.css` file, and do not use Tailwind arbitrary values such as `w-[262px]`.
-- One button family: `Button` (quiet, primary, danger). No new pill, link-button or one-off button style.
+- One button family: `Button` (quiet, primary, danger, link). Only the `Button` link variant may use a link-style button. No new pill or one-off button style.
 - Sticky notes are yellow. Green is for lore fields and success notices. Pink notes are for the Edit instruction only. Notes have no border and use a paper shadow. Control hover states also use pink.
 - Lore editing opens in a `Modal`. The modal has no Cancel; Escape and backdrop click discard the draft. Delete is red (danger) and asks for confirmation: the first click arms it ("Delete lore"), the second click ("Confirm delete") deletes.
 - Popovers close from their trigger (toggle), click outside and Escape. Escape returns focus to the trigger, or to `returnFocusRef` when supplied. Outside clicks keep their native focus behavior. Canceled Escape leaves focus unchanged. `ignoreRefs` excludes named DOM areas from outside dismissal without blocking their native pointer action. Controlled anchored popovers may omit the trigger for hover or keyboard openings and leave focus unchanged on dismissal; unanchored popovers require a button trigger. They have no Close button.
@@ -64,7 +64,7 @@ Manuscript tree rows show a small Delete `IconButton` on hover or keyboard focus
 
 | Primitive | Props | Replaces |
 |-----------|-------|----------|
-| `Button` | `variant: "quiet" \| "primary" \| "danger"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text. Rail icons lift on hover and focus; buttons do not lift | pill, small, primary and danger button classes |
+| `Button` | `variant: "quiet" \| "primary" \| "danger" \| "link"`, `size: "sm" \| "md"`, native button props. Danger is `--alert` fill with paper text; link is inline underlined text without button sizing, for an inline action inside an Alert or text. Rail icons lift on hover and focus; buttons do not lift | pill, small, primary and danger button classes |
 | `ButtonLink` | Button variants and sizes, native anchor props | download links styled as buttons |
 | `IconButton` | `label`, `pressed`, `glyph`, `badge?`, `kind?: "continue"`. Native `aria-label` overrides `label`; Continue shows `label` then `badge`. 36px, radius 10; Continue is the 56px stack | rail buttons |
 | `TextField` | `as: "input" \| "select" \| "textarea"`, native props forwarded. Bordered; radius 0 in drawers, 4px elsewhere | `.editor-input` |

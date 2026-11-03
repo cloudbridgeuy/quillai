@@ -45,7 +45,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-890 | Favicon and a real tab title | Backlog | a | needed |
 | GUZ-891 | Create chapters, books and series from the app | Backlog | a | needed |
 | GUZ-892 | Standalone stories outside books and series | Backlog | a | needed |
-| GUZ-893 | Empty state as an alert with an inline create link | Backlog | a | needed |
+| GUZ-893 | Empty state as an alert with an inline create link | Backlog | a | `e2e/empty-book.spec.ts` checks the notice and chapter creation at 1100px and 1440px; written, not run |
 | GUZ-894 | Landing page | Backlog | a | needed |
 | GUZ-895 | Rename series, books and chapters; optional chapter numbers | Backlog | a | `e2e/tree-rename.spec.ts` covers rename only at 1100px and 1440px; written, not run. Chapter numbers out of scope |
 | GUZ-896 | No flash when switching chapters | Backlog | a | `e2e/chapter-switch-no-flash.spec.ts` checks fast switches and creation, plus slow-load status |
@@ -98,7 +98,6 @@ These tickets need this acceptance line: `ships with an E2E regression spec`.
 - GUZ-890 Favicon and a real tab title
 - GUZ-891 Create chapters, books and series from the app
 - GUZ-892 Standalone stories outside books and series
-- GUZ-893 Empty state as an alert with an inline create link
 - GUZ-894 Landing page
 - GUZ-899 Tint edited text for a while after Edit
 - GUZ-900 Explain raw "sqlx error" messages

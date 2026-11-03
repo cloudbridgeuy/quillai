@@ -17,6 +17,15 @@ import { TextField, textFieldClassName } from "./TextField";
 import { Toggle } from "./Toggle";
 
 describe("Button", () => {
+  test("link variant is inline text without button sizing", () => {
+    for (const size of ["sm", "md"] as const) {
+      const classes = buttonClassName({ variant: "link", size });
+      expect(classes).toContain("underline");
+      expect(classes).toContain("focus-visible:outline-2");
+      expect(classes).not.toMatch(/\b(?:border|rounded-button|min-h-\d+|p[xy]-\d+)\b/);
+    }
+  });
+
   test("variants and sizes", () => {
     expect(buttonClassName({})).toContain("bg-paper");
     expect(buttonClassName({})).toContain("min-h-11");

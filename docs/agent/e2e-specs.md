@@ -2,6 +2,8 @@
 
 ### Browser Smoke (`e2e/`)
 
+`empty-book.spec.ts` checks the empty notice and first chapter creation at 1100px and 1440px, isolating the seeded series from shared data. Written; not run for GUZ-893.
+
 `chapter-switch-no-flash.spec.ts` samples chapter switch and creation at 1100px and 1440px with a 200ms fetch delay, and checks the busy status with a 1s delay.
 
 `server-errors.spec.ts` checks friendly errors for chapter load and lore save at 1100px and 1440px using HTTP 500 SQLX responses.

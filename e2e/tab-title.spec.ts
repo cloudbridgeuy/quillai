@@ -13,7 +13,7 @@ test("tab title without a chapter", async ({ page }) => {
   const api = apiUrl();
   await page.route(`${api}/series`, route => route.fulfill({ json: [] }));
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, editor: "1" })}`);
-  await expect(page.getByRole("button", { name: "Create chapter", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create the first chapter", exact: true })).toBeVisible();
   await expect(page).toHaveTitle("QuillAI");
 });
 

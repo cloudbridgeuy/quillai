@@ -1450,8 +1450,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       <div className="editor-topbar">
         <div className="editor-heading">
           <Heading level="app">QuillAI</Heading>
-          {chapterSync.needsChapter ? <Button variant="primary"
-            onClick={() => void chapterSync.bootstrap()}>Create chapter</Button> : null}
           {chapterSync.recovery ? <Alert tone="error" variant="inline">
             Previous unsaved work is available. Export it before closing this tab.
             <a download="chapter-recovery.json"
@@ -1485,6 +1483,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               event.currentTarget.href = `data:application/xml;charset=utf-8,${encodeURIComponent(chapterSync.fdx())}`;
             }}>Download FDX</ButtonLink>
         </div> : null}
+        {chapterSync.needsChapter ? <Alert tone="info" className="editor-scene-notice">No chapters yet. <Button variant="link" onClick={() => void chapterSync.bootstrap()}>Create the first chapter</Button></Alert> : null}
         {chapterSync.notice ? <Alert tone="warning" className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="warning" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (
