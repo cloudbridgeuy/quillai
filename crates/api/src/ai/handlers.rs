@@ -8,17 +8,31 @@ use axum::Json;
 use futures_util::StreamExt;
 
 use super::catalog::ModelCatalog;
+use super::config::{self, Source};
 use super::models::{event_to_ndjson_line, AiAction, GenerateInput, GenerateRequest, StreamEvent};
 use super::overlap::Overlap;
-use super::provider::{AiProvider, OpenAiCompatibleConfig, OpenAiCompatibleProvider};
+use super::provider::{AiProvider, OpenAiCompatibleProvider};
 use super::segments::plain_text;
 use super::tagged_text::{into_delta, TaggedText};
 use crate::error::Error;
 
 pub async fn models(
+    axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,
     catalog: Option<axum::Extension<std::sync::Arc<ModelCatalog>>>,
 ) -> Result<Json<serde_json::Value>, Error> {
-    let axum::Extension(catalog) = catalog.ok_or(Error::AiNotConfigured)?;
+    let saved = crate::settings::ai::load(&pool).await?;
+    let saved_catalog = saved
+        .model
+        .as_deref()
+        .map(ModelCatalog::from_model)
+        .transpose()?;
+    let catalog = match (catalog.as_ref(), saved_catalog.as_ref()) {
+        (Some(catalog), _) if catalog.is_file() => &*catalog.0,
+        (_, Some(catalog)) => catalog,
+        (Some(catalog), None) => &*catalog.0,
+        (None, None) => return Err(Error::AiNotConfigured),
+    };
+    let preferred = saved.model.as_deref().and_then(|id| catalog.find(id));
     let models: Vec<_> = catalog
         .models()
         .iter()
@@ -34,8 +48,8 @@ pub async fn models(
     Ok(Json(serde_json::json!({
         "models": models,
         "defaults": {
-            "generate": catalog.resolve(AiAction::Generate).id,
-            "edit": catalog.resolve(AiAction::Edit).id,
+            "generate": preferred.unwrap_or_else(|| catalog.resolve(AiAction::Generate)).id,
+            "edit": preferred.unwrap_or_else(|| catalog.resolve(AiAction::Edit)).id,
         },
     })))
 }
@@ -47,33 +61,48 @@ pub async fn generate(
 ) -> Result<Response, Error> {
     let Json(mut request) = payload.map_err(Error::from_json_rejection)?;
     let requested_model = request.model.take();
+    let saved = crate::settings::ai::load(&pool).await?;
+    let resolved = config::resolve(saved, |key| std::env::var(key).ok());
+    let dynamic_catalog = if catalog.is_none()
+        || (resolved.sources.model == Source::Saved
+            && catalog.as_ref().is_some_and(|catalog| !catalog.is_file()))
+    {
+        resolved
+            .model
+            .as_deref()
+            .map(ModelCatalog::from_model)
+            .transpose()?
+    } else {
+        None
+    };
+    let catalog = dynamic_catalog
+        .as_ref()
+        .or_else(|| catalog.as_ref().map(|catalog| &*catalog.0));
     let selected_model = requested_model
         .as_ref()
         .map(|value| {
             value
                 .as_str()
-                .and_then(|id| catalog.as_ref()?.0.find(id))
+                .and_then(|id| catalog.and_then(|catalog| catalog.find(id)))
                 .ok_or_else(|| Error::Validation("model must match a configured model id".into()))
         })
         .transpose()?;
     let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
-    let (config, include_usage, reasoning_effort) = match catalog.as_ref() {
-        Some(axum::Extension(catalog)) => {
-            let model = selected_model.unwrap_or_else(|| catalog.resolve(input.action));
-            (
-                OpenAiCompatibleConfig::from_env_with_model(model.id.clone())
-                    .map_err(missing_config)?,
-                model.include_usage,
-                model.reasoning_effort,
-            )
-        }
-        None => (
-            OpenAiCompatibleConfig::from_env().map_err(missing_config)?,
-            true,
-            None,
-        ),
-    };
+    let model = selected_model
+        .or_else(|| {
+            catalog.and_then(|catalog| {
+                if resolved.sources.model == Source::Saved {
+                    resolved.model.as_deref().and_then(|id| catalog.find(id))
+                } else {
+                    None
+                }
+            })
+        })
+        .or_else(|| catalog.map(|catalog| catalog.resolve(input.action)));
+    let config = resolved.provider_config(model.map(|model| model.id.as_str()))?;
+    let include_usage = model.is_none_or(|model| model.include_usage);
+    let reasoning_effort = model.and_then(|model| model.reasoning_effort);
     let provider = OpenAiCompatibleProvider::new(config)?
         .with_include_usage(include_usage)
         .with_reasoning_effort(reasoning_effort);
@@ -108,17 +137,4 @@ pub async fn generate(
         .header(header::CONTENT_TYPE, "application/x-ndjson")
         .body(Body::from_stream(body_stream))
         .map_err(|err| Error::Internal(format!("failed to build AI response: {err}")))
-}
-
-fn missing_config(error: Error) -> Error {
-    match error {
-        Error::AiProviderConfig(ref detail)
-            if (detail == "missing required environment variable QUILLAI_AI_MODEL"
-                && std::env::var_os("QUILLAI_AI_MODEL").is_none())
-                || detail == "missing required environment variable QUILLAI_AI_API_KEY" =>
-        {
-            Error::AiNotConfigured
-        }
-        error => error,
-    }
 }

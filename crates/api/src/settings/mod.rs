@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod models;
 
 use axum::{
@@ -12,6 +13,7 @@ use models::AuthorGuidance;
 
 pub fn routes(pool: SqlitePool) -> Router {
     Router::new()
+        .route("/settings/ai", get(ai::get).put(ai::put))
         .route(
             "/settings/author-guidance",
             get(get_guidance).put(put_guidance),

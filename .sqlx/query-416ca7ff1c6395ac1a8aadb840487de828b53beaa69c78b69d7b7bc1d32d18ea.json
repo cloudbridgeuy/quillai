@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT base_url, api_key, model FROM ai_settings WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "base_url",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "api_key",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "model",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "416ca7ff1c6395ac1a8aadb840487de828b53beaa69c78b69d7b7bc1d32d18ea"
+}

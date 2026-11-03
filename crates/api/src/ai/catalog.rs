@@ -48,6 +48,7 @@ struct CatalogFile {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelCatalog {
     models: Vec<CatalogModel>,
+    file: bool,
     generate: usize,
     edit: usize,
 }
@@ -91,6 +92,7 @@ impl ModelCatalog {
         let edit = default_index("edit", &file.defaults.edit)?;
         Ok(Self {
             models: file.models,
+            file: true,
             generate,
             edit,
         })
@@ -110,9 +112,14 @@ impl ModelCatalog {
                 include_usage: true,
                 reasoning_effort: None,
             }],
+            file: false,
             generate: 0,
             edit: 0,
         })
+    }
+
+    pub fn is_file(&self) -> bool {
+        self.file
     }
 
     pub fn models(&self) -> &[CatalogModel] {

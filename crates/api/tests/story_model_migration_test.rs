@@ -118,6 +118,7 @@ async fn up_maps_series_books_chapters_lore_and_revisions() {
     assert_eq!(
         table_names(&pool).await,
         rows(&[
+            "ai_settings",
             "author_guidance",
             "containers",
             "legacy_ids",
