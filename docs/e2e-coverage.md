@@ -66,7 +66,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-911 | Clicking a lore entry cycles through its matches | Backlog | a | needed |
 | GUZ-912 | AI completion in lore text fields | Backlog | a | needed |
 | GUZ-913 | Explain "Pin in AI context" | Backlog | a | needed |
-| GUZ-914 | Word, character and line counts | Backlog | a | needed |
+| GUZ-914 | Word, character and line counts | Written, not run | a | `e2e/text-counts.spec.ts` checks document, selection and emoji counts |
 | GUZ-915 | Hint for lore keywords | Backlog | a | needed |
 | GUZ-916 | Better support for writing dialogue | Backlog | a | needed |
 | GUZ-917 | Check lore hover card in Firefox | Backlog | a | needed. Hover card: `e2e/lore.spec.ts:88` inside `e2e/lore.spec.ts:52` desktop lore highlights, cards and Continue window are visual only (runs in the firefox project). The new affordance has no spec |

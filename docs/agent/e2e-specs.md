@@ -2,6 +2,8 @@
 
 ### Browser Smoke (`e2e/`)
 
+`text-counts.spec.ts` checks document, selection and emoji counts. Written; not run for GUZ-914.
+
 `ai-not-configured.spec.ts` checks friendly 503 messages in the model picker, Continue status and Edit alert without exposing server details.
 
 `ai-settings.spec.ts` covers AI settings visibility, key source and removal, validation, key redaction, partial updates, and model picker refresh. Written; not run for GUZ-1256 and GUZ-1257.

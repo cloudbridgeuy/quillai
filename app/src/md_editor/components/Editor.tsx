@@ -91,6 +91,7 @@ import { createSettingsClient } from "../../settings/client";
 import { AiSettings } from "../../settings/AiSettings";
 import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
+import { TextCounts } from "./TextCounts";
 import { LorePanel } from "./LorePanel";
 import { useLore } from "../../manuscripts/use_lore";
 import { StickyNote } from "../../ui/StickyNote";
@@ -1542,6 +1543,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             </a>
           </Alert> : null}
         </div>
+        <div className="editor-document-status">
         {savePresentation.failed ? <Alert tone="error" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
           title={chapterSync.detail ?? savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
@@ -1550,6 +1552,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           role="status" aria-label="Chapter save status" aria-live="polite" title={chapterSync.detail ?? savePresentation.detail}>
           <span>{savePresentation.label}</span>
         </p>}
+        <TextCounts quillRef={quillRef} />
+        </div>
         {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
           onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
         {"addScene" in chapterSync ? <div className="editor-script-tools">
