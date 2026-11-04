@@ -82,6 +82,8 @@
 
 `landing-activity.spec.ts` edits a chapter, reloads the landing page, and opens it from Recent activity. Written; not run for GUZ-973.
 
+`landing-tips.spec.ts` checks that dismissing Tips persists after reload. Written; not run for GUZ-975.
+
 `landing-recent.spec.ts` edits two chapters, checks both Resume rows, and verifies Forget persists after reload.
 WebKit page errors containing `due to access control checks` are ignored for in-flight fetch teardown during reload (GUZ-1163).
 
