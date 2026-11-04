@@ -80,6 +80,8 @@
 
 `landing.spec.ts` at 1100px and 1440px opens `/` with no target: three seeded universes show as collapsed cards (narrower than half the page) and an opened universe card spans the grid row; an edited leaf (not one only opened) becomes the Resume card with its universe · container path and Open, and its universe starts open; the empty state shows when nothing is stored; a stored leaf deleted on the server is removed from Resume; a chapter-scope (series/book/chapter) Resume shows its universe · series · book path and Open reopens it; the editor's Library button saves and returns; a loose piece created from landing opens and stays listed after reload. Screenshots in `target/guz-978/<browser>/`.
 
+`landing-activity.spec.ts` edits a chapter, reloads the landing page, and opens it from Recent activity. Written; not run for GUZ-973.
+
 `landing-recent.spec.ts` edits two chapters, checks both Resume rows, and verifies Forget persists after reload.
 WebKit page errors containing `due to access control checks` are ignored for in-flight fetch teardown during reload (GUZ-1163).
 

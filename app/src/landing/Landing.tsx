@@ -9,6 +9,7 @@ import { editorUrl } from "./routes";
 import { forgetRecent, readRecent, saveRecent } from "./recent";
 import { resolveResume, type ResumeClient, type ResumeState } from "./resume";
 import { RecentlyDeleted } from "./RecentlyDeleted";
+import { ActivityList } from "./ActivityList";
 import "./landing.css";
 
 function initialResume(): ResumeState[] {
@@ -86,6 +87,7 @@ export function Landing() {
       <Heading level="section" id="landing-resume">Resume</Heading>
       <ResumeList resume={resume} onForget={forget} />
     </section>
+    <ActivityList revision={`${libraryRevision}:${trashRevision}`} onOpen={open} />
     <section className="landing-library flex flex-col gap-2" role="region" aria-labelledby="landing-library">
       <Heading level="section" id="landing-library">Library</Heading>
       <ManuscriptTree key={libraryRevision} selectedChapter={null} disabled={false} collapsedExcept={resume.find((item): item is Extract<ResumeState, { status: "ready" }> => item.status === "ready")?.universeId ?? null}
