@@ -2,3 +2,6 @@
 env = "BUN_PUBLIC_*"
 plugins = ["bun-plugin-tailwind"]
 
+[test]
+preload = ["./src/test/preload.ts"]
+

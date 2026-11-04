@@ -9,7 +9,7 @@ Workers never launch browsers or run `cargo xtask e2e` inside tickets. Back chan
 | Rust unit tests | Pure logic and isolated behaviour. Run the relevant test with `cargo test -p <crate> --lib <test_name>`. |
 | Rust integration tests | API and SQLite behaviour in `crates/api/tests/`. Run with `cargo test -p quillai_api --test <test_file> <test_name>`. |
 | Bun unit tests | Frontend logic in `app/src/*.test.ts` and subdirectories. Run by `cargo xtask lint`; target a file with `bun test src/<path>.test.ts` from `app/`. |
-| Component/DOM tests | Planned in GUZ-1207; not available yet. |
+| Component/DOM tests | Rendering, clicks and state; use E2E for layout, sizes, focus quirks and real-browser behaviour. |
 | Playwright E2E specs | Real-browser behaviour. Nightly only (`cargo xtask nightly`). |
 
 ## Red/green
