@@ -11,7 +11,7 @@ import { Field } from "../../ui/Field";
 import { Heading } from "../../ui/Heading";
 import { StickyNote } from "../../ui/StickyNote";
 import { TextField } from "../../ui/TextField";
-import { PIN_HINT } from "./lore_pin_hint";
+import { PIN_HINT, TERMS_HINT } from "./lore_pin_hint";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
@@ -78,9 +78,10 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
         <Field className="my-3" label="Name"><TextField required value={draft.name}
           onChange={event => setDraft({ ...draft, name: event.target.value })} /></Field>
         {(["keywords", "aliases"] as const).map(field => <Field className="my-3" key={field} label={`${field === "keywords" ? "Keywords" : "Aliases"} (one per line)`}>
-          <StickyNote tone="green" rows={2} defaultValue={draft[field].join("\n")} key={`${editingId}-${field}`}
+          <StickyNote tone="green" rows={2} defaultValue={draft[field].join("\n")} key={`${editingId}-${field}`} aria-describedby={`${formId}-terms-hint`}
             onChange={event => setDraft({ ...draft, [field]: parseLoreTerms(event.target.value) })} />
         </Field>)}
+        <p id={`${formId}-terms-hint`} className="text-ui text-graphite">{TERMS_HINT}</p>
         <Field className="my-3" label="Visible text (AI context)"><StickyNote tone="green" rows={3}
           value={draft.visible_text} onChange={event => setDraft({ ...draft, visible_text: event.target.value })} /></Field>
         <Field className="my-3" label="Hidden notes — author-only, never sent to AI"><StickyNote tone="green" rows={3}

@@ -21,6 +21,11 @@ test("lore modal discards drafts, restores focus, and confirms deletion", async 
   const pinHint = "Sent with every AI request unless set to Leave out, even when the text doesn't mention it, and never dropped for space.";
   await expect(create.getByText(pinHint, { exact: true })).toBeVisible();
   await expect(create.getByLabel("Pin in AI context")).toHaveAccessibleDescription(pinHint);
+  const termsHint = "Whole words or phrases, any case. When the name, an alias or a keyword appears in the text, this entry is sent to the AI.";
+  await expect(create.getByText(termsHint, { exact: true })).toBeVisible();
+  await expect(create.getByText(termsHint, { exact: true })).toHaveCount(1);
+  await expect(create.getByLabel("Keywords (one per line)")).toHaveAccessibleDescription(termsHint);
+  await expect(create.getByLabel("Aliases (one per line)")).toHaveAccessibleDescription(termsHint);
   await expect(create.getByRole("button", { name: /cancel/i })).toHaveCount(0);
   await create.getByLabel("Kind").selectOption("place");
   await create.getByLabel("Name", { exact: true }).fill("Discarded");
