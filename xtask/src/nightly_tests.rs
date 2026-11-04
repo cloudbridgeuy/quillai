@@ -56,10 +56,54 @@ fn worktree_commands_are_detached_and_remove_stale_snapshot() {
 }
 #[test]
 fn timeout_flag_env_and_default() {
-    assert_eq!(timeout_seconds(None, None).unwrap(), 7200);
+    assert_eq!(timeout_seconds(None, None).unwrap(), 10800);
     assert_eq!(timeout_seconds(None, Some("12")).unwrap(), 12);
     assert_eq!(timeout_seconds(Some(3), Some("12")).unwrap(), 3);
     assert!(timeout_seconds(None, Some("0")).is_err());
+}
+#[test]
+fn nightly_selects_only_chromium_and_webkit() {
+    let args = playwright_args(
+        std::path::Path::new("/repo/snapshot"),
+        std::path::Path::new("/repo/report"),
+    );
+    assert_eq!(
+        args.iter()
+            .filter(|arg| arg.starts_with("--project"))
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["--project=chromium", "--project=webkit"]
+    );
+    assert!(args.contains(&"--retries=1".into()));
+    assert!(args.contains(&"--output=/repo/report/artifacts".into()));
+    assert!(args.contains(&"--reporter=/repo/snapshot/e2e/summary-reporter.ts,json".into()));
+}
+#[test]
+fn report_names_skipped_firefox_and_ticket() {
+    let text = report(&[], &[], None, "2026-11-04", 0, "abc", None);
+    assert!(
+        text.lines().any(|line| {
+            let line = line.to_lowercase();
+            line.contains("firefox") && line.contains("skipped") && line.contains("guz-1209")
+        }),
+        "report must name skipped Firefox and GUZ-1209: {text}"
+    );
+}
+#[test]
+fn skipped_project_known_failure_is_neither_stale_nor_fixed() {
+    let mut result = fixture()[0].clone();
+    result.project = "firefox".into();
+    let current = [result.clone()];
+    result.outcome = Outcome::Failed;
+    let known = parse_known_failures("firefox * GUZ-1209").unwrap();
+    for current in [&[][..], &current[..]] {
+        let c = classify(current, &known, Some(std::slice::from_ref(&result)));
+        assert_eq!(
+            (c.stale.len(), c.fixed.len()),
+            (0, 0),
+            "skipped Firefox must not be stale or fixed"
+        );
+    }
 }
 fn fixture() -> Vec<TestResult> {
     parse_results(include_str!("nightly_fixtures/results.json")).expect("valid fixture")

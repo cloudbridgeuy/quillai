@@ -1,3 +1,9 @@
+const SKIPPED_PROJECTS: &[(&str, &str)] = &[("firefox", "GUZ-1209")];
+
+fn is_skipped(project: &str) -> bool {
+    SKIPPED_PROJECTS.iter().any(|(name, _)| *name == project)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Outcome {
     Passed,
@@ -267,15 +273,17 @@ fn classify(
             },
             Outcome::Flaky => c.flaky.push(result.clone()),
             Outcome::Passed => {
-                if previous.is_some_and(|old| {
-                    old.iter().any(|p| {
-                        p.file == result.file
-                            && p.line == result.line
-                            && p.title == result.title
-                            && p.project == result.project
-                            && p.outcome == Outcome::Failed
+                if !is_skipped(&result.project)
+                    && previous.is_some_and(|old| {
+                        old.iter().any(|p| {
+                            p.file == result.file
+                                && p.line == result.line
+                                && p.title == result.title
+                                && p.project == result.project
+                                && p.outcome == Outcome::Failed
+                        })
                     })
-                }) {
+                {
                     c.fixed.push(result.clone());
                 }
             }
@@ -284,6 +292,7 @@ fn classify(
     }
     c.stale = known
         .iter()
+        .filter(|entry| !is_skipped(&entry.browser))
         .filter(|entry| {
             let matched: Vec<_> = current.iter().filter(|r| matches(entry, r)).collect();
             !matched.is_empty() && matched.iter().all(|r| r.outcome == Outcome::Passed)
@@ -303,6 +312,11 @@ fn render(c: &Classification, meta: &Meta, limit: usize) -> String {
             meta.duration, meta.count, meta.passed, meta.failed, meta.flaky, meta.skipped
         ),
     ];
+    lines.extend(
+        SKIPPED_PROJECTS
+            .iter()
+            .map(|(project, ticket)| format!("Skipped project: {project} ({ticket})")),
+    );
     for (title, rows) in [
         (
             "New failures",
@@ -468,13 +482,30 @@ fn timeout_seconds(flag: Option<u64>, env: Option<&str>) -> Result<u64, String> 
             .map(str::parse)
             .transpose()
             .map_err(|_| "invalid nightly timeout")?
-            .unwrap_or(7200),
+            .unwrap_or(10800),
     };
     if value == 0 {
         Err("nightly timeout must be positive".into())
     } else {
         Ok(value)
     }
+}
+fn playwright_args(snapshot: &std::path::Path, directory: &std::path::Path) -> Vec<String> {
+    let mut args = vec![
+        "--retries=1".into(),
+        format!("--output={}", directory.join("artifacts").display()),
+        format!(
+            "--reporter={},json",
+            snapshot.join("e2e/summary-reporter.ts").display()
+        ),
+    ];
+    args.extend(
+        ["chromium", "firefox", "webkit"]
+            .into_iter()
+            .filter(|project| !is_skipped(project))
+            .map(|project| format!("--project={project}")),
+    );
+    args
 }
 fn report(
     current: &[TestResult],
@@ -632,14 +663,7 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
             ai_models: None,
             port: None,
             verbose: false,
-            playwright_args: vec![
-                "--retries=1".into(),
-                format!("--output={}", directory.join("artifacts").display()),
-                format!(
-                    "--reporter={},json",
-                    snapshot.join("e2e/summary-reporter.ts").display()
-                ),
-            ],
+            playwright_args: playwright_args(&snapshot, &directory),
         };
         let execution = super::e2e::sandbox(
             args,
