@@ -455,7 +455,7 @@ fn cleanup_args(path: &std::path::Path) -> Vec<String> {
 }
 fn report_with_snapshot(report: &str, sha: &str, timeout: Option<u64>) -> String {
     format!(
-        "Snapshot: {sha}\n{}\n{report}",
+        "Snapshot: {sha}\nAPI log: [api.log](api.log)\n{}\n{report}",
         timeout
             .map(|n| format!("incomplete (timed out after {n}s)"))
             .unwrap_or_default()
@@ -557,9 +557,10 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         File::create(&stream)?;
+        File::create(directory.join("api.log"))?;
         fs::write(
             directory.join("report.md"),
-            format!("Incomplete: run in progress\nSnapshot: {sha}\n"),
+            format!("Incomplete: run in progress\nSnapshot: {sha}\nAPI log: [api.log](api.log)\n"),
         )?;
         std::env::set_var("QUILLAI_E2E_RESULTS_JSONL", &stream);
         File::create(directory.join("provider-audit.log"))?;
@@ -646,6 +647,7 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
             &mut log,
             Some(&directory.join("summary.txt")),
             Some(&json),
+            Some(&directory.join("api.log")),
         );
         let _ = stop.send(());
         watchdog.join().map_err(|_| "nightly watchdog panicked")?;

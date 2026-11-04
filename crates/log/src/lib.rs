@@ -24,6 +24,7 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 pub use tracing::{debug, error, info, trace, warn};
 pub use tracing::{debug_span, error_span, info_span, trace_span, warn_span};
 pub use tracing::{event, span, Instrument, Level, Span};
+pub use tracing_subscriber;
 
 #[derive(thiserror::Error)]
 pub enum Error {

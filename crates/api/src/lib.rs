@@ -5,6 +5,7 @@ pub mod error;
 pub mod eval;
 pub mod manuscripts;
 pub mod prelude;
+mod request_logging;
 pub mod settings;
 pub mod users;
 
@@ -49,4 +50,5 @@ pub fn app_with_cors(pool: SqlitePool, origins: Vec<HeaderValue>) -> Router {
         .merge(settings::routes(pool.clone()))
         .merge(ai::routes(pool))
         .layer(cors(origins))
+        .layer(axum::middleware::from_fn(request_logging::log_request))
 }

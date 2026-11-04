@@ -66,14 +66,14 @@ pub(super) fn run(args: E2eArgs) -> Result<(), Box<dyn Error>> {
         .ok_or("xtask has no workspace directory")?;
     std::env::set_current_dir(root)?;
     if args.verbose {
-        return sandbox(args, root, &mut None, None, None);
+        return sandbox(args, root, &mut None, None, None, None);
     }
     let directory = root.join("target/xtask-e2e");
     fs::create_dir_all(&directory)?;
     let summary = directory.join("summary.txt");
     let _ = fs::remove_file(&summary);
     let mut log = Some(File::create(directory.join("e2e.log"))?);
-    let result = sandbox(args, root, &mut log, Some(&summary), None);
+    let result = sandbox(args, root, &mut log, Some(&summary), None, None);
     if let Ok(text) = fs::read_to_string(&summary) {
         println!("{}", text.trim_end());
     }
@@ -87,6 +87,7 @@ pub(super) fn sandbox(
     log: &mut Option<File>,
     summary: Option<&Path>,
     json: Option<&Path>,
+    api_log: Option<&Path>,
 ) -> Result<(), Box<dyn Error>> {
     let app_reservation = TcpListener::bind(("127.0.0.1", args.port.unwrap_or(0)))?;
     let app_port = app_reservation.local_addr()?.port();
@@ -161,9 +162,10 @@ pub(super) fn sandbox(
     }
     api.arg("--db-url")
         .arg(format!("sqlite://{}", database.path().display()));
-    children
-        .children
-        .push(spawn_managed(Service::Api, api, tx.clone())?);
+    children.children.push(match api_log {
+        Some(path) => spawn_logged_api(api, path)?,
+        None => spawn_managed(Service::Api, api, tx.clone())?,
+    });
     drop(app_reservation);
     let mut app = e2e_command("bun");
     app.arg("src/index.tsx")
@@ -201,6 +203,17 @@ pub(super) fn sandbox(
     }
     run_tool(playwright, &mut children, &tx, &rx, &shutdown, log)?;
     Ok(())
+}
+
+fn spawn_logged_api(mut command: Command, path: &Path) -> Result<ManagedChild, Box<dyn Error>> {
+    let log = File::create(path)?;
+    command.env("RUST_LOG", "warn");
+    configure_process_group(&mut command);
+    let child = command.stdout(log.try_clone()?).stderr(log).spawn()?;
+    Ok(ManagedChild {
+        service: Service::Api,
+        child,
+    })
 }
 
 fn e2e_command(program: &str) -> Command {
@@ -393,3 +406,7 @@ mod tests {
         assert!(E2eArgs::try_parse_from(["e2e", "--port", "65536"]).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "e2e_logging_tests.rs"]
+mod logging_tests;
