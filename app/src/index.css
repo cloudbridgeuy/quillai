@@ -666,6 +666,13 @@ body {
     text-align: center;
   }
 
+  .editor-document-status > .editor-note {
+    position: absolute;
+    left: 50%;
+    width: max-content;
+    transform: translateX(-50%);
+  }
+
   .editor-topbar .editor-save-failed {
     position: absolute;
     grid-column: auto;
