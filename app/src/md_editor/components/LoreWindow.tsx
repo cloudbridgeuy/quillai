@@ -4,16 +4,13 @@ import { Heading } from "../../ui/Heading";
 import { Popover } from "../../ui/Popover";
 import { ListButton } from "../../ui/ListButton";
 import type { buildInjectedLore } from "../context_inspector";
+import { loreLevel } from "./lore_entry_row";
 
 type Lore = ReturnType<typeof buildInjectedLore>;
 type Mark = { entry: Lore["matches"][number]; start: number; range: globalThis.Range };
 
 export function supportsLoreHighlights(css: { highlights?: unknown } | undefined, highlight: unknown): boolean {
   return css?.highlights != null && typeof highlight === "function";
-}
-
-function loreLevel(level: string) {
-  return level === "known_dont_reveal" ? "Known, don't reveal" : level === "leave_out" ? "Leave out" : "Include";
 }
 
 export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number; lore: Lore }) {

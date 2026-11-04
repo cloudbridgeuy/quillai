@@ -172,6 +172,11 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await lore.getByLabel("In AI requests").selectOption("known_dont_reveal");
   await lore.getByRole("button", { name: "Save lore", exact: true }).click();
   await expect(lore.getByRole("button", { name: "Mira · character", exact: true })).toBeVisible();
+  const savedRow = lore.getByRole("button", { name: "Mira · character", exact: true });
+  await expect(savedRow.locator("strong")).toHaveText("Mira");
+  await expect(savedRow).toContainText("Known, don't reveal");
+  await expect(savedRow).toContainText("Mira is the ship's navigator.");
+  await expect(savedRow).toHaveAccessibleName("Mira · character");
   await lore.getByRole("button", { name: "Mira · character", exact: true }).click();
   await expect(lore.getByLabel("Hidden notes — author-only, never sent to AI")).toHaveValue(secret);
   await expect(lore.getByLabel("Aliases (one per line)")).toHaveValue("Captain Mira\nThe captain");

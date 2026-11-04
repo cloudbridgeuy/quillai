@@ -19,6 +19,7 @@
 `editor-buttons.spec.ts` checks editor button and download link names, roles and non-pill radii, including lore and the Continue window flag.
 `rail-buttons.spec.ts` checks rail geometry, names, titles, selection preservation, panel toggles and pending Continue at 1100px and 1440px.
 `lore-modal.spec.ts` checks the visible and accessible pin and shared matching hints, draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence. Matching hint assertions written; not run for GUZ-915.
+`lore.spec.ts` checks the saved Series lore row name, level, preview, and accessible name. Row assertions written; not run for GUZ-909.
 `inspector-readonly.spec.ts` checks read-only Document and Selection, absent reset controls, and editable Instruction and Story context in Full prompt at 1100px and 1440px.
 
 `inspector-fields.spec.ts` checks inspector, settings, manuscript and lore headings and field semantics at 1100px and 1440px.

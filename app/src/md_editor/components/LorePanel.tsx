@@ -12,6 +12,7 @@ import { Heading } from "../../ui/Heading";
 import { StickyNote } from "../../ui/StickyNote";
 import { TextField } from "../../ui/TextField";
 import { PIN_HINT, TERMS_HINT } from "./lore_pin_hint";
+import { loreEntryLabel, loreEntryPreview, loreLevel } from "./lore_entry_row";
 
 export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
@@ -60,8 +61,11 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
     {lore.status === "failed" ? <Alert tone="error" variant="inline">{lore.error}<Button size="sm" onClick={lore.retry}>Retry lore</Button></Alert> : null}
     {lore.status === "ready" ? <>
       {lore.entries.length === 0 ? <p>No lore yet.</p> : <ul className="editor-manuscript-tree">
-        {lore.entries.map(entry => <li key={entry.id}><ListButton tone="lore" disabled={disabled || pending}
-          onClick={event => edit(event.currentTarget, entry)}>{entry.name} · {entry.kind}{entry.pinned ? " · pinned" : ""}</ListButton></li>)}
+        {lore.entries.map(entry => <li key={entry.id}><ListButton tone="lore" disabled={disabled || pending} aria-label={loreEntryLabel(entry)}
+          onClick={event => edit(event.currentTarget, entry)}>
+          <strong className="min-w-0 truncate">{entry.name}</strong><span>{loreLevel(entry.level)}</span>
+          <small>{entry.kind}{entry.pinned ? " · pinned" : ""}</small><small className="max-w-40 min-w-0 truncate">{loreEntryPreview(entry.visible_text)}</small>
+        </ListButton></li>)}
       </ul>}
       <Button disabled={disabled || pending} onClick={event => edit(event.currentTarget)}>New lore</Button>
     </> : null}
