@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.id AS \"id!\", c.universe_id, c.title, c.position, c.kind FROM containers c JOIN universes u ON u.id = c.universe_id WHERE c.deleted_at IS NULL AND u.deleted_at IS NULL ORDER BY c.position, c.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "universe_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "position",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "kind",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7bcdc41586238cdd26cd85c8775d1264ef859b70e11f894f4e62d919357f9acd"
+}

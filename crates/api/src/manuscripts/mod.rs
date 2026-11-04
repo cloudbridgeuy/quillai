@@ -7,6 +7,7 @@ pub mod pieces;
 pub mod series;
 pub mod sync_events;
 pub mod trash;
+pub mod tree;
 pub mod universes;
 
 use axum::{extract::rejection::JsonRejection, Json, Router};
@@ -23,6 +24,7 @@ pub fn routes(pool: SqlitePool) -> Router {
         .merge(containers::routes(pool.clone()))
         .merge(pieces::routes(pool.clone()))
         .merge(sync_events::routes(pool.clone()))
+        .merge(tree::routes(pool.clone()))
         .merge(trash::routes(pool))
 }
 

@@ -10,6 +10,7 @@
 - `PUT /users/{id}` — Partial update user (JSON, 404, or 422)
 - `DELETE /users/{id}` — Delete user (204 or 404)
 - `GET /trash` — Explicitly deleted universes, containers, pieces and lore, newest first with type and ID tie-breaks. Each item has `type`, native `id`, `title`, `deletedAt`, `location` (nullable universe/series/book titles), `childCounts` (disjoint chapter/piece/lore descendants, including deleted rows), `deletedParents` (deleted ancestor titles), `resourcePath`, and `restoreAncestors` (paths to restore before an action). Lore actions require restoring its deleted universe first. Book series uses the legacy series path because permanent deletion may also delete an orphan universe and its lore; TV series uses the container path.
+- `GET /tree` — Return `{series, universes}` with nested books, chapter summaries, containers, root pieces, and group children. Lists use position then ID order and omit deleted items and their descendants; piece content is omitted (200 JSON).
 - `GET /series` — List series ordered by position, then ID (JSON array)
 - `POST /series` — Create series with nonblank title and nonnegative integer position (201 + JSON or 422)
 - `GET /series/{id}` — Get series by ID (JSON or 404)
