@@ -5,6 +5,7 @@ use std::process::Command;
 
 type Counts = BTreeMap<String, usize>;
 const WAIVERS: &str = "xtask/i18n-waivers.json";
+const PROPS: &str = "aria-label title placeholder label alt description heading";
 
 fn included(path: &str) -> bool {
     path.starts_with("app/src/")
@@ -43,18 +44,89 @@ impl Scanner<'_> {
         }
     }
 
-    fn quoted(&mut self) {
-        let quote = self.byte();
+    fn quoted(&mut self) -> bool {
+        let quote = self.byte() as char;
         self.pos += 1;
-        while self.pos < self.source.len() {
-            let byte = self.byte();
-            self.pos += 1;
-            if byte == b'\\' {
-                self.pos = (self.pos + 1).min(self.source.len());
-            } else if byte == quote {
+        let mut letters = false;
+        while let Some(ch) = self.source[self.pos..].chars().next() {
+            self.pos += ch.len_utf8();
+            if ch == '\\' {
+                self.pos += self.source[self.pos..]
+                    .chars()
+                    .next()
+                    .map_or(0, char::len_utf8);
+            } else if ch == quote {
                 break;
+            } else if quote == '`' && ch == '$' && self.byte() == b'{' {
+                self.pos += 1;
+                self.code(true);
+            } else {
+                letters |= ch.is_alphabetic();
             }
         }
+        letters
+    }
+
+    fn expression(&mut self, end: u8) -> Vec<usize> {
+        let mut found = Vec::new();
+        let mut value = Vec::new();
+        let mut at_start = true;
+        while self.pos < self.source.len() {
+            self.space();
+            match self.byte() {
+                byte if byte == end => {
+                    self.pos += 1;
+                    break;
+                }
+                b'\'' | b'"' | b'`' => {
+                    let start = self.pos + 1;
+                    if self.quoted() && at_start {
+                        value.push(start);
+                    }
+                    at_start = false;
+                }
+                b'(' | b'[' => {
+                    let grouping = self.byte() == b'(' && at_start;
+                    let close = if self.byte() == b'(' { b')' } else { b']' };
+                    self.pos += 1;
+                    let nested = self.expression(close);
+                    if grouping {
+                        value = nested;
+                    }
+                    at_start = false;
+                }
+                b'?' | b':' => {
+                    if self.byte() == b':' {
+                        found.append(&mut value);
+                    }
+                    value.clear();
+                    at_start = true;
+                    self.pos += 1;
+                }
+                b'/' if self.source[self.pos..].starts_with("//") => self.through("\n"),
+                b'/' if self.source[self.pos..].starts_with("/*") => self.through("*/"),
+                _ => {
+                    value.clear();
+                    at_start = false;
+                    if self.byte() == b'{' {
+                        self.pos += 1;
+                        self.code(true);
+                    } else if self.byte() == b'<'
+                        && self
+                            .source
+                            .as_bytes()
+                            .get(self.pos + 1)
+                            .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'>')
+                    {
+                        self.jsx();
+                    } else {
+                        self.pos += 1;
+                    }
+                }
+            }
+        }
+        found.extend(value);
+        found
     }
 
     fn record(&mut self, start: usize, end: usize) {
@@ -66,7 +138,9 @@ impl Scanner<'_> {
     fn code(&mut self, nested: bool) {
         while self.pos < self.source.len() {
             match self.byte() {
-                b'\'' | b'"' | b'`' => self.quoted(),
+                b'\'' | b'"' | b'`' => {
+                    self.quoted();
+                }
                 b'/' if self.source[self.pos..].starts_with("//") => {
                     self.through("\n");
                 }
@@ -117,6 +191,7 @@ impl Scanner<'_> {
                 self.pos += 1;
             }
             let prop = &self.source[start..self.pos];
+            let checked = PROPS.split_whitespace().any(|name| name == prop);
             self.space();
             if !prop.is_empty() && self.byte() != b'=' {
                 continue;
@@ -129,25 +204,18 @@ impl Scanner<'_> {
             match self.byte() {
                 b'\'' | b'"' => {
                     self.quoted();
-                    if matches!(prop, "aria-label" | "title" | "placeholder" | "label") {
+                    if checked {
                         self.record(value + 1, self.pos.saturating_sub(1));
                     }
                 }
                 b'{' => {
                     self.pos += 1;
-                    self.space();
-                    let literal = self.pos;
-                    if matches!(self.byte(), b'\'' | b'"') {
-                        self.quoted();
-                        let end = self.pos.saturating_sub(1);
-                        self.space();
-                        if self.byte() == b'}'
-                            && matches!(prop, "aria-label" | "title" | "placeholder" | "label")
-                        {
-                            self.record(literal + 1, end);
-                        }
+                    if checked {
+                        let literals = self.expression(b'}');
+                        self.found.extend(literals);
+                    } else {
+                        self.code(true);
                     }
-                    self.code(true);
                 }
                 b'>' => break,
                 _ => {
@@ -284,6 +352,39 @@ mod tests {
             count(r#"<I title={formatMessage("en", "key")} label={t("key")} className="x"/>"#),
             0
         );
+    }
+
+    #[test]
+    fn conditional_prop_branches_flagged_once() {
+        for prop in PROPS.split_whitespace() {
+            let source = format!(r#"<I {prop}={{a ? "A" : b ? 'B' : "世界"}}/>"#);
+            assert_eq!(count(&source), 3, "{prop}");
+        }
+    }
+
+    #[test]
+    fn template_prop_static_letters_flagged_once() {
+        let source = r#"<I title={`Delete ${name} now`} label={a ? `Hello ${name}` : `世界`}/>"#;
+        assert_eq!(count(source), 3);
+        let source = r#"<I title={` ${name} — ${t("key")} 123!`} label={`…`}/>"#;
+        assert_eq!(count(source), 0);
+    }
+
+    #[test]
+    fn additional_prop_literals_flagged() {
+        for prop in ["alt", "description", "heading"] {
+            let source = format!(r#"<I {prop}="Name"/><I {prop}={{'Name'}}/>"#);
+            assert_eq!(count(&source), 2, "{prop}");
+        }
+    }
+
+    #[test]
+    fn prop_calls_comparisons_and_unchecked_props_ignored() {
+        let source = r#"<I title={t("lore.title")} label={msg.foo} alt={kind === "script" ? a : b} description={"script" === kind ? a : b} heading={a ? t("key") : format("x", "y")} className={a ? "A" : "B"} data-title={`Hello ${name}`} title={(kind < "script") ? a : b}/>"#;
+        assert_eq!(count(source), 0);
+        let source =
+            r#"<I title={kind === "script" ? "Script" : "Other"} label={f(a ? "x" : "y")}/>"#;
+        assert_eq!(count(source), 2);
     }
 
     #[test]
