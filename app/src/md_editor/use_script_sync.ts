@@ -1,3 +1,4 @@
+import { rememberEdited } from "../landing/recent";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import Delta from "quill-delta";
@@ -16,7 +17,7 @@ import { crossesBreak, offBreak, scriptKeyAction, startsList } from "./script_ke
 import { blockAttribute, cycleBlock, parseBlock, SCRIPT_BLOCK, splitLineDelta, type BlockType } from "./script_blocks";
 import { toFdx } from "./fdx";
 import { toFountain } from "./fountain";
-import { editorUrl, LAST_EDITED_KEY, landingUrl } from "../landing/routes";
+import { editorUrl, landingUrl } from "../landing/routes";
 import { createCaretTracker } from "./caret_position";
 import { scriptNotice } from "./script_notice";
 
@@ -540,7 +541,7 @@ export function useScriptSync(
         if (span && split.changes.has(scene.id)) scene.session.edit(document.slice(span.start, span.start + span.length));
       }
       try {
-        if (openedRef.current) window.localStorage.setItem(LAST_EDITED_KEY, openedRef.current);
+        if (openedRef.current) rememberEdited(openedRef.current);
       } catch {}
     },
     exportDocument: () => JSON.stringify({

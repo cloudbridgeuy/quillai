@@ -1,3 +1,4 @@
+import { rememberEdited } from "../landing/recent";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
@@ -6,7 +7,7 @@ import type { EditorScope } from "../manuscripts/contract";
 import { chapterDelta } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
 import { selectionBoundary } from "./selection_boundary";
-import { LAST_EDITED_KEY, landingUrl } from "../landing/routes";
+import { landingUrl } from "../landing/routes";
 import { createSyncPush } from "./sync_push";
 import { createCaretTracker } from "./caret_position";
 import { scheduleChapterBusy, showChapterBusy } from "./chapter_busy";
@@ -283,7 +284,7 @@ export function useChapterSync(
       if (!applyingRef.current && quillRef.current) {
         sessionRef.current?.edit(quillRef.current.getContents());
         try {
-          if (openedRef.current) window.localStorage.setItem(LAST_EDITED_KEY, openedRef.current);
+          if (openedRef.current) rememberEdited(openedRef.current);
         } catch {}
       }
     },

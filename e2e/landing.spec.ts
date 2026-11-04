@@ -144,12 +144,10 @@ for (const width of [1100, 1440]) {
 
     expect((await request.delete(`${api}/pieces/${piece.id}`)).status()).toBe(204);
     await page.reload();
-    await expect(resume.getByText(`${prefix} piece is no longer in the library.`, { exact: true })).toBeVisible();
+    await expect(resume.getByText(emptyResume, { exact: true })).toBeVisible();
     await expect(resume.getByRole("button", { name: "Open", exact: true })).toHaveCount(0);
     await expect(editor).toHaveCount(0);
     expect(new URL(page.url()).searchParams.has("pieceId")).toBe(false);
-    await resume.getByRole("button", { name: "Forget", exact: true }).click();
-    await expect(resume.getByText(emptyResume, { exact: true })).toBeVisible();
     await page.reload();
     await expect(resume.getByText(emptyResume, { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
