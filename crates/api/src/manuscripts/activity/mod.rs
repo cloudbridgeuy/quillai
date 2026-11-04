@@ -19,6 +19,7 @@ struct Activity {
     piece_id: i64,
     universe_id: i64,
     title: String,
+    script_title: Option<String>,
     label: String,
     format: String,
     parent_id: Option<i64>,
@@ -58,7 +59,7 @@ async fn get_activity(
 ) -> Result<Json<Vec<Activity>>, Error> {
     let Query(query) = query.map_err(|error| Error::Validation(error.body_text()))?;
     let limit = limit(query.limit.as_deref())?;
-    let rows = sqlx::query!(r#"SELECT p.id AS "piece_id!", p.universe_id, p.title, p.label, p.format, p.parent_id, datetime(r.created_at) AS "changed_at!", c.series_id, c.book_id, c.id AS chapter_id FROM active_pieces p JOIN piece_revisions r ON r.piece_id = p.id AND r.rev = (SELECT MAX(rev) FROM piece_revisions WHERE piece_id = p.id) LEFT JOIN legacy_chapters c ON c.piece_id = p.id WHERE p.shape = 'leaf' ORDER BY datetime(r.created_at) DESC, p.id DESC LIMIT ?"#, limit).fetch_all(&pool).await?;
+    let rows = sqlx::query!(r#"SELECT p.id AS "piece_id!", p.universe_id, p.title, sp.title AS script_title, p.label, p.format, p.parent_id, datetime(r.created_at) AS "changed_at!", c.series_id, c.book_id, c.id AS chapter_id FROM active_pieces p JOIN piece_revisions r ON r.piece_id = p.id AND r.rev = (SELECT MAX(rev) FROM piece_revisions WHERE piece_id = p.id) LEFT JOIN active_pieces sp ON sp.id = p.parent_id AND p.format = 'script' AND sp.format = 'script' AND sp.shape = 'group' LEFT JOIN legacy_chapters c ON c.piece_id = p.id WHERE p.shape = 'leaf' ORDER BY datetime(r.created_at) DESC, p.id DESC LIMIT ?"#, limit).fetch_all(&pool).await?;
     let activities = rows
         .into_iter()
         .map(|row| {
@@ -66,6 +67,7 @@ async fn get_activity(
                 piece_id: row.piece_id,
                 universe_id: row.universe_id,
                 title: row.title,
+                script_title: row.script_title,
                 label: row.label,
                 format: row.format,
                 parent_id: row.parent_id,

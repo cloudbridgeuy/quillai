@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT p.id AS \"piece_id!\", p.universe_id, p.title, p.label, p.format, p.parent_id, datetime(r.created_at) AS \"changed_at!\", c.series_id, c.book_id, c.id AS chapter_id FROM active_pieces p JOIN piece_revisions r ON r.piece_id = p.id AND r.rev = (SELECT MAX(rev) FROM piece_revisions WHERE piece_id = p.id) LEFT JOIN legacy_chapters c ON c.piece_id = p.id WHERE p.shape = 'leaf' ORDER BY datetime(r.created_at) DESC, p.id DESC LIMIT ?",
+  "query": "SELECT p.id AS \"piece_id!\", p.universe_id, p.title, sp.title AS script_title, p.label, p.format, p.parent_id, datetime(r.created_at) AS \"changed_at!\", c.series_id, c.book_id, c.id AS chapter_id FROM active_pieces p JOIN piece_revisions r ON r.piece_id = p.id AND r.rev = (SELECT MAX(rev) FROM piece_revisions WHERE piece_id = p.id) LEFT JOIN active_pieces sp ON sp.id = p.parent_id AND p.format = 'script' AND sp.format = 'script' AND sp.shape = 'group' LEFT JOIN legacy_chapters c ON c.piece_id = p.id WHERE p.shape = 'leaf' ORDER BY datetime(r.created_at) DESC, p.id DESC LIMIT ?",
   "describe": {
     "columns": [
       {
@@ -19,38 +19,43 @@
         "type_info": "Text"
       },
       {
-        "name": "label",
+        "name": "script_title",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "format",
+        "name": "label",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "parent_id",
+        "name": "format",
         "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_id",
+        "ordinal": 6,
         "type_info": "Integer"
       },
       {
         "name": "changed_at!",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Text"
       },
       {
         "name": "series_id",
-        "ordinal": 7,
-        "type_info": "Integer"
-      },
-      {
-        "name": "book_id",
         "ordinal": 8,
         "type_info": "Integer"
       },
       {
-        "name": "chapter_id",
+        "name": "book_id",
         "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "chapter_id",
+        "ordinal": 10,
         "type_info": "Integer"
       }
     ],
@@ -61,6 +66,7 @@
       false,
       false,
       false,
+      true,
       false,
       false,
       true,
@@ -70,5 +76,5 @@
       true
     ]
   },
-  "hash": "a02225a1310ae7facc1e6c5b5cb0328957d1f5fc84a2e3f1d9859b42016eb8eb"
+  "hash": "46f458db972de048261badfb683107c749a834ffcd0669fce33e9a755f0e103c"
 }

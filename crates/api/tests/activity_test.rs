@@ -42,8 +42,8 @@ async fn activity_orders_latest_revisions_and_excludes_hidden_items() {
     assert_eq!(
         body,
         json!([
-            {"pieceId":2,"universeId":1,"title":"Chapter","label":"chapter","format":"prose","parentId":1,"changedAt":"2026-11-04T17:00:00Z","chapter":{"seriesId":1,"bookId":1,"chapterId":1}},
-            {"pieceId":3,"universeId":1,"title":"Loose","label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-03T17:00:00Z","chapter":null}
+            {"pieceId":2,"universeId":1,"title":"Chapter","scriptTitle":null,"label":"chapter","format":"prose","parentId":1,"changedAt":"2026-11-04T17:00:00Z","chapter":{"seriesId":1,"bookId":1,"chapterId":1}},
+            {"pieceId":3,"universeId":1,"title":"Loose","scriptTitle":null,"label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-03T17:00:00Z","chapter":null}
         ])
     );
 }
@@ -61,10 +61,32 @@ async fn activity_breaks_timestamp_ties_by_descending_piece_id() {
     assert_eq!(
         body,
         json!([
-            {"pieceId":2,"universeId":1,"title":"Second","label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-04T17:00:00Z","chapter":null},
-            {"pieceId":1,"universeId":1,"title":"First","label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-04T17:00:00Z","chapter":null}
+            {"pieceId":2,"universeId":1,"title":"Second","scriptTitle":null,"label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-04T17:00:00Z","chapter":null},
+            {"pieceId":1,"universeId":1,"title":"First","scriptTitle":null,"label":"piece","format":"prose","parentId":null,"changedAt":"2026-11-04T17:00:00Z","chapter":null}
         ])
     );
+}
+
+#[tokio::test]
+async fn activity_returns_script_title_only_for_script_scenes() {
+    let pool = common::test_pool().await;
+    sqlx::raw_sql(r#"
+        INSERT INTO universes(id,title,position) VALUES (1,'World',0);
+        INSERT INTO pieces(id,universe_id,title,position,label,format,shape) VALUES (1,1,'Screenplay',0,'screenplay','script','group'),(2,1,'Novel',1,'novel','prose','group');
+        INSERT INTO pieces(id,universe_id,parent_id,title,position,label,format,shape,content,head_rev,snapshot_rev) VALUES (3,1,1,'Opening scene',0,'scene','script','leaf','{}',1,0),(4,1,2,'Chapter',0,'chapter','prose','leaf','{}',1,0),(5,1,NULL,'Loose script',2,'scene','script','leaf','{}',1,0),(6,1,NULL,'Loose prose',3,'piece','prose','leaf','{}',1,0);
+        INSERT INTO piece_revisions(piece_id,rev,delta) VALUES (3,1,'{}'),(4,1,'{}'),(5,1,'{}'),(6,1,'{}');
+    "#).execute(&pool).await.unwrap();
+    let (status, body) = get(&quillai_api::app(pool), "/activity").await;
+    assert_eq!(status, StatusCode::OK);
+    let rows = body.as_array().unwrap();
+    assert_eq!(rows.len(), 4);
+    let scene = rows.iter().find(|row| row["pieceId"] == 3).unwrap();
+    assert_eq!(scene.get("scriptTitle"), Some(&json!("Screenplay")));
+    assert_eq!(scene["title"], "Opening scene");
+    for id in [4, 5, 6] {
+        let row = rows.iter().find(|row| row["pieceId"] == id).unwrap();
+        assert_eq!(row.get("scriptTitle"), Some(&Value::Null));
+    }
 }
 
 #[tokio::test]

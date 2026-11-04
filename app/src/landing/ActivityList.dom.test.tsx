@@ -14,9 +14,9 @@ test("shows day headers and opens activity scope", async () => {
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12);
   const earlier = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 12);
   respond(async () => Response.json([
-    { pieceId: 1, universeId: 2, title: "Today story", label: "piece", format: "prose", parentId: null, changedAt: now.toISOString(), chapter: null },
-    { pieceId: 4, universeId: 2, title: "Old story", label: "piece", format: "prose", parentId: null, changedAt: earlier.toISOString(), chapter: null },
-    { pieceId: 3, universeId: 2, title: "Yesterday story", label: "piece", format: "prose", parentId: null, changedAt: yesterday.toISOString(), chapter: null },
+    { pieceId: 1, universeId: 2, title: "Today story", scriptTitle: null, label: "piece", format: "prose", parentId: null, changedAt: now.toISOString(), chapter: null },
+    { pieceId: 4, universeId: 2, title: "Old story", scriptTitle: null, label: "piece", format: "prose", parentId: null, changedAt: earlier.toISOString(), chapter: null },
+    { pieceId: 3, universeId: 2, title: "Yesterday story", scriptTitle: null, label: "piece", format: "prose", parentId: null, changedAt: yesterday.toISOString(), chapter: null },
   ]));
   let opened: unknown;
   const container = await render(<ActivityList revision="0" onOpen={scope => { opened = scope; }} />);
@@ -33,4 +33,17 @@ test("hides an empty list and reports failure", async () => {
   respond(async () => { throw new Error("offline"); });
   const failed = await render(<ActivityList revision="0" onOpen={() => {}} />);
   expect(failed.textContent).toContain("Could not load recent activity.");
+});
+
+test("shows the script title once and opens its group", async () => {
+  respond(async () => Response.json([3, 4].map(pieceId => ({
+    pieceId, universeId: 2, title: `Scene ${pieceId}`, scriptTitle: "Screenplay", label: "scene",
+    format: "script", parentId: 9, changedAt: new Date().toISOString(), chapter: null,
+  }))));
+  let opened: unknown;
+  const container = await render(<ActivityList revision="0" onOpen={scope => { opened = scope; }} />);
+  expect([...container.querySelectorAll("p")].map(item => item.textContent)).toEqual(["Screenplay"]);
+  expect(container.querySelectorAll("button")).toHaveLength(1);
+  await click(container.querySelector("button")!);
+  expect(opened).toEqual({ universeId: 2, pieceId: 9 });
 });

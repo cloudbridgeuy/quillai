@@ -3,7 +3,7 @@ import { scriptGroupId } from "./routes";
 
 type Activity = {
   pieceId: number; universeId: number; title: string; label: string; format: "prose" | "script";
-  parentId: number | null; changedAt: string; chapter: { seriesId: number; bookId: number; chapterId: number } | null;
+  parentId: number | null; scriptTitle: string | null; changedAt: string; chapter: { seriesId: number; bookId: number; chapterId: number } | null;
 };
 type ActivityRow = { title: string; changedAt: string; scope: EditorScope };
 
@@ -20,6 +20,7 @@ export function parseActivity(value: unknown): Activity[] {
   return value.flatMap(row => {
     if (!record(row) || !id(row.pieceId) || !id(row.universeId) || typeof row.title !== "string"
       || typeof row.label !== "string" || (row.format !== "prose" && row.format !== "script")
+      || (row.scriptTitle !== null && typeof row.scriptTitle !== "string")
       || (row.parentId !== null && !id(row.parentId)) || typeof row.changedAt !== "string"
       || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(row.changedAt)
       || !Number.isFinite(Date.parse(row.changedAt))
@@ -31,7 +32,7 @@ export function parseActivity(value: unknown): Activity[] {
       chapter = { seriesId: value.seriesId, bookId: value.bookId, chapterId: value.chapterId };
     }
     return [{ pieceId: row.pieceId, universeId: row.universeId, title: row.title, label: row.label,
-      format: row.format, parentId: row.parentId, changedAt: row.changedAt,
+      format: row.format, parentId: row.parentId, scriptTitle: row.scriptTitle, changedAt: row.changedAt,
       chapter }];
   });
 }
@@ -44,7 +45,7 @@ export function activityGroups(rows: Activity[], now: Date): { label: string; ro
     const key = "pieceId" in scope ? `p:${scope.universeId}:${scope.pieceId}` : `c:${scope.seriesId}:${scope.bookId}:${scope.chapterId}`;
     const previous = unique.get(key);
     if (!previous || Date.parse(row.changedAt) > Date.parse(previous.changedAt)) {
-      unique.set(key, { title: groupId ? `Script: ${row.title}` : row.title, changedAt: row.changedAt, scope });
+      unique.set(key, { title: groupId ? row.scriptTitle ?? row.title : row.title, changedAt: row.changedAt, scope });
     }
   }
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
