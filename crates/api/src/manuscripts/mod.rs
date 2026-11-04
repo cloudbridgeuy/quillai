@@ -1,3 +1,4 @@
+pub mod activity;
 pub mod books;
 pub mod chapters;
 pub mod containers;
@@ -16,7 +17,8 @@ use sqlx::sqlite::SqlitePool;
 use crate::error::Error;
 
 pub fn routes(pool: SqlitePool) -> Router {
-    series::routes(pool.clone())
+    activity::routes(pool.clone())
+        .merge(series::routes(pool.clone()))
         .merge(books::routes(pool.clone()))
         .merge(lore::routes(pool.clone()))
         .merge(chapters::routes(pool.clone()))
