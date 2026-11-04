@@ -31,6 +31,10 @@ The tracked `e2e/known-failures.txt` uses `browser spec:line ticket`, with `*` f
 
 ## Commit gate
 
-`cargo xtask lint` must print `All 11 checks passed.` before commit. Run `cargo xtask install-hooks` once per clone to install the tracked pre-commit hook; worktrees share this configuration. The installer refuses to replace an existing `core.hooksPath` other than `.githooks`.
+`cargo xtask lint` must print `All 12 checks passed.` before commit. Run `cargo xtask install-hooks` once per clone to install the tracked pre-commit hook; worktrees share this configuration. The installer refuses to replace an existing `core.hooksPath` other than `.githooks`.
+
+The `i18n` check scans tracked and untracked, non-ignored `app/src/**/*.tsx`, excluding `*.test.tsx`, `*.dom.test.tsx`, and `*.fixture.tsx`. It counts JSX text children containing letters and string literals in `aria-label`, `title`, `placeholder`, and `label`, including braces-wrapped literals. Expressions and i18n helper calls are ignored; JSX nested inside expressions is scanned. Each text node or prop counts once, including multiline text. Use the message helper and `app/src/i18n/messages.ts` for new UI strings.
+
+`xtask/i18n-waivers.json` records existing counts by file. New offenders and count increases fail. Decreases also fail with instructions to lower the count or remove a zero-count entry. Never raise counts or add waivers for new strings. Full diagnostics are in `target/xtask-lint/i18n.log`.
 
 The hook runs the full lint on the working tree, not only staged files. If `app/node_modules` is missing, run `bun install --frozen-lockfile` in `app/` first. Never use `--no-verify`.

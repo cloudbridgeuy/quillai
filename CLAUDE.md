@@ -53,7 +53,7 @@ The override does not change CORS: the API defaults to allowing `http://localhos
 
 ### Rust — Build (`xtask/src/`)
 
-- `main.rs`, `dev_database.rs`, `check_ui.rs`, `check_claude_md.rs`, `e2e.rs`, `ai_smoke.rs`, `hooks.rs`, `nightly.rs`, `nightly_launchd.rs`
+- `main.rs`, `dev_database.rs`, `check_ui.rs`, `check_i18n.rs`, `check_claude_md.rs`, `e2e.rs`, `ai_smoke.rs`, `hooks.rs`, `nightly.rs`, `nightly_launchd.rs`
 
 ### Browser Smoke (`e2e/`)
 
