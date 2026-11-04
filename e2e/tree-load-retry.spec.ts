@@ -17,7 +17,7 @@ for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     await expectEditorReady(page.locator(".ql-editor"));
-    await page.route(`${api}/series`, route => route.fulfill({
+    await page.route(`${api}/tree`, route => route.fulfill({
       status: 503, json: { error: "Could not load manuscript.", code: "INTERNAL_ERROR" },
     }), { times: 1 });
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();

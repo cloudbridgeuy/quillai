@@ -64,7 +64,7 @@ for (const width of [1100, 1440]) {
         await expect(alert.locator("xpath=ancestor::*[@role='status']")).toHaveCount(0);
       } else {
         if (scenario === "manuscript load") {
-          await page.route(`${api}/series`, async (route) => {
+          await page.route(`${api}/tree`, async (route) => {
             if (route.request().method() !== "GET") return route.continue();
             await route.fulfill({ status: 503, json: { error: "Unavailable", code: "UNAVAILABLE" } });
           });

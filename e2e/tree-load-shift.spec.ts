@@ -28,14 +28,18 @@ for (const width of [1100, 1440]) {
     let intercepted!: () => void;
     const held = new Promise<void>(resolve => { release = resolve; });
     const treeRequested = new Promise<void>(resolve => { intercepted = resolve; });
-    await page.route(`${api}/series`, async route => {
+    await page.route(`${api}/tree`, async route => {
+      if (route.request().method() !== "GET") return route.continue();
       intercepted();
       await held;
-      await route.fulfill({ json: [series] });
+      const response = await route.fetch();
+      const tree = await response.json();
+      tree.series = tree.series.filter((item: { id: number }) => item.id === series.id);
+      tree.series[0].books.find((item: { id: number }) => item.id === book.id).chapters = [chapter, ...Array.from({ length: 150 }, (_, index) => ({
+        id: chapter.id + index + 1, title: `Outline chapter ${index + 1}`, position: index + 1, kind: "chapter", head_rev: 0,
+      }))];
+      await route.fulfill({ response, json: tree });
     });
-    await page.route(chaptersUrl, route => route.fulfill({ json: [chapter, ...Array.from({ length: 150 }, (_, index) => ({
-      id: chapter.id + index + 1, title: `Outline chapter ${index + 1}`, position: index + 1, kind: "chapter", head_rev: 0,
-    }))] }));
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
     await treeRequested;
     const drawer = page.locator("#manuscript-drawer");

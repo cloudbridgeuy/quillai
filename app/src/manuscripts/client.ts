@@ -57,6 +57,35 @@ function documentPath(scope: EditorScope): string {
   return "pieceId" in scope ? piecePath(scope) : chapterPath(scope);
 }
 
+function treeRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Expected an object");
+  return value as Record<string, unknown>;
+}
+
+function parseTree(value: unknown) {
+  const row = treeRecord(value);
+  const root = (value: unknown) => {
+    const row = treeRecord(value);
+    return { ...parsePiece(row), children: parseList(row.children, parsePiece) };
+  };
+  return {
+    series: parseList(row.series, (value) => {
+      const row = treeRecord(value);
+      return { ...parseSeries(row), books: parseList(row.books, (value) => {
+        const row = treeRecord(value);
+        return { ...parseBook(row), chapters: parseList(row.chapters, parseChapterSummary) };
+      }) };
+    }),
+    universes: parseList(row.universes, (value) => {
+      const row = treeRecord(value);
+      return { ...parseSeries(row), containers: parseList(row.containers, (value) => {
+        const row = treeRecord(value);
+        return { ...parseContainer(row), pieces: parseList(row.pieces, root) };
+      }), loose: parseList(row.loose, root) };
+    }),
+  };
+}
+
 export function createManuscriptClient({
   baseUrl = getApiBaseUrl(),
   fetch: fetchRequest = globalThis.fetch,
@@ -101,6 +130,7 @@ export function createManuscriptClient({
   }
 
   return {
+    getTree: () => request("/tree", "GET", 200, parseTree),
     listSeries: () => request("/series", "GET", 200, (value) => parseList(value, parseSeries)),
     createSeries: (input: CreateSeries) => request("/series", "POST", 201, parseSeries, input),
     getSeries: (scope: SeriesScope) => request(seriesPath(scope), "GET", 200, parseSeries),

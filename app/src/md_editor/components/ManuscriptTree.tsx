@@ -279,40 +279,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
   useEffect(() => {
     let active = true;
     setState({ status: "loading" });
-    async function roots(pieces: Piece[]): Promise<StoryRoot[]> {
-      return Promise.all(pieces.map(async (piece) => {
-        const detail = piece.shape === "group" ? await client.getPiece({ pieceId: piece.id }) : null;
-        return { ...piece, children: detail?.shape === "group" ? detail.children : [] };
-      }));
-    }
-    async function loadUniverses(): Promise<StoryUniverse[]> {
-      return Promise.all((await client.listUniverses()).map(async (universe) => {
-        const scope = { universeId: universe.id };
-        const [containers, loose] = await Promise.all([client.listContainers(scope), client.listLoosePieces(scope)]);
-        return {
-          ...universe,
-          loose: await roots(loose),
-          containers: await Promise.all(containers.map(async (container) => ({
-            ...container,
-            pieces: await roots(await client.listContainerPieces({ containerId: container.id })),
-          }))),
-        };
-      }));
-    }
-    async function loadSeries() {
-      const series = await client.listSeries();
-      return Promise.all(series.map(async (item) => {
-        const books = await client.listBooks({ seriesId: item.id });
-        return {
-          ...item,
-          books: await Promise.all(books.map(async (book) => ({
-            ...book,
-            chapters: await client.listChapters({ seriesId: item.id, bookId: book.id }),
-          }))),
-        };
-      }));
-    }
-    Promise.all([loadSeries(), loadUniverses()]).then(([series, universes]) => {
+    client.getTree().then(({ series, universes }) => {
       if (active) setState({ status: "ready", series, universes });
     }).catch((error: unknown) => {
       if (active) setState({ status: "failed", message: error instanceof Error ? error.message : "Could not load manuscript." });

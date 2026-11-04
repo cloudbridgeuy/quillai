@@ -20,6 +20,7 @@ const container = { id: 1, universeId: 5, title: "Series", position: 0, kind: "b
 const piece = { id: 9, universeId: 5, containerId: null, parentId: null, title: "Loose", position: 0, label: "short_story", format: "prose", shape: "leaf" };
 const pieceDetail = { ...piece, content: { ops: [{ insert: "Loose\n" }] }, headRev: 2 };
 const group = { ...piece, id: 10, shape: "group", label: "screenplay", format: "script", children: [{ ...piece, id: 11, parentId: 10, label: "scene", format: "script" }] };
+const tree = { series: [{ ...series, books: [{ ...book, chapters: [chapterSummary] }] }], universes: [{ ...series, containers: [{ ...container, pieces: [group] }], loose: [{ ...piece, children: [] }] }] };
 const newPiece = { ...metadata, label: "short_story", shape: "leaf", format: "prose" } as const;
 const pieceScope = { seriesId: 1, universeId: 5, pieceId: 9 };
 type Client = ReturnType<typeof createManuscriptClient>;
@@ -29,6 +30,7 @@ describe("manuscript request contracts", () => {
     name: string; call: (client: Client) => Promise<unknown>;
     path: string; method: string; status: number; response?: unknown; body?: unknown;
   }> = [
+    { name: "get tree", call: (c) => c.getTree(), path: "/tree", method: "GET", status: 200, response: tree },
     { name: "list series", call: (c) => c.listSeries(), path: "/series", method: "GET", status: 200, response: [series] },
     { name: "create series", call: (c) => c.createSeries(metadata), path: "/series", method: "POST", status: 201, response: series, body: metadata },
     { name: "get series", call: (c) => c.getSeries(scope), path: "/series/1", method: "GET", status: 200, response: series },
@@ -152,6 +154,7 @@ test("rejects malformed Delta operations and unsafe total lengths", () => {
 
 test("rejects malformed resource, collection, and revision responses at the boundary", async () => {
   const cases: Array<[unknown, (client: Client) => Promise<unknown>]> = [
+    [{ ...tree, universes: [{ ...tree.universes[0], loose: [{ ...piece, children: [{}] }] }] }, (c) => c.getTree()],
     [null, (c) => c.getSeries(scope)],
     [{ ...series, id: Number.MAX_SAFE_INTEGER + 1 }, (c) => c.getSeries(scope)],
     [{ ...series, title: " " }, (c) => c.getSeries(scope)],
