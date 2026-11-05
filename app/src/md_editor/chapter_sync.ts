@@ -1,6 +1,7 @@
 import Delta from "quill-delta";
 import { parseDelta, type ManuscriptDelta, type Revision, type SubmitDelta } from "../manuscripts/contract";
 import { diffDocuments } from "./document_diff";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 
 export type ChapterSync = {
   rev: number;
@@ -46,13 +47,13 @@ export function receiveRevisions(state: ChapterSync, revisions: Revision[], ackn
   let next = state;
   for (const revision of revisions) {
     if (revision.rev <= next.rev) continue;
-    if (revision.rev !== next.rev + 1) throw new Error("Missing chapter revision; local work retained.");
+    if (revision.rev !== next.rev + 1) throw new Error(formatMessage(defaultLocale, "sync.missingRevision"));
     const remote = chapterDelta(revision.delta);
     const server = next.server.compose(remote);
     if (revision.rev === acknowledgement?.rev) {
       if (next.flight === null || JSON.stringify(parseDelta(remote)) !== JSON.stringify(parseDelta(acknowledgement.delta)) ||
         diffDocuments(next.server.compose(next.flight), server).ops.length !== 0) {
-        throw new Error("Chapter acknowledgement mismatch; local work retained.");
+        throw new Error(formatMessage(defaultLocale, "sync.acknowledgementMismatch"));
       }
       next = { ...next, server, rev: revision.rev, flight: null };
       continue;
@@ -66,7 +67,7 @@ export function receiveRevisions(state: ChapterSync, revisions: Revision[], ackn
     };
   }
   if (acknowledgement && next.rev < acknowledgement.rev) {
-    throw new Error("Chapter acknowledgement not in history; local work retained.");
+    throw new Error(formatMessage(defaultLocale, "sync.acknowledgementMissing"));
   }
   return next;
 }

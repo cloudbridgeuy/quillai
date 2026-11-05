@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import * as messages from "./messages";
 import { en, es, formatMessage, type MessageCatalog } from "./messages";
 import { formatTextCounts } from "../md_editor/text_counts";
+import { getSavePresentation } from "../md_editor/editor_ai";
 
 test("plural forms in english and spanish", () => {
   expect(formatMessage("en", "chapter.count", { count: 0 })).toBe("0 chapters");
@@ -392,4 +393,59 @@ test.each([
 ] as const)("editor count labels preserve assembled English for %s", (count, english) => {
   expect(formatTextCounts({ words: count, characters: count, lines: count })).toBe(english);
   expect(formatTextCounts({ words: count, characters: count, lines: count }, 1)).toBe(`1 of ${english}`);
+});
+
+test.each([
+  ["sync.onlyTextPiece", "Only a piece with text can open in the editor.", {}],
+  ["sync.defaultSeries", "My Series", {}],
+  ["sync.defaultBook", "My Book", {}],
+  ["sync.firstChapter", "Chapter One", {}],
+  ["sync.pieceUrlInvalid", "Piece URL requires a positive pieceId.", {}],
+  ["sync.chapterUrlInvalid", "Chapter URL requires positive seriesId, bookId, and chapterId.", {}],
+  ["sync.noChapter", "No chapter found. Create a chapter to start editing.", {}],
+  ["sync.unknownSynchronization", "Unknown synchronization error", {}],
+  ["sync.saveStopped", "Save stopped: server {message}: unavailable.. Export local work before reload. Do not retry an uncertain submission.", {"message":"server {message}: unavailable."}],
+  ["sync.connectionInterrupted", "Connection interrupted: server {message}: unavailable.. Local work retained; polling will retry.", {"message":"server {message}: unavailable."}],
+  ["sync.saveRetry", "Save stopped: server {message}: unavailable.. Local work retained; polling will retry.", {"message":"server {message}: unavailable."}],
+  ["sync.sessionStopped", "Chapter session stopped.", {}],
+  ["sync.aiReserved", "Cannot save chapter while AI has reserved the session.", {}],
+  ["sync.missingRevision", "Missing chapter revision; local work retained.", {}],
+  ["sync.acknowledgementMismatch", "Chapter acknowledgement mismatch; local work retained.", {}],
+  ["sync.acknowledgementMissing", "Chapter acknowledgement not in history; local work retained.", {}],
+  ["sync.loadingChapter", "Loading chapter…", {}],
+  ["sync.unsavedChanges", "Unsaved changes", {}],
+  ["sync.saved", "Saved", {}],
+  ["sync.recoveryExport", " · Recovery storage unavailable; export before closing", {}],
+  ["sync.recoveryUnavailable", " · Recovery storage unavailable", {}],
+  ["sync.status", "My {title} · Saved · Recovery storage unavailable", {"title":"My {title}","status":"Saved","recovery":" · Recovery storage unavailable"}],
+  ["sync.chapterSwitchFailed", "Chapter switch failed: server {message}: unavailable. Current chapter retained.", {"message":"server {message}: unavailable."}],
+  ["sync.unknownError", "Unknown error", {}],
+  ["sync.chapterLoadFailed", "Chapter load failed.", {}],
+  ["sync.savingBeforeLeaving", "Saving before leaving…", {}],
+  ["sync.leavingChapterStopped", "Leaving stopped: server {message}: unavailable. Current chapter retained.", {"message":"server {message}: unavailable."}],
+  ["sync.chapterCreationFailed", "Chapter creation failed.", {}],
+  ["sync.chapterSessionChanged", "Chapter session changed before starting AI.", {}],
+  ["script.breakNotice", "Edits across a scene break are not saved", {}],
+  ["script.editAcrossBreak", "Select text inside one scene to use Edit.", {}],
+  ["script.loading", "Loading script…", {}],
+  ["script.syncByPiece", "Script scenes sync by piece.", {}],
+  ["script.sceneProblem", "Scene {title}: server {message}: unavailable.", {"title":"Scene {title}","message":"server {message}: unavailable."}],
+  ["script.loadFailed", "Script load failed.", {}],
+  ["script.leavingStopped", "Leaving stopped: server {message}: unavailable. Current script retained.", {"message":"server {message}: unavailable."}],
+  ["script.sceneTitle", "Scene 1000", {"number":"1000"}],
+  ["script.sceneNotAdded", "New scene not added: server {message}: unavailable.", {"message":"server {message}: unavailable."}],
+  ["script.savingNewScene", "Saving script before opening the new scene…", {}],
+  ["script.savingBeforeOpening", "Saving script before opening…", {}],
+  ["script.sessionChanged", "Script session changed before starting AI.", {}],
+  ["tree.create.chapter.creating", "Creating chapter…", {}],
+] as const)("sync message %s preserves exact English and raw inserted text", (key, english, values) => {
+  expect(Object.hasOwn(en, key)).toBe(true);
+  expect(Object.hasOwn(es, key)).toBe(true);
+  expect(formatMessage("en", key, values)).toBe(english);
+});
+
+test("explicit sync failure state overrides status wording", () => {
+  expect(getSavePresentation("Guardado", "Texto", false, true)).toEqual({ label: "Not saved", failed: true, detail: "Guardado" });
+  expect(getSavePresentation("Saved · export", null, false, false)).toEqual({ label: "Saved · export", failed: false });
+  expect(getSavePresentation("Guardado", null, true, false)).toEqual({ label: "Not saved", failed: true, detail: "Guardado" });
 });

@@ -1298,7 +1298,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const editFailure = aiRunState.status === "failed" && aiRunState.action === "edit"
     ? getEditFailurePresentation(aiRunState.error)
     : null;
-  const savePresentation = getSavePresentation(createBusy ? "Loading chapter…" : creating ? createStatusRef.current ?? chapterSync.status : chapterSync.status, chapterSync.title, chapterSync.blocked);
+  const savePresentation = getSavePresentation(createBusy ? formatMessage(defaultLocale, "sync.loadingChapter") : creating ? createStatusRef.current ?? chapterSync.status : chapterSync.status, chapterSync.title, chapterSync.blocked, createBusy ? false : chapterSync.failed);
   const withThread = activeContinueWithThread ?? shouldContinueWithThread(
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
   );

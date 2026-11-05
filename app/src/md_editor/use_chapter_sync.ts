@@ -11,6 +11,7 @@ import { landingUrl } from "../landing/routes";
 import { createSyncPush } from "./sync_push";
 import { createCaretTracker } from "./caret_position";
 import { scheduleChapterBusy, showChapterBusy } from "./chapter_busy";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 
@@ -21,11 +22,12 @@ export function useChapterSync(
   createStart: RefObject<number | null>,
   createStatus: RefObject<string | null>,
 ) {
-  const [status, setStatus] = useState("Loading chapter…");
-  const [switchStatus, setSwitchStatus] = useState<string | null>(null);
+  const [{ status, failed }, setSaveStatus] = useState({ status: formatMessage(defaultLocale, "sync.loadingChapter"), failed: false });
+  const setStatus = (status: string, failed = false) => setSaveStatus({ status, failed });
+  const [switchStatus, setSwitchStatus] = useState<{ status: string; failed: boolean } | null>(null);
   const [showBusy, setShowBusy] = useState(false);
-  const statusRef = useRef(status);
-  statusRef.current = status;
+  const statusRef = useRef({ status, failed });
+  statusRef.current = { status, failed };
   const [detail, setDetail] = useState<string>();
   const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -117,7 +119,7 @@ export function useChapterSync(
         }
         setBlocked(problem?.kind === "blocked");
         setDetail(problem?.detail);
-        setStatus(problem?.message ?? `${chapter.title} · ${dirty ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
+        setStatus(problem?.message ?? formatMessage(defaultLocale, "sync.status", { title: chapter.title, status: formatMessage(defaultLocale, dirty ? "sync.unsavedChanges" : "sync.saved"), recovery: storageFailed ? formatMessage(defaultLocale, "sync.recoveryExport") : "" }), problem !== null || storageFailed);
         if (diffDocuments(quill.getContents(), document).ops.length > 0) session.edit(quill.getContents());
       });
       let latestRecovery: string | null = null;
@@ -129,7 +131,7 @@ export function useChapterSync(
       setBlocked(false);
       setDetail(undefined);
       setTitle(chapter.title);
-      setStatus(`${chapter.title} · Saved${storageFailed ? " · Recovery storage unavailable" : ""}`);
+      setStatus(formatMessage(defaultLocale, "sync.status", { title: chapter.title, status: formatMessage(defaultLocale, "sync.saved"), recovery: storageFailed ? formatMessage(defaultLocale, "sync.recoveryUnavailable") : "" }), storageFailed);
       setReady(true);
       session.edit(quill.getContents());
     }
@@ -140,7 +142,7 @@ export function useChapterSync(
       tracker?.flush();
       switchingRef.current = true;
       setReady(false);
-      setSwitchStatus(createStart.current === null ? statusRef.current : createStatus.current ?? statusRef.current);
+      setSwitchStatus({ status: createStart.current === null ? statusRef.current.status : createStatus.current ?? statusRef.current.status, failed: statusRef.current.failed });
       const start = createStart.current ?? Date.now();
       setShowBusy(showChapterBusy(start, Date.now()));
       cancelBusy = scheduleChapterBusy(start, () => setShowBusy(true));
@@ -157,7 +159,7 @@ export function useChapterSync(
       } catch (error) {
         if (!disposed && !pushRef.current && currentScope) pushRef.current = createSyncPush(currentScope, session, () => activeRef.current() || switchingRef.current, pageHidden);
         if (!disposed && error instanceof ManuscriptApiError && error.detail !== error.message) setDetail(error.detail);
-        if (!disposed) setStatus(`Chapter switch failed: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
+        if (!disposed) setStatus(formatMessage(defaultLocale, "sync.chapterSwitchFailed", { message: error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.unknownError") }), true);
       } finally {
         switchingRef.current = false;
         cancelBusy?.();
@@ -174,7 +176,7 @@ export function useChapterSync(
       void loadEditorChapter(client, window.location.search).then(({ scope, chapter }) => openChapter(scope, chapter)).catch((error: unknown) => {
         if (!disposed) {
           setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
-          setStatus(error instanceof Error ? error.message : "Chapter load failed.");
+          setStatus(error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.chapterLoadFailed"), true);
           setNeedsChapter(error instanceof NoEditorChapter);
         }
       });
@@ -215,7 +217,8 @@ export function useChapterSync(
   return {
     ready,
     blocked,
-    status: switchStatus === null ? status : showBusy ? "Loading chapter…" : switchStatus,
+    status: switchStatus === null ? status : showBusy ? formatMessage(defaultLocale, "sync.loadingChapter") : switchStatus.status,
+    failed: switchStatus === null ? failed : !showBusy && switchStatus.failed,
     showBusy,
     switching: switchStatus !== null,
     detail,
@@ -231,12 +234,12 @@ export function useChapterSync(
         caretTrackerRef.current?.flush();
         switchingRef.current = true;
         setReady(false);
-        setStatus("Saving before leaving…");
+        setStatus(formatMessage(defaultLocale, "sync.savingBeforeLeaving"));
         try {
           session.edit(quill.getContents());
           await session.flush();
         } catch (error) {
-          setStatus(`Leaving stopped: ${error instanceof Error ? error.message : "Unknown error"} Current chapter retained.`);
+          setStatus(formatMessage(defaultLocale, "sync.leavingChapterStopped", { message: error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.unknownError") }), true);
           switchingRef.current = false;
           setReady(true);
           return;
@@ -253,7 +256,7 @@ export function useChapterSync(
     async bootstrap() {
       setNeedsChapter(false);
       setDetail(undefined);
-      setStatus("Creating chapter…");
+      setStatus(formatMessage(defaultLocale, "tree.create.chapter.creating"));
       try {
         const scope = await bootstrapEditorChapter(createManuscriptClient());
         const url = new URL(window.location.href);
@@ -261,7 +264,7 @@ export function useChapterSync(
         window.location.assign(url);
       } catch (error) {
         setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
-        setStatus(error instanceof Error ? error.message : "Chapter creation failed.");
+        setStatus(error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.chapterCreationFailed"), true);
         setNeedsChapter(true);
       }
     },
@@ -275,7 +278,7 @@ export function useChapterSync(
       return {
         async wait(signal: AbortSignal) {
           await reservation.wait(signal);
-          if (switchingRef.current || sessionRef.current !== session) throw new Error("Chapter session changed before starting AI.");
+          if (switchingRef.current || sessionRef.current !== session) throw new Error(formatMessage(defaultLocale, "sync.chapterSessionChanged"));
         },
         release: reservation.release,
       };

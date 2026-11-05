@@ -20,11 +20,12 @@ import { toFountain } from "./fountain";
 import { editorUrl, landingUrl } from "../landing/routes";
 import { createCaretTracker } from "./caret_position";
 import { scriptNotice } from "./script_notice";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 
 const RECOVERY_KEY = "quillai.chapter.recovery.v1";
 const SCENE_RECOVERY_KEY = "quillai.script.recovery.v1";
-const BREAK_NOTICE = "Edits across a scene break are not saved";
-const EDIT_ACROSS_BREAK = "Select text inside one scene to use Edit.";
+const BREAK_NOTICE = formatMessage(defaultLocale, "script.breakNotice");
+const EDIT_ACROSS_BREAK = formatMessage(defaultLocale, "script.editAcrossBreak");
 
 type SceneState = {
   id: number;
@@ -55,7 +56,8 @@ export function useScriptSync(
   onRemoteChange: () => void,
   groupId: number,
 ) {
-  const [status, setStatus] = useState("Loading script…");
+  const [{ status, failed }, setSaveStatus] = useState({ status: formatMessage(defaultLocale, "script.loading"), failed: false });
+  const setStatus = (status: string, failed = false) => setSaveStatus({ status, failed });
   const [detail, setDetail] = useState<string>();
   const [title, setTitle] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -122,7 +124,7 @@ export function useScriptSync(
     const sessionClient = {
       postDelta: client.postDelta,
       getDeltas: (scope: EditorScope, since: number) => {
-        if (!("pieceId" in scope)) throw new Error("Script scenes sync by piece.");
+        if (!("pieceId" in scope)) throw new Error(formatMessage(defaultLocale, "script.syncByPiece"));
         return poll.getDeltas(scope.pieceId, since);
       },
     };
@@ -180,8 +182,8 @@ export function useScriptSync(
       setBlocked(scenes.some((scene) => scene.problem?.kind === "blocked"));
       setDetail(failing?.problem?.detail);
       setStatus(failing?.problem
-        ? `${failing.title}: ${failing.problem.message}`
-        : `${groupTitle} · ${scenes.some((scene) => scene.dirty) ? "Unsaved changes" : "Saved"}${storageFailed ? " · Recovery storage unavailable; export before closing" : ""}`);
+        ? formatMessage(defaultLocale, "script.sceneProblem", { title: failing.title, message: failing.problem.message })
+        : formatMessage(defaultLocale, "sync.status", { title: groupTitle, status: formatMessage(defaultLocale, scenes.some((scene) => scene.dirty) ? "sync.unsavedChanges" : "sync.saved"), recovery: storageFailed ? formatMessage(defaultLocale, "sync.recoveryExport") : "" }), failing !== undefined || storageFailed);
     }
 
     function publish(scene: SceneState, scope: PieceScope, document: Delta, dirty: boolean, problem: SyncProblem | null) {
@@ -260,7 +262,7 @@ export function useScriptSync(
       void client.getScriptGroup({ pieceId: groupId }).then(open).catch((error: unknown) => {
         if (!disposed) {
           setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
-          setStatus(error instanceof Error ? error.message : "Script load failed.");
+          setStatus(error instanceof Error ? error.message : formatMessage(defaultLocale, "script.loadFailed"), true);
         }
       });
     });
@@ -416,7 +418,7 @@ export function useScriptSync(
       return true;
     } catch (error) {
       setDetail(scenesRef.current.find((scene) => scene.problem !== null)?.problem?.detail);
-      setStatus(`Leaving stopped: ${error instanceof Error ? error.message : "Unknown error"} Current script retained.`);
+      setStatus(formatMessage(defaultLocale, "script.leavingStopped", { message: error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.unknownError") }), true);
       leavingRef.current = false;
       setReady(true);
       return false;
@@ -444,13 +446,13 @@ export function useScriptSync(
         await client.updatePiece({ pieceId: scene.id }, { position });
         scene.position = position;
       }
-      created = await client.createChild({ pieceId: groupId }, { title: `Scene ${scenes.length + 1}`, position: previous.position + 1, label: "scene" });
+      created = await client.createChild({ pieceId: groupId }, { title: formatMessage(defaultLocale, "script.sceneTitle", { number: String(scenes.length + 1) }), position: previous.position + 1, label: "scene" });
     } catch (error) {
-      setAddError(`New scene not added: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setAddError(formatMessage(defaultLocale, "script.sceneNotAdded", { message: error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.unknownError") }));
       setAdding(false);
       return;
     }
-    if (await flushAll("Saving script before opening the new scene…")) window.location.assign(editorUrl(window.location.href, { universeId, pieceId: created.id }));
+    if (await flushAll(formatMessage(defaultLocale, "script.savingNewScene"))) window.location.assign(editorUrl(window.location.href, { universeId, pieceId: created.id }));
     else setAdding(false);
   }
 
@@ -476,6 +478,7 @@ export function useScriptSync(
     adding,
     ready,
     blocked,
+    failed,
     status,
     detail,
     title,
@@ -490,10 +493,10 @@ export function useScriptSync(
       return true;
     },
     async switchChapter(target: EditorScope) {
-      if (await flushAll("Saving script before opening…")) window.location.assign(editorUrl(window.location.href, target));
+      if (await flushAll(formatMessage(defaultLocale, "script.savingBeforeOpening"))) window.location.assign(editorUrl(window.location.href, target));
     },
     async leave(target: URL = landingUrl(window.location.href)) {
-      if (await flushAll("Saving before leaving…")) window.location.assign(target);
+      if (await flushAll(formatMessage(defaultLocale, "sync.savingBeforeLeaving"))) window.location.assign(target);
     },
     notice: displayedNotice?.text ?? null,
     noticeTone: displayedNotice?.tone ?? "warning",
@@ -516,7 +519,7 @@ export function useScriptSync(
       return {
         async wait(signal: AbortSignal) {
           await Promise.all(reservations.map((reservation) => reservation.wait(signal)));
-          if (leavingRef.current) throw new Error("Script session changed before starting AI.");
+          if (leavingRef.current) throw new Error(formatMessage(defaultLocale, "script.sessionChanged"));
         },
         release: () => { for (const reservation of reservations) reservation.release(); },
       };

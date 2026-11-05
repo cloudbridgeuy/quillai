@@ -4,6 +4,7 @@ import { parseDelta, type Chapter, type ChapterScope, type EditorScope, type Pie
 import { sameScope } from "../manuscripts/story_tree";
 import { chapterDelta, editChapter, hasLocalChanges, receiveRevisions, sendChapter, startChapterSync, syncDocument } from "./chapter_sync";
 import { diffDocuments } from "./document_diff";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 
 type Client = ReturnType<typeof createManuscriptClient>;
 export type SyncProblem = { kind: "retrying" | "blocked"; message: string; detail?: string };
@@ -14,7 +15,7 @@ export class NoEditorChapter extends Error {}
 
 async function loadPiece(client: Client, pieceId: number): Promise<{ scope: PieceScope; chapter: EditorDocument }> {
   const piece = await client.getPiece({ pieceId });
-  if (piece.shape !== "leaf") throw new Error("Only a piece with text can open in the editor.");
+  if (piece.shape !== "leaf") throw new Error(formatMessage(defaultLocale, "sync.onlyTextPiece"));
   return {
     scope: { universeId: piece.universeId, pieceId },
     chapter: { title: piece.title, content: piece.content, head_rev: piece.headRev },
@@ -26,12 +27,12 @@ export async function loadEditorDocument(client: Client, scope: EditorScope): Pr
 }
 
 export async function bootstrapEditorChapter(client: Client): Promise<ChapterScope> {
-  const series = (await client.listSeries())[0] ?? await client.createSeries({ title: "My Series", position: 0 });
+  const series = (await client.listSeries())[0] ?? await client.createSeries({ title: formatMessage(defaultLocale, "sync.defaultSeries"), position: 0 });
   const seriesScope = { seriesId: series.id };
-  const book = (await client.listBooks(seriesScope))[0] ?? await client.createBook(seriesScope, { title: "My Book", position: 0 });
+  const book = (await client.listBooks(seriesScope))[0] ?? await client.createBook(seriesScope, { title: formatMessage(defaultLocale, "sync.defaultBook"), position: 0 });
   const bookScope = { ...seriesScope, bookId: book.id };
   const chapter = (await client.listChapters(bookScope))[0] ?? await client.createChapter(bookScope, {
-    title: "Chapter One", position: 0, kind: "chapter", content: { ops: [{ insert: "\n" }] },
+    title: formatMessage(defaultLocale, "sync.firstChapter"), position: 0, kind: "chapter", content: { ops: [{ insert: "\n" }] },
   });
   return { ...bookScope, chapterId: chapter.id };
 }
@@ -40,14 +41,14 @@ export async function loadEditorChapter(client: Client, search: string): Promise
   const params = new URLSearchParams(search);
   if (params.has("pieceId")) {
     const pieceId = Number(params.get("pieceId"));
-    if (!Number.isSafeInteger(pieceId) || pieceId <= 0) throw new Error("Piece URL requires a positive pieceId.");
+    if (!Number.isSafeInteger(pieceId) || pieceId <= 0) throw new Error(formatMessage(defaultLocale, "sync.pieceUrlInvalid"));
     return loadPiece(client, pieceId);
   }
   const keys = ["seriesId", "bookId", "chapterId"];
   if (keys.some((key) => params.has(key))) {
     const [seriesId, bookId, chapterId] = keys.map((key) => Number(params.get(key)));
     if (![seriesId, bookId, chapterId].every((id) => Number.isSafeInteger(id) && id > 0)) {
-      throw new Error("Chapter URL requires positive seriesId, bookId, and chapterId.");
+      throw new Error(formatMessage(defaultLocale, "sync.chapterUrlInvalid"));
     }
     const scope = { seriesId, bookId, chapterId };
     return { scope, chapter: await client.getChapter(scope) };
@@ -62,7 +63,7 @@ export async function loadEditorChapter(client: Client, search: string): Promise
       }
     }
   }
-  throw new NoEditorChapter("No chapter found. Create a chapter to start editing.");
+  throw new NoEditorChapter(formatMessage(defaultLocale, "sync.noChapter"));
 }
 
 export function createChapterSession(
@@ -93,7 +94,7 @@ export function createChapterSession(
   }
 
   function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : "Unknown synchronization error";
+    return error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.unknownSynchronization");
   }
 
   function rememberFailure(error: unknown, uncertainPost: boolean) {
@@ -101,8 +102,8 @@ export function createChapterSession(
     lastError = message;
     lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
     problem = uncertainPost || !(error instanceof TypeError)
-      ? { kind: "blocked", message: `Save stopped: ${message}. Export local work before reload. Do not retry an uncertain submission.` }
-      : { kind: "retrying", message: `Connection interrupted: ${message}. Local work retained; polling will retry.` };
+      ? { kind: "blocked", message: formatMessage(defaultLocale, "sync.saveStopped", { message }) }
+      : { kind: "retrying", message: formatMessage(defaultLocale, "sync.connectionInterrupted", { message }) };
     if (lastDetail) problem.detail = lastDetail;
     notify();
   }
@@ -143,7 +144,7 @@ export function createChapterSession(
     collapseFlight();
     problem = {
       kind: "retrying",
-      message: `Save stopped: ${lastError ?? "Unknown synchronization error"}. Local work retained; polling will retry.`,
+      message: formatMessage(defaultLocale, "sync.saveRetry", { message: lastError ?? formatMessage(defaultLocale, "sync.unknownSynchronization") }),
       ...(lastDetail ? { detail: lastDetail } : {}),
     };
     notify();
@@ -170,7 +171,7 @@ export function createChapterSession(
             lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
             problem = {
               kind: "retrying",
-              message: `Save stopped: ${lastError}. Local work retained; polling will retry.`,
+              message: formatMessage(defaultLocale, "sync.saveRetry", { message: lastError }),
               ...(lastDetail ? { detail: lastDetail } : {}),
             };
             notify();
@@ -218,7 +219,7 @@ export function createChapterSession(
             while (true) {
               signal.throwIfAborted();
               if (released || stopped || lastError || problem?.kind === "blocked") {
-                throw new Error(problem?.message ?? lastError ?? "Chapter session stopped.");
+                throw new Error(problem?.message ?? lastError ?? formatMessage(defaultLocale, "sync.sessionStopped"));
               }
               if (!hasLocalChanges(state)) break;
               await Promise.race([runSync(), cancelled]);
@@ -246,12 +247,12 @@ export function createChapterSession(
         await running;
         if (lastError) throw new Error(problem?.message ?? lastError);
       }
-      if (stopped || problem?.kind === "blocked") throw new Error(problem?.message ?? "Chapter session stopped.");
+      if (stopped || problem?.kind === "blocked") throw new Error(problem?.message ?? formatMessage(defaultLocale, "sync.sessionStopped"));
       if (lastError && acknowledgement === null && state.flight !== null) throw new Error(problem?.message ?? lastError);
       while (hasLocalChanges(state)) {
-        if (aiReserved) throw new Error("Cannot save chapter while AI has reserved the session.");
+        if (aiReserved) throw new Error(formatMessage(defaultLocale, "sync.aiReserved"));
         await (running ?? tick());
-        if (stopped || lastError) throw new Error(problem?.message ?? lastError ?? "Chapter session stopped.");
+        if (stopped || lastError) throw new Error(problem?.message ?? lastError ?? formatMessage(defaultLocale, "sync.sessionStopped"));
       }
     },
   };

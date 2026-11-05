@@ -14,10 +14,10 @@ export function continueClickAction(state: AiRunState): "stop" | "generate" {
     : "generate";
 }
 
-export function getSavePresentation(status: string, title: string | null, blocked: boolean) {
+export function getSavePresentation(status: string, title: string | null, blocked: boolean, syncFailed?: boolean) {
   const prefix = `${title} · `;
   const label = title !== null && status.startsWith(prefix) ? status.slice(prefix.length) : status;
-  const failed = blocked || /stopped|failed|unavailable|interrupted|retained|export/i.test(label);
+  const failed = blocked || (syncFailed ?? /stopped|failed|unavailable|interrupted|retained|export/i.test(label));
   return failed ? { label: formatMessage(defaultLocale, "editor.notSaved"), failed, detail: label } : { label, failed };
 }
 
