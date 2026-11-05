@@ -45,3 +45,40 @@ export const OpenAndClose: Story = {
     if (document.activeElement !== opener) throw new Error("focus did not return to the opener");
   },
 };
+
+function CloseCounter({ title, children }: { title: string; children: ReactNode }) {
+  const [closes, setCloses] = useState(0);
+  return (
+    <>
+      <output>{closes}</output>
+      <Modal title={title} onClose={() => setCloses((count) => count + 1)}>{children}</Modal>
+    </>
+  );
+}
+
+const closeCount = (canvasElement: HTMLElement) => canvasElement.querySelector("output")!.textContent;
+
+export const CancelEvent: Story = {
+  name: "Cancel event",
+  render: (args) => <CloseCounter title={args.title}>{args.children}</CloseCounter>,
+  play: async ({ canvasElement }) => {
+    const dialog = canvasElement.querySelector("dialog")!;
+    dialog.dispatchEvent(new Event("cancel", { bubbles: false, cancelable: true }));
+    await settle();
+    if (closeCount(canvasElement) !== "1") throw new Error("cancel did not call onClose");
+  },
+};
+
+export const BackdropClick: Story = {
+  name: "Backdrop click",
+  render: (args) => <CloseCounter title={args.title}>{args.children}</CloseCounter>,
+  play: async ({ canvasElement }) => {
+    const dialog = canvasElement.querySelector("dialog")!;
+    dialog.querySelector("h2")!.click();
+    await settle();
+    if (closeCount(canvasElement) !== "0") throw new Error("click inside the dialog closed it");
+    dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: -10, clientY: -10 }));
+    await settle();
+    if (closeCount(canvasElement) !== "1") throw new Error("backdrop click did not call onClose");
+  },
+};

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState, type ComponentProps } from "react";
 import { Alert } from "./Alert";
 
 const meta = {
@@ -9,6 +10,11 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+function DismissHarness(props: ComponentProps<typeof Alert>) {
+  const [open, setOpen] = useState(true);
+  return open ? <Alert {...props} onDismiss={() => setOpen(false)} /> : null;
+}
 
 export const ErrorPill: Story = { name: "Error" };
 
@@ -24,5 +30,16 @@ export const Dismissible: Story = {
   args: { tone: "info", onDismiss: () => {} },
   play: ({ canvasElement }) => {
     if (canvasElement.querySelector("[role=status]")?.querySelector("button[aria-label]") == null) throw new Error("dismiss button missing");
+  },
+};
+
+export const DismissCallback: Story = {
+  name: "Dismiss callback",
+  args: { tone: "info" },
+  render: (args) => <DismissHarness {...args} />,
+  play: async ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLButtonElement>("[role=status] button[aria-label]")!.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    if (canvasElement.querySelector("[role=status]") != null) throw new Error("onDismiss did not run");
   },
 };

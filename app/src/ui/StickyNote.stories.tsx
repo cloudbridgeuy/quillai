@@ -19,3 +19,14 @@ export const Green: Story = { args: { tone: "green", defaultValue: "Resolved." }
 export const Overhang: Story = { args: { overhang: true } };
 
 export const ReadOnly: Story = { name: "Read only", args: { readOnly: true, defaultValue: "This note is locked." } };
+
+export const ReadOnlyContent: Story = {
+  name: "Read only content",
+  args: { readOnly: true, defaultValue: "This note is locked." },
+  play: ({ canvasElement }) => {
+    const note = canvasElement.querySelector("textarea");
+    if (note == null) throw new Error("note did not render");
+    if (note.value !== "This note is locked.") throw new Error("note content missing");
+    if (!note.readOnly) throw new Error("note is not read only");
+  },
+};
