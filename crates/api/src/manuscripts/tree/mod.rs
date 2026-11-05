@@ -159,7 +159,7 @@ async fn get_tree(State(pool): State<SqlitePool>) -> Result<Json<Tree>, Error> {
     .fetch_all(&mut *tx)
     .await?;
     let containers = sqlx::query_as!(Container, r#"SELECT c.id AS "id!", c.universe_id, c.title, c.position, c.kind FROM containers c JOIN universes u ON u.id = c.universe_id WHERE c.deleted_at IS NULL AND u.deleted_at IS NULL ORDER BY c.position, c.id"#).fetch_all(&mut *tx).await?;
-    let pieces = sqlx::query_as!(Piece, r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces ORDER BY position, id"#).fetch_all(&mut *tx).await?;
+    let pieces = sqlx::query_as!(Piece, r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces ORDER BY position, id"#).fetch_all(&mut *tx).await?;
     tx.commit().await?;
     Ok(Json(assemble(
         series, books, chapters, universes, containers, pieces,
@@ -193,6 +193,7 @@ mod tests {
             label: "piece".into(),
             format: "prose".into(),
             shape: shape.into(),
+            timeline_point_id: None,
         }
     }
 

@@ -38,7 +38,7 @@ pub async fn place(
     }
     let moved = sqlx::query_as!(
         Piece,
-        r#"UPDATE pieces SET container_id = ?, parent_id = NULL, position = ? WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
+        r#"UPDATE pieces SET container_id = ?, parent_id = NULL, position = ? WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         input.container_id,
         input.position,
         id,
@@ -65,7 +65,7 @@ pub async fn split(
     }
     let group = sqlx::query_as!(
         Piece,
-        r#"INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape) VALUES (?, ?, ?, ?, ?, ?, 'group') RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
+        r#"INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape) VALUES (?, ?, ?, ?, ?, ?, 'group') RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         leaf.universe_id,
         leaf.container_id,
         leaf.title,

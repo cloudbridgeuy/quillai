@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE id = ?",
+  "query": "INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS \"timeline_point_id?\"",
   "describe": {
     "columns": [
       {
@@ -47,13 +47,18 @@
         "name": "shape",
         "ordinal": 8,
         "type_info": "Text"
+      },
+      {
+        "name": "timeline_point_id?",
+        "ordinal": 9,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 10
     },
     "nullable": [
-      false,
+      true,
       false,
       true,
       true,
@@ -61,8 +66,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "2ca4ecd1a165f7803360535e9e5215e3f9a5f87f9838e830880f57f90b1c2024"
+  "hash": "c66314358dbdc4bdf539800075c8ed70a4710aec87880c8d050ea3d67cb6c099"
 }

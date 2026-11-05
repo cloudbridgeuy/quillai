@@ -125,6 +125,7 @@ async fn up_maps_series_books_chapters_lore_and_revisions() {
             "lore_entries",
             "piece_revisions",
             "pieces",
+            "timeline_points",
             "universes",
             "users"
         ])

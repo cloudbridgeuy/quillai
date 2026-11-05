@@ -22,7 +22,7 @@ use crate::manuscripts::{
 pub(super) async fn piece(connection: &mut SqliteConnection, id: i64) -> Result<Piece, Error> {
     sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE id = ?"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE id = ?"#,
         id
     )
     .fetch_optional(connection)
@@ -37,7 +37,7 @@ pub(super) async fn detail(
     if piece.shape == "group" {
         let children = sqlx::query_as!(
             Piece,
-            r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE parent_id = ? ORDER BY position, id"#,
+            r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE parent_id = ? ORDER BY position, id"#,
             piece.id
         )
         .fetch_all(connection)
@@ -72,7 +72,7 @@ async fn insert_root(
     let revision = leaf.then_some(0_i64);
     sqlx::query_as!(
         Piece,
-        r#"INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
+        r#"INSERT INTO pieces (universe_id, container_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         universe_id,
         container_id,
         input.title,
@@ -101,7 +101,7 @@ pub async fn list_loose_pieces(
     existing_universe(&mut transaction, universe_id).await?;
     let pieces = sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id"#,
         universe_id
     )
     .fetch_all(&mut *transaction)
@@ -145,7 +145,7 @@ pub async fn list_container_pieces(
     container_universe(&mut transaction, container_id).await?;
     let pieces = sqlx::query_as!(
         Piece,
-        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE container_id = ? ORDER BY position, id"#,
+        r#"SELECT id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE container_id = ? ORDER BY position, id"#,
         container_id
     )
     .fetch_all(&mut *transaction)
@@ -183,7 +183,7 @@ pub async fn create_child(
     let label = input.label(&group.format);
     let child = sqlx::query_as!(
         Piece,
-        r#"INSERT INTO pieces (universe_id, parent_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (?, ?, ?, ?, ?, ?, 'leaf', ?, 0, 0) RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
+        r#"INSERT INTO pieces (universe_id, parent_id, title, position, label, format, shape, content, head_rev, snapshot_rev) VALUES (?, ?, ?, ?, ?, ?, 'leaf', ?, 0, 0) RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         group.universe_id,
         group.id,
         input.title,
@@ -218,14 +218,26 @@ pub async fn update_piece(
     let input = json_input(input)?;
     input.validate()?;
     let mut transaction = pool.begin().await?;
-    piece(&mut transaction, id).await?;
+    let existing = piece(&mut transaction, id).await?;
+    if let Some(Some(point_id)) = input.timeline_point_id {
+        crate::manuscripts::timeline::store::check_for_piece(
+            &mut transaction,
+            point_id,
+            existing.universe_id,
+        )
+        .await?;
+    }
+    let set_point = input.timeline_point_id.is_some();
+    let point_id = input.timeline_point_id.flatten();
     let piece = sqlx::query_as!(
         Piece,
-        r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format) WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape"#,
+        r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format), timeline_point_id = CASE WHEN ? THEN ? ELSE timeline_point_id END WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         input.title,
         input.position,
         input.label,
         input.format,
+        set_point,
+        point_id,
         id,
     )
     .fetch_optional(&mut *transaction)

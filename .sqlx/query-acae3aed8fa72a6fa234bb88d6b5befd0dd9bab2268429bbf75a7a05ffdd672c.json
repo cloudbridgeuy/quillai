@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE timeline_points SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "acae3aed8fa72a6fa234bb88d6b5befd0dd9bab2268429bbf75a7a05ffdd672c"
+}

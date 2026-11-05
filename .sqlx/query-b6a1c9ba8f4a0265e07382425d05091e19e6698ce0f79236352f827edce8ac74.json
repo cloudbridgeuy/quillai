@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT universe_id FROM timeline_points WHERE id = ? AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b6a1c9ba8f4a0265e07382425d05091e19e6698ce0f79236352f827edce8ac74"
+}

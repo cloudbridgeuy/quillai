@@ -300,7 +300,7 @@ async fn loose_pieces_leaves_groups_and_children() {
     assert_eq!(
         leaf,
         json!({"id": leaf["id"], "universeId": id, "containerId": null, "parentId": null,
-            "title": "Scrap", "position": 1, "label": "short_story", "format": "prose", "shape": "leaf"})
+            "title": "Scrap", "position": 1, "label": "short_story", "format": "prose", "shape": "leaf", "timelinePointId": null})
     );
     let mut detail = leaf.clone();
     detail["content"] = json!({"ops": []});

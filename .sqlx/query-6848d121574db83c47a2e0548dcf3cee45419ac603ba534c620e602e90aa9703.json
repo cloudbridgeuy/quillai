@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE pieces SET container_id = ?, parent_id = NULL, position = ? WHERE id = ? RETURNING id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape",
+  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -47,13 +47,18 @@
         "name": "shape",
         "ordinal": 8,
         "type_info": "Text"
+      },
+      {
+        "name": "timeline_point_id",
+        "ordinal": 9,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 1
     },
     "nullable": [
-      false,
+      true,
       false,
       true,
       true,
@@ -61,8 +66,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "1034183fddaf686dafbfb80d78760c06ee8a992d081daa510d9b81184f7f3496"
+  "hash": "6848d121574db83c47a2e0548dcf3cee45419ac603ba534c620e602e90aa9703"
 }

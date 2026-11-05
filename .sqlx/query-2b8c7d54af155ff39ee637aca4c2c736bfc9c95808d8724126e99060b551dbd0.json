@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format) WHERE id = ? RETURNING id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape",
+  "query": "UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format), timeline_point_id = CASE WHEN ? THEN ? ELSE timeline_point_id END WHERE id = ? RETURNING id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS \"timeline_point_id?\"",
   "describe": {
     "columns": [
       {
@@ -47,16 +47,22 @@
         "name": "shape",
         "ordinal": 8,
         "type_info": "Text"
+      },
+      {
+        "name": "timeline_point_id?",
+        "ordinal": 9,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
-      "Right": 5
+      "Right": 7
     },
     "nullable": [
       false,
       false,
       true,
-      true,
+      false,
+      false,
       false,
       false,
       false,
@@ -64,5 +70,5 @@
       false
     ]
   },
-  "hash": "885f8a2d3e979460db0a1527a88a9ef8dd8a2568a81bd17bac911fe4a6324dfb"
+  "hash": "2b8c7d54af155ff39ee637aca4c2c736bfc9c95808d8724126e99060b551dbd0"
 }

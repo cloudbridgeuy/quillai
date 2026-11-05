@@ -19,6 +19,7 @@ pub struct Piece {
     pub label: String,
     pub format: String,
     pub shape: String,
+    pub timeline_point_id: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -81,13 +82,24 @@ pub struct Attach {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdatePiece {
     pub title: Option<String>,
     pub position: Option<i64>,
     pub label: Option<String>,
     pub format: Option<String>,
+    /// Absent leaves the point alone, null clears it, a number sets it.
+    #[serde(default, deserialize_with = "present")]
+    pub timeline_point_id: Option<Option<i64>>,
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+fn present<'de, D>(deserializer: D) -> Result<Option<Option<i64>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<i64>::deserialize(deserializer).map(Some)
 }
 
 pub const EMPTY_DELTA: &str = r#"{"ops":[]}"#;

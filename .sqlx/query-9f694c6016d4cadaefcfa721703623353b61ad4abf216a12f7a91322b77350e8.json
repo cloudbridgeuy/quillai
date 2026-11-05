@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE timeline_points SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL AND universe_id IN (SELECT id FROM universes WHERE deleted_at IS NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "9f694c6016d4cadaefcfa721703623353b61ad4abf216a12f7a91322b77350e8"
+}

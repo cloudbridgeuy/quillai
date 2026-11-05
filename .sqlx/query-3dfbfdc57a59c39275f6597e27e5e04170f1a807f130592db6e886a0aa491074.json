@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape FROM active_pieces WHERE universe_id = ? AND container_id IS NULL AND parent_id IS NULL ORDER BY position, id",
+  "query": "SELECT id AS \"id!\", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id FROM active_pieces WHERE container_id = ? ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,11 @@
         "name": "shape",
         "ordinal": 8,
         "type_info": "Text"
+      },
+      {
+        "name": "timeline_point_id",
+        "ordinal": 9,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -61,8 +66,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "2246857d7d8b34529cfbc118f6aa33f9b3d92e224725149eab4025d3e4760992"
+  "hash": "3dfbfdc57a59c39275f6597e27e5e04170f1a807f130592db6e886a0aa491074"
 }
