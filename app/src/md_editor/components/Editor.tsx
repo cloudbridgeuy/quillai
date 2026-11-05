@@ -1,4 +1,5 @@
 import Quill from "quill";
+import { useRestoreOutlineFocus } from "./outline_focus";
 import type { LoreMatchEntry } from "../lore_match";
 import { Delta } from "quill/core";
 import "quill/dist/quill.snow.css";
@@ -431,6 +432,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const visuallyReady = (chapterSync.ready && !(creating && showBusy)) || (switching && !showBusy);
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
+  const outlineRef = useRef<HTMLDivElement>(null);
+  useRestoreOutlineFocus(outlineRef, pending);
   const tabTitle = getTabTitle(chapterSync.title, visuallyReady);
   useEffect(() => {
     document.title = tabTitle;
@@ -1442,7 +1445,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <div className="editor-drawer-header">
           <Heading level="section" id="manuscript-title">{formatMessage(defaultLocale, "editor.manuscript")}</Heading>
         </div>
-        <div className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label={formatMessage(defaultLocale, "editor.manuscriptOutline")} tabIndex={0}>
+        <div ref={outlineRef} className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label={formatMessage(defaultLocale, "editor.manuscriptOutline")} tabIndex={0}>
           <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} disabled={isBusy || (!visuallyReady && !chapterSync.needsChapter) || chapterSync.blocked} busy={creating ? showBusy : true}
             onCreatePending={setCreatePending} onLeave={target => chapterSync.leave(target)}
             onRename={(kind, id, title) => {
