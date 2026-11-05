@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import * as messages from "./messages";
 import { en, es, formatMessage, type MessageCatalog } from "./messages";
 
 test("plural forms in english and spanish", () => {
@@ -141,4 +142,69 @@ test("UI placeholders preserve English text and raw counts", () => {
   expect(formatMessage("en", "landing.deleted.chapters", { count: 1, countText: "1" })).toBe("1 chapters");
   expect(formatMessage("es", "landing.deleted.chapters", { count: 1, countText: "1" })).toBe("1 capítulo");
   expect(formatMessage("es", "landing.deleted.pieces", { count: 2, countText: "2" })).toBe("2 textos");
+});
+
+test.each([
+  ["tree.renameFailed", "Could not rename item."], ["tree.rename", "Rename '{title}'"],
+  ["tree.delete", "Delete '{title}'"], ["tree.actionFailed", "Action failed."],
+  ["tree.returnFailed", "Item deleted, but returning to the library failed: {message} Use Undo to restore it."], ["tree.restoreFailed", "Could not restore item."],
+  ["tree.createFailed", "Could not create manuscript item."], ["tree.kind", "Kind"],
+  ["tree.label", "Label"], ["tree.format", "Format"],
+  ["tree.script", "Script"], ["tree.prose", "Prose"],
+  ["tree.create", "Create"], ["tree.cancel", "Cancel"],
+  ["tree.loadFailed", "Could not load manuscript."], ["tree.loading", "Loading manuscript…"],
+  ["tree.retry", "Try loading again"], ["tree.noScenes", "No scenes yet."],
+  ["tree.noChapters", "No chapters yet."], ["tree.deleted", "Deleted '{title}'."],
+  ["tree.undo", "Undo"], ["tree.noUniverses", "No universes yet."],
+  ["tree.noWorks", "No works yet."], ["tree.noPieces", "No pieces yet."],
+  ["tree.create.loosePiece", "Loose piece"], ["tree.create.chapter", "Chapter"],
+  ["tree.create.chapter.title", "Chapter title"], ["tree.create.chapter.creating", "Creating chapter…"],
+  ["tree.create.scene", "Scene"], ["tree.create.scene.title", "Scene title"],
+  ["tree.create.scene.creating", "Creating scene…"], ["tree.create.universe", "Universe"],
+  ["tree.create.universe.title", "Universe title"], ["tree.create.universe.creating", "Creating universe…"],
+  ["tree.create.container", "Container"], ["tree.create.container.title", "Container title"],
+  ["tree.create.container.creating", "Creating container…"], ["tree.create.piece", "Piece"],
+  ["tree.create.piece.title", "Piece title"], ["tree.create.piece.creating", "Creating piece…"],
+  ["tree.create.item", "Item"], ["tree.create.item.title", "Item title"],
+  ["tree.create.item.creating", "Creating item…"], ["lore.saveFailed", "Could not save lore."],
+  ["lore.series", "Series lore"], ["lore.loading", "Loading lore…"],
+  ["lore.retry", "Retry lore"], ["lore.empty", "No lore yet."],
+  ["lore.pinned", " · pinned"], ["lore.new", "New lore"],
+  ["lore.create", "Create lore"], ["lore.edit", "Edit lore"],
+  ["lore.delete", "Delete lore"], ["lore.save", "Save lore"],
+  ["lore.name", "Name"], ["lore.keywords", "Keywords (one per line)"],
+  ["lore.aliases", "Aliases (one per line)"], ["lore.visible", "Visible text (AI context)"],
+  ["lore.hidden", "Hidden notes — author-only, never sent to AI"], ["lore.requests", "In AI requests"],
+  ["lore.include", "Include"], ["lore.known", "Known, don't reveal"],
+  ["lore.leaveOut", "Leave out"], ["lore.pin", "Pin in AI context"],
+  ["lore.kind.character", "character"], ["lore.kind.place", "place"],
+  ["lore.kind.term", "term"], ["lore.kind.note", "note"],
+  ["lore.window.title", "Lore in window"], ["lore.window.context", "Continue context · includes pins · excludes leave out and budget skips."],
+  ["lore.window.empty", "No lore in window."], ["lore.window.match", "Lore match"],
+  ["lore.window.matches", "{countText} matches"], ["lore.window.noVisible", "No visible text."],
+  ["lore.window.shortcut", "Alt+L opens · Esc closes"],
+])("tree and lore message %s preserves exact English and has Spanish", (key, english) => {
+  expect(Object.hasOwn(en, key)).toBe(true);
+  expect(Object.hasOwn(es, key)).toBe(true);
+  expect(formatMessage("en", key)).toBe(english);
+});
+
+test("tree and lore placeholders preserve assembled English", () => {
+  expect(formatMessage("en", "tree.rename", { title: "Ada's {draft}" })).toBe("Rename 'Ada's {draft}'");
+  expect(formatMessage("en", "tree.delete", { title: "Draft" })).toBe("Delete 'Draft'");
+  expect(formatMessage("en", "tree.deleted", { title: "Draft" })).toBe("Deleted 'Draft'.");
+  expect(formatMessage("en", "tree.returnFailed", { message: "offline" })).toBe("Item deleted, but returning to the library failed: offline Use Undo to restore it.");
+  for (const count of [0, 1, 1000]) expect(formatMessage("en", "lore.window.matches", { count, countText: String(count) })).toBe(`${count} matches`);
+  expect(formatMessage("es", "lore.window.matches", { count: 1, countText: "1" })).toBe("1 coincidencia");
+  expect(formatMessage("es", "lore.window.matches", { count: 1000, countText: "1000" })).toBe("1000 coincidencias");
+});
+
+test.each(["Chapter", "Scene", "Universe", "Container", "Piece", "unknown", "toString"])("creation messages select full labels for %s", noun => {
+  const known = ["Chapter", "Scene", "Universe", "Container", "Piece"].includes(noun);
+  const name = known ? noun : "Item";
+  const keys = messages.treeCreateMessageKeys(noun);
+  expect(formatMessage("en", keys.button)).toBe(name);
+  expect(formatMessage("en", keys.title)).toBe(`${name} title`);
+  expect(formatMessage("en", keys.creating)).toBe(`Creating ${name.toLowerCase()}…`);
+  expect(formatMessage("es", keys.title)).toBe(name === "Scene" ? "Título de la escena" : name === "Chapter" ? "Título del capítulo" : name === "Universe" ? "Título del universo" : name === "Container" ? "Título del contenedor" : name === "Piece" ? "Título del texto" : "Título del elemento");
 });

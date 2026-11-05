@@ -1,3 +1,4 @@
+import { defaultLocale, formatMessage } from "../../i18n/messages";
 import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
 import { Heading } from "../../ui/Heading";
@@ -83,10 +84,10 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
   });
 
   const rect = selected?.range.getBoundingClientRect();
-  return <section className="editor-preview-section" aria-label="Lore in window">
-    <Heading level="section" as="h3">Lore in window</Heading>
-    <p className="editor-note">Continue context · includes pins · excludes leave out and budget skips.</p>
-    {lore.injected.length === 0 ? <p>No lore in window.</p> : <ul className="editor-lore-window">
+  return <section className="editor-preview-section" aria-label={formatMessage(defaultLocale, "lore.window.title")}>
+    <Heading level="section" as="h3">{formatMessage(defaultLocale, "lore.window.title")}</Heading>
+    <p className="editor-note">{formatMessage(defaultLocale, "lore.window.context")}</p>
+    {lore.injected.length === 0 ? <p>{formatMessage(defaultLocale, "lore.window.empty")}</p> : <ul className="editor-lore-window">
       {lore.injected.map(entry => {
         const mark = marks.find(match => match.entry.id === entry.id);
         const open = selected?.entry.id === entry.id && !!rect;
@@ -98,17 +99,17 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
               setActive({ id: mark.entry.id, start: mark.start });
             }
           }}
-          role="dialog" aria-label="Lore match" className="editor-lore-card"
+          role="dialog" aria-label={formatMessage(defaultLocale, "lore.window.match")} className="editor-lore-card"
           trigger={<ListButton tone="lore" onMouseDown={event => event.preventDefault()} disabled={entry.occurrences.length === 0}>
-            <strong>{entry.name}</strong><span>{entry.occurrences.length} matches</span>
-            <small>{entry.kind}{entry.reason === "pinned" ? " · pinned" : ""}</small><small>{loreLevel(entry.level)}</small>
+            <strong>{entry.name}</strong><span>{formatMessage(defaultLocale, "lore.window.matches", { count: entry.occurrences.length, countText: String(entry.occurrences.length) })}</span>
+            <small>{entry.kind}{entry.reason === "pinned" ? formatMessage(defaultLocale, "lore.pinned") : ""}</small><small>{loreLevel(entry.level)}</small>
           </ListButton>}>
           {selected ? card(selected) : null}
         </Popover></li>;
       })}
     </ul>}
     {selected && rect && !lore.injected.some(entry => entry.id === selected.entry.id) ? <Popover open anchor={{ left: rect.left, top: rect.bottom }}
-      onOpenChange={open => { if (!open) setActive(null); }} role="dialog" aria-label="Lore match" className="editor-lore-card">
+      onOpenChange={open => { if (!open) setActive(null); }} role="dialog" aria-label={formatMessage(defaultLocale, "lore.window.match")} className="editor-lore-card">
       {card(selected)}
     </Popover> : null}
   </section>;
@@ -116,10 +117,10 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
 
 function card(selected: Mark) {
   return <>
-    <span className="editor-lore-flag">Lore match</span>
+    <span className="editor-lore-flag">{formatMessage(defaultLocale, "lore.window.match")}</span>
     <h3>{selected.entry.name}</h3>
     <p>{selected.entry.kind} · {loreLevel(selected.entry.level)}</p>
-    <p className="editor-lore-visible">{selected.entry.visible_text || "No visible text."}</p>
-    <small>Alt+L opens · Esc closes</small>
+    <p className="editor-lore-visible">{selected.entry.visible_text || formatMessage(defaultLocale, "lore.window.noVisible")}</p>
+    <small>{formatMessage(defaultLocale, "lore.window.shortcut")}</small>
   </>;
 }

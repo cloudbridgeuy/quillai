@@ -1,3 +1,4 @@
+import { defaultLocale, formatMessage, treeCreateMessageKeys } from "../../i18n/messages";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { ButtonLink } from "../../ui/ButtonLink";
@@ -81,14 +82,14 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
       onChange?.();
       editRename(null);
     } catch (error) {
-      editRename({ ...value, error: error instanceof Error ? error.message : "Could not rename item." });
+      editRename({ ...value, error: error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.renameFailed") });
     }
   }
 
   function rowTitle(kind: RenameKind, id: number, content: ReactNode) {
     if (!rename || rename.kind !== kind || rename.id !== id) return content;
     return <>
-      <TextField square autoFocus aria-label={`Rename '${rename.current}'`} value={rename.input} disabled={locked} aria-invalid={Boolean(rename.error)}
+      <TextField square autoFocus aria-label={formatMessage(defaultLocale, "tree.rename", { title: rename.current })} value={rename.input} disabled={locked} aria-invalid={Boolean(rename.error)}
         onClick={event => event.stopPropagation()} onChange={event => editRename({ ...rename, input: event.target.value, error: "" })}
         onBlur={() => void saveRename()} onKeyDown={event => {
           event.stopPropagation();
@@ -121,8 +122,8 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
       if (affected && onDelete) return await onDelete(removeItem, path, title);
       await removeItem();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Action failed.";
-      setDeleteError(removed ? `Item deleted, but returning to the library failed: ${message} Use Undo to restore it.` : message);
+      const message = error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.actionFailed");
+      setDeleteError(removed ? formatMessage(defaultLocale, "tree.returnFailed", { message }) : message);
     } finally {
       deleteBusy.current = false;
       setDeleting(false);
@@ -130,9 +131,9 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
   }
 
   function deleteButton(title: string, path: string, action: () => Promise<void>, affected: boolean, target?: RenameTarget) {
-    return <><IconButton className="tree-delete" tabIndex={0} label={`Delete '${title}'`} glyph={<svg aria-hidden="true" className="mx-auto size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>}
+    return <><IconButton className="tree-delete" tabIndex={0} label={formatMessage(defaultLocale, "tree.delete", { title })} glyph={<svg aria-hidden="true" className="mx-auto size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>}
       disabled={locked} onClick={event => { event.preventDefault(); event.stopPropagation(); void remove(title, path, action, affected); }} />
-      {target ? <IconButton className="tree-delete tree-rename" label={`Rename '${title}'`} glyph="✎" disabled={locked}
+      {target ? <IconButton className="tree-delete tree-rename" label={formatMessage(defaultLocale, "tree.rename", { title })} glyph="✎" disabled={locked}
         onClick={event => { event.preventDefault(); event.stopPropagation(); editRename({ ...target, current: title, input: title, pending: false, error: "" }); }} /> : null}</>;
   }
 
@@ -151,7 +152,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
       setAttempt(value => value + 1);
       onChange?.();
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Could not restore item.");
+      setDeleteError(error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.restoreFailed"));
     } finally {
       deleteBusy.current = false;
       setDeleting(false);
@@ -223,17 +224,18 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
       if (opened) onSelect(opened, opensScript);
       dispatch({ type: "created" });
     } catch (error) {
-      dispatch({ type: "failed", message: error instanceof Error ? error.message : "Could not create manuscript item." });
+      dispatch({ type: "failed", message: error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.createFailed") });
     } finally {
       submitting.current = false;
       if (opensChapter) onCreatePending?.(false);
     }
   }
 
-  function createAction(target: CreateTarget, button: string, noun: string) {
+  function createAction(target: CreateTarget, noun: string, loose = false) {
+    const keys = treeCreateMessageKeys(noun);
     const active = draft && draftKey === JSON.stringify(target);
     if (!active) return <ListButton tone="tree" disabled={locked}
-      onClick={() => dispatch({ type: "start", target })}>+ {button}</ListButton>;
+      onClick={() => dispatch({ type: "start", target })}>+ {formatMessage(defaultLocale, loose ? "tree.create.loosePiece" : keys.button)}</ListButton>;
     const labels = labelOptions(target);
     return <form data-manuscript-draft className="flex scroll-my-2 flex-col gap-2" onSubmit={event => { event.preventDefault(); void create(); }}
       onKeyDown={event => {
@@ -244,35 +246,35 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
         }
         if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault();
       }}>
-      <TextField square autoFocus aria-label={`${noun} title`} placeholder={`${noun} title`} value={draft.fields.title}
+      <TextField square autoFocus aria-label={formatMessage(defaultLocale, keys.title)} placeholder={formatMessage(defaultLocale, keys.title)} value={draft.fields.title}
         disabled={locked} aria-invalid={Boolean(draft.error)}
         onChange={event => dispatch({ type: "edit", fields: { title: event.target.value } })} />
-      {target.kind === "container" ? <Field label="Kind">
+      {target.kind === "container" ? <Field label={formatMessage(defaultLocale, "tree.kind")}>
         <TextField as="select" square value={draft.fields.containerKind} disabled={locked}
           onChange={event => dispatch({ type: "edit", fields: { containerKind: containerKinds.find(kind => kind === event.target.value) } })}>
           {containerKinds.map(kind => <option key={kind} value={kind}>{containerKindLabel[kind]}</option>)}
         </TextField>
       </Field> : null}
       <div className={target.kind === "piece" ? "grid grid-cols-2 gap-2" : "contents"}>
-      {labels.length ? <Field label="Label">
+      {labels.length ? <Field label={formatMessage(defaultLocale, "tree.label")}>
         <TextField as="select" square value={draft.fields.label} disabled={locked}
           onChange={event => dispatch({ type: "edit", fields: { label: labels.find(label => label === event.target.value) } })}>
           {labels.map(label => <option key={label} value={label}>{labelNames[label]}</option>)}
         </TextField>
       </Field> : null}
-      {target.kind === "piece" ? <Field label="Format">
+      {target.kind === "piece" ? <Field label={formatMessage(defaultLocale, "tree.format")}>
         <TextField as="select" square value={draft.fields.format} disabled={locked}
           onChange={event => dispatch({ type: "edit", fields: { format: formats.find(format => format === event.target.value) } })}>
-          {formats.map(format => <option key={format} value={format}>{format === "script" ? "Script" : "Prose"}</option>)}
+          {formats.map(format => <option key={format} value={format}>{formatMessage(defaultLocale, format === "script" ? "tree.script" : "tree.prose")}</option>)}
         </TextField>
       </Field> : null}
       </div>
       <div className="flex gap-2">
-        <Button type="submit" variant="primary" size="sm" disabled={locked}>Create</Button>
-        <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>Cancel</Button>
+        <Button type="submit" variant="primary" size="sm" disabled={locked}>{formatMessage(defaultLocale, "tree.create")}</Button>
+        <Button size="sm" disabled={locked} onClick={() => dispatch({ type: "cancel" })}>{formatMessage(defaultLocale, "tree.cancel")}</Button>
       </div>
       {draft.error ? <Alert tone="error" variant="inline">{draft.error}</Alert> : null}
-      {draft.pending && busy ? <p role="status">Creating {noun.toLowerCase()}…</p> : null}
+      {draft.pending && busy ? <p role="status">{formatMessage(defaultLocale, keys.creating)}</p> : null}
     </form>;
   }
 
@@ -282,15 +284,15 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
     client.getTree().then(({ series, universes }) => {
       if (active) setState({ status: "ready", series, universes });
     }).catch((error: unknown) => {
-      if (active) setState({ status: "failed", message: error instanceof Error ? error.message : "Could not load manuscript." });
+      if (active) setState({ status: "failed", message: error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.loadFailed") });
     });
     return () => { active = false; };
   }, [client, attempt]);
 
-  if (state.status === "loading") return <p role="status">Loading manuscript…</p>;
+  if (state.status === "loading") return <p role="status">{formatMessage(defaultLocale, "tree.loading")}</p>;
   if (state.status === "failed") return <Alert tone="error" variant="inline">
     <p>{state.message}</p>
-    <Button onClick={() => setAttempt((value) => value + 1)}>Try loading again</Button>
+    <Button onClick={() => setAttempt((value) => value + 1)}>{formatMessage(defaultLocale, "tree.retry")}</Button>
   </Alert>;
 
   const series = state.series;
@@ -320,10 +322,10 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
         <summary className="tree-row">{rowTitle("piece", piece.id, piece.format === "script" ? <ListButton tone="tree" disabled={locked}
           pressed={sameScope(selectedChapter, { universeId: story.id, pieceId: piece.id })}
           onClick={() => onSelect({ universeId: story.id, pieceId: piece.id }, true)}>{piece.title}</ListButton> : piece.title)}{deleteButton(piece.title, `/pieces/${piece.id}`, () => client.deletePiece({ pieceId: piece.id }), includesPiece(piece), pieceRename(piece))}</summary>
-        {piece.children.length === 0 ? <p>{piece.format === "script" ? "No scenes yet." : "No chapters yet."}</p> : <ul>
+        {piece.children.length === 0 ? <p>{formatMessage(defaultLocale, piece.format === "script" ? "tree.noScenes" : "tree.noChapters")}</p> : <ul>
           {piece.children.map((child) => <li key={`piece-${child.id}`} className="tree-row">{pieceButton(story, child)}{deleteButton(child.title, `/pieces/${child.id}`, () => client.deletePiece({ pieceId: child.id }), activeScript === piece.id || sameScope(selectedChapter, pieceScope(story, child)), pieceRename(child))}</li>)}
         </ul>}
-        {createAction({ kind: "child", universeId: story.id, pieceId: piece.id, format: piece.format }, noun, noun)}
+        {createAction({ kind: "child", universeId: story.id, pieceId: piece.id, format: piece.format }, noun)}
       </details>}
     </li>;
   }
@@ -333,7 +335,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
     return (series.find(item => item.id === container.id)?.books ?? []).map((book) => <li key={`book-${book.id}`}>
       <details open>
         <summary className="tree-row">{rowTitle("book", book.id, book.title)}{deleteButton(book.title, `/series/${container.id}/books/${book.id}`, () => client.deleteBook({ seriesId: container.id, bookId: book.id }), Boolean(selectedChapter && "bookId" in selectedChapter && selectedChapter.seriesId === container.id && selectedChapter.bookId === book.id), { kind: "book", id: book.id, save: title => client.updateBook({ seriesId: container.id, bookId: book.id }, { title }) })}</summary>
-        {book.chapters.length === 0 ? <p>No chapters yet.</p> : <ul>
+        {book.chapters.length === 0 ? <p>{formatMessage(defaultLocale, "tree.noChapters")}</p> : <ul>
           {book.chapters.map((chapter) => <li key={chapter.id} className="tree-row">
             {rowTitle("chapter", chapter.id, <ListButton tone="tree" disabled={locked}
               pressed={sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id })}
@@ -341,41 +343,41 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
             {deleteButton(chapter.title, `/series/${container.id}/books/${book.id}/chapters/${chapter.id}`, () => client.deleteChapter({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }), sameScope(selectedChapter, { seriesId: container.id, bookId: book.id, chapterId: chapter.id }), { kind: "chapter", id: chapter.id, save: title => client.updateChapter({ seriesId: container.id, bookId: book.id, chapterId: chapter.id }, { title }) })}
           </li>)}
         </ul>}
-        {createAction({ kind: "chapter", seriesId: container.id, bookId: book.id }, "Chapter", "Chapter")}
+        {createAction({ kind: "chapter", seriesId: container.id, bookId: book.id }, "Chapter")}
       </details>
     </li>);
   }
 
   return <>
     {deleteError ? <Alert tone="error" variant="inline">{deleteError}</Alert> : null}
-    {deleted ? <Alert tone="success" variant="inline">Deleted '{deleted.title}'. <Button size="sm" disabled={locked} onClick={() => void undo()}>Undo</Button>{" "}
+    {deleted ? <Alert tone="success" variant="inline">{formatMessage(defaultLocale, "tree.deleted", { title: deleted.title })} <Button size="sm" disabled={locked} onClick={() => void undo()}>{formatMessage(defaultLocale, "tree.undo")}</Button>{" "}
       <ButtonLink size="sm" aria-disabled={disabled || deleting} href={(() => { const url = landingUrl(window.location.href); url.searchParams.delete("deleted"); url.searchParams.delete("deletedTitle"); url.hash = "recently-deleted"; return url.toString(); })()}
         onClick={event => {
           if (!disabled && !deleting && !onLeave) return;
           event.preventDefault();
           if (!disabled && !deleting && onLeave) void onLeave(new URL(event.currentTarget.href));
-        }}>Recently deleted</ButtonLink></Alert> : null}
+        }}>{formatMessage(defaultLocale, "landing.deleted.title")}</ButtonLink></Alert> : null}
     <div ref={treeRef} className="editor-manuscript-tree">
-    {createAction({ kind: "universe" }, "Universe", "Universe")}
-    {state.universes.length === 0 ? <p>No universes yet.</p> : <ul>
+    {createAction({ kind: "universe" }, "Universe")}
+    {state.universes.length === 0 ? <p>{formatMessage(defaultLocale, "tree.noUniverses")}</p> : <ul>
       {universes.map(({ universe, open }) => <li key={`universe-${universe.id}`}>
         <details open={open || createdUniverses.includes(universe.id)}>
           <summary className="tree-row">{universe.title}{deleteButton(universe.title, `/universes/${universe.id}`, () => client.deleteUniverse({ universeId: universe.id }), Boolean(selectedChapter && ("universeId" in selectedChapter ? selectedChapter.universeId === universe.id : universe.containers.some(container => container.id === selectedChapter.seriesId))))}</summary>
-          {universe.containers.length === 0 && universe.loose.length === 0 ? <p>No works yet.</p> : <ul>
+          {universe.containers.length === 0 && universe.loose.length === 0 ? <p>{formatMessage(defaultLocale, "tree.noWorks")}</p> : <ul>
             {universe.containers.map((container) => {
               const items = [...bookItems(container), ...pieceRoots(container).map((piece) => rootItem(universe, piece))];
               return <li key={`container-${container.id}`}>
                 <details open>
                   <summary className="tree-row">{container.kind === "book_series" ? rowTitle("series", container.id, container.title) : container.title} · {containerKindLabel[container.kind]}{deleteButton(container.title, container.kind === "book_series" ? `/series/${container.id}` : `/containers/${container.id}`, () => container.kind === "book_series" ? client.deleteSeries({ seriesId: container.id }) : client.deleteContainer({ containerId: container.id }), Boolean(selectedChapter && ("seriesId" in selectedChapter ? selectedChapter.seriesId === container.id : container.pieces.some(includesPiece))), container.kind === "book_series" ? { kind: "series", id: container.id, save: title => client.updateSeries({ seriesId: container.id }, { title }) } : undefined)}</summary>
-                  {items.length === 0 ? <p>No pieces yet.</p> : <ul>{items}</ul>}
-                  {createAction({ kind: "piece", universeId: universe.id, container: { id: container.id, kind: container.kind } }, "Piece", "Piece")}
+                  {items.length === 0 ? <p>{formatMessage(defaultLocale, "tree.noPieces")}</p> : <ul>{items}</ul>}
+                  {createAction({ kind: "piece", universeId: universe.id, container: { id: container.id, kind: container.kind } }, "Piece")}
                 </details>
               </li>;
             })}
             {universe.loose.map((piece) => rootItem(universe, piece))}
           </ul>}
-          {createAction({ kind: "container", universeId: universe.id }, "Container", "Container")}
-          {createAction({ kind: "piece", universeId: universe.id, container: null }, "Loose piece", "Piece")}
+          {createAction({ kind: "container", universeId: universe.id }, "Container")}
+          {createAction({ kind: "piece", universeId: universe.id, container: null }, "Piece", true)}
         </details>
       </li>)}
     </ul>}
