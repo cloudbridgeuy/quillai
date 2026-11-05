@@ -1,8 +1,13 @@
 import { expect, test, type Locator, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-function row(scope: Locator, page: Page, summary: string): Locator {
-  return scope.locator("li").filter({ has: page.locator("summary", { hasText: new RegExp(`^${summary}$`) }) }).last();
+function row(scope: Locator, page: Page, title: string): Locator {
+  return scope.locator("li").filter({ has: page.getByRole("button", { name: `Delete '${title}'`, exact: true }) }).last();
+}
+
+function summaryTitles(scope: Locator): Promise<string[]> {
+  return scope.locator("summary").evaluateAll(rows => rows.map(row => Array.from(row.childNodes)
+    .filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join("").trim()));
 }
 
 for (const width of [1100, 1440]) {
@@ -59,8 +64,9 @@ for (const width of [1100, 1440]) {
       await outline.getByRole("textbox", { name: "Container title", exact: true }).fill(name);
       await outline.getByRole("combobox", { name: "Kind", exact: true }).selectOption(kind);
       await outline.getByRole("button", { name: "Create", exact: true }).click();
-      const created = row(universe, page, `${name} · ${kindLabel}`);
+      const created = row(universe, page, name);
       await expect(created).toBeVisible();
+      await expect.poll(() => summaryTitles(created)).toEqual([`${name} · ${kindLabel}`]);
       return created;
     };
     const rootPiece = async (parent: Locator, name: string, label?: string) => {
@@ -134,7 +140,7 @@ for (const width of [1100, 1440]) {
     for (const name of ["Loose note", "Saga one", "Anthology one", "Pilot"]) {
       await expect(reloaded.getByRole("button", { name, exact: true })).toBeVisible();
     }
-    await expect(reloaded.locator("summary")).toHaveText([
+    await expect.poll(() => summaryTitles(reloaded)).toEqual([
       title, "Saga · Book series", "Saga novel", "Anthology · Collection", "Anthology novel", "Show · TV series",
     ]);
     await expect(reloaded.getByRole("button", { name: "Pilot", exact: true })).toHaveAttribute("aria-pressed", "true");

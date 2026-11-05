@@ -1,5 +1,10 @@
-import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expect, test, type Locator } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+
+function summaryTitles(scope: Locator): Promise<string[]> {
+  return scope.locator("summary").evaluateAll(rows => rows.map(row => Array.from(row.childNodes)
+    .filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join("").trim()));
+}
 
 for (const width of [1100, 1440]) {
   test(`create universe, book series, novel and chapters and save before opening at ${width}px`, async ({ page, request }, testInfo) => {
@@ -52,8 +57,8 @@ for (const width of [1100, 1440]) {
     await expect(outline.getByRole("combobox", { name: "Kind", exact: true })).toHaveValue("book_series");
     await outline.getByRole("textbox", { name: "Container title", exact: true }).fill(title);
     await outline.getByRole("textbox", { name: "Container title", exact: true }).press("Enter");
-    const seriesRow = universeRow.locator("li").filter({ has: page.locator("summary", { hasText: `${title} · Book series` }) }).first();
-    await expect(seriesRow.locator("summary").first()).toHaveText(`${title} · Book series`);
+    const seriesRow = universeRow.locator("li").filter({ has: page.getByRole("button", { name: `Rename '${title}'`, exact: true }) }).first();
+    await expect.poll(() => summaryTitles(seriesRow)).toEqual([`${title} · Book series`]);
     const [series] = await (await request.get(`${api}/universes/${universes.at(-1).id}/containers`)).json();
     expect(series).toMatchObject({ title, kind: "book_series", position: 0 });
     expect(await (await request.get(`${api}/series/${series.id}`)).json()).toMatchObject({ id: series.id, title, position: 0 });
@@ -62,7 +67,7 @@ for (const width of [1100, 1440]) {
     await expect(outline.getByRole("combobox", { name: "Label", exact: true })).toHaveValue("novel");
     await outline.getByRole("textbox", { name: "Piece title", exact: true }).fill("New book");
     await outline.getByRole("textbox", { name: "Piece title", exact: true }).press("Enter");
-    await expect(seriesRow.locator("summary")).toHaveText([`${title} · Book series`, "New book"]);
+    await expect.poll(() => summaryTitles(seriesRow)).toEqual([`${title} · Book series`, "New book"]);
     const books = await (await request.get(base)).json();
     expect(books).toMatchObject([{ title: "New book", position: 0 }]);
     const chaptersUrl = `${base}/${books[0].id}/chapters`;
@@ -103,7 +108,7 @@ for (const width of [1100, 1440]) {
     await expect(page.locator(".editor-chapter-title")).toHaveText("Second chapter");
     await expect(page.locator(".ql-editor")).toHaveText("New chapter survives reload.");
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
-    await expect(seriesRow.locator("summary")).toHaveText([`${title} · Book series`, "New book"]);
+    await expect.poll(() => summaryTitles(seriesRow)).toEqual([`${title} · Book series`, "New book"]);
     await expect(seriesRow.getByRole("button", { name: /^(First|Second) chapter$/ })).toHaveText(["First chapter", "Second chapter"]);
     await expect(seriesRow.getByRole("button", { name: "Second chapter", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(outline.getByRole("button", { name: "+ Universe", exact: true })).toBeVisible();

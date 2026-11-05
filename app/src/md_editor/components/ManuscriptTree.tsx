@@ -89,7 +89,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
   function rowTitle(kind: RenameKind, id: number, content: ReactNode) {
     if (!rename || rename.kind !== kind || rename.id !== id) return content;
     return <>
-      <TextField square autoFocus aria-label={formatMessage(defaultLocale, "tree.rename", { title: rename.current })} value={rename.input} disabled={locked} aria-invalid={Boolean(rename.error)}
+      <TextField square autoFocus data-manuscript-draft aria-label={formatMessage(defaultLocale, "tree.rename", { title: rename.current })} value={rename.input} disabled={locked} aria-invalid={Boolean(rename.error)}
         onClick={event => event.stopPropagation()} onChange={event => editRename({ ...rename, input: event.target.value, error: "" })}
         onBlur={() => void saveRename()} onKeyDown={event => {
           event.stopPropagation();
