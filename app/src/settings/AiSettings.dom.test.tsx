@@ -6,7 +6,7 @@ import { createSettingsClient } from "./client";
 afterEach(cleanup);
 
 test.each([false, true])("Remove reflects a saved key (%s)", async (keySet) => {
-  const settings = { base_url: null, model: null, key_set: keySet, sources: { base_url: "none", model: "none", api_key: keySet ? "saved" : "none" } };
+  const settings = { base_url: null, generate_model: null, edit_model: null, key_set: keySet, sources: { base_url: "none", generate_model: "none", edit_model: "none", api_key: keySet ? "saved" : "none" } };
   const updates: unknown[] = [];
   const client = createSettingsClient({ fetch: async (_url, init) => {
     if (init?.method === "PUT") updates.push(JSON.parse(String(init.body)));

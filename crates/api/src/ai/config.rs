@@ -1,3 +1,4 @@
+use super::models::AiAction;
 use super::provider::OpenAiCompatibleConfig;
 use crate::error::Error;
 use serde::Serialize;
@@ -6,7 +7,8 @@ use serde::Serialize;
 pub struct SavedSettings {
     pub base_url: Option<String>,
     pub api_key: Option<String>,
-    pub model: Option<String>,
+    pub generate_model: Option<String>,
+    pub edit_model: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -21,13 +23,15 @@ pub enum Source {
 pub struct Sources {
     pub base_url: Source,
     pub api_key: Source,
-    pub model: Source,
+    pub generate_model: Source,
+    pub edit_model: Source,
 }
 
 pub struct Resolved {
     pub base_url: Option<String>,
     pub api_key: Option<String>,
-    pub model: Option<String>,
+    pub generate_model: Option<String>,
+    pub edit_model: Option<String>,
     pub sources: Sources,
 }
 
@@ -41,21 +45,43 @@ pub fn resolve(saved: SavedSettings, mut env: impl FnMut(&str) -> Option<String>
     }
     let (base_url, base_source) = choose(saved.base_url, env("QUILLAI_AI_BASE_URL"));
     let (api_key, key_source) = choose(saved.api_key, env("QUILLAI_AI_API_KEY"));
-    let (model, model_source) = choose(saved.model, env("QUILLAI_AI_MODEL"));
+    let env_model = env("QUILLAI_AI_MODEL");
+    let (generate_model, generate_source) = choose(saved.generate_model, env_model.clone());
+    let (edit_model, edit_source) = choose(saved.edit_model, env_model);
     Resolved {
         base_url,
         api_key,
-        model,
+        generate_model,
+        edit_model,
         sources: Sources {
             base_url: base_source,
             api_key: key_source,
-            model: model_source,
+            generate_model: generate_source,
+            edit_model: edit_source,
         },
     }
 }
 
 impl Resolved {
-    pub fn provider_config(&self, model: Option<&str>) -> Result<OpenAiCompatibleConfig, Error> {
+    pub fn model(&self, action: AiAction) -> Option<&str> {
+        match action {
+            AiAction::Generate => self.generate_model.as_deref(),
+            AiAction::Edit => self.edit_model.as_deref(),
+        }
+    }
+
+    pub fn model_source(&self, action: AiAction) -> Source {
+        match action {
+            AiAction::Generate => self.sources.generate_model,
+            AiAction::Edit => self.sources.edit_model,
+        }
+    }
+
+    pub fn provider_config(
+        &self,
+        action: AiAction,
+        model: Option<&str>,
+    ) -> Result<OpenAiCompatibleConfig, Error> {
         fn required(value: Option<&str>, name: &str) -> Result<String, Error> {
             let value = value.ok_or(Error::AiNotConfigured)?.trim();
             if value.is_empty() {
@@ -66,7 +92,7 @@ impl Resolved {
             Ok(value.into())
         }
         Ok(OpenAiCompatibleConfig {
-            model: required(model.or(self.model.as_deref()), "QUILLAI_AI_MODEL")?,
+            model: required(model.or(self.model(action)), "QUILLAI_AI_MODEL")?,
             api_key: required(self.api_key.as_deref(), "QUILLAI_AI_API_KEY")?,
             base_url: self
                 .base_url
@@ -94,7 +120,8 @@ mod tests {
             let saved = SavedSettings {
                 base_url: saved.map(|value| format!("{value}-base_url")),
                 api_key: saved.map(|value| format!("{value}-api_key")),
-                model: saved.map(|value| format!("{value}-model")),
+                generate_model: saved.map(|value| format!("{value}-model")),
+                edit_model: saved.map(|value| format!("{value}-model")),
             };
             let resolved = resolve(saved, |key| {
                 env.map(|value| {
@@ -107,7 +134,12 @@ mod tests {
             for (value, actual_source, field) in [
                 (resolved.base_url, resolved.sources.base_url, "base_url"),
                 (resolved.api_key, resolved.sources.api_key, "api_key"),
-                (resolved.model, resolved.sources.model, "model"),
+                (
+                    resolved.generate_model,
+                    resolved.sources.generate_model,
+                    "model",
+                ),
+                (resolved.edit_model, resolved.sources.edit_model, "model"),
             ] {
                 assert_eq!(value, expected.map(|value| format!("{value}-{field}")));
                 assert_eq!(actual_source, source);
@@ -118,7 +150,7 @@ mod tests {
     #[test]
     fn resolves_saved_values_before_environment_and_requires_credentials() {
         let saved = SavedSettings {
-            model: Some("saved".into()),
+            generate_model: Some("saved".into()),
             ..Default::default()
         };
         let resolved = resolve(saved, |key| match key {
@@ -126,12 +158,14 @@ mod tests {
             "QUILLAI_AI_API_KEY" => Some("key".into()),
             _ => None,
         });
-        assert_eq!(resolved.model.as_deref(), Some("saved"));
-        assert_eq!(resolved.sources.model, Source::Saved);
+        assert_eq!(resolved.model(AiAction::Generate), Some("saved"));
+        assert_eq!(resolved.sources.generate_model, Source::Saved);
+        assert_eq!(resolved.model(AiAction::Edit), Some("env"));
+        assert_eq!(resolved.sources.edit_model, Source::Env);
         assert_eq!(resolved.sources.api_key, Source::Env);
-        assert!(resolved.provider_config(None).is_ok());
+        assert!(resolved.provider_config(AiAction::Generate, None).is_ok());
         assert!(matches!(
-            resolve(SavedSettings::default(), |_| None).provider_config(None),
+            resolve(SavedSettings::default(), |_| None).provider_config(AiAction::Generate, None),
             Err(crate::error::Error::AiNotConfigured)
         ));
     }

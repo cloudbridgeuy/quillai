@@ -22,8 +22,9 @@ pub async fn models(
 ) -> Result<Json<serde_json::Value>, Error> {
     let saved = crate::settings::ai::load(&pool).await?;
     let saved_catalog = saved
-        .model
+        .generate_model
         .as_deref()
+        .or(saved.edit_model.as_deref())
         .map(ModelCatalog::from_model)
         .transpose()?;
     let catalog = match (catalog.as_ref(), saved_catalog.as_ref()) {
@@ -32,7 +33,13 @@ pub async fn models(
         (Some(catalog), None) => &*catalog.0,
         (None, None) => return Err(Error::AiNotConfigured),
     };
-    let preferred = saved.model.as_deref().and_then(|id| catalog.find(id));
+    let preferred = |saved: Option<&str>, action| {
+        saved
+            .and_then(|id| catalog.find(id))
+            .unwrap_or_else(|| catalog.resolve(action))
+            .id
+            .clone()
+    };
     let models: Vec<_> = catalog
         .models()
         .iter()
@@ -48,8 +55,8 @@ pub async fn models(
     Ok(Json(serde_json::json!({
         "models": models,
         "defaults": {
-            "generate": preferred.unwrap_or_else(|| catalog.resolve(AiAction::Generate)).id,
-            "edit": preferred.unwrap_or_else(|| catalog.resolve(AiAction::Edit)).id,
+            "generate": preferred(saved.generate_model.as_deref(), AiAction::Generate),
+            "edit": preferred(saved.edit_model.as_deref(), AiAction::Edit),
         },
     })))
 }
@@ -63,13 +70,14 @@ pub async fn generate(
     let requested_model = request.model.take();
     let saved = crate::settings::ai::load(&pool).await?;
     let resolved = config::resolve(saved, |key| std::env::var(key).ok());
+    let mut input = GenerateInput::try_from(request)?;
+    let action = input.action;
     let dynamic_catalog = if catalog.is_none()
-        || (resolved.sources.model == Source::Saved
+        || (resolved.model_source(action) == Source::Saved
             && catalog.as_ref().is_some_and(|catalog| !catalog.is_file()))
     {
         resolved
-            .model
-            .as_deref()
+            .model(action)
             .map(ModelCatalog::from_model)
             .transpose()?
     } else {
@@ -87,20 +95,19 @@ pub async fn generate(
                 .ok_or_else(|| Error::Validation("model must match a configured model id".into()))
         })
         .transpose()?;
-    let mut input = GenerateInput::try_from(request)?;
     input.author_guidance = Some(crate::settings::load_guidance(&pool).await?.text);
     let model = selected_model
         .or_else(|| {
             catalog.and_then(|catalog| {
-                if resolved.sources.model == Source::Saved {
-                    resolved.model.as_deref().and_then(|id| catalog.find(id))
+                if resolved.model_source(action) == Source::Saved {
+                    resolved.model(action).and_then(|id| catalog.find(id))
                 } else {
                     None
                 }
             })
         })
         .or_else(|| catalog.map(|catalog| catalog.resolve(input.action)));
-    let config = resolved.provider_config(model.map(|model| model.id.as_str()))?;
+    let config = resolved.provider_config(action, model.map(|model| model.id.as_str()))?;
     let include_usage = model.is_none_or(|model| model.include_usage);
     let reasoning_effort = model.and_then(|model| model.reasoning_effort);
     let provider = OpenAiCompatibleProvider::new(config)?

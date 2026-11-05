@@ -5,8 +5,8 @@ import { parseApiError } from "../manuscripts/contract";
 export type AuthorGuidance = { text: string };
 
 type Source = "saved" | "env" | "none";
-export type AiSettings = { base_url: string | null; model: string | null; key_set: boolean; sources: { base_url: Source; api_key: Source; model: Source } };
-export type AiSettingsUpdate = { base_url?: string; api_key?: string; model?: string };
+export type AiSettings = { base_url: string | null; generate_model: string | null; edit_model: string | null; key_set: boolean; sources: { base_url: Source; api_key: Source; generate_model: Source; edit_model: Source } };
+export type AiSettingsUpdate = { base_url?: string; api_key?: string; generate_model?: string; edit_model?: string };
 export type AiSettingsForm = { base_url: string; model: string; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
 
 export function aiKeyDecision(source: Source, form: AiSettingsForm["key"]): { showRemove: boolean; note: string; keyToSend: string | undefined } {
@@ -21,17 +21,20 @@ export function aiSettingsUpdate(settings: AiSettings, form: AiSettingsForm): Ai
   const model = form.model.trim();
   const update: AiSettingsUpdate = {};
   if (base_url !== (settings.base_url ?? "").trim()) update.base_url = base_url;
-  if (model !== (settings.model ?? "").trim()) update.model = model;
+  if (model !== (settings.generate_model ?? "").trim()) {
+    update.generate_model = model;
+    update.edit_model = model;
+  }
   const { keyToSend } = aiKeyDecision(settings.sources.api_key, form.key);
   if (keyToSend !== undefined) update.api_key = keyToSend;
   return update;
 }
 
 function parseAiSettings(value: unknown): AiSettings {
-  if (typeof value !== "object" || value === null || !("sources" in value) || typeof value.sources !== "object" || value.sources === null || !("base_url" in value) || !("model" in value) || !("key_set" in value) || (value.base_url !== null && typeof value.base_url !== "string") || (value.model !== null && typeof value.model !== "string") || typeof value.key_set !== "boolean") throw new Error("Expected AI settings");
+  if (typeof value !== "object" || value === null || !("sources" in value) || typeof value.sources !== "object" || value.sources === null || !("base_url" in value) || !("generate_model" in value) || !("edit_model" in value) || !("key_set" in value) || (value.base_url !== null && typeof value.base_url !== "string") || (value.generate_model !== null && typeof value.generate_model !== "string") || (value.edit_model !== null && typeof value.edit_model !== "string") || typeof value.key_set !== "boolean") throw new Error("Expected AI settings");
   const sources = value.sources as Record<string, unknown>;
-  if (![sources.base_url, sources.api_key, sources.model].every(source => source === "saved" || source === "env" || source === "none")) throw new Error("Expected AI settings sources");
-  return { base_url: value.base_url, model: value.model, key_set: value.key_set, sources: { base_url: sources.base_url as Source, api_key: sources.api_key as Source, model: sources.model as Source } };
+  if (![sources.base_url, sources.api_key, sources.generate_model, sources.edit_model].every(source => source === "saved" || source === "env" || source === "none")) throw new Error("Expected AI settings sources");
+  return { base_url: value.base_url, generate_model: value.generate_model, edit_model: value.edit_model, key_set: value.key_set, sources: { base_url: sources.base_url as Source, api_key: sources.api_key as Source, generate_model: sources.generate_model as Source, edit_model: sources.edit_model as Source } };
 }
 
 export class SettingsApiError extends Error {

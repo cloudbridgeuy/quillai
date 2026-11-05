@@ -14,7 +14,7 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
   const [pending, setPending] = useState(true);
   function apply(value: AiSettings) {
     setSettings(value);
-    setForm({ base_url: value.base_url ?? "", model: value.model ?? "", key: { action: "keep" } });
+    setForm({ base_url: value.base_url ?? "", model: value.generate_model ?? "", key: { action: "keep" } });
   }
   useEffect(() => {
     let active = true;
@@ -42,7 +42,7 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
       <Field label={formatMessage(defaultLocale, "settings.ai.baseUrl")}><TextField value={form.base_url} disabled={pending} onChange={event => setForm({ ...form, base_url: event.target.value })} /></Field>
       <p className="editor-note">{source(settings.sources.base_url)}</p>
       <Field label={formatMessage(defaultLocale, "settings.ai.model")}><TextField value={form.model} disabled={pending} onChange={event => setForm({ ...form, model: event.target.value })} /></Field>
-      <p className="editor-note">{source(settings.sources.model)}</p>
+      <p className="editor-note">{source(settings.sources.generate_model)}</p>
       <p className="editor-note">{formatMessage(defaultLocale, settings.key_set ? "settings.ai.keySaved" : "settings.ai.noKey")} · {source(settings.sources.api_key)}</p>
       <div className="flex gap-2">
         <Button size="sm" disabled={pending} onClick={() => setForm({ ...form, key: { action: "replace", value: "" } })}>{formatMessage(defaultLocale, "settings.ai.replace")}</Button>

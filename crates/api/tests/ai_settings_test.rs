@@ -43,14 +43,15 @@ async fn settings_save_redact_omit_and_clear_each_field() {
     let app = quillai_api::app(pool.clone());
     let initial = body(request(&app, "GET", "/settings/ai", json!({})).await).await;
     assert_eq!(initial["key_set"], false);
-    let saved = json!({"base_url":"https://example.com/v1","api_key":"secret","model":"saved"});
+    let saved = json!({"base_url":"https://example.com/v1","api_key":"secret","generate_model":"saved","edit_model":"saved"});
     let view = body(request(&app, "PUT", "/settings/ai", saved.clone()).await).await;
     assert_eq!(view["base_url"], saved["base_url"]);
-    assert_eq!(view["model"], "saved");
+    assert_eq!(view["generate_model"], "saved");
+    assert_eq!(view["edit_model"], "saved");
     assert_eq!(view["key_set"], true);
     assert_eq!(
         view["sources"],
-        json!({"base_url":"saved","api_key":"saved","model":"saved"})
+        json!({"base_url":"saved","api_key":"saved","generate_model":"saved","edit_model":"saved"})
     );
     let response = request(&app, "GET", "/settings/ai", json!({})).await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -63,9 +64,18 @@ async fn settings_save_redact_omit_and_clear_each_field() {
         body(request(&app, "PUT", "/settings/ai", json!({})).await).await,
         view
     );
-    let changed =
-        body(request(&app, "PUT", "/settings/ai", json!({"model":"changed"})).await).await;
-    assert_eq!(changed["model"], "changed");
+    let changed = body(
+        request(
+            &app,
+            "PUT",
+            "/settings/ai",
+            json!({"generate_model":"changed"}),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(changed["generate_model"], "changed");
+    assert_eq!(changed["edit_model"], "saved");
     assert_eq!(changed["base_url"], view["base_url"]);
     assert_eq!(changed["key_set"], true);
     assert_eq!(
@@ -76,12 +86,12 @@ async fn settings_save_redact_omit_and_clear_each_field() {
             .as_deref(),
         Some("secret")
     );
-    for field in ["base_url", "api_key", "model"] {
+    for field in ["base_url", "api_key", "generate_model", "edit_model"] {
         body(request(&app, "PUT", "/settings/ai", saved.clone()).await).await;
         let cleared = body(request(&app, "PUT", "/settings/ai", json!({field:""})).await).await;
         assert_eq!(cleared["sources"][field], initial["sources"][field]);
         assert_eq!(cleared["key_set"], field != "api_key");
-        for visible in ["base_url", "model"] {
+        for visible in ["base_url", "generate_model", "edit_model"] {
             assert_eq!(
                 &cleared[visible],
                 if field == visible {
@@ -133,7 +143,7 @@ async fn saved_model_defaults_and_generation_update_without_restart() {
                 &app,
                 "PUT",
                 "/settings/ai",
-                json!({"base_url":base_url,"api_key":"secret","model":"saved-model"}),
+                json!({"base_url":base_url,"api_key":"secret","generate_model":"saved-model","edit_model":"saved-model"}),
             )
             .await,
         )
@@ -165,7 +175,16 @@ async fn saved_model_defaults_and_generation_update_without_restart() {
             );
         }
         if file_catalog {
-            body(request(&app, "PUT", "/settings/ai", json!({"model":""})).await).await;
+            body(
+                request(
+                    &app,
+                    "PUT",
+                    "/settings/ai",
+                    json!({"generate_model":"","edit_model":""}),
+                )
+                .await,
+            )
+            .await;
             let listing = body(request(&app, "GET", "/ai/models", json!({})).await).await;
             assert_eq!(
                 listing["defaults"],
@@ -183,8 +202,8 @@ async fn invalid_urls_and_models_outside_file_catalog_return_422() {
     for input in [
         json!({"base_url":"file:///tmp/x"}),
         json!({"base_url":"invalid"}),
-        json!({"model":" "}),
-        json!({"model":"other"}),
+        json!({"generate_model":" "}),
+        json!({"edit_model":"other"}),
     ] {
         let response = request(&app, "PUT", "/settings/ai", input).await;
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
