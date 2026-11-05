@@ -1,6 +1,7 @@
 import { useEffect, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { countText, formatTextCounts } from "../text_counts";
+import { defaultLocale, formatMessage } from "../../i18n/messages";
 
 export function TextCounts({ quillRef }: { quillRef: RefObject<Quill | null> }) {
   const [counts, setCounts] = useState(() => countText("\n"));
@@ -40,7 +41,7 @@ export function TextCounts({ quillRef }: { quillRef: RefObject<Quill | null> }) 
     };
   }, [quillRef]);
 
-  return <p className="editor-note" aria-label="Document counts" aria-live="off">
+  return <p className="editor-note" aria-label={formatMessage(defaultLocale, "editor.documentCounts")} aria-live="off">
     {formatTextCounts(counts, selectedWords)}
   </p>;
 }

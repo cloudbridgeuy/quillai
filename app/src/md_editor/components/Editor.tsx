@@ -1338,11 +1338,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     typeof contextInspector === "string" ? null : contextInspector.totalTokens, inspectorRuns[inspectorAction]);
 
   const windowSettings = <>
-    <Field label="Window Size">
+    <Field label={formatMessage(defaultLocale, "editor.windowSize")}>
       <TextField type="number" min="0" step="1" value={windowSize}
         onChange={(event) => setWindowSize(event.target.value)} disabled={isBusy} />
     </Field>
-    <Toggle label="Whole document" checked={windowMode === "document"}
+    <Toggle label={formatMessage(defaultLocale, "editor.wholeDocument")} checked={windowMode === "document"}
       onChange={(event) => setWindowMode(event.target.checked ? "document" : "window")} disabled={isBusy} />
   </>;
 
@@ -1372,19 +1372,19 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     <div className="editor-shell">
       {desktop && showContinueWindow && (chapterSync.ready || pending) && markerQuill ? <ContinueWindow
         quill={markerQuill} start={markerWindow.start} end={markerWindow.end} /> : null}
-      <nav inert={pending || undefined} className="editor-rail editor-rail-left" aria-label="Navigation">
-        <IconButton label="Library" title="Back to library" glyph="⌂" disabled={isBusy}
+      <nav inert={pending || undefined} className="editor-rail editor-rail-left" aria-label={formatMessage(defaultLocale, "editor.navigation")}>
+        <IconButton label={formatMessage(defaultLocale, "landing.library")} title={formatMessage(defaultLocale, "editor.backToLibrary")} glyph="⌂" disabled={isBusy}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => void chapterSync.leave()} />
-        <IconButton label="Manuscript" glyph={<span aria-hidden="true">☰</span>} title="Manuscript (Ctrl/Cmd+[)"
+        <IconButton label={formatMessage(defaultLocale, "editor.manuscript")} glyph={<span aria-hidden="true">☰</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "editor.manuscript"), keys: "Ctrl/Cmd+[" })}
           aria-controls="manuscript-drawer" aria-expanded={panel === "manuscript"}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("manuscript")} />
       </nav>
-      <nav inert={pending || undefined} className="editor-rail editor-rail-right" aria-label="AI tools">
-        <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? "Stop" : "Continue"} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
+      <nav inert={pending || undefined} className="editor-rail editor-rail-right" aria-label={formatMessage(defaultLocale, "editor.aiTools")}>
+        <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "editor.stop") : formatMessage(defaultLocale, "editor.continue")} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
           badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
-          aria-label={isBusy ? "Stop AI" : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : "Continue writing"}
+          aria-label={isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue")}
           title={formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" })}
           aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={!isBusy && (!visuallyReady || chapterSync.blocked)}
@@ -1393,17 +1393,17 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <Popover anchor={{ left: editAnchor?.left ?? 0, top: editAnchor?.top ?? 0 }}
           ignoreRefs={[editorCanvasRef]}
           open={editBoxOpen} onOpenChange={(open) => open ? setEditBoxOpen(true) : closePanels()}
-          className="editor-edit-box" inert={pending || undefined} role="dialog" aria-label="Edit instruction"
-          trigger={<IconButton ref={editTriggerRef} label="Edit selection" glyph={<span aria-hidden="true">✎</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "shortcut.edit"), keys: "Ctrl/Cmd+K" })}
+          className="editor-edit-box" inert={pending || undefined} role="dialog" aria-label={formatMessage(defaultLocale, "editor.editInstruction")}
+          trigger={<IconButton ref={editTriggerRef} label={formatMessage(defaultLocale, "shortcut.edit")} glyph={<span aria-hidden="true">✎</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "shortcut.edit"), keys: "Ctrl/Cmd+K" })}
             aria-keyshortcuts="Control+K Meta+K"
             disabled={isBusy || !hasSelection || !visuallyReady || chapterSync.blocked}
             onMouseDown={(event) => event.preventDefault()} />}>
-        <div className="editor-edit-flag">Edit selection</div>
+        <div className="editor-edit-flag">{formatMessage(defaultLocale, "shortcut.edit")}</div>
         <div className="-mx-4">
-          <StickyNote tone="pink" overhang ref={editInstructionRef} aria-label="Edit instruction" rows={4}
+          <StickyNote tone="pink" overhang ref={editInstructionRef} aria-label={formatMessage(defaultLocale, "editor.editInstruction")} rows={4}
             disabled={isBusy || !visuallyReady || chapterSync.blocked}
             aria-describedby="edit-instruction-hint" value={editInstruction}
-            placeholder="How should the selected text change?"
+            placeholder={formatMessage(defaultLocale, "editor.editPlaceholder")}
             onChange={(event) => setEditInstruction(event.target.value)}
             onKeyDown={(event) => {
               if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
@@ -1411,38 +1411,38 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               applyEdit();
             }} />
         </div>
-        <p id="edit-instruction-hint" className="editor-note">Enter applies · Esc or Edit closes · Shift+Enter adds a line</p>
+        <p id="edit-instruction-hint" className="editor-note">{formatMessage(defaultLocale, "editor.editHint")}</p>
         {editRejection ? <p id="edit-instruction-rejection" className="editor-note" role="status">{editRejection}</p> : null}
         <div className="editor-actions">
           <Button variant="primary" size="sm"
             onClick={applyEdit} aria-describedby={editRejection ? "edit-instruction-rejection" : undefined}
-            disabled={!editAvailable}>Apply</Button>
+            disabled={!editAvailable}>{formatMessage(defaultLocale, "editor.apply")}</Button>
         </div>
         </Popover>
-        <IconButton label="Context inspector" glyph={<span aria-hidden="true">◫</span>} title="Context inspector (Ctrl/Cmd+])"
+        <IconButton label={formatMessage(defaultLocale, "editor.contextInspector")} glyph={<span aria-hidden="true">◫</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "editor.contextInspector"), keys: "Ctrl/Cmd+]" })}
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => togglePanel("context")} />
         {desktop ? <Popover open={panel === "settings"} onOpenChange={(open) => { if (!open) setPanel(null); }}
           ref={settingsRef} className="editor-settings-popover flex flex-col gap-4" role="dialog" aria-labelledby="editor-settings-title"
-          trigger={<IconButton className="editor-settings-button" label="Settings" glyph={<span aria-hidden="true">⚙</span>} title="Settings" aria-haspopup="dialog"
+          trigger={<IconButton className="editor-settings-button" label={formatMessage(defaultLocale, "editor.settings")} glyph={<span aria-hidden="true">⚙</span>} title={formatMessage(defaultLocale, "editor.settings")} aria-haspopup="dialog"
             onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => { event.preventDefault(); togglePanel("settings"); }} />}>
           <div className="editor-drawer-header">
-            <Heading level="section" id="editor-settings-title">Settings</Heading>
+            <Heading level="section" id="editor-settings-title">{formatMessage(defaultLocale, "editor.settings")}</Heading>
           </div>
           {windowSettings}
-          <Toggle label="Show Continue window" checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
-          <Toggle label="Tint AI text" checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
+          <Toggle label={formatMessage(defaultLocale, "editor.showContinueWindow")} checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
+          <Toggle label={formatMessage(defaultLocale, "editor.tintAiText")} checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
           <AiSettings client={settingsClient} onSaved={() => setModelsRevision(value => value + 1)} />
         </Popover> : null}
       </nav>
       {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"
         aria-labelledby="manuscript-title">
         <div className="editor-drawer-header">
-          <Heading level="section" id="manuscript-title">Manuscript</Heading>
+          <Heading level="section" id="manuscript-title">{formatMessage(defaultLocale, "editor.manuscript")}</Heading>
         </div>
-        <div className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label="Manuscript outline" tabIndex={0}>
+        <div className="editor-manuscript-outline" inert={pending || undefined} data-switch-pending={pending || undefined} role="region" aria-label={formatMessage(defaultLocale, "editor.manuscriptOutline")} tabIndex={0}>
           <ManuscriptTree selectedChapter={"treeScope" in chapterSync ? chapterSync.treeScope : chapterSync.scope} activeScript={scriptGroupId} disabled={isBusy || (!visuallyReady && !chapterSync.needsChapter) || chapterSync.blocked} busy={creating ? showBusy : true}
             onCreatePending={setCreatePending} onLeave={target => chapterSync.leave(target)}
             onRename={(kind, id, title) => {
@@ -1451,10 +1451,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }}
             onDelete={async (remove, path, title) => {
               const quill = quillRef.current;
-              if (deleteAbortRef.current || isAiActive()) throw new Error("Wait for the current action before deleting.");
-              if (!chapterSync.ready || !chapterSync.scope || !quill) throw new Error("Editor is not ready to delete this item.");
+              if (deleteAbortRef.current || isAiActive()) throw new Error(formatMessage(defaultLocale, "editor.deleteWait"));
+              if (!chapterSync.ready || !chapterSync.scope || !quill) throw new Error(formatMessage(defaultLocale, "editor.deleteNotReady"));
               const reservation = chapterSync.reserveAi();
-              if (!reservation) throw new Error("Could not save the open document before deleting.");
+              if (!reservation) throw new Error(formatMessage(defaultLocale, "editor.deleteSaveFailed"));
               const controller = new AbortController();
               deleteAbortRef.current = controller;
               quill.enable(false);
@@ -1463,7 +1463,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               try {
                 await reservation.wait(controller.signal);
                 controller.signal.throwIfAborted();
-                if (!isMountedRef.current || quillRef.current !== quill) throw new Error("Editor changed before deleting this item.");
+                if (!isMountedRef.current || quillRef.current !== quill) throw new Error(formatMessage(defaultLocale, "editor.deleteChanged"));
                 await remove();
                 controller.signal.throwIfAborted();
                 if (!isMountedRef.current || quillRef.current !== quill) return;
@@ -1494,13 +1494,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }} />
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
-          lore={lore} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>Open a piece or chapter to manage its universe lore.</p>}
-        {([ ["Markdown", "md", toMarkdown], ["text", "txt", toPlainText] ] as const).map(([label, extension, convert]) =>
+          lore={lore} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>{formatMessage(defaultLocale, "editor.openForLore")}</p>}
+        {([ ["Markdown", "md", toMarkdown], [formatMessage(defaultLocale, "editor.textFormat"), "txt", toPlainText] ] as const).map(([label, extension, convert]) =>
           <ButtonLink key={extension} className="shrink-0 self-start" download={`${(chapterSync.title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "chapter"}.${extension}`}
             href="#" onClick={(event) => {
               const delta = quillRef.current?.getContents();
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(delta ? convert(chapterSync.title ?? "", delta) : "")}`;
-            }}>Download {label}</ButtonLink>)}
+            }}>{formatMessage(defaultLocale, "editor.download", { format: label })}</ButtonLink>)}
         <ButtonLink className="shrink-0 self-start" href="#" download={`${(chapterSync.title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "chapter"}.docx`} onClick={event => {
           try {
             const delta = quillRef.current?.getContents();
@@ -1513,51 +1513,51 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             event.preventDefault();
             setChapterExportError(true);
           }
-        }}>Download Word</ButtonLink>
-        {chapterExportError ? <Alert tone="error" variant="inline">Could not export chapter. Try again.</Alert> : null}
+        }}>{formatMessage(defaultLocale, "editor.download", { format: "Word" })}</ButtonLink>
+        {chapterExportError ? <Alert tone="error" variant="inline">{formatMessage(defaultLocale, "editor.exportChapterFailed")}</Alert> : null}
         {chapterSync.scope && "chapterId" in chapterSync.scope ? <>
-          <span>Book: {([ ["Markdown", "markdown"], ["text", "text"], ["Word", "docx"], ["EPUB", "epub"] ] as const).map(([label, format], index) => <span key={format}>
+          <span>{formatMessage(defaultLocale, "editor.book")} {([ ["Markdown", "markdown"], [formatMessage(defaultLocale, "editor.textFormat"), "text"], ["Word", "docx"], ["EPUB", "epub"] ] as const).map(([label, format], index) => <span key={format}>
             {index ? " · " : ""}<ButtonLink href="#" variant="link" aria-disabled={bookExportPending} onClick={event => {
               event.preventDefault();
               void downloadBook(format);
             }}>{label}</ButtonLink>
           </span>)}</span>
           <ButtonLink ref={bookDownloadRef} hidden className="hidden!" href="#" download />
-          {bookExportError ? <Alert tone="error" variant="inline">Could not export book. Try again.</Alert> : null}
+          {bookExportError ? <Alert tone="error" variant="inline">{formatMessage(defaultLocale, "editor.exportBookFailed")}</Alert> : null}
         </> : null}
         <ButtonLink className="shrink-0 self-start" download="chapter-local.json"
           href="#" onClick={(event) => {
             event.currentTarget.href = `data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.exportDocument())}`;
           }}>
-          Download backup
+          {formatMessage(defaultLocale, "editor.downloadBackup")}
         </ButtonLink>
       </aside> : null}
       <div className="editor-topbar">
         <div className="editor-heading">
-          <Heading level="app">QuillAI</Heading>
+          <Heading level="app">{formatMessage(defaultLocale, "app.name")}</Heading>
           {chapterSync.recovery ? <Alert tone="error" variant="inline">
-            Previous unsaved work is available. Export it before closing this tab.
+            {formatMessage(defaultLocale, "editor.recoveryNotice")}
             <a download="chapter-recovery.json"
               href={`data:application/json;charset=utf-8,${encodeURIComponent(chapterSync.recovery)}`}>
-              Export recovery
+              {formatMessage(defaultLocale, "editor.exportRecovery")}
             </a>
           </Alert> : null}
         </div>
         <div className="editor-document-status">
-        {savePresentation.failed ? <Alert tone="error" className="editor-save-failed" aria-label="Chapter save status" aria-live="assertive"
+        {savePresentation.failed ? <Alert tone="error" className="editor-save-failed" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="assertive"
           title={chapterSync.detail ?? savePresentation.detail} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
           <span id="chapter-save-detail" className="sr-only">{chapterSync.detail ?? savePresentation.detail}</span>
         </Alert> : <p className="editor-save-status"
-          role="status" aria-label="Chapter save status" aria-live="polite" title={chapterSync.detail ?? savePresentation.detail}>
+          role="status" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="polite" title={chapterSync.detail ?? savePresentation.detail}>
           <span>{savePresentation.label}</span>
         </p>}
         <TextCounts quillRef={quillRef} />
         </div>
         {"addScene" in chapterSync ? <Button size="sm" disabled={isBusy || !chapterSync.ready || chapterSync.blocked || chapterSync.adding}
-          onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>New scene</Button> : null}
+          onMouseDown={(event) => event.preventDefault()} onClick={() => void chapterSync.addScene()}>{formatMessage(defaultLocale, "editor.newScene")}</Button> : null}
         {"addScene" in chapterSync ? <div className="editor-script-tools">
-          <TextField as="select" aria-label="Block type" value={chapterSync.blockType}
+          <TextField as="select" aria-label={formatMessage(defaultLocale, "editor.blockType")} value={chapterSync.blockType}
             disabled={isBusy || !visuallyReady || chapterSync.blocked}
             onChange={(event) => chapterSync.setBlock(parseBlock(event.target.value))}>
             {BLOCK_TYPES.map((type) => <option key={type} value={type}>{blockLabel(type)}</option>)}
@@ -1565,13 +1565,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <ButtonLink size="sm" download={`${chapterSync.title || "script"}.fountain`} href="#"
             onClick={(event) => {
               event.currentTarget.href = `data:text/plain;charset=utf-8,${encodeURIComponent(chapterSync.fountain())}`;
-            }}>Download Fountain</ButtonLink>
+            }}>{formatMessage(defaultLocale, "editor.download", { format: "Fountain" })}</ButtonLink>
           <ButtonLink size="sm" download={`${chapterSync.title || "script"}.fdx`} href="#"
             onClick={(event) => {
               event.currentTarget.href = `data:application/xml;charset=utf-8,${encodeURIComponent(chapterSync.fdx())}`;
-            }}>Download FDX</ButtonLink>
+            }}>{formatMessage(defaultLocale, "editor.download", { format: "FDX" })}</ButtonLink>
         </div> : null}
-        {chapterSync.needsChapter ? <Alert tone="info" className="editor-scene-notice">No chapters yet. <Button variant="link" onClick={() => void chapterSync.bootstrap()}>Create the first chapter</Button></Alert> : null}
+        {chapterSync.needsChapter ? <Alert tone="info" className="editor-scene-notice">{formatMessage(defaultLocale, "tree.noChapters")} <Button variant="link" onClick={() => void chapterSync.bootstrap()}>{formatMessage(defaultLocale, "editor.createFirstChapter")}</Button></Alert> : null}
         {chapterSync.notice ? <Alert tone={chapterSync.noticeTone} className="editor-scene-notice">{chapterSync.notice}</Alert> : null}
         {emptyContinueNotice ? <Alert tone="warning" className="editor-scene-notice">{emptyContinueNotice}</Alert> : null}
         {aiRunState.status !== "idle" && aiRunState.status !== "finished" || aiRunState.status === "finished" && aiRunState.outcome === "cancelled" ? (

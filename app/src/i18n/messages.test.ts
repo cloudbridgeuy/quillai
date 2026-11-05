@@ -208,3 +208,55 @@ test.each(["Chapter", "Scene", "Universe", "Container", "Piece", "unknown", "toS
   expect(formatMessage("en", keys.creating)).toBe(`Creating ${name.toLowerCase()}…`);
   expect(formatMessage("es", keys.title)).toBe(name === "Scene" ? "Título de la escena" : name === "Chapter" ? "Título del capítulo" : name === "Universe" ? "Título del universo" : name === "Container" ? "Título del contenedor" : name === "Piece" ? "Título del texto" : "Título del elemento");
 });
+
+test.each([
+  ["editor.windowSize", "Window Size"],
+  ["editor.wholeDocument", "Whole document"],
+  ["editor.navigation", "Navigation"],
+  ["editor.backToLibrary", "Back to library"],
+  ["editor.manuscript", "Manuscript"],
+  ["editor.aiTools", "AI tools"],
+  ["editor.stop", "Stop"],
+  ["editor.continue", "Continue"],
+  ["editor.editInstruction", "Edit instruction"],
+  ["editor.editPlaceholder", "How should the selected text change?"],
+  ["editor.editHint", "Enter applies · Esc or Edit closes · Shift+Enter adds a line"],
+  ["editor.apply", "Apply"],
+  ["editor.contextInspector", "Context inspector"],
+  ["editor.settings", "Settings"],
+  ["editor.showContinueWindow", "Show Continue window"],
+  ["editor.tintAiText", "Tint AI text"],
+  ["editor.manuscriptOutline", "Manuscript outline"],
+  ["editor.deleteWait", "Wait for the current action before deleting."],
+  ["editor.deleteNotReady", "Editor is not ready to delete this item."],
+  ["editor.deleteSaveFailed", "Could not save the open document before deleting."],
+  ["editor.deleteChanged", "Editor changed before deleting this item."],
+  ["editor.openForLore", "Open a piece or chapter to manage its universe lore."],
+  ["editor.download", "Download {format}"],
+  ["editor.textFormat", "text"],
+  ["editor.exportChapterFailed", "Could not export chapter. Try again."],
+  ["editor.book", "Book:"],
+  ["editor.exportBookFailed", "Could not export book. Try again."],
+  ["editor.downloadBackup", "Download backup"],
+  ["editor.recoveryNotice", "Previous unsaved work is available. Export it before closing this tab."],
+  ["editor.exportRecovery", "Export recovery"],
+  ["editor.chapterSaveStatus", "Chapter save status"],
+  ["editor.newScene", "New scene"],
+  ["editor.blockType", "Block type"],
+  ["editor.createFirstChapter", "Create the first chapter"],
+  ["editor.documentCounts", "Document counts"],
+  ["shortcut.stop", "Stop AI"],
+  ["shortcut.continue", "Continue writing"],
+  ["shortcut.edit", "Edit selection"],
+  ["landing.library", "Library"],
+  ["tree.noChapters", "No chapters yet."],
+])("editor surface message %s preserves exact English and has Spanish", (key, english) => {
+  expect(Object.hasOwn(en, key)).toBe(true);
+  expect(Object.hasOwn(es, key)).toBe(true);
+  expect(formatMessage("en", key)).toBe(english);
+});
+
+test("editor download preserves assembled English", () => {
+  expect(formatMessage("en", "editor.download", { format: "Markdown" })).toBe("Download Markdown");
+  expect(formatMessage("en", "editor.download", { format: "text" })).toBe("Download text");
+});
