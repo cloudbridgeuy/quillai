@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 import { getApiBaseUrl } from "../api_config";
 import type { EditorScope } from "../manuscripts/contract";
 import { Button } from "../ui/Button";
@@ -26,13 +27,13 @@ export function ActivityList({ revision, onOpen }: { revision: string; onOpen: (
   }, [revision]);
   if (!state.failed && state.groups.length === 0) return null;
   return <section className="flex flex-col gap-3 rounded-card bg-paper p-5 shadow-sheet" aria-labelledby="landing-activity">
-    <Heading level="section" id="landing-activity">Recent activity</Heading>
-    {state.failed ? <p className="m-0 text-ui text-graphite">Could not load recent activity.</p> : state.groups.map(group => <div key={group.label} className="flex flex-col gap-2">
+    <Heading level="section" id="landing-activity">{formatMessage(defaultLocale, "landing.activity.title")}</Heading>
+    {state.failed ? <p className="m-0 text-ui text-graphite">{formatMessage(defaultLocale, "landing.activity.loadFailed")}</p> : state.groups.map(group => <div key={group.label} className="flex flex-col gap-2">
       <Heading level="section" as="h3">{group.label}</Heading>
       {group.rows.map(row => <div key={JSON.stringify(row.scope)} className="flex items-center justify-between gap-4">
         <div><p className="m-0 text-title font-semibold text-ink">{row.title}</p>
           <time className="text-ui text-graphite" dateTime={row.changedAt}>{new Date(row.changedAt).toLocaleString()}</time></div>
-        <Button onClick={() => onOpen(row.scope)}>Open</Button>
+        <Button onClick={() => onOpen(row.scope)}>{formatMessage(defaultLocale, "landing.open")}</Button>
       </div>)}
     </div>)}
   </section>;

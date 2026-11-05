@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 import type { EditorScope } from "../manuscripts/contract";
 import { createManuscriptClient } from "../manuscripts/client";
 import { createLoreClient } from "../manuscripts/lore_client";
@@ -29,21 +30,21 @@ function ResumeCard({ resume, onForget }: { resume: ResumeState; onForget: () =>
   if (resume.status === "empty" || resume.status === "missing") return null;
   const title = resume.status === "ready" ? resume.title : resume.stored.title;
   const detail = resume.status === "ready" ? resume.path.join(" · ")
-    : resume.status === "checking" ? "Checking…" : `Could not check it: ${resume.message}`;
+    : resume.status === "checking" ? formatMessage(defaultLocale, "landing.checking") : formatMessage(defaultLocale, "landing.checkFailed", { message: resume.message });
   return <div className="flex items-center justify-between gap-4">
     <div className="flex min-w-0 flex-col gap-1">
       <p className="m-0 text-title font-semibold text-ink">{title}</p>
       <p className="m-0 text-ui text-graphite" role={resume.status === "checking" ? "status" : undefined}>{detail}</p>
     </div>
     <div className="flex gap-2">
-      <Button variant="primary" disabled={resume.status === "checking"} onClick={() => open(resume.stored.scope)}>Open</Button>
-      <Button onClick={onForget}>Forget</Button>
+      <Button variant="primary" disabled={resume.status === "checking"} onClick={() => open(resume.stored.scope)}>{formatMessage(defaultLocale, "landing.open")}</Button>
+      <Button onClick={onForget}>{formatMessage(defaultLocale, "landing.forget")}</Button>
     </div>
   </div>;
 }
 
 export function ResumeList({ resume, onForget }: { resume: ResumeState[]; onForget: (scope: EditorScope) => void }) {
-  return resume.length === 0 ? <p className="m-0 text-ui text-graphite">Nothing edited in this browser yet. Open or create a piece below.</p>
+  return resume.length === 0 ? <p className="m-0 text-ui text-graphite">{formatMessage(defaultLocale, "landing.empty")}</p>
     : resume.map((item, index) => item.status === "empty" ? null : <ResumeCard key={index} resume={item} onForget={() => onForget(item.stored.scope)} />);
 }
 
@@ -81,17 +82,17 @@ export function Landing() {
 
   return <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
     <header className="flex items-baseline gap-3">
-      <Heading level="app">QuillAI</Heading>
-      <p className="m-0 text-ui text-graphite">Your library</p>
+      <Heading level="app">{formatMessage(defaultLocale, "app.name")}</Heading>
+      <p className="m-0 text-ui text-graphite">{formatMessage(defaultLocale, "landing.yourLibrary")}</p>
     </header>
     <section className="flex flex-col gap-3 rounded-card bg-paper p-5 shadow-sheet" aria-labelledby="landing-resume">
-      <Heading level="section" id="landing-resume">Resume</Heading>
+      <Heading level="section" id="landing-resume">{formatMessage(defaultLocale, "landing.resume")}</Heading>
       <ResumeList resume={resume} onForget={forget} />
     </section>
     <ActivityList revision={`${libraryRevision}:${trashRevision}`} onOpen={open} />
     <Tips />
     <section className="landing-library flex flex-col gap-2" role="region" aria-labelledby="landing-library">
-      <Heading level="section" id="landing-library">Library</Heading>
+      <Heading level="section" id="landing-library">{formatMessage(defaultLocale, "landing.library")}</Heading>
       <ManuscriptTree key={libraryRevision} selectedChapter={null} disabled={false} collapsedExcept={resume.find((item): item is Extract<ResumeState, { status: "ready" }> => item.status === "ready")?.universeId ?? null}
         onSelect={open} onChange={() => {
           setTrashRevision(value => value + 1);

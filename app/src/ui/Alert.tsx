@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 import { cx } from "./cx";
 import { IconButton } from "./IconButton";
 
@@ -33,6 +34,6 @@ export function Alert({ tone, variant = "pill", onDismiss, className, role, chil
   return <div {...props} data-tone={tone} role={role ?? (tone === "error" ? "alert" : "status")} className={alertClassName(tone, variant, className)}>
     {variant === "inline" ? <span aria-hidden="true" className={cx("mr-2 inline-block size-2 rounded-full", markers[tone])} /> : null}
     {children}
-    {onDismiss ? <IconButton label="Dismiss" glyph="×" onClick={onDismiss} /> : null}
+    {onDismiss ? <IconButton label={formatMessage(defaultLocale, "alert.dismiss")} glyph="×" onClick={onDismiss} /> : null}
   </div>;
 }

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 import { Button } from "../ui/Button";
 
 type ErrorBoundaryState =
@@ -19,8 +20,8 @@ function DefaultFallback({
 }) {
   return (
     <div className="error-boundary-fallback">
-      <p>Something went wrong: {error.message}</p>
-      <Button onClick={retry}>Try again</Button>
+      <p>{formatMessage(defaultLocale, "error.unexpected", { message: error.message })}</p>
+      <Button onClick={retry}>{formatMessage(defaultLocale, "error.retry")}</Button>
     </div>
   );
 }

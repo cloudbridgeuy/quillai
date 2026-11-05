@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { defaultLocale, formatMessage } from "./i18n/messages";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Editor from "./md_editor/components/Editor";
 import { Landing } from "./landing/Landing";
@@ -19,7 +20,7 @@ function EditorRoute() {
       () => setRoute({ scriptGroupId: undefined }),
     );
   }, []);
-  return route === null ? <p role="status">Loading…</p> : <Editor scriptGroupId={route.scriptGroupId} />;
+  return route === null ? <p role="status">{formatMessage(defaultLocale, "app.loading")}</p> : <Editor scriptGroupId={route.scriptGroupId} />;
 }
 
 export function App() {
