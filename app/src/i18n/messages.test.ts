@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import * as messages from "./messages";
 import { en, es, formatMessage, type MessageCatalog } from "./messages";
+import { formatTextCounts } from "../md_editor/text_counts";
 
 test("plural forms in english and spanish", () => {
   expect(formatMessage("en", "chapter.count", { count: 0 })).toBe("0 chapters");
@@ -329,4 +330,66 @@ test("inspector placeholders preserve assembled English and raw data", () => {
   expect(formatMessage("en", "inspector.estimatedTokens", { tokens: "1000" })).toBe("1000 estimated tokens");
   expect(formatMessage("en", "inspector.addTurn", { role: "user" })).toBe("Add user turn");
   expect(formatMessage("en", "inspector.resetSection", { section: "Story Context" })).toBe("Reset Story Context");
+});
+
+test.each([
+  ["editor.continueWindow", "Continue window"],
+  ["editor.windowStarts", "starts ↑ {position}"],
+  ["editor.justAbove", "just above"],
+  ["editor.pagesUp", "{pages} pages up"],
+  ["lore.entryLabel", "{name} · {kind}{pinned}"],
+  ["lore.pinned", " · pinned"],
+  ["lore.known", "Known, don't reveal"],
+  ["lore.leaveOut", "Leave out"],
+  ["lore.include", "Include"],
+  ["lore.pinHint", "Sent with every AI request unless set to Leave out, even when the text doesn't mention it, and never dropped for space."],
+  ["lore.termsHint", "Whole words or phrases, any case. When the name, an alias or a keyword appears in the text, this entry is sent to the AI."],
+  ["textCounts.word", "{count} word"],
+  ["draft.words", "{count} words"],
+  ["textCounts.character", "{count} character"],
+  ["textCounts.characters", "{count} characters"],
+  ["textCounts.line", "{count} line"],
+  ["textCounts.lines", "{count} lines"],
+  ["textCounts.selected", "{count} of "],
+  ["textCounts.separator", " · "],
+  ["editor.emptyContinueBudget", "The model used its whole budget without writing any text. Try again or pick another model."],
+  ["editor.emptyContinue", "The model returned no text."],
+  ["editor.notSaved", "Not saved"],
+  ["editor.continuing", "Continuing"],
+  ["editor.editing", "Editing"],
+  ["editor.cancelling", "Cancelling"],
+  ["editor.cancelled", "Cancelled"],
+  ["editor.done", "Done"],
+  ["editor.idle", "Idle"],
+  ["script.scenesChanged", "Scenes changed; reload"],
+])("editor helper message %s preserves exact English and has Spanish", (key, english) => {
+  expect(Object.hasOwn(en, key)).toBe(true);
+  expect(Object.hasOwn(es, key)).toBe(true);
+  expect(formatMessage("en", key)).toBe(english);
+});
+
+test("editor helper placeholders preserve assembled English and raw data", () => {
+  const above = formatMessage("en", "editor.justAbove");
+  expect(formatMessage("en", "editor.windowStarts", { position: above })).toBe("starts ↑ just above");
+  for (const pages of [1, 2, 1000]) {
+    const position = formatMessage("en", "editor.pagesUp", { pages: String(pages) });
+    expect(position).toBe(`${pages} pages up`);
+    expect(formatMessage("en", "editor.windowStarts", { position })).toBe(`starts ↑ ${pages} pages up`);
+  }
+  expect(formatMessage("en", "lore.entryLabel", { name: "Mara {name}", kind: "character", pinned: "" })).toBe("Mara {name} · character");
+  expect(formatMessage("en", "lore.entryLabel", { name: "Mara", kind: "character", pinned: formatMessage("en", "lore.pinned") })).toBe("Mara · character · pinned");
+  for (const [key, label] of [["textCounts.word", "1 word"], ["draft.words", "1 words"], ["textCounts.character", "1 character"], ["textCounts.characters", "1 characters"], ["textCounts.line", "1 line"], ["textCounts.lines", "1 lines"]]) {
+    expect(formatMessage("en", key!, { count: "1" })).toBe(label);
+  }
+  expect(formatMessage("en", "textCounts.selected", { count: "1,000" })).toBe("1,000 of ");
+});
+
+test.each([
+  [0, "0 words · 0 characters · 0 lines"],
+  [1, "1 word · 1 character · 1 line"],
+  [2, "2 words · 2 characters · 2 lines"],
+  [1000, "1,000 words · 1,000 characters · 1,000 lines"],
+] as const)("editor count labels preserve assembled English for %s", (count, english) => {
+  expect(formatTextCounts({ words: count, characters: count, lines: count })).toBe(english);
+  expect(formatTextCounts({ words: count, characters: count, lines: count }, 1)).toBe(`1 of ${english}`);
 });

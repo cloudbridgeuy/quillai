@@ -1,7 +1,8 @@
 import type { LoreEntry } from "../../manuscripts/lore_client";
+import { defaultLocale, formatMessage } from "../../i18n/messages";
 
 export function loreEntryLabel(entry: Pick<LoreEntry, "name" | "kind" | "pinned">): string {
-  return `${entry.name} · ${entry.kind}${entry.pinned ? " · pinned" : ""}`;
+  return formatMessage(defaultLocale, "lore.entryLabel", { name: entry.name, kind: entry.kind, pinned: entry.pinned ? formatMessage(defaultLocale, "lore.pinned") : "" });
 }
 
 export function loreEntryPreview(text: string): string {
@@ -11,5 +12,5 @@ export function loreEntryPreview(text: string): string {
 }
 
 export function loreLevel(level: string) {
-  return level === "known_dont_reveal" ? "Known, don't reveal" : level === "leave_out" ? "Leave out" : "Include";
+  return formatMessage(defaultLocale, level === "known_dont_reveal" ? "lore.known" : level === "leave_out" ? "lore.leaveOut" : "lore.include");
 }

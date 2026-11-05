@@ -1,3 +1,5 @@
+import { defaultLocale, formatMessage } from "../i18n/messages";
+
 type TextOperation = { insert?: unknown };
 
 const words = new Intl.Segmenter(undefined, { granularity: "word" });
@@ -15,7 +17,7 @@ export function countText(input: string | readonly TextOperation[], terminalNewl
 }
 
 export function formatTextCounts(counts: ReturnType<typeof countText>, selectedWords: number | null = null) {
-  const labels = [[counts.words, "word"], [counts.characters, "character"], [counts.lines, "line"]] as const;
-  const prefix = selectedWords === null ? "" : `${format.format(selectedWords)} of `;
-  return prefix + labels.map(([count, unit]) => `${format.format(count)} ${unit}${count === 1 ? "" : "s"}`).join(" · ");
+  const labels = [[counts.words, "textCounts.word", "draft.words"], [counts.characters, "textCounts.character", "textCounts.characters"], [counts.lines, "textCounts.line", "textCounts.lines"]] as const;
+  const prefix = selectedWords === null ? "" : formatMessage(defaultLocale, "textCounts.selected", { count: format.format(selectedWords) });
+  return prefix + labels.map(([count, one, other]) => formatMessage(defaultLocale, count === 1 ? one : other, { count: format.format(count) })).join(formatMessage(defaultLocale, "textCounts.separator"));
 }

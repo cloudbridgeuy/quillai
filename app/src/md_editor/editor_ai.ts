@@ -1,10 +1,11 @@
 import type { AiAction, AiFinishReason, AiSelection, DeltaDocument } from "./ai_contract";
 import type { AiRunState } from "./ai_state";
+import { defaultLocale, formatMessage } from "../i18n/messages";
 
 export function emptyContinueMessage(reason: AiFinishReason): string {
   return reason === "length"
-    ? "The model used its whole budget without writing any text. Try again or pick another model."
-    : "The model returned no text.";
+    ? formatMessage(defaultLocale, "editor.emptyContinueBudget")
+    : formatMessage(defaultLocale, "editor.emptyContinue");
 }
 
 export function continueClickAction(state: AiRunState): "stop" | "generate" {
@@ -17,7 +18,7 @@ export function getSavePresentation(status: string, title: string | null, blocke
   const prefix = `${title} · `;
   const label = title !== null && status.startsWith(prefix) ? status.slice(prefix.length) : status;
   const failed = blocked || /stopped|failed|unavailable|interrupted|retained|export/i.test(label);
-  return failed ? { label: "Not saved", failed, detail: label } : { label, failed };
+  return failed ? { label: formatMessage(defaultLocale, "editor.notSaved"), failed, detail: label } : { label, failed };
 }
 
 export function canApplyEdit(busy: boolean, hasSelection: boolean, ready: boolean, blocked: boolean): boolean {
@@ -120,20 +121,20 @@ export function isTextOnlyDeltaDocument(delta: DeltaDocument): boolean {
 export function getStatusPresentation(state: AiRunState): StatusPresentation {
   switch (state.status) {
     case "continuing":
-      return { tone: "running", label: "Continuing" };
+      return { tone: "running", label: formatMessage(defaultLocale, "editor.continuing") };
     case "editing":
-      return { tone: "running", label: "Editing" };
+      return { tone: "running", label: formatMessage(defaultLocale, "editor.editing") };
     case "cancelling":
-      return { tone: "running", label: "Cancelling" };
+      return { tone: "running", label: formatMessage(defaultLocale, "editor.cancelling") };
     case "finished":
       if (state.outcome === "cancelled") {
-        return { tone: "warning", label: "Cancelled" };
+        return { tone: "warning", label: formatMessage(defaultLocale, "editor.cancelled") };
       }
 
-      return { tone: "success", label: "Done" };
+      return { tone: "success", label: formatMessage(defaultLocale, "editor.done") };
     case "failed":
       return { tone: "error", label: state.error };
     case "idle":
-      return { tone: "idle", label: "Idle" };
+      return { tone: "idle", label: formatMessage(defaultLocale, "editor.idle") };
   }
 }

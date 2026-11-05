@@ -2,6 +2,7 @@ import type Quill from "quill";
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../ui/Button";
+import { defaultLocale, formatMessage } from "../../i18n/messages";
 
 const FLAG_MIN_LEFT = 64;
 const FLAG_OFFSET = 210;
@@ -42,8 +43,8 @@ export function ContinueWindow({ quill, start, end }: { quill: Quill; start: num
       style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => window.scrollBy({ top: geometry.viewportTop - 24, behavior: "smooth" })}>
-      Continue window
-      <small>starts ↑ {screensAbove < 1 ? "just above" : `${Math.round(screensAbove)} pages up`}</small>
+      {formatMessage(defaultLocale, "editor.continueWindow")}
+      <small>{formatMessage(defaultLocale, "editor.windowStarts", { position: screensAbove < 1 ? formatMessage(defaultLocale, "editor.justAbove") : formatMessage(defaultLocale, "editor.pagesUp", { pages: String(Math.round(screensAbove)) }) })}</small>
     </Button>, document.body) : null}
   </>;
 }
