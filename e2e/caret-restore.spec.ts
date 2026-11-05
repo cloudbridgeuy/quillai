@@ -54,8 +54,16 @@ for (const width of [1100, 1440]) {
     });
     await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("Chapter line 70");
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("quillai.editor.position.v1") ?? "{}")[Object.keys(JSON.parse(localStorage.getItem("quillai.editor.position.v1") ?? "{}"))[0] ?? ""]?.length)).toBe(15);
-    const originalTop = await page.evaluate(() => window.getSelection()!.getRangeAt(0).getBoundingClientRect().top);
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+    await expect(page.getByRole("button", { name: `Caret second ${width}`, exact: true })).toBeVisible();
+    await line.scrollIntoViewIfNeeded();
+    await expect.poll(() => page.evaluate(() => {
+      const positions = JSON.parse(localStorage.getItem("quillai.editor.position.v1") ?? "{}");
+      const offsetTop = positions[Object.keys(positions)[0] ?? ""]?.offsetTop;
+      const selection = window.getSelection();
+      return typeof offsetTop === "number" && selection?.rangeCount ? Math.abs(offsetTop - selection.getRangeAt(0).getBoundingClientRect().top) : Infinity;
+    })).toBeLessThanOrEqual(1);
+    const originalTop = await page.evaluate(() => window.getSelection()!.getRangeAt(0).getBoundingClientRect().top);
     await page.getByRole("button", { name: `Caret second ${width}`, exact: true }).click();
     await expect(editor).toHaveText("Second chapter");
     await page.evaluate(observe, "Chapter line 90");
