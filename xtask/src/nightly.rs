@@ -659,6 +659,7 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
                 let _ = signal_hook::low_level::raise(super::SIGTERM);
             }
         });
+        let storybook_failure = super::nightly_storybook::build(&snapshot);
         let args = super::E2eArgs {
             ai_models: None,
             port: None,
@@ -704,6 +705,10 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
             &sha,
             expired.then_some(timeout),
         );
+        let text = match &storybook_failure {
+            Some(line) => format!("{line}\n{text}"),
+            None => text,
+        };
         let text = if incomplete && !expired {
             format!("Incomplete: missing or invalid final results, or infrastructure error\n{text}")
         } else {

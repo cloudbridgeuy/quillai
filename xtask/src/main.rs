@@ -21,6 +21,7 @@ mod e2e;
 mod hooks;
 mod nightly;
 mod nightly_launchd;
+mod nightly_storybook;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;

@@ -39,3 +39,5 @@ The `i18n` check scans tracked and untracked, non-ignored `app/src/**/*.tsx`, ex
 `xtask/i18n-waivers.json` records existing counts by file. New offenders and count increases fail. Decreases also fail with instructions to lower the count or remove a zero-count entry. Never raise counts or add waivers for new strings. Full diagnostics are in `target/xtask-lint/i18n.log`.
 
 The hook runs the full lint on the working tree, not only staged files. If `app/node_modules` is missing, run `bun install --frozen-lockfile` in `app/` first. Never use `--no-verify`.
+
+Visual tests: nightly builds Storybook in the snapshot (`bun run build` in `storybook/`) and `e2e/stories-visual.spec.ts` screenshots every story against baselines in `e2e/stories-visual.spec.ts-snapshots/`. A failed build is named at the top of the report and the other specs still run. Update baselines with `cargo xtask e2e stories-visual.spec.ts --update-snapshots` after running `bun run build` in `storybook/`.

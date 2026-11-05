@@ -112,3 +112,5 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `tree-rename.spec.ts` checks series, book, chapter and piece rename at 1100px and 1440px: Enter/blur saves trimmed titles, Escape cancels, blank titles fail, unchanged titles send no request, server titles persist, and the open chapter header and tab update. Written; not run for GUZ-895.
 
 `chapter-export.spec.ts` checks chapter and book download names, Markdown, text, Word, and EPUB formats, chapter order, unsaved live text with saves held, and export failure at 1100px and 1440px. Word and EPUB downloads check ZIP signatures and package contents. Written; not run for GUZ-1240.
+
+`stories-visual.spec.ts` serves `storybook/storybook-static` from a small in-spec HTTP server and screenshots each `story` entry from `index.json` (one test per story, docs entries skipped, max 1 percent pixel diff). The whole file skips when the build is missing. Written; not run for GUZ-1438.
