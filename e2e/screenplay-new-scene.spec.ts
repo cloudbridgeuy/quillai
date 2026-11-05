@@ -198,7 +198,8 @@ for (const width of [1100, 1440]) {
       const response = await request.post(`${api}/pieces/${group.id}/children`, { data: { title: "Elsewhere", position: 2, label: "scene" } });
       expect(response.status()).toBe(201);
       const changed = page.getByRole("status").filter({ hasText: "Scenes changed; reload" });
-      await expect(changed).toBeVisible();
+      // Adding a scene emits no SSE nudge; the 15s fallback poll (GUZ-1194) detects it.
+      await expect(changed).toBeVisible({ timeout: 25_000 });
       await page.keyboard.type("x");
       await expect(changed).toBeVisible();
       expect(sceneSlices((await contents(page)).ops).breaks).toEqual([one.id, two.id]);

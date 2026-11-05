@@ -60,6 +60,7 @@ function sceneSlices(ops: Op[]): { breaks: unknown[]; scenes: string[] } {
 }
 
 test("a script group reads as one scroll and syncs per scene", async ({ page, request, browserName }) => {
+  test.setTimeout(120_000);
   const api = process.env.QUILLAI_E2E_API_URL;
   if (!api) throw new Error("Run with cargo xtask e2e");
   const failures: string[] = [];
@@ -98,9 +99,10 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
   const expectSurface = async (oneText: string, twoText: string) => {
     await expect.poll(async () => sceneSlices((await surface(page)).ops)).toEqual({ breaks: [one.id, two.id], scenes: [oneText, twoText] });
   };
+  // Scene membership changes are only seen by the 15s fallback poll (GUZ-1194), so wait longer and expect one poll.
   const polls = async (count: number) => {
     for (let index = 0; index < count; index++) {
-      await page.waitForResponse((response) => response.url().includes(`/pieces/${group.id}/scenes/deltas`));
+      await page.waitForResponse((response) => response.url().includes(`/pieces/${group.id}/scenes/deltas`), { timeout: 30_000 });
     }
   };
   const expectServer = async (oneText: string, twoText: string) => {
@@ -188,7 +190,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await paste("Merged");
     await expectSurface("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
     await expect(page.locator('.editor-scene-notice[role="status"]')).toHaveText("Edits across a scene break are not saved");
-    await polls(2);
+    await polls(1);
     expect(posts.length).toBe(count);
     await expectServer("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
   });
@@ -198,7 +200,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await breaks.nth(1).evaluate((node) => node.insertBefore(document.createTextNode("Dropped"), node.firstChild));
     await expectSurface("Steam. Kettle boils.\n", "Thunder. Rain falls hard.\n");
     await expect(page.locator('.editor-scene-notice[role="status"]')).toHaveText("Edits across a scene break are not saved");
-    await polls(2);
+    await polls(1);
     expect(posts.length).toBe(count);
 
     await select(page, 1, "Steam.".length);
