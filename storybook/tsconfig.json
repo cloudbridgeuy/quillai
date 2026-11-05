@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@storybook/react-vite": ["./node_modules/@storybook/react-vite/dist/index.d.ts"]
+    }
+  },
+  "include": [".storybook/*.ts", "*.stories.tsx", "../app/src/ui/**/*.stories.tsx"]
+}

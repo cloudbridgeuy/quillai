@@ -10,7 +10,7 @@ const PROPS: &str = "aria-label title placeholder label alt description heading"
 fn included(path: &str) -> bool {
     path.starts_with("app/src/")
         && path.ends_with(".tsx")
-        && ![".test.tsx", ".fixture.tsx"]
+        && ![".test.tsx", ".fixture.tsx", ".stories.tsx"]
             .iter()
             .any(|suffix| path.ends_with(suffix))
 }
@@ -393,6 +393,7 @@ mod tests {
             "app/src/a.test.tsx",
             "app/src/a.dom.test.tsx",
             "app/src/a.fixture.tsx",
+            "app/src/a.stories.tsx",
             "app/src/a.ts",
             "other/a.tsx",
         ] {

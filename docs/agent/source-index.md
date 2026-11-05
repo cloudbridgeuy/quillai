@@ -35,7 +35,7 @@
 
 | File | Purpose |
 |------|---------|
-| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. Dev opens `<workspace root>/quillai.db` unless `--db-url` or `QUILLAI_API_DB_URL` is set. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, and the `ui` design-system check, with short output (logs in `target/xtask-lint/`) |
+| `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. Dev opens `<workspace root>/quillai.db` unless `--db-url` or `QUILLAI_API_DB_URL` is set. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, the story type check `storybook/node_modules/typescript/bin/tsc --noEmit -p storybook`, and the `ui` design-system check, with short output (logs in `target/xtask-lint/`) |
 | `dev_database.rs` | Pure dev API database arguments: forward `--db-url` / `QUILLAI_API_DB_URL` unchanged, otherwise absolute `<workspace>/quillai.db` with `mode=rwc` |
 | `check_i18n.rs` | Lint check `i18n`: hard-coded JSX text and UI prop literals; shrink-only per-file counts in `xtask/i18n-waivers.json`. See [testing](testing.md). |
 | `hooks.rs` | `cargo xtask install-hooks`; see [testing](testing.md). |

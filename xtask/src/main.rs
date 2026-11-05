@@ -258,6 +258,12 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
             &["--noEmit", "-p", "app"],
             ".",
         ),
+        (
+            "storybook-tsc",
+            "storybook/node_modules/typescript/bin/tsc",
+            &["--noEmit", "-p", "storybook"],
+            ".",
+        ),
     ];
     let mut failed = 0;
     for (name, program, command_args, directory) in checks {
@@ -269,9 +275,10 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
             std::path::PathBuf::from(program)
         };
         if program.contains('/') && !executable.is_file() {
+            let package = program.split('/').next().unwrap_or(program);
             writeln!(
                 log,
-                "missing {program}: run `bun install` in app so the project TypeScript compiler is available"
+                "missing {program}: run `bun install` in {package} so the project TypeScript compiler is available"
             )?;
             report_lint_check(name, false, &path, args.verbose)?;
             failed += 1;
