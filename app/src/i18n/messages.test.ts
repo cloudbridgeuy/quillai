@@ -260,3 +260,73 @@ test("editor download preserves assembled English", () => {
   expect(formatMessage("en", "editor.download", { format: "Markdown" })).toBe("Download Markdown");
   expect(formatMessage("en", "editor.download", { format: "text" })).toBe("Download text");
 });
+
+test.each([
+  ["inspector.liveContext", "Live Prompt Context"],
+  ["inspector.storyContext", "Story Context"],
+  ["inspector.storyPlaceholder", "Series premise, tone, point of view, or scene notes"],
+  ["inspector.continueInstruction", "Continue instruction"],
+  ["inspector.continuePlaceholder", "Continue the scene, build suspense, introduce a new obstacle..."],
+  ["inspector.editNote", "Edit replaces the current selection as text arrives. Stopping an Edit keeps text that already landed; failed edits restore the original passage. Desktop Continue Stop removes only AI text and keeps your typing."],
+  ["inspector.advanced", "Advanced AI controls"],
+  ["inspector.continueModel", "Continue model"],
+  ["inspector.editModel", "Edit model"],
+  ["inspector.unavailable", "Unavailable"],
+  ["inspector.loadingModels", "Loading models…"],
+  ["inspector.modelsUnavailable", "Models unavailable. Using server defaults."],
+  ["inspector.maxOutput", "Max Output Tokens"],
+  ["inspector.resumePrompt", "Thread continuation prompt"],
+  ["inspector.guidance", "Author guidance"],
+  ["inspector.saveGuidance", "Save author guidance"],
+  ["inspector.guidanceNote", "Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only."],
+  ["inspector.request", "Request to inspect"],
+  ["inspector.overrideNote", "Edit content for the next selected request. Tagged content is escaped; section tags and selection ranges stay fixed. History keeps separate speaker turns. Overrides reset after accepted sends or chapter changes. Limits: 65,536 UTF-8 bytes per section, 262,144 total."],
+  ["inspector.modelCost", "Model and cost"],
+  ["inspector.pendingEstimate", "Pending estimate"],
+  ["settings.ai.model", "Model"],
+  ["inspector.inputCost", "Estimated input cost"],
+  ["inspector.outputRate", "Output rate"],
+  ["inspector.actualRun", "Most recent run · actual"],
+  ["inspector.requestModel", "Request model"],
+  ["inspector.observedUsage", "Observed usage"],
+  ["inspector.actualCost", "Actual cost"],
+  ["inspector.costNote", "Observed usage only, not a final bill. No cache discount assumed."],
+  ["inspector.estimatedTokens", "{tokens} estimated tokens"],
+  ["inspector.injectedLore", "Injected lore"],
+  ["inspector.loreBudget", "Next request · {characters} UTF-16 character budget. Pins can exceed it."],
+  ["inspector.loreTokenNote", "Tokens: UTF-8 bytes ÷ 4, rounded up per entry including standalone Lore tags; not additive."],
+  ["inspector.noLore", "No lore injected."],
+  ["inspector.pin", "pin"],
+  ["inspector.keyword", "keyword"],
+  ["inspector.skipped", "Skipped by budget"],
+  ["inspector.noSkipped", "No entries skipped by budget."],
+  ["inspector.sectionLabel", "{section} prompt section"],
+  ["inspector.historyTurn", "{role} turn {number}"],
+  ["inspector.noHistory", "No history turns."],
+  ["inspector.addTurn", "Add {role} turn"],
+  ["inspector.resetSection", "Reset {section}"],
+  ["inspector.copied", "Copied"],
+  ["inspector.totalTokens", "Total: {tokens} estimated tokens"],
+  ["inspector.fullPrompt", "Full prompt"],
+  ["inspector.copy", "Copy"],
+  ["inspector.copyFailed", "Could not copy prompt."],
+  ["editor.continue", "Continue"],
+  ["shortcut.edit", "Edit selection"],
+  ["lore.known", "Known, don't reveal"],
+  ["lore.include", "Include"],
+  ["thread.resumeOption", "Continue · from a cut-off reply"],
+])("inspector message %s preserves exact English and has Spanish", (key, english) => {
+  expect(Object.hasOwn(en, key)).toBe(true);
+  expect(Object.hasOwn(es, key)).toBe(true);
+  expect(formatMessage("en", key)).toBe(english);
+});
+
+test("inspector placeholders preserve assembled English and raw data", () => {
+  expect(formatMessage("en", "inspector.sectionLabel", { section: "Author {guidance}" })).toBe("Author {guidance} prompt section");
+  expect(formatMessage("en", "inspector.historyTurn", { role: "assistant", number: "1000" })).toBe("assistant turn 1000");
+  expect(formatMessage("en", "inspector.totalTokens", { tokens: "1000" })).toBe("Total: 1000 estimated tokens");
+  expect(formatMessage("en", "inspector.loreBudget", { characters: "1,000" })).toBe("Next request · 1,000 UTF-16 character budget. Pins can exceed it.");
+  expect(formatMessage("en", "inspector.estimatedTokens", { tokens: "1000" })).toBe("1000 estimated tokens");
+  expect(formatMessage("en", "inspector.addTurn", { role: "user" })).toBe("Add user turn");
+  expect(formatMessage("en", "inspector.resetSection", { section: "Story Context" })).toBe("Reset Story Context");
+});

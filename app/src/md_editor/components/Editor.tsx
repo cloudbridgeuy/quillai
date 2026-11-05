@@ -1628,28 +1628,28 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <aside inert={pending || undefined} id="context-drawer" hidden={panel !== "context"}
           className="editor-drawer editor-drawer-right editor-context-inspector editor-preview-section" aria-labelledby="context-inspector-title">
           <div className="editor-drawer-header">
-            <Heading level="section" id="context-inspector-title">Live Prompt Context</Heading>
+            <Heading level="section" id="context-inspector-title">{formatMessage(defaultLocale, "inspector.liveContext")}</Heading>
           </div>
           <div className="editor-context-body">
           {continueInspector && markerQuill ? <LoreWindow quill={markerQuill} start={markerWindow.start} lore={continueInspector.lore} /> : null}
-        <Field label="Story Context" className="w-full">
+        <Field label={formatMessage(defaultLocale, "inspector.storyContext")} className="w-full">
           <StickyNote
             tone="yellow"
             value={storyContext}
             onChange={(event) => setStoryContext(event.target.value)}
-            placeholder="Series premise, tone, point of view, or scene notes"
+            placeholder={formatMessage(defaultLocale, "inspector.storyPlaceholder")}
             rows={4}
             disabled={isBusy || !visuallyReady || chapterSync.blocked}
           />
         </Field>
 
         <div className="editor-controls-grid">
-          <Field label="Continue instruction" className="min-w-0">
+          <Field label={formatMessage(defaultLocale, "inspector.continueInstruction")} className="min-w-0">
             <StickyNote
               tone="yellow"
               value={continueInstruction}
               onChange={(event) => setContinueInstructionAndResetThread(event.target.value)}
-              placeholder="Continue the scene, build suspense, introduce a new obstacle..."
+              placeholder={formatMessage(defaultLocale, "inspector.continuePlaceholder")}
               rows={2}
               disabled={isBusy}
             />
@@ -1669,75 +1669,73 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </div> : null}
 
         <p className="editor-note">
-          Edit replaces the current selection as text arrives. Stopping an Edit
-          keeps text that already landed; failed edits restore the original passage.
-          Desktop Continue Stop removes only AI text and keeps your typing.
+          {formatMessage(defaultLocale, "inspector.editNote")}
         </p>
           <details className="editor-advanced-section">
-            <summary>Advanced AI controls</summary>
+            <summary>{formatMessage(defaultLocale, "inspector.advanced")}</summary>
             {(["generate", "edit"] as const).map((action) => {
               const setting = action === "generate" ? "continueModel" : "editModel";
-              return <Field className="mt-3" label={action === "generate" ? "Continue model" : "Edit model"} key={action}>
+              return <Field className="mt-3" label={action === "generate" ? formatMessage(defaultLocale, "inspector.continueModel") : formatMessage(defaultLocale, "inspector.editModel")} key={action}>
                 <TextField as="select" square
                   value={resolveModelChoice(modelCatalog, action, threadState.settings[setting]) ?? ""}
                   disabled={isBusy || !modelCatalog}
                   onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                     [setting]: event.target.value,
                   }))}>
-                  {!modelCatalog ? <option value="">Unavailable</option> : modelCatalog.models.map((model) =>
+                  {!modelCatalog ? <option value="">{formatMessage(defaultLocale, "inspector.unavailable")}</option> : modelCatalog.models.map((model) =>
                     <option key={model.id} value={model.id}>{model.label}</option>)}
                 </TextField>
               </Field>;
             })}
-            {!modelCatalog ? <p className="editor-note">{modelsPending ? "Loading models…" : modelsError ?? "Models unavailable. Using server defaults."}</p> : null}
-            <Field label="Max Output Tokens" className="mt-3">
+            {!modelCatalog ? <p className="editor-note">{modelsPending ? formatMessage(defaultLocale, "inspector.loadingModels") : modelsError ?? formatMessage(defaultLocale, "inspector.modelsUnavailable")}</p> : null}
+            <Field label={formatMessage(defaultLocale, "inspector.maxOutput")} className="mt-3">
               <TextField square type="number" min="1" max="4096" step="1"
                 value={threadState.settings.maxOutputTokens} disabled={isBusy}
                 onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                   maxOutputTokens: Number(event.target.value),
                 }))} />
             </Field>
-            <Field label="Thread continuation prompt" className="mt-3">
+            <Field label={formatMessage(defaultLocale, "inspector.resumePrompt")} className="mt-3">
               <StickyNote tone="yellow" rows={2} value={threadState.settings.resumePrompt} disabled={isBusy}
                 onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
                   resumePrompt: event.target.value,
                 }))} />
             </Field>
           </details>
-          <Field label="Author guidance">
-            <StickyNote tone="yellow" aria-label="Author guidance" rows={5}
+          <Field label={formatMessage(defaultLocale, "inspector.guidance")}>
+            <StickyNote tone="yellow" aria-label={formatMessage(defaultLocale, "inspector.guidance")} rows={5}
               value={guidanceDraft} disabled={isBusy || guidancePending || !guidanceLoaded}
               onChange={(event) => setGuidanceDraft(event.target.value)} />
           </Field>
           <Button size="sm"
             disabled={isBusy || guidancePending || !guidanceLoaded || guidanceDraft === authorGuidance}
-            onClick={() => void saveAuthorGuidance()}>Save author guidance</Button>
-          <p className="editor-note">Saved on the server for all requests. Empty text removes guidance. Limit: 65,536 UTF-8 bytes. System rules are read-only.</p>
+            onClick={() => void saveAuthorGuidance()}>{formatMessage(defaultLocale, "inspector.saveGuidance")}</Button>
+          <p className="editor-note">{formatMessage(defaultLocale, "inspector.guidanceNote")}</p>
           {guidanceStatus === "Author guidance saved." ? <Alert tone="success" variant="inline">{guidanceStatus}</Alert> : <p className="editor-note" role="status">{guidanceStatus}</p>}
-          <Field label="Request to inspect">
+          <Field label={formatMessage(defaultLocale, "inspector.request")}>
             <TextField as="select" square value={inspectorAction} disabled={isBusy}
               onChange={(event) => setInspectorAction(event.target.value === "edit" ? "edit" : "generate")}>
-              <option value="generate">{withThread ? formatMessage(defaultLocale, "thread.resumeOption") : "Continue"}</option>
-              <option value="edit">Edit selection</option>
+              <option value="generate">{withThread ? formatMessage(defaultLocale, "thread.resumeOption") : formatMessage(defaultLocale, "editor.continue")}</option>
+              <option value="edit">{formatMessage(defaultLocale, "shortcut.edit")}</option>
             </TextField>
           </Field>
           <p className="editor-note">
-            Edit content for the next selected request. Tagged content is escaped; section tags and selection ranges stay fixed. History keeps separate speaker turns. Overrides reset after accepted sends or chapter changes. Limits: 65,536 UTF-8 bytes per section, 262,144 total.
+            {formatMessage(defaultLocale, "inspector.overrideNote")}
           </p>
-          <section className="space-y-3 text-ui break-normal" aria-label="Model and cost">
-            <Heading level="section" as="h3">Pending estimate</Heading>
+          <section className="space-y-3 text-ui break-normal" aria-label={formatMessage(defaultLocale, "inspector.modelCost")}>
+            <Heading level="section" as="h3">{formatMessage(defaultLocale, "inspector.pendingEstimate")}</Heading>
             <dl className="grid grid-cols-1 gap-1">
-              <dt className="text-label text-graphite">Model</dt><dd title={inspectorCost.modelId}>{inspectorCost.model}</dd>
-              <dt className="text-label text-graphite">Estimated input cost</dt><dd>{inspectorCost.estimate}</dd>
-              <dt className="text-label text-graphite">Output rate</dt><dd>{inspectorCost.outputRate}</dd>
+              <dt className="text-label text-graphite">{formatMessage(defaultLocale, "settings.ai.model")}</dt><dd title={inspectorCost.modelId}>{inspectorCost.model}</dd>
+              <dt className="text-label text-graphite">{formatMessage(defaultLocale, "inspector.inputCost")}</dt><dd>{inspectorCost.estimate}</dd>
+              <dt className="text-label text-graphite">{formatMessage(defaultLocale, "inspector.outputRate")}</dt><dd>{inspectorCost.outputRate}</dd>
             </dl>
-            <Heading level="section" as="h3">Most recent run · actual</Heading>
+            <Heading level="section" as="h3">{formatMessage(defaultLocale, "inspector.actualRun")}</Heading>
             <dl className="grid grid-cols-1 gap-1">
-              {inspectorCost.actualModel !== null && <><dt className="text-label text-graphite">Request model</dt><dd>{inspectorCost.actualModel}</dd></>}
-              <dt className="text-label text-graphite">Observed usage</dt><dd>{inspectorCost.usage}</dd>
-              <dt className="text-label text-graphite">Actual cost</dt><dd>{inspectorCost.actual}</dd>
+              {inspectorCost.actualModel !== null && <><dt className="text-label text-graphite">{formatMessage(defaultLocale, "inspector.requestModel")}</dt><dd>{inspectorCost.actualModel}</dd></>}
+              <dt className="text-label text-graphite">{formatMessage(defaultLocale, "inspector.observedUsage")}</dt><dd>{inspectorCost.usage}</dd>
+              <dt className="text-label text-graphite">{formatMessage(defaultLocale, "inspector.actualCost")}</dt><dd>{inspectorCost.actual}</dd>
             </dl>
-            <p className="editor-note">Observed usage only, not a final bill. No cache discount assumed.</p>
+            <p className="editor-note">{formatMessage(defaultLocale, "inspector.costNote")}</p>
           </section>
           {typeof contextInspector === "string" ? (
             <p className="editor-note">{contextInspector}</p>
@@ -1745,23 +1743,23 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             <>
               <p className="editor-note">{contextInspector.requestLabel}</p>
               <p className="editor-note">{contextInspector.tokenEstimateLabel}</p>
-              <strong>Total: {contextInspector.totalTokens} estimated tokens</strong>
+              <strong>{formatMessage(defaultLocale, "inspector.totalTokens", { tokens: String(contextInspector.totalTokens) })}</strong>
               <Button ref={fullPromptTriggerRef} size="sm" onClick={() => { setCopyNotice(null); setFullPromptOpen(true); }}>
                 {formatMessage(defaultLocale, "inspector.fullPrompt")}
               </Button>
-              <section className="editor-preview-section" aria-label="Injected lore">
-                <div className="editor-preview-section-header"><Heading level="section" as="h3">Injected lore</Heading></div>
-                <p className="editor-note">Next request · {contextInspector.lore.maxCharacters.toLocaleString()} UTF-16 character budget. Pins can exceed it.</p>
-                <p className="editor-note">Tokens: UTF-8 bytes ÷ 4, rounded up per entry including standalone Lore tags; not additive.</p>
-                {contextInspector.lore.injected.length === 0 ? <p>No lore injected.</p> : <ul>
+              <section className="editor-preview-section" aria-label={formatMessage(defaultLocale, "inspector.injectedLore")}>
+                <div className="editor-preview-section-header"><Heading level="section" as="h3">{formatMessage(defaultLocale, "inspector.injectedLore")}</Heading></div>
+                <p className="editor-note">{formatMessage(defaultLocale, "inspector.loreBudget", { characters: contextInspector.lore.maxCharacters.toLocaleString() })}</p>
+                <p className="editor-note">{formatMessage(defaultLocale, "inspector.loreTokenNote")}</p>
+                {contextInspector.lore.injected.length === 0 ? <p>{formatMessage(defaultLocale, "inspector.noLore")}</p> : <ul>
                   {contextInspector.lore.injected.map(entry => <li key={entry.id}>
-                    <strong>{entry.name}</strong> · {entry.kind} · {entry.reason === "pinned" ? "pin" : "keyword"} · {entry.level === "known_dont_reveal" ? "Known, don't reveal" : "Include"} · {entry.tokens} estimated tokens
+                    <strong>{entry.name}</strong> · {entry.kind} · {entry.reason === "pinned" ? formatMessage(defaultLocale, "inspector.pin") : formatMessage(defaultLocale, "inspector.keyword")} · {entry.level === "known_dont_reveal" ? formatMessage(defaultLocale, "lore.known") : formatMessage(defaultLocale, "lore.include")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
                   </li>)}
                 </ul>}
-                <Heading level="section" as="h4">Skipped by budget</Heading>
-                {contextInspector.lore.skipped.length === 0 ? <p>No entries skipped by budget.</p> : <ul>
+                <Heading level="section" as="h4">{formatMessage(defaultLocale, "inspector.skipped")}</Heading>
+                {contextInspector.lore.skipped.length === 0 ? <p>{formatMessage(defaultLocale, "inspector.noSkipped")}</p> : <ul>
                   {contextInspector.lore.skipped.map(entry => <li key={entry.id}>
-                    <strong>{entry.name}</strong> · {entry.kind} · keyword · {entry.tokens} estimated tokens
+                    <strong>{entry.name}</strong> · {entry.kind} · {formatMessage(defaultLocale, "inspector.keyword")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
                   </li>)}
                 </ul>}
               </section>
@@ -1769,15 +1767,15 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                 <section className="editor-preview-section" key={section.id}>
                   <div className="editor-preview-section-header">
                     <Heading level="section" as="h3">{section.label}</Heading>
-                    <span>{section.tokens} estimated tokens</span>
+                    <span>{formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(section.tokens) })}</span>
                   </div>
                   {section.id === "system" || section.id === "author_guidance" || section.id === "lore" || section.id === "selection" || section.id === "document" ? (
-                    <TextField as="textarea" square className="font-mono text-graphite" aria-label={`${section.label} prompt section`}
+                    <TextField as="textarea" square className="font-mono text-graphite" aria-label={formatMessage(defaultLocale, "inspector.sectionLabel", { section: section.label })}
                       value={section.id === "selection" && showContinueSelectionNote ? section.editableText : section.text} rows={5} readOnly />
                   ) : section.id === "history" ? (
                     <>
                       {contextInspector.history.map((message, index) => (
-                        <Field label={`${message.role} turn ${index + 1}`} key={index}>
+                        <Field label={formatMessage(defaultLocale, "inspector.historyTurn", { role: message.role, number: String(index + 1) })} key={index}>
                           <StickyNote tone="yellow" value={message.text} rows={3}
                             disabled={isBusy || chapterSync.blocked}
                             onChange={(event) => setSectionOverrides((current) => ({
@@ -1790,7 +1788,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                             }))} />
                         </Field>
                       ))}
-                      {contextInspector.history.length === 0 ? <p>No history turns.</p> : null}
+                      {contextInspector.history.length === 0 ? <p>{formatMessage(defaultLocale, "inspector.noHistory")}</p> : null}
                       {(["user", "assistant"] as const).map((role) => (
                         <Button size="sm" key={role}
                           disabled={isBusy || chapterSync.blocked}
@@ -1800,12 +1798,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                               ...current[inspectorAction],
                               history: [...contextInspector.history, { role, text: "" }],
                             },
-                          }))}>Add {role} turn</Button>
+                          }))}>{formatMessage(defaultLocale, "inspector.addTurn", { role })}</Button>
                       ))}
                     </>
                   ) : <StickyNote
                     tone="yellow"
-                    aria-label={`${section.label} prompt section`}
+                    aria-label={formatMessage(defaultLocale, "inspector.sectionLabel", { section: section.label })}
                     value={section.editableText}
                     rows={5}
                     disabled={isBusy || chapterSync.blocked}
@@ -1822,7 +1820,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                         const next = { ...current[inspectorAction] };
                         if (section.id === "instruction" || section.id === "story_context" || section.id === "history") delete next[section.id];
                         return { ...current, [inspectorAction]: next };
-                      })}>Reset {section.label}</Button>
+                      })}>{formatMessage(defaultLocale, "inspector.resetSection", { section: section.label })}</Button>
                   ) : null}
                 </section>
               ))}
@@ -1847,7 +1845,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }
           }}>{formatMessage(defaultLocale, "inspector.copy")}</Button>}>
           <p>{contextInspector.tokenEstimateLabel}: {contextInspector.totalTokens}</p>
-          {copyNotice?.prompt === prompt ? <Alert tone={copyNotice.tone} variant="inline">{copyNotice.tone === "success" ? "Copied" : formatMessage(defaultLocale, "inspector.copyFailed")}</Alert> : null}
+          {copyNotice?.prompt === prompt ? <Alert tone={copyNotice.tone} variant="inline">{copyNotice.tone === "success" ? formatMessage(defaultLocale, "inspector.copied") : formatMessage(defaultLocale, "inspector.copyFailed")}</Alert> : null}
           <div className="space-y-4">{parts.map((part, index) => <section key={index}>
             <Heading level="section" as="h3">{part.label}</Heading>
             <pre className="whitespace-pre-wrap break-words font-mono text-ui">{part.text}</pre>
