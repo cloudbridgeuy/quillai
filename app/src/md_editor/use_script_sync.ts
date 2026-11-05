@@ -19,6 +19,7 @@ import { toFdx } from "./fdx";
 import { toFountain } from "./fountain";
 import { editorUrl, landingUrl } from "../landing/routes";
 import { createCaretTracker } from "./caret_position";
+import { scriptBlockRepairs } from "./line_format_repair";
 import { scriptNotice } from "./script_notice";
 import { defaultLocale, formatMessage } from "../i18n/messages";
 
@@ -205,7 +206,12 @@ export function useScriptSync(
         const placed = placeRemote(scene.id, change, layoutRef.current);
         const selection = quill.getSelection();
         applyingRef.current = true;
+        const before = quill.getContents();
         quill.updateContents(placed.change, "api");
+        // Quill's block delta cache can drop line formats after a remote insert at a line start.
+        for (const repair of scriptBlockRepairs(before.compose(placed.change).ops, quill.getContents().ops)) {
+          quill.formatLine(repair.index, 1, "script-block", repair.value, "api");
+        }
         layoutRef.current = placed.layout;
         if (selection) {
           const text = quill.getText();
