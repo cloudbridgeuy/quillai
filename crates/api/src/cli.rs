@@ -23,7 +23,7 @@ pub struct App {
     )]
     pub db_url: String,
 
-    #[clap(long, default_value = "1", env = "QUILLAI_API_DB_MAX_CONNECTIONS")]
+    #[clap(long, default_value = "4", env = "QUILLAI_API_DB_MAX_CONNECTIONS")]
     pub db_max_connections: u32,
 
     #[clap(long, default_value = "3", env = "QUILLAI_API_DB_ACQUIRE_TIMEOUT")]

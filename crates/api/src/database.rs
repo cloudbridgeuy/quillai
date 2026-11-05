@@ -1,7 +1,26 @@
 use sqlx::{
     migrate::{Migrate, MigrateError, Migrator},
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
     SqlitePool,
 };
+use std::time::Duration;
+
+pub async fn connect(
+    options: SqliteConnectOptions,
+    max_connections: u32,
+    acquire_timeout: Duration,
+) -> Result<SqlitePool, sqlx::Error> {
+    SqlitePoolOptions::new()
+        .max_connections(max_connections)
+        .acquire_timeout(acquire_timeout)
+        .connect_with(
+            options
+                .foreign_keys(true)
+                .journal_mode(SqliteJournalMode::Wal)
+                .busy_timeout(Duration::from_secs(5)),
+        )
+        .await
+}
 
 pub static MIGRATOR: Migrator = sqlx::migrate!("../../migrations");
 

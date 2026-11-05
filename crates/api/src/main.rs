@@ -1,6 +1,6 @@
 use clap::Parser;
 use listenfd::ListenFd;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use sqlx::sqlite::SqliteConnectOptions;
 use tokio::net::TcpListener;
 
 mod cli;
@@ -17,15 +17,13 @@ async fn main() -> Result<()> {
     let catalog =
         quillai_api::ai::catalog::load(args.ai_models.as_deref(), fallback_model.as_deref())?;
 
-    let options = args
-        .db_url
-        .parse::<SqliteConnectOptions>()?
-        .foreign_keys(true);
-    let pool = SqlitePoolOptions::new()
-        .max_connections(args.db_max_connections)
-        .acquire_timeout(std::time::Duration::from_secs(args.db_acquire_timeout))
-        .connect_with(options)
-        .await?;
+    let options = args.db_url.parse::<SqliteConnectOptions>()?;
+    let pool = quillai_api::database::connect(
+        options,
+        args.db_max_connections,
+        std::time::Duration::from_secs(args.db_acquire_timeout),
+    )
+    .await?;
     quillai_api::database::migrate(&pool)
         .await
         .context("Failed to run database migrations")?;
