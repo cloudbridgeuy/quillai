@@ -19,6 +19,13 @@ test("ui stories exist", () => {
   expect(files.length).toBeGreaterThan(0);
 });
 
+test("every ui primitive has a story file", () => {
+  const primitives = [...new Bun.Glob("*.tsx").scanSync(import.meta.dir)]
+    .filter((file) => !/\.(test|stories|fixture)\.tsx$/.test(file) && file !== "index.tsx");
+  const missing = primitives.filter((file) => !files.includes(file.replace(/\.tsx$/, ".stories.tsx"))).sort();
+  expect(missing).toEqual([]);
+});
+
 for (const file of files) {
   const { default: meta, ...stories } = (await import(`./${file}`)) as StoryModule;
   for (const [exportName, story] of Object.entries(stories)) {
