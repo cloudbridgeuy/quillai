@@ -20,6 +20,8 @@
 `rail-buttons.spec.ts` checks rail geometry, names, titles, selection preservation, panel toggles and pending Continue at 1100px and 1440px.
 `lore-modal.spec.ts` checks the visible and accessible pin and shared matching hints, draft dismissal and reset, focus restoration, saving, and two-click deletion with API persistence. Matching hint assertions written; not run for GUZ-915.
 `lore.spec.ts` checks the saved Series lore row name, level, preview, and accessible name. Row assertions written; not run for GUZ-909.
+
+`lore-cycle.spec.ts` at 1100px seeds one lore entry with three matches separated by filler, and checks that repeated "Lore in window" clicks scroll to successive matches, wrap to the first, and keep the card open until Escape. Written; not run for GUZ-911.
 `inspector-readonly.spec.ts` checks read-only Document and Selection, absent reset controls, and editable Instruction and Story context in Full prompt at 1100px and 1440px.
 
 `inspector-fields.spec.ts` checks inspector, settings, manuscript and lore headings and field semantics at 1100px and 1440px.

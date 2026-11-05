@@ -6,6 +6,7 @@ import { Popover } from "../../ui/Popover";
 import { ListButton } from "../../ui/ListButton";
 import type { buildInjectedLore } from "../context_inspector";
 import { loreLevel } from "./lore_entry_row";
+import { nextOccurrence } from "./lore_occurrence";
 
 type Lore = ReturnType<typeof buildInjectedLore>;
 type Mark = { entry: Lore["matches"][number]; start: number; range: globalThis.Range };
@@ -89,18 +90,19 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
     <p className="editor-note">{formatMessage(defaultLocale, "lore.window.context")}</p>
     {lore.injected.length === 0 ? <p>{formatMessage(defaultLocale, "lore.window.empty")}</p> : <ul className="editor-lore-window">
       {lore.injected.map(entry => {
-        const mark = marks.find(match => match.entry.id === entry.id);
+        const entryMarks = marks.filter(match => match.entry.id === entry.id);
         const open = selected?.entry.id === entry.id && !!rect;
         return <li key={entry.id}><Popover open={open} anchor={{ left: rect?.left ?? 0, top: rect?.bottom ?? 0 }}
-          onOpenChange={next => {
-            if (!next) setActive(null);
-            else if (mark) {
-              window.scrollBy({ top: mark.range.getBoundingClientRect().top - window.innerHeight / 2 });
-              setActive({ id: mark.entry.id, start: mark.start });
-            }
-          }}
+          onOpenChange={next => { if (!next) setActive(null); }}
           role="dialog" aria-label={formatMessage(defaultLocale, "lore.window.match")} className="editor-lore-card"
-          trigger={<ListButton tone="lore" onMouseDown={event => event.preventDefault()} disabled={entry.occurrences.length === 0}>
+          trigger={<ListButton tone="lore" onMouseDown={event => event.preventDefault()} onClick={event => {
+            event.preventDefault();
+            const start = nextOccurrence(entryMarks.map(match => match.start), active?.id === entry.id ? active.start : null);
+            const mark = entryMarks.find(match => match.start === start);
+            if (!mark) return;
+            window.scrollBy({ top: mark.range.getBoundingClientRect().top - window.innerHeight / 2 });
+            setActive({ id: entry.id, start: mark.start });
+          }} disabled={entry.occurrences.length === 0}>
             <strong>{entry.name}</strong><span>{formatMessage(defaultLocale, "lore.window.matches", { count: entry.occurrences.length, countText: String(entry.occurrences.length) })}</span>
             <small>{entry.kind}{entry.reason === "pinned" ? formatMessage(defaultLocale, "lore.pinned") : ""}</small><small>{loreLevel(entry.level)}</small>
           </ListButton>}>
