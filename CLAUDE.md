@@ -133,6 +133,7 @@ Default to using Bun instead of Node.js.
 ### Frontend Conventions
 
 - Read [docs/design-system.md](docs/design-system.md) before adding or changing UI. Use `app/src/ui/` primitives and `app/src/ui/tokens.css` tokens; do not add raw controls, hex colours, font sizes or Tailwind arbitrary values elsewhere (`cargo xtask lint` check `ui` enforces this).
+- UI system first: a new or changed `app/src/ui/` primitive gets its story before any screen uses it ([rule](docs/design-system.md)).
 - HTML imports with `Bun.serve()`. Don't use `vite`.
 - HTML files import .tsx/.jsx/.js directly — Bun transpiles and bundles.
 - `<link>` tags point to stylesheets — Bun's CSS bundler handles them.

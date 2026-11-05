@@ -10,7 +10,7 @@ Workers never launch browsers or run `cargo xtask e2e` inside tickets. Back chan
 | Rust integration tests | API and SQLite behaviour in `crates/api/tests/`. Run with `cargo test -p quillai_api --test <test_file> <test_name>`. |
 | Bun unit tests | Frontend logic in `app/src/*.test.ts` and subdirectories. Run by `cargo xtask lint`; target a file with `bun test src/<path>.test.ts` from `app/`. |
 | Component/DOM tests | Rendering, clicks and state; use E2E for layout, sizes, focus quirks and real-browser behaviour. |
-| UI stories | CSF3 `app/src/ui/*.stories.tsx` (args/render/play/name, `import type` from Storybook, plain-DOM play). `app/src/ui/stories.dom.test.tsx` renders every story and runs its play in `bun test`. Storybook lives in `storybook/` (own `package.json`; `bun install` there, then `bun run dev` or `bun run build`); lint check `storybook-tsc` type-checks the stories with `storybook/node_modules/typescript`. Tokens page: `storybook/Tokens.stories.tsx` reads `tokens.css`. |
+| UI stories | CSF3 `app/src/ui/*.stories.tsx` (args/render/play/name, `import type` from Storybook, plain-DOM play). `app/src/ui/stories.dom.test.tsx` renders every story and runs its play in `bun test`. Storybook lives in `storybook/` (own `package.json`; `bun install` there, then `bun run dev` or `bun run build`); lint check `storybook-tsc` type-checks the stories with `storybook/node_modules/typescript`. Tokens page: `storybook/Tokens.stories.tsx` reads `tokens.css`. New or changed primitives get a story first ([design-system.md](design-system.md)). |
 | Playwright E2E specs | Real-browser behaviour. Nightly only (`cargo xtask nightly`). |
 
 ## Red/green

@@ -11,6 +11,7 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 - Lore editing opens in a `Modal`. The modal has no Cancel; Escape and backdrop click discard the draft. Delete is red (danger) and asks for confirmation: the first click arms it ("Delete lore"), the second click ("Confirm delete") deletes.
 - Popovers close from their trigger (toggle), click outside and Escape. Escape returns focus to the trigger, or to `returnFocusRef` when supplied. Outside clicks keep their native focus behavior. Canceled Escape leaves focus unchanged. `ignoreRefs` excludes named DOM areas from outside dismissal without blocking their native pointer action. Controlled anchored popovers may omit the trigger for hover or keyboard openings and leave focus unchanged on dismissal; unanchored popovers require a button trigger. They have no Close button.
 - Drawers have no Close button. Their rail toggle, bracket shortcut and Escape close them.
+- UI system first. UI work starts in `app/src/ui/`. A new or changed primitive gets its story (`app/src/ui/<Name>.stories.tsx`) before any screen uses the change. Screens only compose primitives and tokens. Pure layout changes (arranging existing primitives with tokens, spacing included) skip the story-first step.
 
 ## Enforcement
 
@@ -33,6 +34,8 @@ One token set and one primitive set for all QuillAI UI. Read this page before yo
 All rules skip `*.test.*` files. TS and TSX checks skip `app/src/ui/`; CSS checks skip `app/src/ui/tokens.css`. These are text counters, not parsers; unusual syntax can escape detection or produce false positives.
 
 `app/src/ui/ALLOWLIST` must be empty. Any entry fails lint.
+
+`app/src/ui/stories.dom.test.tsx` ("every ui primitive has a story file") fails `bun test`, and so `cargo xtask lint`, when a primitive lacks a story. It also runs every story's play function.
 
 ## Tokens
 
