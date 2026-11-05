@@ -123,12 +123,13 @@ test("the script surface moves across scene breaks and blocks merging edits", as
     await expectBoth("Kettle boils.\n", "Wind. Rain falls.\n");
   });
 
-  await test.step("the script group in the tree opens the surface with the caret in the first scene", async () => {
+  await test.step("reopening the script group in the tree restores the last caret", async () => {
     await openInTree("Garden script");
     await expect.poll(() => page.evaluate(() => (window as unknown as Partial<SpecWindow>).specQuill)).toBeUndefined();
     await expectEditorReady(editor);
     await attachQuill(page);
-    await expect.poll(caret).toEqual({ index: 1, length: 0 });
+    await expect.poll(caret).toEqual({ index: (await twoStart()) + "Wind. ".length, length: 0 });
+    await select(page, 1);
     await page.keyboard.type("Steam. ");
     await expectBoth("Steam. Kettle boils.\n", "Wind. Rain falls.\n");
   });
