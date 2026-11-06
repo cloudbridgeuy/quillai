@@ -49,7 +49,7 @@ test("timeline and piece failures leave lore ready with base text", async () => 
 test("switching piece keeps lore, refetches only the piece point and resolves its state", async () => {
   const calls = stubFetch({
     "/universes/2/lore": () => Response.json([entry]),
-    "/universes/2/timeline": () => Response.json([{ id: 5, position: 1 }]),
+    "/universes/2/timeline": () => Response.json([{ id: 5, name: "Act", position: 1 }]),
     "/pieces/7": () => Response.json({ parentId: null, timelinePointId: null }),
     "/pieces/8": () => Response.json({ parentId: null, timelinePointId: 5 }),
   });
@@ -63,4 +63,22 @@ test("switching piece keeps lore, refetches only the piece point and resolves it
   expect(latest!.resolved[0]!.visible_text).toBe("State text.");
   expect(calls.filter(path => path === "/universes/2/lore")).toHaveLength(1);
   expect(calls.filter(path => path === "/universes/2/timeline")).toHaveLength(1);
+});
+
+test("refreshTimeline refetches the timeline and piece point and resolves the new state", async () => {
+  let pointId: number | null = null;
+  const calls = stubFetch({
+    "/universes/2/lore": () => Response.json([entry]),
+    "/universes/2/timeline": () => Response.json([{ id: 5, name: "Act", position: 1 }]),
+    "/pieces/7": () => Response.json({ parentId: null, timelinePointId: pointId }),
+  });
+  await render(<Probe initial={{ universeId: 2, pieceId: 7 }} />);
+  await flush();
+  expect(latest!.resolved[0]!.stateName).toBeNull();
+  pointId = 5;
+  await act(async () => latest!.refreshTimeline());
+  await flush();
+  expect(calls.filter(path => path === "/universes/2/timeline")).toHaveLength(2);
+  expect(calls.filter(path => path === "/pieces/7")).toHaveLength(2);
+  expect(latest!.resolved[0]!.visible_text).toBe("State text.");
 });

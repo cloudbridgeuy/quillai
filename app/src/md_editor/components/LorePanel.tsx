@@ -6,6 +6,9 @@ import type { useLore } from "../../manuscripts/use_lore";
 import { Button } from "../../ui/Button";
 import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
+import { Select } from "../../ui/Select";
+import { inheritedPoint, pickerOptions } from "../../manuscripts/timeline_panel";
+import { TimelineManager } from "./TimelineManager";
 import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
 import { Field } from "../../ui/Field";
@@ -15,7 +18,7 @@ import { TextField } from "../../ui/TextField";
 import { PIN_HINT, TERMS_HINT } from "./lore_pin_hint";
 import { loreEntryLabel, loreEntryPreview, loreLevel } from "./lore_entry_row";
 
-export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
+export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType<typeof useLore>; disabled: boolean; pieceId?: number | null }) {
   const [draft, setDraft] = useState<LoreInput | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
@@ -56,8 +59,25 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
       setError(error instanceof Error ? error.message : formatMessage(defaultLocale, "lore.saveFailed"));
     } finally { setPending(false); }
   }
+  async function setPoint(value: string) {
+    if (pieceId === null) return;
+    setPending(true);
+    setError("");
+    try {
+      const saved = await lore.client.setPiecePoint({ pieceId }, value === "" ? null : Number(value));
+      lore.setPiecePoint(saved.timelinePointId);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : formatMessage(defaultLocale, "timeline.failed"));
+    } finally { setPending(false); }
+  }
+  const inherited = inheritedPoint(lore.piece, lore.points);
+  const emptyPointLabel = inherited ? formatMessage(defaultLocale, "timeline.inherit", { name: inherited.name }) : formatMessage(defaultLocale, "timeline.base");
   return <section className="editor-lore-panel" aria-label={formatMessage(defaultLocale, "lore.series")}>
     <Heading level="section" as="h3">{formatMessage(defaultLocale, "lore.series")}</Heading>
+    {pieceId !== null && lore.status === "ready" ? <Select label={formatMessage(defaultLocale, "timeline.chapterAt")} disabled={disabled || pending}
+      value={lore.piece?.timelinePointId != null && lore.points.some(point => point.id === lore.piece?.timelinePointId) ? String(lore.piece.timelinePointId) : ""}
+      options={pickerOptions(lore.points, emptyPointLabel)} onChange={value => void setPoint(value)} /> : null}
+    {error && !draft ? <Alert tone="error" variant="inline">{error}</Alert> : null}
     {lore.status === "loading" ? <p role="status">{formatMessage(defaultLocale, "lore.loading")}</p> : null}
     {lore.status === "failed" ? <Alert tone="error" variant="inline">{lore.error}<Button size="sm" onClick={lore.retry}>{formatMessage(defaultLocale, "lore.retry")}</Button></Alert> : null}
     {lore.status === "ready" ? <>
@@ -69,6 +89,7 @@ export function LorePanel({ lore, disabled }: { lore: ReturnType<typeof useLore>
         </ListButton></li>)}
       </ul>}
       <Button disabled={disabled || pending} onClick={event => edit(event.currentTarget)}>{formatMessage(defaultLocale, "lore.new")}</Button>
+      <TimelineManager lore={lore} disabled={disabled || pending} />
     </> : null}
     {draft ? <Modal data-manuscript-draft title={formatMessage(defaultLocale, editingId === null ? "lore.create" : "lore.edit")} onClose={close} returnFocusRef={returnFocusRef}
       footer={<>{editingId !== null ? <Button variant="danger" disabled={disabled || pending}
