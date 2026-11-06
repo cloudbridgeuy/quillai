@@ -124,6 +124,7 @@ async fn up_maps_series_books_chapters_lore_and_revisions() {
             "legacy_ids",
             "lore_entries",
             "lore_entry_states",
+            "lore_images",
             "piece_revisions",
             "pieces",
             "timeline_points",

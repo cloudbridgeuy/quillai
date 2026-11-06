@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod images;
 pub mod models;
 pub mod states;
 pub mod store;

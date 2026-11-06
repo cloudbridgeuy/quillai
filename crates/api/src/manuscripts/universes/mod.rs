@@ -6,7 +6,7 @@ use axum::{
 };
 use sqlx::sqlite::SqlitePool;
 
-use crate::manuscripts::lore::states;
+use crate::manuscripts::lore::{images, states};
 
 pub fn routes(pool: SqlitePool) -> Router {
     Router::new()
@@ -45,6 +45,14 @@ pub fn routes(pool: SqlitePool) -> Router {
         .route(
             "/universes/{id}/lore/{lore_id}/states/{state_id}/restore",
             post(states::restore_state),
+        )
+        .route(
+            "/universes/{id}/lore/{lore_id}/images",
+            get(images::list_images).post(images::create_image),
+        )
+        .route(
+            "/universes/{id}/lore/{lore_id}/images/{image_id}",
+            get(images::get_image),
         )
         .route("/universes/{id}/restore", post(handlers::restore_universe))
         .with_state(pool)

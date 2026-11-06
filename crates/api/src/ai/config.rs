@@ -100,7 +100,13 @@ impl Resolved {
             Ok(value.into())
         }
         Ok(OpenAiCompatibleConfig {
-            model: required(model.or(self.model(action)), "QUILLAI_AI_MODEL")?,
+            model: required(
+                model.or(self.model(action)),
+                match action {
+                    AiAction::Image => "QUILLAI_AI_IMAGE_MODEL",
+                    AiAction::Generate | AiAction::Edit => "QUILLAI_AI_MODEL",
+                },
+            )?,
             api_key: required(self.api_key.as_deref(), "QUILLAI_AI_API_KEY")?,
             base_url: self
                 .base_url
@@ -203,5 +209,17 @@ mod tests {
         let saved = resolve(saved, |_| Some("env".into()));
         assert_eq!(saved.model(AiAction::Image), Some("saved-image"));
         assert_eq!(saved.model_source(AiAction::Image), Source::Saved);
+    }
+
+    #[test]
+    fn blank_image_model_error_names_the_image_env_key() {
+        let resolved = resolve(SavedSettings::default(), |key| {
+            (key == "QUILLAI_AI_API_KEY").then(|| "key".into())
+        });
+        let error = resolved
+            .provider_config(AiAction::Image, Some("  "))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("QUILLAI_AI_IMAGE_MODEL"), "{error}");
     }
 }

@@ -1,6 +1,7 @@
 pub mod catalog;
 pub mod config;
 pub mod handlers;
+pub mod images;
 pub mod lore;
 pub mod models;
 mod overlap;

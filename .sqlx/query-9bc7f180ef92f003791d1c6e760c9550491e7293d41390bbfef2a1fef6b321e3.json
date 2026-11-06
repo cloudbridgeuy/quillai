@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO lore_images (lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, bytes, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS \"id!\", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lore_entry_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "timeline_point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "prompt",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "model",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "size",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "quality",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "cost",
+        "ordinal": 8,
+        "type_info": "Float"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "9bc7f180ef92f003791d1c6e760c9550491e7293d41390bbfef2a1fef6b321e3"
+}

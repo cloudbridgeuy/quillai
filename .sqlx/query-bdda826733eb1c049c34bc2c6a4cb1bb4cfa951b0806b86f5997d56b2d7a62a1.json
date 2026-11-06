@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT mime, bytes FROM lore_images WHERE id = ? AND lore_entry_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "mime",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "bytes",
+        "ordinal": 1,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "bdda826733eb1c049c34bc2c6a4cb1bb4cfa951b0806b86f5997d56b2d7a62a1"
+}

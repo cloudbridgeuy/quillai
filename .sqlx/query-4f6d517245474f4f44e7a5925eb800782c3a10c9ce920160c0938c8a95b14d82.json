@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at FROM lore_images WHERE lore_entry_id = ? ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lore_entry_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "timeline_point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "prompt",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "model",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "size",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "quality",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "cost",
+        "ordinal": 8,
+        "type_info": "Float"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "4f6d517245474f4f44e7a5925eb800782c3a10c9ce920160c0938c8a95b14d82"
+}
