@@ -147,7 +147,7 @@ How each option fits a future backup:
   time_of_day? }`. The server parses this into a `deny_unknown_fields` struct,
   in the same way as the text path (`crates/api/src/ai/lore.rs:6-13`). Then a
   `hidden_notes` field fails the parse and cannot reach the provider.
-- `leave_out`: the server rejects the request with a 400. The UI hides the
+- `leave_out`: the server rejects the request with a 422. The UI hides the
   generate button. This matches `crates/api/src/ai/lore.rs:47` and
   `app/src/md_editor/ai_contract.ts:124`.
 - `known_dont_reveal`: allowed. Its `visible_text` already goes to the text

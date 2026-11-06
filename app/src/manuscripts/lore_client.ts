@@ -12,6 +12,9 @@ export type PointScope = { pointId: number };
 export type LoreScope = UniverseScope & { loreId: number };
 export type StateScope = LoreScope & { stateId: number };
 export type LoreImage = { id: number; timelinePointId: number | null };
+export const timesOfDay = ["dawn", "day", "dusk", "night"] as const;
+export type TimeOfDay = (typeof timesOfDay)[number];
+export type ImageShot = { purpose: "portrait" | "map" } | { purpose: "render"; timeOfDay: TimeOfDay };
 export type LoreStateInput = { name: string; pointId: number; visibleText?: string; hiddenNotes?: string };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
@@ -123,8 +126,8 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
       if (value !== "") throw new Error("Expected empty delete response");
     }),
     listImages: (scope: LoreScope) => request(`${lorePath(scope)}/images`, "GET", 200, value => parseList(value, parseLoreImage)),
-    createImage: (scope: LoreScope, timelinePointId: number | null) =>
-      request(`${lorePath(scope)}/images`, "POST", 201, parseLoreImage, timelinePointId === null ? {} : { timelinePointId }),
+    createImage: (scope: LoreScope, timelinePointId: number | null, shot?: ImageShot) =>
+      request(`${lorePath(scope)}/images`, "POST", 201, parseLoreImage, { ...(timelinePointId === null ? {} : { timelinePointId }), ...shot }),
     imageUrl: (scope: LoreScope, imageId: number) => `${baseUrl.replace(/\/+$/, "")}${lorePath(scope)}/images/${encodeURIComponent(imageId)}`,
     list: (scope: UniverseScope) => request(lorePath(scope), "GET", 200, value => parseList(value, parseLoreEntry)),
     get: (scope: LoreScope) => request(lorePath(scope), "GET", 200, parseLoreEntry),
