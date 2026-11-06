@@ -14,12 +14,12 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
   const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [settings, setSettings] = useState<AiSettings | null>(null);
   const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
-  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "" }, key: { action: "keep" } });
+  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "", image: "" }, key: { action: "keep" } });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(true);
   function apply(value: AiSettings) {
     setSettings(value);
-    setForm({ base_url: value.base_url ?? "", models: { generate: value.generate_model ?? "", edit: value.edit_model ?? "" }, key: { action: "keep" } });
+    setForm({ base_url: value.base_url ?? "", models: { generate: value.generate_model ?? "", edit: value.edit_model ?? "", image: value.image_model ?? "" }, key: { action: "keep" } });
   }
   useEffect(() => {
     let active = true;
@@ -46,10 +46,12 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
     } finally { setPending(false); }
   }
   const source = (value: "saved" | "env" | "none") => formatMessage(defaultLocale, value === "saved" ? "settings.ai.savedHere" : value === "env" ? "settings.ai.fromEnv" : "settings.ai.notSet");
-  function modelOptions(action: "generate" | "edit", field: "generate_model" | "edit_model") {
+  function modelOptions({ action, field }: (typeof aiModelActions)[number]) {
     const saved = form.models[action];
-    const fallback = settings!.sources[field] === "saved" ? formatMessage(defaultLocale, "settings.ai.default") : formatMessage(defaultLocale, "settings.ai.defaultModel", { model: catalog!.defaults[action] });
-    const options = [{ value: "", label: fallback }, ...catalog!.models.map(({ id, label }) => ({ value: id, label: label || id }))];
+    const defaultModel = catalog!.defaults[action];
+    const fallback = settings!.sources[field] === "saved" || defaultModel === undefined ? formatMessage(defaultLocale, "settings.ai.default") : formatMessage(defaultLocale, "settings.ai.defaultModel", { model: defaultModel });
+    const models = catalog!.models.filter(({ kind }) => (kind === "image") === (action === "image"));
+    const options = [{ value: "", label: fallback }, ...models.map(({ id, label }) => ({ value: id, label: label || id }))];
     if (saved && !catalog!.models.some(({ id }) => id === saved)) options.push({ value: saved, label: formatMessage(defaultLocale, "settings.ai.notInCatalog", { model: saved }) });
     return options;
   }
@@ -59,15 +61,16 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
     {settings ? <div className="space-y-3">
       <Field label={formatMessage(defaultLocale, "settings.ai.baseUrl")}><TextField value={form.base_url} disabled={pending} onChange={event => setForm({ ...form, base_url: event.target.value })} /></Field>
       <p className="editor-note">{source(settings.sources.base_url)}</p>
-      {aiModelActions.map(({ action, field, labelKey }) => {
+      {aiModelActions.filter(({ action }) => action !== "image" || catalog?.models.some(({ kind }) => kind === "image")).map(entry => {
+        const { action, field, labelKey } = entry;
         const label = formatMessage(defaultLocale, labelKey);
         const noteId = `ai-model-source-${action}`;
         const setModel = (value: string) => setForm({ ...form, models: { ...form.models, [action]: value } });
         return <div key={action} data-model-action={action} className="space-y-1">
           {catalog
-            ? <Select label={label} value={form.models[action]} options={modelOptions(action, field)} disabled={pending} aria-describedby={noteId} onChange={setModel} />
-            : <Field label={label}><TextField value={form.models[action]} disabled={pending} aria-describedby={noteId} onChange={event => setModel(event.target.value)} /></Field>}
-          <p id={noteId} className="editor-note">{source(settings.sources[field])}</p>
+            ? <Select label={label} value={form.models[action] ?? ""} options={modelOptions(entry)} disabled={pending} aria-describedby={noteId} onChange={setModel} />
+            : <Field label={label}><TextField value={form.models[action] ?? ""} disabled={pending} aria-describedby={noteId} onChange={event => setModel(event.target.value)} /></Field>}
+          <p id={noteId} className="editor-note">{source(settings.sources[field] ?? "none")}</p>
         </div>;
       })}
       <p className="editor-note">{formatMessage(defaultLocale, settings.key_set ? "settings.ai.keySaved" : "settings.ai.noKey")} · {source(settings.sources.api_key)}</p>

@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { act } from "react";
-import { cleanup, render } from "../../test/dom";
+import { cleanup, click, render } from "../../test/dom";
 import { useLore } from "../../manuscripts/use_lore";
 import { LorePanel } from "./LorePanel";
 import { formatMessage } from "../../i18n/messages";
@@ -281,4 +281,74 @@ test("New state resets the draft", async () => {
   expect(byLabel("State name").value).toBe("");
   expect(byLabel("Point").value).toBe("");
   expect(button("Add state")).toBeDefined();
+});
+
+const mara = { id: 11, universe_id: 2, kind: "character", level: "include", pinned: false, name: "Mara", keywords: [], aliases: [], visible_text: "Tall", hidden_notes: "" };
+const loreImage = (id: number) => ({ id, loreEntryId: 11, timelinePointId: 5, prompt: "p", model: "img1", size: "1024x1024", quality: "medium", mime: "image/webp", cost: 0.011, createdAt: "2026-11-06 10:00:00" });
+const imageSettings = { base_url: null, generate_model: null, edit_model: null, image_model: null, key_set: true,
+  sources: { base_url: "none", api_key: "env", generate_model: "none", edit_model: "none", image_model: "none" } };
+const imageCatalog = (price: number | null) => ({
+  models: [{ id: "m1", label: "M1", input_price_per_million: 0, output_price_per_million: 0 },
+    { id: "img1", label: "Image One", kind: "image", size: "1024x1024", quality: "medium", ...(price === null ? {} : { price_per_image: price }) }],
+  defaults: { generate: "m1", edit: "m1", image: "img1" },
+});
+
+function imageStub({ create = () => Response.json(loreImage(10), { status: 201 }), price = 0.011 as number | null } = {}) {
+  const calls: string[] = [];
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    const { pathname } = new URL(url);
+    const method = init?.method ?? "GET";
+    calls.push(init?.body ? `${method} ${pathname} ${init.body}` : `${method} ${pathname}`);
+    if (pathname === "/universes/2/lore") return Response.json([mara]);
+    if (pathname === "/universes/2/timeline") return Response.json(points);
+    if (pathname === "/universes/2/lore/11/images") return method === "POST" ? create() : Response.json([loreImage(9)]);
+    if (pathname === "/ai/models") return Response.json(imageCatalog(price));
+    if (pathname === "/settings/ai") return Response.json(imageSettings);
+    return Response.json({ parentId: null, timelinePointId: 5 });
+  }) as typeof fetch;
+  return calls;
+}
+
+async function openMara() {
+  await render(<Harness />);
+  await flush();
+  await click([...document.querySelectorAll("button")].find(button => button.textContent?.includes("Mara"))!);
+  await flush();
+}
+const generateButton = () => [...document.querySelectorAll("button")].find(button => button.textContent === "Generate image");
+const thumbnails = () => [...document.querySelectorAll("img")].map(img => img.getAttribute("src") ?? "");
+
+test("Generate image posts the chapter's timeline point and shows thumbnails", async () => {
+  const calls = imageStub();
+  await openMara();
+  expect(thumbnails().map(src => src.replace(/^.*\/universes/, "/universes"))).toEqual(["/universes/2/lore/11/images/9"]);
+  await click(generateButton()!);
+  await flush();
+  expect(calls).toContain('POST /universes/2/lore/11/images {"timelinePointId":5}');
+  expect(thumbnails().map(src => src.replace(/^.*\/images\//, ""))).toEqual(["9", "10"]);
+});
+
+test("the estimated cost shows the per-image price, or unknown without one", async () => {
+  imageStub();
+  await openMara();
+  expect(document.body.textContent).toContain("Estimated cost: $0.011");
+  await cleanup();
+  imageStub({ price: null });
+  await openMara();
+  expect(document.body.textContent).toContain("Estimated cost: unknown");
+});
+
+test("a 503 asks for an image model and a 422 hides the button", async () => {
+  imageStub({ create: () => Response.json({ error: "AI image model is not configured", code: "AI_NOT_CONFIGURED" }, { status: 503 }) });
+  await openMara();
+  expect(generateButton()).toBeInstanceOf(HTMLButtonElement);
+  await click(generateButton()!);
+  await flush();
+  expect(document.body.textContent).toContain("Choose an image model in Settings");
+  await cleanup();
+  imageStub({ create: () => Response.json({ error: "lore entry is set to Leave out", code: "VALIDATION_ERROR" }, { status: 422 }) });
+  await openMara();
+  await click(generateButton()!);
+  await flush();
+  expect(generateButton()).toBeUndefined();
 });

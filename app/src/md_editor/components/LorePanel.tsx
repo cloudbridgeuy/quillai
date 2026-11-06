@@ -8,6 +8,7 @@ import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Select } from "../../ui/Select";
 import { inheritedPoint, pickerOptions } from "../../manuscripts/timeline_panel";
+import { LoreImages } from "./LoreImages";
 import { LoreStates } from "./LoreStates";
 import { TimelineManager } from "./TimelineManager";
 import { Toggle } from "../../ui/Toggle";
@@ -124,6 +125,7 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
       </fieldset>
       </form>
       {editingId !== null && editingEntry ? <LoreStates key={editingId} lore={lore} entry={editingEntry} disabled={disabled} pending={pending} setPending={setPending} /> : null}
+      {editingId !== null && editingEntry ? <LoreImages key={`images-${editingId}`} lore={lore} entry={editingEntry} disabled={disabled} /> : null}
       {error ? <Alert tone="error" variant="inline">{error}</Alert> : null}
     </Modal> : null}
   </section>;

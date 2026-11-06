@@ -11,6 +11,7 @@ export type LoreInput = Omit<LoreEntry, "id" | "universe_id" | "states">;
 export type PointScope = { pointId: number };
 export type LoreScope = UniverseScope & { loreId: number };
 export type StateScope = LoreScope & { stateId: number };
+export type LoreImage = { id: number; timelinePointId: number | null };
 export type LoreStateInput = { name: string; pointId: number; visibleText?: string; hiddenNotes?: string };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
@@ -48,6 +49,12 @@ function parseLoreState(value: unknown): LoreStateRow {
   if (typeof id !== "number" || typeof pointId !== "number" || typeof name !== "string"
     || typeof visibleText !== "string" || typeof hiddenNotes !== "string") throw new Error("Invalid lore state");
   return { id, name, pointId, visibleText, hiddenNotes };
+}
+
+function parseLoreImage(value: unknown): LoreImage {
+  const row = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
+  if (typeof row.id !== "number" || (row.timelinePointId !== null && typeof row.timelinePointId !== "number")) throw new Error("Invalid lore image");
+  return { id: row.id, timelinePointId: row.timelinePointId as number | null };
 }
 
 export function parseTimelinePoint(value: unknown): TimelinePoint & NamedPoint {
@@ -115,6 +122,10 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
     deleteState: (scope: StateScope) => request(`${lorePath(scope)}/states/${encodeURIComponent(scope.stateId)}`, "DELETE", 204, value => {
       if (value !== "") throw new Error("Expected empty delete response");
     }),
+    listImages: (scope: LoreScope) => request(`${lorePath(scope)}/images`, "GET", 200, value => parseList(value, parseLoreImage)),
+    createImage: (scope: LoreScope, timelinePointId: number | null) =>
+      request(`${lorePath(scope)}/images`, "POST", 201, parseLoreImage, timelinePointId === null ? {} : { timelinePointId }),
+    imageUrl: (scope: LoreScope, imageId: number) => `${baseUrl.replace(/\/+$/, "")}${lorePath(scope)}/images/${encodeURIComponent(imageId)}`,
     list: (scope: UniverseScope) => request(lorePath(scope), "GET", 200, value => parseList(value, parseLoreEntry)),
     get: (scope: LoreScope) => request(lorePath(scope), "GET", 200, parseLoreEntry),
     create: (scope: UniverseScope, input: LoreInput) => request(lorePath(scope), "POST", 201, parseLoreEntry, input),

@@ -103,6 +103,27 @@ test.each([["generate", "Continue model"], ["edit", "Edit model"]] as const)("fo
   expect(document.activeElement).toBe(select!);
 });
 
+const imageModel = { id: "img1", label: "Image One", kind: "image", price_per_image: 0.011, size: "1024x1024", quality: "medium" };
+const imageCatalog = { models: [...catalog.models, imageModel], defaults: { ...catalog.defaults, image: "img1" } };
+
+test("the Image menu lists only image models and saves image_model", async () => {
+  const { select, choose, save, updates } = await setup(base, Response.json(imageCatalog));
+  expect(select("Image model")).toBeInstanceOf(HTMLSelectElement);
+  expect([...select("Image model")!.options].map(o => o.value)).toEqual(["", "img1"]);
+  expect(select("Image model")!.options[0]!.textContent).toStartWith("Default");
+  expect([...select("Continue model")!.options].map(o => o.value)).not.toContain("img1");
+  await choose("Image model", "img1");
+  await save();
+  expect(updates).toEqual([{ image_model: "img1" }]);
+});
+
+test("the Image menu is hidden when the catalog has no image models", async () => {
+  const { select, container } = await setup(base);
+  expect(select("Continue model")).toBeDefined();
+  expect(select("Image model")).toBeUndefined();
+  expect(container.textContent).not.toContain("Image model");
+});
+
 test("without focusAction nothing in AiSettings takes focus", async () => {
   const { container } = await setup(base);
   expect(container.contains(document.activeElement)).toBe(false);
