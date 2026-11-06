@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
 import { ManuscriptApiError } from "../../manuscripts/client";
+import type { LoreStateRow } from "../lore_states";
 import type { LoreEntry } from "../../manuscripts/lore_client";
-import { replaceLoreEntry } from "../../manuscripts/lore_panel";
+import { setEntryStates } from "../../manuscripts/lore_panel";
 import { pickerOptions } from "../../manuscripts/timeline_panel";
 import type { useLore } from "../../manuscripts/use_lore";
 import { Alert } from "../../ui/Alert";
@@ -20,28 +21,30 @@ type StateDraft = { id: number | null; name: string; pointId: string; visibleTex
 
 const newStateDraft = (): StateDraft => ({ id: null, name: "", pointId: "", visibleText: "", hiddenNotes: "" });
 
-export function LoreStates({ lore, entry, disabled }: { lore: ReturnType<typeof useLore>; entry: LoreEntry; disabled: boolean }) {
+export function LoreStates({ lore, entry, disabled, pending, setPending }: {
+  lore: ReturnType<typeof useLore>; entry: LoreEntry; disabled: boolean; pending: boolean; setPending: (pending: boolean) => void;
+}) {
   const [draft, setDraft] = useState<StateDraft>(newStateDraft);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [deleteArmed, setDeleteArmed] = useState(false);
   const states = entry.states ?? [];
   const busy = disabled || pending;
+  const knownPoint = draft.pointId === "" || lore.points.some(point => String(point.id) === draft.pointId);
+  const pointOptions = [...pickerOptions(lore.points, t("lore.states.choosePoint")), ...knownPoint ? [] : [{ value: draft.pointId, label: t("lore.states.deletedPoint") }]];
   function select(id: number | null) {
     const state = states.find(row => row.id === id);
     setDraft(state ? { id: state.id, name: state.name, pointId: String(state.pointId), visibleText: state.visibleText, hiddenNotes: state.hiddenNotes } : newStateDraft());
     setDeleteArmed(false);
     setError("");
   }
-  async function run(work: (scope: { universeId: number; loreId: number }) => Promise<void>) {
+  async function run(work: (scope: { universeId: number; loreId: number }) => Promise<(states: readonly LoreStateRow[]) => readonly LoreStateRow[]>) {
     const universeId = lore.universeId;
-    if (universeId === null) return;
-    const scope = { universeId, loreId: entry.id };
+    if (universeId === null) { setError(t("lore.states.failed")); return; }
     setPending(true);
     setError("");
     try {
-      await work(scope);
-      lore.change(replaceLoreEntry(lore.entries, await lore.client.get(scope)));
+      const update = await work({ universeId, loreId: entry.id });
+      lore.change(entries => setEntryStates(entries, entry.id, lore.points, update));
       select(null);
     } catch (failure) {
       setError(failure instanceof ManuscriptApiError && failure.status === 409 ? t("lore.states.conflict")
@@ -51,8 +54,8 @@ export function LoreStates({ lore, entry, disabled }: { lore: ReturnType<typeof 
   function submit() {
     const input = { name: draft.name.trim(), pointId: Number(draft.pointId), visibleText: draft.visibleText, hiddenNotes: draft.hiddenNotes };
     void run(async scope => {
-      if (draft.id === null) await lore.client.createState(scope, input);
-      else await lore.client.updateState({ ...scope, stateId: draft.id }, input);
+      const saved = draft.id === null ? await lore.client.createState(scope, input) : await lore.client.updateState({ ...scope, stateId: draft.id }, input);
+      return rows => [...rows.filter(row => row.id !== saved.id), saved];
     });
   }
   return <section aria-label={t("lore.states.title")}>
@@ -61,7 +64,7 @@ export function LoreStates({ lore, entry, disabled }: { lore: ReturnType<typeof 
       {states.map(state => {
         const point = lore.points.find(candidate => candidate.id === state.pointId);
         return <li key={state.id}><ListButton tone="lore" pressed={state.id === draft.id} disabled={busy} onClick={() => select(state.id)}>
-          {point ? t("lore.states.row", { name: state.name, point: point.name }) : state.name}
+          {t("lore.states.row", { name: state.name, point: point?.name ?? t("lore.states.deletedPoint") })}
         </ListButton></li>;
       })}
     </ul>}
@@ -69,21 +72,23 @@ export function LoreStates({ lore, entry, disabled }: { lore: ReturnType<typeof 
       <fieldset disabled={busy}>
         <Field className="my-3" label={t("lore.states.name")}><TextField required value={draft.name}
           onChange={event => setDraft({ ...draft, name: event.target.value })} /></Field>
-        <Select className="my-3" label={t("lore.states.point")} value={draft.pointId} options={pickerOptions(lore.points, t("lore.states.choosePoint"))}
+        <Select className="my-3" label={t("lore.states.point")} value={draft.pointId} options={pointOptions}
           onChange={pointId => setDraft({ ...draft, pointId })} />
         <Field className="my-3" label={t("lore.states.text")}><StickyNote tone="green" rows={3} value={draft.visibleText}
           onChange={event => setDraft({ ...draft, visibleText: event.target.value })} /></Field>
         <Field className="my-3" label={t("lore.states.notes")}><StickyNote tone="green" rows={3} value={draft.hiddenNotes}
           onChange={event => setDraft({ ...draft, hiddenNotes: event.target.value })} /></Field>
+        <div className="flex gap-2">
         <Button variant="primary" type="submit" disabled={!draft.name.trim() || draft.pointId === ""}>{t(draft.id === null ? "lore.states.add" : "lore.states.save")}</Button>
         {draft.id !== null ? <>
           <Button onClick={() => select(null)}>{t("lore.states.new")}</Button>
           <Button variant="danger" onClick={() => {
             if (!deleteArmed) { setDeleteArmed(true); return; }
             const stateId = draft.id!;
-            void run(async scope => { await lore.client.deleteState({ ...scope, stateId }); });
+            void run(async scope => { await lore.client.deleteState({ ...scope, stateId }); return rows => rows.filter(row => row.id !== stateId); });
           }}>{t(deleteArmed ? "landing.deleted.confirmDelete" : "lore.states.delete")}</Button>
         </> : null}
+        </div>
       </fieldset>
     </form>}
     {error ? <Alert tone="error" variant="inline">{error}</Alert> : null}

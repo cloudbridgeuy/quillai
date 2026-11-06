@@ -96,7 +96,7 @@ test("the empty option inherits the parent's point until the piece sets its own"
 
 type StateRow = { id: number; name: string; pointId: number; visibleText: string; hiddenNotes: string };
 
-function stubStates({ states = [] as StateRow[], conflict = false } = {}) {
+function stubStates({ states = [] as StateRow[], conflict = false, serverError = false, noPoints = false, hold = null as Promise<void> | null } = {}) {
   const calls: string[] = [];
   let current = states;
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -107,9 +107,11 @@ function stubStates({ states = [] as StateRow[], conflict = false } = {}) {
       visible_text: "base", hidden_notes: "", states: current };
     if (pathname === "/universes/2/lore") return Response.json([entry]);
     if (pathname === "/universes/2/lore/4") return Response.json(entry);
-    if (pathname === "/universes/2/timeline") return Response.json(points);
+    if (pathname === "/universes/2/timeline") return Response.json(noPoints ? [] : points);
     if (pathname.startsWith("/pieces/")) return Response.json({ parentId: null, timelinePointId: null });
     if (pathname.startsWith("/universes/2/lore/4/states")) {
+      if (method !== "GET" && serverError) return Response.json({ error: "boom", code: "INTERNAL_SERVER_ERROR" }, { status: 500 });
+      if (method !== "GET" && hold) await hold;
       if (method !== "GET" && conflict) return Response.json({ error: "dup", code: "CONFLICT" }, { status: 409 });
       const body = init?.body ? JSON.parse(String(init.body)) : {};
       if (method === "POST") { current = [...current, { id: 30, visibleText: "", hiddenNotes: "", ...body }]; return Response.json(current.at(-1), { status: 201 }); }
@@ -176,6 +178,7 @@ test("a 409 shows the states-specific message", async () => {
   await press("Add state");
   await flush();
   expect(document.body.textContent).toContain("This entry already has a state at that point.");
+  expect(document.body.textContent).not.toContain(reloadText);
 });
 
 test("states strings exist in English and Spanish", () => {
@@ -184,4 +187,98 @@ test("states strings exist in English and Spanish", () => {
     expect(formatMessage("es", key)).not.toBe(formatMessage("en", key));
   }
   expect(formatMessage("es", "lore.states.conflict")).toBe("Esta entrada ya tiene un estado en ese punto.");
+});
+
+const reloadText = "That changed somewhere else. Reload and try again.";
+const noRefetch = (calls: string[]) => expect(calls).not.toContain("GET /universes/2/lore/4");
+
+test("a saved state is listed locally and the draft resets without a refetch", async () => {
+  const calls = stubStates();
+  await openEntry();
+  await typeInto("State name", "Younger");
+  await typeInto("Point", "6");
+  await press("Add state");
+  await flush();
+  noRefetch(calls);
+  expect(document.body.textContent).toContain("Younger · End");
+  expect(byLabel("State name").value).toBe("");
+  expect(byLabel("Point").value).toBe("");
+});
+
+test("states are listed by point position", async () => {
+  stubStates({ states: [{ id: 8, name: "Later", pointId: 6, visibleText: "", hiddenNotes: "" }] });
+  await openEntry();
+  await typeInto("State name", "Sooner");
+  await typeInto("Point", "5");
+  await press("Add state");
+  await flush();
+  const rows = [...document.querySelectorAll('section[aria-label="States"] li button')].map(node => node.textContent);
+  expect(rows).toEqual(["Sooner · Act", "Later · End"]);
+});
+
+test("entry Save is disabled while a state request is pending", async () => {
+  let release = () => {};
+  stubStates({ hold: new Promise<void>(resolve => { release = resolve; }) });
+  await openEntry();
+  await typeInto("State name", "Younger");
+  await typeInto("Point", "5");
+  await press("Add state");
+  expect(button("Save lore").disabled).toBe(true);
+  expect(button("Delete lore").disabled).toBe(true);
+  release();
+  await flush();
+  expect(button("Save lore").disabled).toBe(false);
+});
+
+test("a state on a deleted point shows the Deleted point option and label", async () => {
+  stubStates({ states: [{ id: 8, name: "Ghost", pointId: 99, visibleText: "", hiddenNotes: "" }] });
+  await openEntry();
+  expect(document.body.textContent).toContain("Ghost · Deleted point");
+  await press("Ghost · Deleted point");
+  expect(byLabel("Point").value).toBe("99");
+  expect([...(byLabel("Point") as unknown as HTMLSelectElement).options].map(option => option.textContent)).toContain("Deleted point");
+  expect(formatMessage("es", "lore.states.deletedPoint")).toBe("Punto eliminado");
+});
+
+test("without timeline points the form is replaced by a hint", async () => {
+  stubStates({ noPoints: true });
+  await openEntry();
+  expect(document.body.textContent).toContain("Add timeline points to give this entry states.");
+  expect(button("Add state")).toBeUndefined();
+});
+
+test("a 500 shows its message and keeps the draft", async () => {
+  stubStates({ serverError: true });
+  await openEntry();
+  await typeInto("State name", "Younger");
+  await typeInto("Point", "5");
+  await press("Add state");
+  await flush();
+  expect(document.querySelector('[role="alert"]')).not.toBeNull();
+  expect(document.body.textContent).not.toContain("This entry already has a state at that point.");
+  expect(byLabel("State name").value).toBe("Younger");
+});
+
+test("a 409 on edit shows the states message, not the reload text, and keeps the draft", async () => {
+  stubStates({ conflict: true, states: [{ id: 8, name: "Older", pointId: 6, visibleText: "", hiddenNotes: "" }] });
+  await openEntry();
+  await press("Older · End");
+  await typeInto("Point", "5");
+  await press("Save state");
+  await flush();
+  expect(document.body.textContent).toContain("This entry already has a state at that point.");
+  expect(document.body.textContent).not.toContain(reloadText);
+  expect(byLabel("State name").value).toBe("Older");
+  expect(byLabel("Point").value).toBe("5");
+});
+
+test("New state resets the draft", async () => {
+  stubStates({ states: [{ id: 8, name: "Older", pointId: 6, visibleText: "old", hiddenNotes: "" }] });
+  await openEntry();
+  await press("Older · End");
+  expect(byLabel("State name").value).toBe("Older");
+  await press("New state");
+  expect(byLabel("State name").value).toBe("");
+  expect(byLabel("Point").value).toBe("");
+  expect(button("Add state")).toBeDefined();
 });

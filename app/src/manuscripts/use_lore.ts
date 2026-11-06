@@ -68,6 +68,7 @@ export function useLore(scope: EditorScope | null) {
     },
     refreshTimeline: () => setTimelineAttempt(value => value + 1),
     retry: () => setAttempt(value => value + 1),
-    change: (entries: LoreEntry[]) => setState(value => value.key === key ? { ...value, entries } : value),
+    change: (update: LoreEntry[] | ((entries: LoreEntry[]) => LoreEntry[])) => setState(value => value.key === key
+      ? { ...value, entries: typeof update === "function" ? update(value.entries) : update } : value),
   };
 }
