@@ -33,7 +33,6 @@ export function useLore(scope: EditorScope | null) {
   }, [key, pieceUniverseId, seriesId, client, attempt]);
   const current = state.key === key;
   const universeId = current ? state.universeId : null;
-  // Timeline points and the piece's point are optional extras: a failure only means base text.
   const [timelineAttempt, setTimelineAttempt] = useState(0);
   const [timeline, setTimeline] = useState<{ universeId: number; points: NamedPoint[] } | null>(null);
   useEffect(() => {
@@ -46,7 +45,10 @@ export function useLore(scope: EditorScope | null) {
   useEffect(() => {
     if (pieceId === null) return;
     let active = true;
-    client.pieceRef({ pieceId }).catch(() => null).then(piece => { if (active) setPieceRef({ pieceId, piece }); });
+    client.pieceRef({ pieceId }).then(
+      piece => { if (active) setPieceRef({ pieceId, piece }); },
+      () => { if (active) setPieceRef(previous => previous?.pieceId === pieceId ? previous : { pieceId, piece: null }); },
+    );
     return () => { active = false; };
   }, [pieceId, client, timelineAttempt]);
   const points = timeline && timeline.universeId === universeId ? timeline.points : EMPTY_POINTS;
@@ -60,7 +62,10 @@ export function useLore(scope: EditorScope | null) {
   return {
     client, resolved, universeId, entries, points, piece,
     status: current ? state.status : "loading", error: state.error,
-    /** Reload timeline points and the piece's point after the author changed them. */
+    setPiecePoint: (timelinePointId: number | null) => {
+      if (pieceId === null) return;
+      setPieceRef(previous => ({ pieceId, piece: { timelinePointId, parent: previous?.pieceId === pieceId ? previous.piece?.parent ?? null : null } }));
+    },
     refreshTimeline: () => setTimelineAttempt(value => value + 1),
     retry: () => setAttempt(value => value + 1),
     change: (entries: LoreEntry[]) => setState(value => value.key === key ? { ...value, entries } : value),

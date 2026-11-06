@@ -97,7 +97,6 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
     deletePoint: ({ pointId }: PointScope) => request(`/timeline/${encodeURIComponent(pointId)}`, "DELETE", 204, value => {
       if (value !== "") throw new Error("Expected empty delete response");
     }),
-    /** Sets (number) or clears (null) the piece's timeline point. */
     setPiecePoint: ({ pieceId }: { pieceId: number }, timelinePointId: number | null) =>
       request(`/pieces/${encodeURIComponent(pieceId)}`, "PUT", 200, parsePieceFields, { timelinePointId }),
     /** Piece plus its parent (groups do not nest), each with its own timeline point. */

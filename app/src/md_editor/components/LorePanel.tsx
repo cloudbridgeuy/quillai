@@ -64,8 +64,8 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
     setPending(true);
     setError("");
     try {
-      await lore.client.setPiecePoint({ pieceId }, value === "" ? null : Number(value));
-      lore.refreshTimeline();
+      const saved = await lore.client.setPiecePoint({ pieceId }, value === "" ? null : Number(value));
+      lore.setPiecePoint(saved.timelinePointId);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : formatMessage(defaultLocale, "timeline.failed"));
     } finally { setPending(false); }

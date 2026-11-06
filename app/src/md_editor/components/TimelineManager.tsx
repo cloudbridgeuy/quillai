@@ -11,7 +11,6 @@ import { TextField } from "../../ui/TextField";
 
 const t = (key: Parameters<typeof formatMessage>[1], values?: Parameters<typeof formatMessage>[2]) => formatMessage(defaultLocale, key, values);
 
-/** Timeline button plus the modal that adds, renames, deletes and reorders the universe's points. */
 export function TimelineManager({ lore, disabled }: { lore: ReturnType<typeof useLore>; disabled: boolean }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
@@ -32,9 +31,9 @@ export function TimelineManager({ lore, disabled }: { lore: ReturnType<typeof us
     if (universeId === null) return;
     setPending(true);
     setError("");
-    try { await work(universeId); lore.refreshTimeline(); } catch (failure) {
+    try { await work(universeId); } catch (failure) {
       setError(failure instanceof Error ? failure.message : t("timeline.failed"));
-    } finally { setPending(false); }
+    } finally { lore.refreshTimeline(); setPending(false); }
   }
   const busy = disabled || pending;
   return <>
@@ -44,7 +43,7 @@ export function TimelineManager({ lore, disabled }: { lore: ReturnType<typeof us
         if (!deleteArmed) { setDeleteArmed(true); return; }
         void run(async () => { await lore.client.deletePoint({ pointId: selected }); select(null); });
       }}>{t(deleteArmed ? "landing.deleted.confirmDelete" : "timeline.delete")}</Button> : null}>
-      {points.length === 0 ? <p>{t("timeline.empty")}</p> : <ul className="editor-manuscript-tree">
+      {points.length === 0 ? <p>{t("timeline.empty")}</p> : <ul className="flex flex-col gap-1">
         {points.map((point, index) => <li key={point.id} className="flex gap-2">
           <ListButton tone="lore" className="min-w-0 flex-1" pressed={point.id === selected} disabled={busy} onClick={() => select(point.id)}>{point.name}</ListButton>
           <Button size="sm" disabled={busy || index === 0} aria-label={t("timeline.moveUp", { name: point.name })}

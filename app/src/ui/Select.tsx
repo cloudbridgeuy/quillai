@@ -14,7 +14,6 @@ type SelectProps = {
   "aria-describedby"?: string;
 };
 
-/** Native select with a visible label. Values are strings; the caller maps them. */
 export function Select({ label, value, options, onChange, disabled, className, "aria-describedby": describedBy }: SelectProps) {
   const id = useId();
   return (
