@@ -441,7 +441,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   }, [tabTitle]);
 
   const lore = useLore(chapterSync.scope);
-  const loreEntries = suppliedLoreEntries ?? lore.entries;
+  const loreEntries = suppliedLoreEntries ?? lore.resolved;
 
   function wordUrl(bytes: Uint8Array): string {
     return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
@@ -1756,13 +1756,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                 <p className="editor-note">{formatMessage(defaultLocale, "inspector.loreTokenNote")}</p>
                 {contextInspector.lore.injected.length === 0 ? <p>{formatMessage(defaultLocale, "inspector.noLore")}</p> : <ul>
                   {contextInspector.lore.injected.map(entry => <li key={entry.id}>
-                    <strong>{entry.name}</strong> · {entry.kind} · {entry.reason === "pinned" ? formatMessage(defaultLocale, "inspector.pin") : formatMessage(defaultLocale, "inspector.keyword")} · {entry.level === "known_dont_reveal" ? formatMessage(defaultLocale, "lore.known") : formatMessage(defaultLocale, "lore.include")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
+                    <strong>{entry.name}</strong> · {!entry.stateName ? formatMessage(defaultLocale, "inspector.stateBase") : formatMessage(defaultLocale, "inspector.stateNamed", { name: entry.stateName })} · {entry.kind} · {entry.reason === "pinned" ? formatMessage(defaultLocale, "inspector.pin") : formatMessage(defaultLocale, "inspector.keyword")} · {entry.level === "known_dont_reveal" ? formatMessage(defaultLocale, "lore.known") : formatMessage(defaultLocale, "lore.include")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
                   </li>)}
                 </ul>}
                 <Heading level="section" as="h4">{formatMessage(defaultLocale, "inspector.skipped")}</Heading>
                 {contextInspector.lore.skipped.length === 0 ? <p>{formatMessage(defaultLocale, "inspector.noSkipped")}</p> : <ul>
                   {contextInspector.lore.skipped.map(entry => <li key={entry.id}>
-                    <strong>{entry.name}</strong> · {entry.kind} · {formatMessage(defaultLocale, "inspector.keyword")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
+                    <strong>{entry.name}</strong> · {!entry.stateName ? formatMessage(defaultLocale, "inspector.stateBase") : formatMessage(defaultLocale, "inspector.stateNamed", { name: entry.stateName })} · {entry.kind} · {formatMessage(defaultLocale, "inspector.keyword")} · {formatMessage(defaultLocale, "inspector.estimatedTokens", { tokens: String(entry.tokens) })}
                   </li>)}
                 </ul>}
               </section>

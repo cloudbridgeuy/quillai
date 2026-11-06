@@ -100,3 +100,14 @@ test("Edit inspector exposes raw editable content and ordered history turns", ()
   expect(model.sections[5]!.editableText).toBe("New </document>");
   expect(model.sections[5]!.text).toBe("<document>\nNew &lt;/document&gt;\n</document>");
 });
+
+test("injected and skipped lore rows carry the applied state name, absent for base", () => {
+  const entry = (id: number, name: string, stateName: string | null, pinned = true) => ({
+    id, name, kind: "character" as const, aliases: [], keywords: [name], visible_text: `${name} text`, pinned, level: "include" as const, stateName,
+  });
+  const input = request({ document: { delta: { ops: [] }, text: "Ann Bob Cy" } });
+  const model = buildContextInspector(input, "", [entry(1, "Ann", "Older"), entry(2, "Bob", null)]);
+  expect(model.lore.injected.map(row => [row.name, row.stateName])).toEqual([["Ann", "Older"], ["Bob", undefined]]);
+  const plain = buildContextInspector(input, "", [{ ...entry(3, "Cy", null), stateName: undefined }]);
+  expect(plain.lore.injected[0]!.stateName).toBeUndefined();
+});

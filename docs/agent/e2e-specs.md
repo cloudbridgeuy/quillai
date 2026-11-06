@@ -114,3 +114,5 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `chapter-export.spec.ts` checks chapter and book download names, Markdown, text, Word, and EPUB formats, chapter order, unsaved live text with saves held, and export failure at 1100px and 1440px. Word and EPUB downloads check ZIP signatures and package contents. Written; not run for GUZ-1240.
 
 `stories-visual.spec.ts` serves `storybook/storybook-static` from a small in-spec HTTP server and screenshots each `story` entry from `index.json` (one test per story, docs entries skipped, max 1 percent pixel diff). The whole file skips when the build is missing. Written; not run for GUZ-1438.
+
+`lore-states-inspector.spec.ts` creates a universe with two timeline points and a lore entry with a state on each, then opens three pieces (point Early, point Late, no point) and checks the context inspector shows `state Young`, `state Old`, and `base` beside the entry (GUZ-1460).

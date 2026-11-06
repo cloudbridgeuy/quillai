@@ -1,11 +1,12 @@
 import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import type { LoreMatchEntry } from "../md_editor/lore_match";
+import type { LoreStateRow, PieceRef, TimelinePoint } from "../md_editor/lore_states";
 import { ManuscriptApiError } from "./client";
 import { parseApiError, parseContainer, parseList, type SeriesScope, type UniverseScope } from "./contract";
 
-export type LoreEntry = LoreMatchEntry & { universe_id: number; hidden_notes: string };
-export type LoreInput = Omit<LoreEntry, "id" | "universe_id">;
+export type LoreEntry = LoreMatchEntry & { universe_id: number; hidden_notes: string; states?: readonly LoreStateRow[] };
+export type LoreInput = Omit<LoreEntry, "id" | "universe_id" | "states">;
 export type LoreScope = UniverseScope & { loreId: number };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
@@ -32,7 +33,29 @@ export function parseLoreEntry(value: unknown): LoreEntry {
     id: id(row.id), universe_id: id(row.universe_id), kind, level, pinned, name: term(row.name),
     keywords: parseList(row.keywords, term), aliases: parseList(row.aliases, term),
     visible_text: text(row.visible_text), hidden_notes: text(row.hidden_notes),
+    ...(row.states === undefined ? {} : { states: parseList(row.states, parseLoreState) }),
   };
+}
+
+function parseLoreState(value: unknown): LoreStateRow {
+  if (typeof value !== "object" || value === null) throw new Error("Expected lore state object");
+  const row = value as Record<string, unknown>;
+  const { id, pointId, name, visibleText, hiddenNotes } = row;
+  if (typeof id !== "number" || typeof pointId !== "number" || typeof name !== "string"
+    || typeof visibleText !== "string" || typeof hiddenNotes !== "string") throw new Error("Invalid lore state");
+  return { id, name, pointId, visibleText, hiddenNotes };
+}
+
+export function parseTimelinePoint(value: unknown): TimelinePoint {
+  const row = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
+  if (typeof row.id !== "number" || typeof row.position !== "number") throw new Error("Invalid timeline point");
+  return { id: row.id, position: row.position };
+}
+
+function parsePieceFields(value: unknown): { parentId: number | null; timelinePointId: number | null } {
+  const row = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
+  const optional = (field: unknown) => typeof field === "number" ? field : null;
+  return { parentId: optional(row.parentId), timelinePointId: optional(row.timelinePointId) };
 }
 
 export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchRequest = globalThis.fetch }: {
@@ -63,6 +86,15 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
   return {
     seriesUniverse: ({ seriesId }: SeriesScope) => request(`/containers/${encodeURIComponent(seriesId)}`, "GET", 200,
       value => parseContainer(value).universeId),
+    timeline: (scope: UniverseScope) => request(`/universes/${encodeURIComponent(scope.universeId)}/timeline`, "GET", 200,
+      value => parseList(value, parseTimelinePoint)),
+    /** Piece plus its parent (groups do not nest), each with its own timeline point. */
+    pieceRef: async ({ pieceId }: { pieceId: number }): Promise<PieceRef> => {
+      const fields = (id: number) => request(`/pieces/${encodeURIComponent(id)}`, "GET", 200, parsePieceFields);
+      const own = await fields(pieceId);
+      const parent = own.parentId === null ? null : await fields(own.parentId);
+      return { timelinePointId: own.timelinePointId, parent: parent && { timelinePointId: parent.timelinePointId, parent: null } };
+    },
     list: (scope: UniverseScope) => request(lorePath(scope), "GET", 200, value => parseList(value, parseLoreEntry)),
     get: (scope: LoreScope) => request(lorePath(scope), "GET", 200, parseLoreEntry),
     create: (scope: UniverseScope, input: LoreInput) => request(lorePath(scope), "POST", 201, parseLoreEntry, input),

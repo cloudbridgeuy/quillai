@@ -299,6 +299,8 @@ test.each([
   ["inspector.loreTokenNote", "Tokens: UTF-8 bytes ÷ 4, rounded up per entry including standalone Lore tags; not additive."],
   ["inspector.noLore", "No lore injected."],
   ["inspector.pin", "pin"],
+  ["inspector.stateBase", "base"],
+  ["inspector.stateNamed", "state {name}"],
   ["inspector.keyword", "keyword"],
   ["inspector.skipped", "Skipped by budget"],
   ["inspector.noSkipped", "No entries skipped by budget."],

@@ -61,3 +61,9 @@ test("lore client reports structured HTTP and invalid-response errors", async ()
     }
   }
 });
+
+test("parses active lore states and rejects malformed ones", () => {
+  const state = { id: 3, name: "Older", pointId: 2, visibleText: "v", hiddenNotes: "h" };
+  expect(parseLoreEntry({ ...entry, states: [state] }).states).toEqual([state]);
+  expect(() => parseLoreEntry({ ...entry, states: [{ ...state, pointId: "2" }] })).toThrow();
+});
