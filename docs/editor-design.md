@@ -131,6 +131,8 @@ Spec for a later build ticket. "Proposed" marks decisions this spec makes; the r
 
 - Completion works only in the lore modal's visible AI context field (`visible_text`, green StickyNote, `app/src/md_editor/components/LorePanel.tsx:114-115`). It never runs in the author-only hidden notes field (`LorePanel.tsx:116-117`). "Author-only notes never enter AI requests" (Lore, above) stays unchanged.
 - Keywords and aliases fields (`LorePanel.tsx:109-112`) get no completion (proposed).
+- Inspector: no request view or cost line for lore completion in this build; deferred to a follow-up ticket (owner-approved).
+- Same behaviour at all widths, including below 1100px (owner-approved).
 
 ### Action
 
@@ -141,9 +143,8 @@ Spec for a later build ticket. "Proposed" marks decisions this spec makes; the r
 
 ### Prompt
 
-- Input: the entry's draft name, kind, and the `visible_text` before the caret. Text after the caret is not sent (proposed). Hidden notes, keywords, aliases, level, and pin are never request fields, matching the lore contract (`.claude/context/ai-streaming.md:62`).
+- Input: the entry's draft name, kind, and the `visible_text` before the caret. Text after the caret is not sent (owner-approved). Hidden notes, keywords, aliases, level, and pin are never request fields, matching the lore contract (`.claude/context/ai-streaming.md:62`).
 - Other lore entries are not included. No manuscript window, selection, history, or Story context is sent (proposed). Author guidance is still added by the server for every accepted request (`.claude/context/ai-streaming.md:56`).
-- The entry being edited is sent even when its level is Leave out, because the author asked for it in that field (proposed). Leave-out filtering in `crates/api/src/ai/lore.rs:47` applies to injected lore, not to this target; the build must not route the target through `parse_lore`.
 - Known, don't reveal adds no non-reveal marker for the target: the text is lore notes, not prose (proposed).
 - New rules constant beside `GENERATE_RULES` (`crates/api/src/ai/prompt.rs:3`), because Continue rules assume a manuscript caret. Proposed text: "You are completing a reference note about a story element. Respond with plain text only, and do not exceed two sentences. Start exactly where the note ends. Do not repeat or rephrase it." Name, kind, and text go in escaped tags, using the same `&`, `<`, `>` escaping as lore (`.claude/context/ai-streaming.md:64`).
 - `visible_text` before the caret is capped at 65,536 UTF-8 bytes before escaping, the lore cap (`.claude/context/ai-streaming.md:64`); overflow returns 422 before provider startup (proposed).
@@ -153,6 +154,7 @@ Spec for a later build ticket. "Proposed" marks decisions this spec makes; the r
 
 - A Complete button (IconButton, `app/src/ui/`) under the visible AI context field, disabled while the modal is pending (proposed).
 - Ctrl/Cmd+Enter inside the visible AI context field triggers it (proposed). Today Ctrl/Cmd+Enter runs Continue only outside dialogs and popovers (Shortcuts, above), so it does not collide. In hidden notes and other modal fields it keeps the browser default.
+- Leave out entries are blocked (owner-approved): the Complete button is hidden and Ctrl/Cmd+Enter sends no request when the entry's resolved level is `leave_out`. Use the same check LoreImages uses to hide Generate (`app/src/md_editor/components/LoreImages.tsx:33`, `:72`), the `resolveLoreEntry` resolver (`app/src/md_editor/lore_states.ts:29`, GUZ-1433).
 - While streaming the button shows Stop and Ctrl/Cmd+Enter stops, matching Continue/Stop (Continue, above).
 
 ### Streaming and accept/reject
@@ -181,14 +183,7 @@ New spec `e2e/lore-complete.spec.ts` (proposed name), at 1100px and 1440px:
 6. 503 `AI_NOT_CONFIGURED` shows the error with no text change.
 7. Escape during a stream cancels the request and discards the draft; the saved entry is unchanged.
 8. Settings → AI Lore completion model persists and appears in `defaults.lore_complete`.
-9. Leave-out entry still completes; Ctrl/Cmd+Enter outside the modal still runs Continue.
-
-### Open questions
-
-- Should the Inspector show a Lore completion request view and cost line? Docs give no rule for requests started outside the manuscript.
-- Should completion use text after the caret (fill-in-middle) when the caret is mid-note?
-- Is the Leave-out target exception acceptable to the owner, or should Leave-out entries block completion?
-- Narrow screens: the modal layout below 1100px is not documented; this spec assumes the same behaviour at all widths.
+9. A Leave out entry shows no Complete button, and Ctrl/Cmd+Enter in its field sends no request; Ctrl/Cmd+Enter outside the modal still runs Continue.
 
 ## Saves
 
