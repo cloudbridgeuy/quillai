@@ -5,7 +5,7 @@
     "": {
       "name": "bun-react-template",
       "dependencies": {
-        "bun-plugin-tailwind": "latest",
+        "bun-plugin-tailwind": "0.0.15",
         "quill": "^2.0.3",
         "react": "^19",
         "react-dom": "^19",
