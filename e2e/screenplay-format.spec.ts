@@ -104,8 +104,8 @@ for (const width of [1100, 1440]) {
       await page.keyboard.type("Good morning.");
 
       await expect.poll(async () => blocks(await serverOps(one.id))).toEqual(["scene-heading", "character", "dialogue"]);
+      await expect.poll(async () => (await serverOps(one.id)).map((op) => op.insert).join("")).toBe("INT. HALL - DAY\nANNA\nGood morning.\n");
       expect(await serverOps(two.id)).toEqual([{ insert: sceneTwoText }]);
-      expect((await serverOps(one.id)).map((op) => op.insert).join("")).toBe("INT. HALL - DAY\nANNA\nGood morning.\n");
       await page.screenshot({ path: `../target/guz-944/${test.info().project.name}/format-${width}.png` });
 
       await open(page, group.id);
