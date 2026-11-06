@@ -7,7 +7,7 @@ test("Lore in window cycles through matches on repeated clicks", async ({ page, 
   const series = await (await request.post(`${api}/series`, { data: { title: "Cycle series", position: 0 } })).json();
   const base = `${api}/series/${series.id}`;
   const book = await (await request.post(`${base}/books`, { data: { title: "Book", position: 0 } })).json();
-  const filler = (label: string) => Array.from({ length: 40 }, (_, i) => `${label} filler line ${i}.\n`).join("");
+  const filler = (label: string) => Array.from({ length: 40 }, (_, i) => `${label} line ${i}.\n`).join("");
   const chapter = await (await request.post(`${base}/books/${book.id}/chapters`, { data: {
     title: "Chapter", position: 0, kind: "chapter", content: { ops: [{ insert: `Mira first.\n${filler("a")}Mira second.\n${filler("b")}Mira third.\n` }] },
   } })).json();
