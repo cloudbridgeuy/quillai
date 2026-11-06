@@ -91,3 +91,27 @@ test("a chosen point applies the lore state, deleting it falls back to base, and
   await expect(page.getByRole("alert").filter({ hasText: /\S/ }).first()).toBeVisible();
   await expect(reloaded.locator("option:checked")).toHaveText("No point (base text)");
 });
+
+test("a chapter without its own point shows the parent's point as inherited", async ({ page, request }) => {
+  const api = process.env.QUILLAI_E2E_API_URL;
+  if (!api) throw new Error("Run with cargo xtask e2e");
+  const send = async (method: "post" | "put", url: string, data: object, status = 201) => {
+    const response = await request[method](url, { data });
+    expect(response.status()).toBe(status);
+    return response.json();
+  };
+  const universe = await send("post", `${api}/universes`, { title: "Inherit universe", position: 0 });
+  const point = await send("post", `${api}/universes/${universe.id}/timeline`, { name: "Act one", position: 0 });
+  const group = await send("post", `${api}/universes/${universe.id}/pieces`, { title: "Novel", position: 0, label: "novel", shape: "group" });
+  await send("put", `${api}/pieces/${group.id}`, { timelinePointId: point.id }, 200);
+  const child = await send("post", `${api}/pieces/${group.id}/children`, { title: "Chapter", position: 0 });
+  await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, pieceId: String(child.id) })}`);
+  await expectEditorReady(page.locator(".ql-editor"));
+
+  const picker = page.getByLabel("This chapter happens at", { exact: true });
+  await expect(picker).toHaveValue("");
+  await expect(picker.locator("option").first()).toHaveText("Inherit: Act one");
+  await picker.selectOption({ label: "Act one" });
+  await expect(picker.locator("option:checked")).toHaveText("Act one");
+  await expect(picker.locator("option").first()).toHaveText("No point (base text)");
+});

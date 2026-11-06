@@ -209,6 +209,8 @@ test("timeline move labels interpolate the point name in both locales", () => {
   expect(formatMessage("en", "timeline.moveUp", { name: "Act one" })).toBe("Move Act one up");
   expect(formatMessage("es", "timeline.moveDown", { name: "Acto uno" })).toBe("Bajar Acto uno");
   expect(formatMessage("es", "timeline.base")).toBe("Sin punto (texto base)");
+  expect(formatMessage("en", "timeline.inherit", { name: "Act one" })).toBe("Inherit: Act one");
+  expect(formatMessage("es", "timeline.inherit", { name: "Acto uno" })).toBe("Heredar: Acto uno");
 });
 
 test.each(["Chapter", "Scene", "Universe", "Container", "Piece", "unknown", "toString"])("creation messages select full labels for %s", noun => {

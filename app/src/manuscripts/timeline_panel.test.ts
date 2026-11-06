@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { movePoint, nextPosition, orderPoints, pickerOptions } from "./timeline_panel";
+import { inheritedPoint, movePoint, nextPosition, orderPoints, pickerOptions } from "./timeline_panel";
 
 const a = { id: 1, name: "A", position: 2 };
 const b = { id: 2, name: "B", position: 0 };
@@ -29,4 +29,13 @@ test("picker offers base text first, then points in order", () => {
   expect(pickerOptions([a, b], "No point (base text)")).toEqual([
     { value: "", label: "No point (base text)" }, { value: "2", label: "B" }, { value: "1", label: "A" },
   ]);
+});
+
+test("inherited point is the parent's point only when the piece has no resolving point of its own", () => {
+  const parent = { timelinePointId: 2, parent: null };
+  expect(inheritedPoint({ timelinePointId: null, parent }, [a, b])).toEqual(b);
+  expect(inheritedPoint({ timelinePointId: 9, parent }, [a, b])).toEqual(b);
+  expect(inheritedPoint({ timelinePointId: 1, parent }, [a, b])).toBeNull();
+  expect(inheritedPoint({ timelinePointId: null, parent: { timelinePointId: 9, parent: null } }, [a, b])).toBeNull();
+  expect(inheritedPoint(null, [a, b])).toBeNull();
 });

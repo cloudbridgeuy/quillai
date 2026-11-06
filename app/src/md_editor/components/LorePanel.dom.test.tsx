@@ -14,7 +14,7 @@ function Harness() {
   return <LorePanel lore={lore} disabled={false} pieceId={7} />;
 }
 
-function stub({ failRefetch = false, failPut = false } = {}) {
+function stub({ failRefetch = false, failPut = false, parentPoint = null as number | null } = {}) {
   const calls: string[] = [];
   let putDone = false;
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -29,7 +29,8 @@ function stub({ failRefetch = false, failPut = false } = {}) {
       return Response.json({ parentId: null, timelinePointId: JSON.parse(String(init!.body)).timelinePointId });
     }
     if (pathname === "/pieces/7" && failRefetch && putDone) return Response.json({ error: "boom", code: "INTERNAL" }, { status: 500 });
-    return Response.json({ parentId: null, timelinePointId: null });
+    if (pathname === "/pieces/3") return Response.json({ parentId: null, timelinePointId: parentPoint });
+    return Response.json({ parentId: parentPoint === null ? null : 3, timelinePointId: null });
   }) as typeof fetch;
   return calls;
 }
@@ -80,4 +81,14 @@ test("a failed PUT shows an alert and keeps the previous value", async () => {
   await flush();
   expect(document.querySelector('[role="alert"]')).not.toBeNull();
   expect(picker().value).toBe("");
+});
+
+test("the empty option inherits the parent's point until the piece sets its own", async () => {
+  stub({ parentPoint: 6 });
+  await render(<Harness />);
+  await flush();
+  expect(picker().options[0]!.textContent).toBe("Inherit: End");
+  await choose("5");
+  await flush();
+  expect(picker().options[0]!.textContent).toBe("No point (base text)");
 });

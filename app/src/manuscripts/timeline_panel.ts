@@ -1,4 +1,5 @@
 import type { SelectOption } from "../ui/Select";
+import { effectivePoint, type PieceRef } from "../md_editor/lore_states";
 
 export type NamedPoint = { id: number; name: string; position: number };
 export type PointMove = { id: number; position: number };
@@ -22,4 +23,11 @@ export function movePoint(points: readonly NamedPoint[], id: number, direction: 
 
 export function pickerOptions(points: readonly NamedPoint[], baseLabel: string): SelectOption[] {
   return [{ value: "", label: baseLabel }, ...orderPoints(points).map(point => ({ value: String(point.id), label: point.name }))];
+}
+
+export function inheritedPoint<T extends NamedPoint>(piece: PieceRef | null, points: readonly T[]): T | null {
+  const byId = new Map(points.map(point => [point.id, point]));
+  if (piece === null || (piece.timelinePointId !== null && byId.has(piece.timelinePointId))) return null;
+  const parentPoint = effectivePoint(piece.parent, byId);
+  return parentPoint && byId.get(parentPoint.id)!;
 }

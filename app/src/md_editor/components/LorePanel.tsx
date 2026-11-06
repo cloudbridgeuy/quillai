@@ -7,7 +7,7 @@ import { Button } from "../../ui/Button";
 import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Select } from "../../ui/Select";
-import { pickerOptions } from "../../manuscripts/timeline_panel";
+import { inheritedPoint, pickerOptions } from "../../manuscripts/timeline_panel";
 import { TimelineManager } from "./TimelineManager";
 import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
@@ -70,11 +70,13 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
       setError(failure instanceof Error ? failure.message : formatMessage(defaultLocale, "timeline.failed"));
     } finally { setPending(false); }
   }
+  const inherited = inheritedPoint(lore.piece, lore.points);
+  const emptyPointLabel = inherited ? formatMessage(defaultLocale, "timeline.inherit", { name: inherited.name }) : formatMessage(defaultLocale, "timeline.base");
   return <section className="editor-lore-panel" aria-label={formatMessage(defaultLocale, "lore.series")}>
     <Heading level="section" as="h3">{formatMessage(defaultLocale, "lore.series")}</Heading>
     {pieceId !== null && lore.status === "ready" ? <Select label={formatMessage(defaultLocale, "timeline.chapterAt")} disabled={disabled || pending}
       value={lore.piece?.timelinePointId != null && lore.points.some(point => point.id === lore.piece?.timelinePointId) ? String(lore.piece.timelinePointId) : ""}
-      options={pickerOptions(lore.points, formatMessage(defaultLocale, "timeline.base"))} onChange={value => void setPoint(value)} /> : null}
+      options={pickerOptions(lore.points, emptyPointLabel)} onChange={value => void setPoint(value)} /> : null}
     {error && !draft ? <Alert tone="error" variant="inline">{error}</Alert> : null}
     {lore.status === "loading" ? <p role="status">{formatMessage(defaultLocale, "lore.loading")}</p> : null}
     {lore.status === "failed" ? <Alert tone="error" variant="inline">{lore.error}<Button size="sm" onClick={lore.retry}>{formatMessage(defaultLocale, "lore.retry")}</Button></Alert> : null}
