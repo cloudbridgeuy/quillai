@@ -95,3 +95,15 @@ test("the catalog is fetched again after a save", async () => {
   expect(fetches).toBe(2);
   expect([...select("Edit model")!.options].map(o => o.value)).toContain("m3");
 });
+
+test.each([["generate", "Continue model"], ["edit", "Edit model"]] as const)("focusAction %s focuses the %s menu once loaded", async (focusAction, label) => {
+  const client = createSettingsClient({ baseUrl: "http://api.test", fetch: async (url) => url.endsWith("/ai/models") ? Response.json(catalog) : Response.json(base) });
+  const container = await render(<AiSettings client={client} onSaved={() => {}} focusAction={focusAction} />);
+  const select = [...container.querySelectorAll("label")].find(el => el.querySelector("span")?.textContent === label)!.querySelector("select");
+  expect(document.activeElement).toBe(select!);
+});
+
+test("without focusAction nothing in AiSettings takes focus", async () => {
+  const { container } = await setup(base);
+  expect(container.contains(document.activeElement)).toBe(false);
+});

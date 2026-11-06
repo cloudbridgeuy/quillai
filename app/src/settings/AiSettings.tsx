@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { defaultLocale, formatMessage } from "../i18n/messages";
 import { Alert } from "../ui/Alert";
 import { Button } from "../ui/Button";
@@ -9,7 +9,9 @@ import type { ModelCatalog } from "../md_editor/model_catalog";
 import { TextField } from "../ui/TextField";
 import { aiKeyDecision, aiModelActions, aiSettingsUpdate, type AiSettings, type AiSettingsForm, type createSettingsClient } from "./client";
 
-export function AiSettings({ client, onSaved }: { client: ReturnType<typeof createSettingsClient>; onSaved: () => void }) {
+export function AiSettings({ client, onSaved, focusAction }: { client: ReturnType<typeof createSettingsClient>; onSaved: () => void; focusAction?: "generate" | "edit" }) {
+  const root = useRef<HTMLElement>(null);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [settings, setSettings] = useState<AiSettings | null>(null);
   const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
   const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "" }, key: { action: "keep" } });
@@ -21,12 +23,16 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
   }
   useEffect(() => {
     let active = true;
-    client.getModelCatalog().then(value => { if (active) setCatalog(value); });
+    client.getModelCatalog().then(value => { if (active) { setCatalog(value); setCatalogLoaded(true); } });
     client.getAiSettings().then(value => { if (active) apply(value); })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : formatMessage(defaultLocale, "settings.ai.loadFailed")); })
       .finally(() => { if (active) setPending(false); });
     return () => { active = false; };
   }, [client]);
+  useEffect(() => {
+    if (!focusAction || !settings || !catalogLoaded) return;
+    root.current?.querySelector<HTMLElement>(`[data-model-action="${focusAction}"] select, [data-model-action="${focusAction}"] input`)?.focus({ preventScroll: true });
+  }, [focusAction, settings !== null, catalogLoaded]);
   async function save() {
     if (!settings) return;
     setPending(true);
@@ -48,7 +54,7 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
     return options;
   }
   const keyDecision = settings ? aiKeyDecision(settings.sources.api_key, form.key) : null;
-  return <section className="space-y-3">
+  return <section ref={root} className="space-y-3">
     <Heading level="section" as="h3">{formatMessage(defaultLocale, "settings.ai.title")}</Heading>
     {settings ? <div className="space-y-3">
       <Field label={formatMessage(defaultLocale, "settings.ai.baseUrl")}><TextField value={form.base_url} disabled={pending} onChange={event => setForm({ ...form, base_url: event.target.value })} /></Field>
@@ -57,7 +63,7 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
         const label = formatMessage(defaultLocale, labelKey);
         const noteId = `ai-model-source-${action}`;
         const setModel = (value: string) => setForm({ ...form, models: { ...form.models, [action]: value } });
-        return <div key={action} className="space-y-1">
+        return <div key={action} data-model-action={action} className="space-y-1">
           {catalog
             ? <Select label={label} value={form.models[action]} options={modelOptions(action, field)} disabled={pending} aria-describedby={noteId} onChange={setModel} />
             : <Field label={label}><TextField value={form.models[action]} disabled={pending} aria-describedby={noteId} onChange={event => setModel(event.target.value)} /></Field>}

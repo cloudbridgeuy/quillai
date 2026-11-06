@@ -527,6 +527,13 @@ body {
   pointer-events: none;
 }
 
+.editor-continue-window-model {
+  position: absolute;
+  left: -36px;
+  transform: translateX(-100%);
+  white-space: nowrap;
+}
+
 .editor-continue-window-flag {
   position: fixed;
   top: 12px;

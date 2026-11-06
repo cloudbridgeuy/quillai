@@ -53,7 +53,8 @@ test("rail glyph centres, names, and selection at desktop widths", async ({ page
     for (const rail of rails) {
       const button = page.getByRole("button", { name: rail.name, exact: true });
       await expect(button).toHaveAccessibleName(rail.name);
-      await expect(button).toHaveAttribute("title", rail.title);
+      // Continue also names its model once the catalog loads (GUZ-1426).
+      await expect(button).toHaveAttribute("title", rail.name === "Continue writing" ? new RegExp(`^${rail.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( · .+)?$`) : rail.title);
       const delta = await button.evaluate((element, glyph) => {
         const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
         let node: Node | null;
@@ -153,12 +154,12 @@ for (const width of [1100, 1440]) {
     expect(upstream.identity).toBe(identity);
     const stop = page.getByRole("button", { name: "Stop AI", exact: true });
     await expect(stop).toHaveAccessibleName("Stop AI");
-    await expect(stop).toHaveAttribute("title", "Stop AI (Ctrl/Cmd+Enter)");
+    await expect(stop).toHaveAttribute("title", /^Stop AI \(Ctrl\/Cmd\+Enter\)( · .+)?$/);
     const control = `${provider}/control/${upstream.id}`;
     expect((await request.post(`${control}/fragment`, { data: { text: "A cut-off reply." } })).status()).toBe(200);
     expect((await request.post(`${control}/finish`, { data: { reason: "length" } })).status()).toBe(200);
     const resume = page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true });
-    await expect(resume).toHaveAttribute("title", "Continue writing from a cut-off reply (Ctrl/Cmd+Enter)");
+    await expect(resume).toHaveAttribute("title", /^Continue writing from a cut-off reply \(Ctrl\/Cmd\+Enter\)( · .+)?$/);
     await expect(resume.locator(".editor-thread-indicator")).toHaveText("from a cut-off reply");
   });
 }

@@ -9,7 +9,9 @@ const FLAG_OFFSET = 210;
 
 type Geometry = { top: number; bottom: number; viewportTop: number; left: number };
 
-export function ContinueWindow({ quill, start, end }: { quill: Quill; start: number; end: number }) {
+export function ContinueWindow({ quill, start, end, modelName, modelId, onModelClick }: {
+  quill: Quill; start: number; end: number; modelName: string; modelId?: string; onModelClick: () => void;
+}) {
   const [geometry, setGeometry] = useState<Geometry | null>(null);
 
   useLayoutEffect(() => {
@@ -39,6 +41,11 @@ export function ContinueWindow({ quill, start, end }: { quill: Quill; start: num
     {createPortal(<div className="editor-continue-window" aria-hidden="true"
       data-start={start} data-end={end}
       style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }} />, quill.container)}
+    {createPortal(<Button variant="link" size="sm" className="editor-continue-window-model text-micro" title={modelId}
+      style={{ top: geometry.top }}
+      onMouseDown={(event) => event.preventDefault()} onClick={onModelClick}>
+      {formatMessage(defaultLocale, "editor.modelLink", { model: modelName })}
+    </Button>, quill.container)}
     {geometry.viewportTop < 0 ? createPortal(<Button size="sm" className="editor-continue-window-flag"
       style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}
       onMouseDown={(event) => event.preventDefault()}

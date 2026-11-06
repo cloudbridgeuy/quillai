@@ -380,7 +380,8 @@ fn scan_path(path: &str, kind: FileKind, text: &str) -> BTreeMap<Rule, usize> {
                                     && !(path == "app/src/md_editor/components/ContinueWindow.tsx"
                                         && matches!(*value,
                                             "{{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }}"
-                                            | "{{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}"))
+                                            | "{{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}"
+                                            | "{{ top: geometry.top }}"))
                             }),
                     ),
                     (
@@ -680,7 +681,7 @@ mod tests {
     fn exemptions_are_limited_to_the_registered_colour_and_caret_styles() {
         let css = "@property --ai-stream-color { initial-value: #fff; color: #abc; } @property --other { initial-value: #def; } .x { initial-value: #123; }";
         assert_eq!(scan(FileKind::Css, css).get(&Rule::HexColour), Some(&3));
-        let styles = "<div style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }}/><div style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}/><div style={{ top: geometry.top }}/ >";
+        let styles = "<div style={{ top: geometry.top, height: Math.max(0, geometry.bottom - geometry.top) }}/><div style={{ left: Math.max(FLAG_MIN_LEFT, geometry.left - FLAG_OFFSET) }}/><div style={{ top: geometry.top }}/ ><div style={{ top: 1 }}/>";
         let path = "app/src/md_editor/components/ContinueWindow.tsx";
         assert_eq!(
             scan_path(path, FileKind::Tsx, styles).get(&Rule::InlineStyle),
@@ -688,7 +689,7 @@ mod tests {
         );
         assert_eq!(
             scan_path("app/src/other.tsx", FileKind::Tsx, styles).get(&Rule::InlineStyle),
-            Some(&3)
+            Some(&4)
         );
     }
 

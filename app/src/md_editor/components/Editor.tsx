@@ -117,7 +117,7 @@ import { LoreWindow } from "./LoreWindow";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
 import { apiErrorMessage } from "../../api_error";
 import { getApiBaseUrl } from "../../api_config";
-import { expectedModelId, parseModelCatalog, type ModelCatalog } from "../model_catalog";
+import { actionModelDisplay, expectedModelId, parseModelCatalog, type ModelCatalog } from "../model_catalog";
 import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
@@ -285,6 +285,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   const [range, setRange] = useState<RangeT | null>(null);
   const [panel, setPanel] = useState<PanelState>(null);
+  const [settingsFocus, setSettingsFocus] = useState<AiAction | undefined>();
   const settingsRef = useRef<HTMLDivElement>(null);
   const bookDownloadRef = useRef<HTMLAnchorElement>(null);
   const [bookExportError, setBookExportError] = useState(false);
@@ -654,7 +655,18 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     }
   }
 
+  function openModelSettings(action: AiAction) {
+    setEditBoxOpen(false);
+    setSettingsFocus(action);
+    setPanel("settings");
+  }
+
+  useEffect(() => {
+    if (panel !== "settings") setSettingsFocus(undefined);
+  }, [panel]);
+
   function togglePanel(nextPanel: Exclude<PanelState, null>) {
+    setSettingsFocus(undefined);
     if (panel === nextPanel) closePanels();
     else setPanel(transitionPanel(panel, nextPanel));
   }
@@ -1365,12 +1377,16 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     }
   })();
 
+  const continueModel = actionModelDisplay(modelCatalog, "generate");
+  const editModel = actionModelDisplay(modelCatalog, "edit");
+  const modelName = (model: { name: string } | null) => model?.name ?? formatMessage(defaultLocale, "editor.modelDefault");
   const continueTitle = waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue");
 
   return (
     <div className="editor-shell">
       {desktop && showContinueWindow && (chapterSync.ready || pending) && markerQuill ? <ContinueWindow
-        quill={markerQuill} start={markerWindow.start} end={markerWindow.end} /> : null}
+        quill={markerQuill} start={markerWindow.start} end={markerWindow.end}
+        modelName={modelName(continueModel)} modelId={continueModel?.id} onModelClick={() => openModelSettings("generate")} /> : null}
       <nav inert={pending || undefined} className="editor-rail editor-rail-left" aria-label={formatMessage(defaultLocale, "editor.navigation")}>
         <IconButton label={formatMessage(defaultLocale, "landing.library")} title={formatMessage(defaultLocale, "editor.backToLibrary")} glyph="⌂" disabled={isBusy}
           onMouseDown={(event) => event.preventDefault()}
@@ -1384,7 +1400,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "editor.stop") : formatMessage(defaultLocale, "editor.continue")} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
           badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
           aria-label={isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue")}
-          title={formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" })}
+          title={(title => continueModel ? formatMessage(defaultLocale, "editor.withModel", { title, model: continueModel.name }) : title)(formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" }))}
           aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={!isBusy && (!visuallyReady || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
@@ -1413,6 +1429,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         <p id="edit-instruction-hint" className="editor-note">{formatMessage(defaultLocale, "editor.editHint")}</p>
         {editRejection ? <p id="edit-instruction-rejection" className="editor-note" role="status">{editRejection}</p> : null}
         <div className="editor-actions">
+          {desktop && !isBusy ? <Button variant="link" size="sm" title={editModel?.id}
+            onMouseDown={(event) => event.preventDefault()} onClick={() => openModelSettings("edit")}>
+            {formatMessage(defaultLocale, "editor.modelLink", { model: modelName(editModel) })}
+          </Button> : null}
           <Button variant="primary" size="sm"
             onClick={applyEdit} aria-describedby={editRejection ? "edit-instruction-rejection" : undefined}
             disabled={!editAvailable}>{formatMessage(defaultLocale, "editor.apply")}</Button>
@@ -1433,7 +1453,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           {windowSettings}
           <Toggle label={formatMessage(defaultLocale, "editor.showContinueWindow")} checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
           <Toggle label={formatMessage(defaultLocale, "editor.tintAiText")} checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
-          <AiSettings client={settingsClient} onSaved={() => setModelsRevision(value => value + 1)} />
+          <AiSettings client={settingsClient} focusAction={settingsFocus} onSaved={() => setModelsRevision(value => value + 1)} />
         </Popover> : null}
       </nav>
       {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"

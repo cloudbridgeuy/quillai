@@ -35,6 +35,13 @@ export function expectedModelId(catalog: ModelCatalog | null, action: AiAction):
   return catalog?.defaults[action];
 }
 
+/** Display name (catalog label, else id) and id of the model an action will use; null without a catalog. */
+export function actionModelDisplay(catalog: ModelCatalog | null, action: AiAction): { name: string; id: string } | null {
+  const id = expectedModelId(catalog, action);
+  if (!catalog || id === undefined) return null;
+  return { name: catalog.models.find((model) => model.id === id)?.label ?? id, id };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

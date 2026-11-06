@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { buildInspectorCost } from "./inspector_cost";
 import { initialPersistedEditorState, parsePersistedEditorState } from "./editor_persistence";
-import { expectedModelId, parseModelCatalog } from "./model_catalog";
+import { actionModelDisplay, expectedModelId, parseModelCatalog } from "./model_catalog";
 
 const response = {
   models: [
@@ -45,4 +45,12 @@ test("expected model for an action is the catalog default, with no per-chapter p
   expect(view.model).toBe("Precise");
   expect(view.estimate).toBe("≈ $0.002 · input only");
   expect(view.estimate).not.toContain("unknown");
+});
+
+test("actionModelDisplay names the model for an action, falling back to the id, and is null without a catalog", () => {
+  const catalog = parseModelCatalog(response)!;
+  expect(actionModelDisplay(catalog, "generate")).toEqual({ name: "Fast", id: "provider/fast" });
+  expect(actionModelDisplay(catalog, "edit")).toEqual({ name: "Precise", id: "provider/precise" });
+  expect(actionModelDisplay({ ...catalog, models: [] }, "edit")).toEqual({ name: "provider/precise", id: "provider/precise" });
+  expect(actionModelDisplay(null, "generate")).toBeNull();
 });
