@@ -26,7 +26,8 @@ test("AI settings save without exposing or resending the key and refresh models"
     }
     await route.fulfill({ json: settings });
   });
-  await page.route(`${api}/ai/models`, route => route.fulfill(settings.generate_model ? { json: { models: [{ id: settings.generate_model, label: settings.generate_model, input_price_per_million: 0, output_price_per_million: 0 }], defaults: { generate: settings.generate_model, edit: settings.edit_model } } } : { status: 503, json: { error: "missing", code: "AI_NOT_CONFIGURED" } }));
+  const price = { input_price_per_million: 0, output_price_per_million: 0 };
+  await page.route(`${api}/ai/models`, route => route.fulfill(settings.generate_model ? { json: { models: ["saved-model", "next-model"].map(id => ({ id, label: id, ...price })), defaults: { generate: settings.generate_model, edit: settings.edit_model ?? settings.generate_model } } } : { status: 503, json: { error: "missing", code: "AI_NOT_CONFIGURED" } }));
   const series = await (await request.post(`${api}/series`, { data: { title: "AI settings", position: 0 } })).json();
   const book = await (await request.post(`${api}/series/${series.id}/books`, { data: { title: "Book", position: 0 } })).json();
   const chapter = await (await request.post(`${api}/series/${series.id}/books/${book.id}/chapters`, { data: { title: "Chapter", position: 0, kind: "chapter", content: { ops: [{ insert: "Opening\n" }] } } })).json();
@@ -46,7 +47,10 @@ test("AI settings save without exposing or resending the key and refresh models"
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Some of that doesn't look right. Check it and try again.");
   await dialog.getByLabel("Base URL", { exact: true }).fill("https://example.com/v1");
-  await dialog.getByLabel("Model", { exact: true }).fill("saved-model");
+  // No catalog yet (AI not configured): one text field per action.
+  await expect(dialog.getByLabel("Edit model", { exact: true })).toBeVisible();
+  await dialog.getByLabel("Continue model", { exact: true }).fill("saved-model");
+  await dialog.getByLabel("Edit model", { exact: true }).fill("saved-model");
   await dialog.getByRole("button", { name: "Replace", exact: true }).click();
   await dialog.getByLabel("Replacement API key").fill("secret-key-value");
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
@@ -55,15 +59,25 @@ test("AI settings save without exposing or resending the key and refresh models"
   await expect(page.locator("body")).not.toContainText("secret-key-value");
   expect(await page.content()).not.toContain("secret-key-value");
   expect(writes[1]).toEqual({ base_url: "https://example.com/v1", generate_model: "saved-model", edit_model: "saved-model", api_key: "secret-key-value" });
-  await dialog.getByLabel("Model", { exact: true }).fill("next-model");
+  // The catalog is fetched again after the save; menus replace the text fields.
+  await expect(dialog.getByRole("combobox", { name: "Continue model" })).toHaveValue("saved-model");
+  await dialog.getByRole("combobox", { name: "Edit model" }).selectOption("next-model");
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
   await expect.poll(() => writes.length).toBe(3);
-  expect(writes[2]).toEqual({ generate_model: "next-model", edit_model: "next-model" });
+  expect(writes[2]).toEqual({ edit_model: "next-model" });
+  await dialog.getByRole("combobox", { name: "Edit model" }).selectOption("");
+  await dialog.getByRole("button", { name: "Save AI settings" }).click();
+  await expect.poll(() => writes.length).toBe(4);
+  expect(writes[3]).toEqual({ edit_model: "" });
+  await dialog.getByRole("combobox", { name: "Continue model" }).selectOption("next-model");
+  await dialog.getByRole("combobox", { name: "Edit model" }).selectOption("next-model");
+  await dialog.getByRole("button", { name: "Save AI settings" }).click();
+  await expect.poll(() => writes.length).toBe(5);
   await dialog.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(dialog.getByText("The saved key will be removed on save. The quillai.env key, if present, will be used instead.")).toBeVisible();
   await dialog.getByRole("button", { name: "Save AI settings" }).click();
-  await expect.poll(() => writes.length).toBe(4);
-  expect(writes[3]).toEqual({ api_key: "" });
+  await expect.poll(() => writes.length).toBe(6);
+  expect(writes[5]).toEqual({ api_key: "" });
   await expect(dialog.getByText("Key saved · From quillai.env")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Settings", exact: true }).click();

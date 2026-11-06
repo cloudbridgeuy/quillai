@@ -1,13 +1,20 @@
 import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import { parseApiError } from "../manuscripts/contract";
+import type { AiAction } from "../md_editor/ai_contract";
+import { parseModelCatalog, type ModelCatalog } from "../md_editor/model_catalog";
 
 export type AuthorGuidance = { text: string };
 
 type Source = "saved" | "env" | "none";
 export type AiSettings = { base_url: string | null; generate_model: string | null; edit_model: string | null; key_set: boolean; sources: { base_url: Source; api_key: Source; generate_model: Source; edit_model: Source } };
 export type AiSettingsUpdate = { base_url?: string; api_key?: string; generate_model?: string; edit_model?: string };
-export type AiSettingsForm = { base_url: string; model: string; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
+export type AiSettingsForm = { base_url: string; models: Record<AiAction, string>; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
+
+export const aiModelActions: readonly { action: AiAction; field: "generate_model" | "edit_model"; labelKey: string }[] = [
+  { action: "generate", field: "generate_model", labelKey: "settings.ai.continueModel" },
+  { action: "edit", field: "edit_model", labelKey: "settings.ai.editModel" },
+];
 
 export function aiKeyDecision(source: Source, form: AiSettingsForm["key"]): { showRemove: boolean; note: string; keyToSend: string | undefined } {
   const showRemove = source === "saved";
@@ -18,12 +25,11 @@ export function aiKeyDecision(source: Source, form: AiSettingsForm["key"]): { sh
 
 export function aiSettingsUpdate(settings: AiSettings, form: AiSettingsForm): AiSettingsUpdate {
   const base_url = form.base_url.trim();
-  const model = form.model.trim();
   const update: AiSettingsUpdate = {};
   if (base_url !== (settings.base_url ?? "").trim()) update.base_url = base_url;
-  if (model !== (settings.generate_model ?? "").trim()) {
-    update.generate_model = model;
-    update.edit_model = model;
+  for (const { action, field } of aiModelActions) {
+    const model = form.models[action].trim();
+    if (model !== (settings[field] ?? "").trim()) update[field] = model;
   }
   const { keyToSend } = aiKeyDecision(settings.sources.api_key, form.key);
   if (keyToSend !== undefined) update.api_key = keyToSend;
@@ -82,5 +88,13 @@ export function createSettingsClient({
     putAuthorGuidance: (input: AuthorGuidance) => request("author-guidance", parseAuthorGuidance, "PUT", input),
     getAiSettings: () => request("ai", parseAiSettings, "GET"),
     putAiSettings: (input: AiSettingsUpdate) => request("ai", parseAiSettings, "PUT", input),
+    async getModelCatalog(): Promise<ModelCatalog | null> {
+      try {
+        const response = await fetchRequest(`${baseUrl.replace(/\/+$/, "")}/ai/models`, { headers: { Accept: "application/json" } });
+        return response.ok ? parseModelCatalog(await response.json()) : null;
+      } catch {
+        return null;
+      }
+    },
   };
 }

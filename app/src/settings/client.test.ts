@@ -51,15 +51,23 @@ test("AI settings client validates responses and sends partial updates", async (
 
 test("AI form sends only changed values and explicit key actions", () => {
   const settings = { base_url: "https://example.com", generate_model: "model", edit_model: "model", key_set: true, sources: { base_url: "env", api_key: "saved", generate_model: "saved", edit_model: "saved" } } as const;
-  expect(aiSettingsUpdate(settings, { base_url: " https://example.com ", model: "model", key: { action: "keep" } })).toEqual({});
-  expect(aiSettingsUpdate(settings, { base_url: "", model: " new ", key: { action: "replace", value: " secret " } })).toEqual({ base_url: "", generate_model: "new", edit_model: "new", api_key: "secret" });
-  expect(aiSettingsUpdate(settings, { base_url: "https://example.com", model: "model", key: { action: "remove" } })).toEqual({ api_key: "" });
-  expect(aiSettingsUpdate(settings, { base_url: "https://example.com", model: "model", key: { action: "replace", value: "  " } })).toEqual({});
+  expect(aiSettingsUpdate(settings, { base_url: " https://example.com ", models: { generate: "model", edit: "model" }, key: { action: "keep" } })).toEqual({});
+  expect(aiSettingsUpdate(settings, { base_url: "", models: { generate: " new ", edit: " new " }, key: { action: "replace", value: " secret " } })).toEqual({ base_url: "", generate_model: "new", edit_model: "new", api_key: "secret" });
+  expect(aiSettingsUpdate(settings, { base_url: "https://example.com", models: { generate: "model", edit: "model" }, key: { action: "remove" } })).toEqual({ api_key: "" });
+  expect(aiSettingsUpdate(settings, { base_url: "https://example.com", models: { generate: "model", edit: "model" }, key: { action: "replace", value: "  " } })).toEqual({});
+});
+
+test("AI form sends a model only for the action whose value changed", () => {
+  const settings = { base_url: null, generate_model: "a", edit_model: "b", key_set: false, sources: { base_url: "none", api_key: "none", generate_model: "saved", edit_model: "saved" } } as const;
+  const form = (generate: string, edit: string) => ({ base_url: "", models: { generate, edit }, key: { action: "keep" } as const });
+  expect(aiSettingsUpdate(settings, form("a", " c "))).toEqual({ edit_model: "c" });
+  expect(aiSettingsUpdate(settings, form("", "b"))).toEqual({ generate_model: "" });
+  expect(aiSettingsUpdate(settings, form("x", ""))).toEqual({ generate_model: "x", edit_model: "" });
 });
 
 test("AI form omits values equal to padded effective settings", () => {
   const settings = { base_url: " https://example.com ", generate_model: " model ", edit_model: " model ", key_set: false, sources: { base_url: "env", api_key: "none", generate_model: "env", edit_model: "env" } } as const;
-  expect(aiSettingsUpdate(settings, { base_url: " https://example.com ", model: " model ", key: { action: "keep" } })).toEqual({});
+  expect(aiSettingsUpdate(settings, { base_url: " https://example.com ", models: { generate: " model ", edit: " model " }, key: { action: "keep" } })).toEqual({});
 });
 
 test("AI settings client accepts unset settings and rejects missing or malformed fields", async () => {

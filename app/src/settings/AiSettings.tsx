@@ -4,20 +4,24 @@ import { Alert } from "../ui/Alert";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
 import { Heading } from "../ui/Heading";
+import { Select } from "../ui/Select";
+import type { ModelCatalog } from "../md_editor/model_catalog";
 import { TextField } from "../ui/TextField";
-import { aiKeyDecision, aiSettingsUpdate, type AiSettings, type AiSettingsForm, type createSettingsClient } from "./client";
+import { aiKeyDecision, aiModelActions, aiSettingsUpdate, type AiSettings, type AiSettingsForm, type createSettingsClient } from "./client";
 
 export function AiSettings({ client, onSaved }: { client: ReturnType<typeof createSettingsClient>; onSaved: () => void }) {
   const [settings, setSettings] = useState<AiSettings | null>(null);
-  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", model: "", key: { action: "keep" } });
+  const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
+  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "" }, key: { action: "keep" } });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(true);
   function apply(value: AiSettings) {
     setSettings(value);
-    setForm({ base_url: value.base_url ?? "", model: value.generate_model ?? "", key: { action: "keep" } });
+    setForm({ base_url: value.base_url ?? "", models: { generate: value.generate_model ?? "", edit: value.edit_model ?? "" }, key: { action: "keep" } });
   }
   useEffect(() => {
     let active = true;
+    client.getModelCatalog().then(value => { if (active) setCatalog(value); });
     client.getAiSettings().then(value => { if (active) apply(value); })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : formatMessage(defaultLocale, "settings.ai.loadFailed")); })
       .finally(() => { if (active) setPending(false); });
@@ -29,20 +33,37 @@ export function AiSettings({ client, onSaved }: { client: ReturnType<typeof crea
     setError("");
     try {
       apply(await client.putAiSettings(aiSettingsUpdate(settings, form)));
+      setCatalog(await client.getModelCatalog());
       onSaved();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : formatMessage(defaultLocale, "settings.ai.saveFailed"));
     } finally { setPending(false); }
   }
   const source = (value: "saved" | "env" | "none") => formatMessage(defaultLocale, value === "saved" ? "settings.ai.savedHere" : value === "env" ? "settings.ai.fromEnv" : "settings.ai.notSet");
+  function modelOptions(action: "generate" | "edit", field: "generate_model" | "edit_model") {
+    const saved = form.models[action];
+    const fallback = settings!.sources[field] === "saved" ? formatMessage(defaultLocale, "settings.ai.default") : formatMessage(defaultLocale, "settings.ai.defaultModel", { model: catalog!.defaults[action] });
+    const options = [{ value: "", label: fallback }, ...catalog!.models.map(({ id, label }) => ({ value: id, label: label || id }))];
+    if (saved && !catalog!.models.some(({ id }) => id === saved)) options.push({ value: saved, label: formatMessage(defaultLocale, "settings.ai.notInCatalog", { model: saved }) });
+    return options;
+  }
   const keyDecision = settings ? aiKeyDecision(settings.sources.api_key, form.key) : null;
   return <section className="space-y-3">
     <Heading level="section" as="h3">{formatMessage(defaultLocale, "settings.ai.title")}</Heading>
     {settings ? <div className="space-y-3">
       <Field label={formatMessage(defaultLocale, "settings.ai.baseUrl")}><TextField value={form.base_url} disabled={pending} onChange={event => setForm({ ...form, base_url: event.target.value })} /></Field>
       <p className="editor-note">{source(settings.sources.base_url)}</p>
-      <Field label={formatMessage(defaultLocale, "settings.ai.model")}><TextField value={form.model} disabled={pending} onChange={event => setForm({ ...form, model: event.target.value })} /></Field>
-      <p className="editor-note">{source(settings.sources.generate_model)}</p>
+      {aiModelActions.map(({ action, field, labelKey }) => {
+        const label = formatMessage(defaultLocale, labelKey);
+        const noteId = `ai-model-source-${action}`;
+        const setModel = (value: string) => setForm({ ...form, models: { ...form.models, [action]: value } });
+        return <div key={action} className="space-y-1">
+          {catalog
+            ? <Select label={label} value={form.models[action]} options={modelOptions(action, field)} disabled={pending} aria-describedby={noteId} onChange={setModel} />
+            : <Field label={label}><TextField value={form.models[action]} disabled={pending} aria-describedby={noteId} onChange={event => setModel(event.target.value)} /></Field>}
+          <p id={noteId} className="editor-note">{source(settings.sources[field])}</p>
+        </div>;
+      })}
       <p className="editor-note">{formatMessage(defaultLocale, settings.key_set ? "settings.ai.keySaved" : "settings.ai.noKey")} · {source(settings.sources.api_key)}</p>
       <div className="flex gap-2">
         <Button size="sm" disabled={pending} onClick={() => setForm({ ...form, key: { action: "replace", value: "" } })}>{formatMessage(defaultLocale, "settings.ai.replace")}</Button>
