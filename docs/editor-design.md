@@ -123,6 +123,73 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - While streaming the same control shows Stop. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
 - The context drawer has one Continue view, labeled "Continue · from a cut-off reply" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
+## Lore field completion (GUZ-912)
+
+Spec for a later build ticket. "Proposed" marks decisions this spec makes; the rest is owner-approved or existing behaviour with a citation.
+
+### Scope
+
+- Completion works only in the lore modal's visible AI context field (`visible_text`, green StickyNote, `app/src/md_editor/components/LorePanel.tsx:114-115`). It never runs in the author-only hidden notes field (`LorePanel.tsx:116-117`). "Author-only notes never enter AI requests" (Lore, above) stays unchanged.
+- Keywords and aliases fields (`LorePanel.tsx:109-112`) get no completion (proposed).
+
+### Action
+
+- New AI action `lore_complete`. Today the client union is `"generate" | "edit"` (`app/src/md_editor/ai_contract.ts:13`) and the server enum is `Generate | Edit | Image` (`crates/api/src/ai/models.rs:75-79`, wire names `models.rs:84-85`). The build adds `lore_complete` to both.
+- Model choice follows the per-action Settings rule (Model selection, above): Settings → AI gets a Lore completion model select next to Continue and Edit; the request sends no `model`; the server uses the saved model for the action, then the catalog default (`crates/api/src/ai/catalog.rs:191-194`). Saved per-action models live in `ai_settings` (`crates/api/src/settings/ai.rs:38`); the build adds a `lore_complete_model` column by migration (proposed).
+- `GET /ai/models` adds `defaults.lore_complete` (proposed), resolved like `defaults.generate` (`docs/agent/api-routes.md:62`). A catalog file without a `lore_complete` default falls back to the `generate` default (proposed).
+- Missing model: same as other actions. Missing or unknown saved IDs use the server action default (`.claude/context/ai-editor.md:13`); no catalog returns 503 `AI_NOT_CONFIGURED` (`docs/agent/api-routes.md:62`, `crates/api/src/error.rs:52`), shown as the field error below.
+
+### Prompt
+
+- Input: the entry's draft name, kind, and the `visible_text` before the caret. Text after the caret is not sent (proposed). Hidden notes, keywords, aliases, level, and pin are never request fields, matching the lore contract (`.claude/context/ai-streaming.md:62`).
+- Other lore entries are not included. No manuscript window, selection, history, or Story context is sent (proposed). Author guidance is still added by the server for every accepted request (`.claude/context/ai-streaming.md:56`).
+- The entry being edited is sent even when its level is Leave out, because the author asked for it in that field (proposed). Leave-out filtering in `crates/api/src/ai/lore.rs:47` applies to injected lore, not to this target; the build must not route the target through `parse_lore`.
+- Known, don't reveal adds no non-reveal marker for the target: the text is lore notes, not prose (proposed).
+- New rules constant beside `GENERATE_RULES` (`crates/api/src/ai/prompt.rs:3`), because Continue rules assume a manuscript caret. Proposed text: "You are completing a reference note about a story element. Respond with plain text only, and do not exceed two sentences. Start exactly where the note ends. Do not repeat or rephrase it." Name, kind, and text go in escaped tags, using the same `&`, `<`, `>` escaping as lore (`.claude/context/ai-streaming.md:64`).
+- `visible_text` before the caret is capped at 65,536 UTF-8 bytes before escaping, the lore cap (`.claude/context/ai-streaming.md:64`); overflow returns 422 before provider startup (proposed).
+- Code placement: `crates/api/src/ai/provider.rs` is at 992 of 1000 lines (`cargo xtask lint` cap, CLAUDE.md Rust Conventions). Request parsing and prompt building go in a new `crates/api/src/ai/lore_complete.rs`; `provider.rs` changes only by the action match arm (proposed).
+
+### Trigger
+
+- A Complete button (IconButton, `app/src/ui/`) under the visible AI context field, disabled while the modal is pending (proposed).
+- Ctrl/Cmd+Enter inside the visible AI context field triggers it (proposed). Today Ctrl/Cmd+Enter runs Continue only outside dialogs and popovers (Shortcuts, above), so it does not collide. In hidden notes and other modal fields it keeps the browser default.
+- While streaming the button shows Stop and Ctrl/Cmd+Enter stops, matching Continue/Stop (Continue, above).
+
+### Streaming and accept/reject
+
+- Streams NDJSON like Continue (`.claude/context/ai-streaming.md`), not a single response.
+- Output inserts at the caret, with a separating space when needed, as Continue does (Caret and scroll, above).
+- Accept/reject matches Continue (Continue and Caret and scroll, above): success keeps the text with no extra confirm; Stop, server cancellation, and failure delete only the AI-inserted text. Nothing persists until the author presses Save in the modal (`LorePanel.tsx:100`); Escape and backdrop click still discard the whole draft (Lore, above).
+- The field is read-only while streaming (proposed). A textarea cannot hold CSS custom highlights or keep author inserts apart from AI text, so this follows the locked behaviour Edit and narrow-screen Continue keep (Caret and scroll, above). No tint (proposed).
+- Save and Delete are disabled while streaming; closing the modal cancels the request (proposed).
+- Max output: `DEFAULT_MAX_OUTPUT_TOKENS` 512 (`ai_contract.ts:15`) plus the two-sentence rule. The drawer's Max Output Tokens control does not apply (proposed).
+
+### Errors
+
+- Failures roll back, then show the shared `Alert` fail style under the field with the server error message; the draft stays editable and Complete can retry (proposed). Error codes follow the JSON error contract (`.claude/context/error-handling.md`).
+- An empty field still completes from name and kind (proposed). An empty draft name disables Complete, as it disables Save (`LorePanel.tsx:100`).
+
+### E2E cases (build ticket writes them; they run nightly)
+
+New spec `e2e/lore-complete.spec.ts` (proposed name), at 1100px and 1440px:
+
+1. Complete in visible AI context streams text at the caret; Save persists it; reload shows it.
+2. Request body has action `lore_complete`, name, kind, text before caret only; no `hidden_notes`, keywords, aliases, other entries, or `model`.
+3. Hidden notes and keyword fields show no Complete button; Ctrl/Cmd+Enter there does not send a request.
+4. Ctrl/Cmd+Enter in the visible field starts, a second press stops; Stop removes only AI text.
+5. Server error and premature EOF roll back the AI text, show the error, keep the draft.
+6. 503 `AI_NOT_CONFIGURED` shows the error with no text change.
+7. Escape during a stream cancels the request and discards the draft; the saved entry is unchanged.
+8. Settings → AI Lore completion model persists and appears in `defaults.lore_complete`.
+9. Leave-out entry still completes; Ctrl/Cmd+Enter outside the modal still runs Continue.
+
+### Open questions
+
+- Should the Inspector show a Lore completion request view and cost line? Docs give no rule for requests started outside the manuscript.
+- Should completion use text after the caret (fill-in-middle) when the caret is mid-note?
+- Is the Leave-out target exception acceptable to the owner, or should Leave-out entries block completion?
+- Narrow screens: the modal layout below 1100px is not documented; this spec assumes the same behaviour at all widths.
+
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
