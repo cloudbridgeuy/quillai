@@ -1,6 +1,5 @@
 # browser spec:line ticket; use * for any browser, spec, or line
 firefox * GUZ-1209
-* model-picker.spec.ts:5 GUZ-1210
 * rail-buttons.spec.ts:95 GUZ-1211
 * screenplay-ai.spec.ts:49 GUZ-1212
 webkit manuscript-create.spec.ts:5 GUZ-1213

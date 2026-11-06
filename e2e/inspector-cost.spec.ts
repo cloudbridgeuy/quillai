@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-async function runContinue(page: Page, request: APIRequestContext, width: number) {
+async function runContinue(page: Page, request: APIRequestContext, width: number, beforeLoad?: () => Promise<void>) {
   const api = process.env.QUILLAI_E2E_API_URL;
   const provider = process.env.QUILLAI_E2E_FAKE_AI_URL;
   if (!api || !provider) throw new Error("Run with cargo xtask e2e and its default catalog");
@@ -17,14 +17,12 @@ async function runContinue(page: Page, request: APIRequestContext, width: number
     title: "Chapter", position: 0, kind: "chapter", content: { ops: [{ insert: `A quiet harbour. ${identity}\n` }] },
   });
   await page.setViewportSize({ width, height: 1000 });
+  await beforeLoad?.();
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const inspector = page.locator("#context-drawer");
-  await inspector.getByText("Advanced AI controls", { exact: true }).click();
-  const model = inspector.getByRole("combobox", { name: "Continue model", exact: true });
-  await model.selectOption("e2e-continue");
   const before = await (await request.get(`${provider}/control`)).json();
   expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
   await page.getByRole("button", { name: /^Continue writing/ }).click();
@@ -38,7 +36,7 @@ async function runContinue(page: Page, request: APIRequestContext, width: number
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
   await expect(page.locator(".ql-editor")).toContainText("The lantern flickered.");
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
-  return { model, cost: inspector.getByRole("region", { name: "Model and cost", exact: true }) };
+  return { cost: inspector.getByRole("region", { name: "Model and cost", exact: true }) };
 }
 
 async function expectUnbrokenWords(elements: Locator, minimum: number) {
@@ -89,8 +87,22 @@ for (const width of [1100, 1440]) {
   });
 
   test(`${width}px cost region shows selected and request models when they differ`, async ({ page, request }) => {
-    const { model, cost } = await runContinue(page, request, width);
-    await model.selectOption("e2e-repeat");
+    // Settings is faked so the model can change after the run; saving it refetches the catalog.
+    const api = process.env.QUILLAI_E2E_API_URL!;
+    const price = { input_price_per_million: 0, output_price_per_million: 0 };
+    let generate = "e2e-continue";
+    const settings = () => ({ base_url: "https://env.example/v1", generate_model: generate, edit_model: null, key_set: true,
+      sources: { base_url: "env", api_key: "env", generate_model: "saved", edit_model: "none" } });
+    const { cost } = await runContinue(page, request, width, async () => {
+      await page.route(`${api}/ai/models`, route => route.fulfill({ json: { models: [
+        { id: "e2e-continue", label: "E2E Continue", ...price }, { id: "e2e-repeat", label: "E2E Repeat", ...price },
+        { id: "e2e-edit", label: "E2E Edit", ...price }], defaults: { generate, edit: "e2e-edit" } } }));
+      await page.route(`${api}/settings/ai`, route => route.fulfill({ json: settings() }));
+    });
+    generate = "e2e-repeat";
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("dialog", { name: "Settings" }).getByRole("button", { name: "Save AI settings" }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
     await cost.scrollIntoViewIfNeeded();
     await expectCostWords(cost);
     const selected = valueFor(cost, "Model");

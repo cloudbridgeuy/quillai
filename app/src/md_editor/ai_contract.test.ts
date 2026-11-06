@@ -12,27 +12,7 @@ const documentSlice = {
   text: "Opening line.",
 };
 
-test("buildAiRequest includes a supplied model unchanged for both actions", () => {
-  for (const action of ["generate", "edit"] as const) {
-    for (const model of ["alternate-model", "", " alternate-model "]) {
-      const request = buildAiRequest({
-        action,
-        model,
-        document: documentSlice,
-        window: { start: 0, end: 13 },
-        selection: {
-          delta: { ops: [{ insert: "Opening" }] },
-          text: "Opening",
-          range: { index: 0, length: 7 },
-        },
-      });
-      expect(request).toHaveProperty("model", model);
-      expect(JSON.parse(JSON.stringify(request))).toHaveProperty("model", model);
-    }
-  }
-});
-
-test("buildAiRequest omits absent or undefined model for both actions", () => {
+test("Continue and Edit request bodies never carry a model", () => {
   for (const action of ["generate", "edit"] as const) {
     const input = {
       action,
@@ -44,7 +24,9 @@ test("buildAiRequest omits absent or undefined model for both actions", () => {
         range: { index: 0, length: 7 },
       },
     };
-    for (const request of [buildAiRequest(input), buildAiRequest({ ...input, model: undefined })]) {
+    // A stray model (for example from old callers) must not reach the wire.
+    const stray = { ...input, model: "alternate-model" } as typeof input;
+    for (const request of [buildAiRequest(input), buildAiRequest(stray), buildAiRequestPreview(stray).request]) {
       expect(request).not.toHaveProperty("model");
       expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty("model");
     }

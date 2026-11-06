@@ -2,7 +2,7 @@ import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
 for (const available of [true, false]) {
-  test(`per-action models ${available ? "persist and reach requests" : "fail safely without model"}`, async ({ page, request }) => {
+  test(`requests carry no model and the Inspector shows the Settings model ${available ? "from the catalog" : "or unknown when the catalog is unavailable"}`, async ({ page, request }) => {
     const apiUrl = process.env.QUILLAI_E2E_API_URL;
     if (!apiUrl) throw new Error("Run with cargo xtask e2e");
     const models = [
@@ -10,8 +10,12 @@ for (const available of [true, false]) {
       { id: "provider/precise", label: "Precise", input_price_per_million: 2, output_price_per_million: 6 },
     ];
     await page.route(`${apiUrl}/ai/models`, (route) => route.fulfill(available ? {
-      json: { models, defaults: { generate: models[0]!.id, edit: models[1]!.id } },
+      json: { models, defaults: { generate: models[1]!.id, edit: models[0]!.id } },
     } : { status: 500, json: { error: "Unavailable" } }));
+    // Settings holds the Continue and Edit models; the catalog defaults mirror them.
+    await page.route(`${apiUrl}/settings/ai`, (route) => route.fulfill({ json: {
+      base_url: "https://env.example/v1", generate_model: models[1]!.id, edit_model: models[0]!.id, key_set: true,
+      sources: { base_url: "env", api_key: "env", generate_model: "saved", edit_model: "saved" } } }));
     const bodies: Array<{ action: string; model?: string }> = [];
     await page.route(`${apiUrl}/ai/generate`, async (route) => {
       bodies.push(route.request().postDataJSON());
@@ -36,36 +40,29 @@ for (const available of [true, false]) {
     const drawer = page.locator("#context-drawer");
     const scrollArea = drawer.locator(".editor-context-body");
     const contextButton = page.getByRole("button", { name: "Context inspector", exact: true });
-    const continueModel = drawer.getByRole("combobox", { name: "Continue model", exact: true });
-    const editModel = drawer.getByRole("combobox", { name: "Edit model", exact: true });
-    async function openModels() {
+    const modelLine = (region: ReturnType<typeof drawer.getByRole>) => region.locator("dt").filter({ hasText: /^Model$/ }).locator("+ dd");
+    const maxOutput = drawer.getByRole("spinbutton", { name: "Max Output Tokens", exact: true });
+    async function openAdvanced() {
       await page.getByRole("button", { name: "Context inspector", exact: true }).click();
       await drawer.getByText("Advanced AI controls", { exact: true }).click();
     }
     await expect(status).toHaveText("Saved");
     await expectEditorReady(editor);
-    await openModels();
+    await openAdvanced();
+    // The per-chapter model menus are gone; Settings is the one place to choose.
+    await expect(drawer.getByRole("combobox", { name: "Continue model", exact: true })).toHaveCount(0);
+    await expect(drawer.getByRole("combobox", { name: "Edit model", exact: true })).toHaveCount(0);
+    const region = drawer.getByRole("region", { name: "Model and cost", exact: true });
+    await region.scrollIntoViewIfNeeded();
     if (available) {
-      await expect(continueModel).toHaveValue(models[0]!.id);
-      await expect(editModel).toHaveValue(models[1]!.id);
-      await continueModel.selectOption(models[1]!.id);
-      await editModel.selectOption(models[0]!.id);
+      await expect(modelLine(region)).toHaveText("Precise");
+      await expect(modelLine(region)).toHaveAttribute("title", models[1]!.id);
     } else {
-      await expect(drawer.getByText("Models unavailable. Using server defaults.", { exact: true })).toBeVisible();
-      await expect(continueModel).toBeDisabled();
-      await expect(editModel).toBeDisabled();
+      await expect(modelLine(region)).toHaveText("unknown — unresolved model");
     }
     await page.reload();
     await expect(status).toHaveText("Saved");
-    await openModels();
-    if (available) {
-      await expect(continueModel).toHaveValue(models[1]!.id);
-      await expect(editModel).toHaveValue(models[0]!.id);
-    } else {
-      await expect(drawer.getByText("Models unavailable. Using server defaults.", { exact: true })).toBeVisible();
-      await expect(continueModel).toBeDisabled();
-      await expect(editModel).toBeDisabled();
-    }
+    await openAdvanced();
     for (const width of [1100, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(page.getByRole("button", { name: "Close context", exact: true })).toHaveCount(0);
@@ -107,7 +104,7 @@ for (const available of [true, false]) {
         await expect(note).toHaveCSS("font-size", "13px");
         expect(await note.evaluate(node => getComputedStyle(node, "::placeholder").fontSize)).toBe("13px");
       }
-      for (const name of ["Story Context", "Continue instruction", "Continue model", "Max Output Tokens"]) {
+      for (const name of ["Story Context", "Continue instruction", "Max Output Tokens"]) {
         await expect(drawer.locator("label > span").filter({ hasText: new RegExp(`^${name}$`) }))
           .toHaveCSS("font-size", "12px");
       }
@@ -141,8 +138,7 @@ for (const available of [true, false]) {
       if (available) await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/drawer-top-${width}.png` });
       if (available) await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/rail-active-${width}.png` });
       await drawer.locator(".editor-advanced-section").scrollIntoViewIfNeeded();
-      await expect(continueModel).toBeInViewport();
-      await expect(editModel).toBeInViewport();
+      await expect(maxOutput).toBeInViewport();
       await page.screenshot({ path: `../target/guz-680/${test.info().project.name}/${available ? "models" : "unavailable"}-${width}.png` });
       const pageScroll = await page.evaluate(() => window.scrollY);
       await scrollArea.evaluate(node => { node.scrollTop = node.scrollHeight; });
@@ -196,11 +192,7 @@ for (const available of [true, false]) {
     await expect(status).toHaveText("Saved");
     expect(bodies).toHaveLength(2);
     expect(bodies.map(({ action }) => action)).toEqual(["generate", "edit"]);
-    if (available) {
-      expect(bodies.map(({ model }) => model)).toEqual([models[1]!.id, models[0]!.id]);
-    } else {
-      for (const body of bodies) expect(body).not.toHaveProperty("model");
-    }
+    for (const body of bodies) expect(body).not.toHaveProperty("model");
     await contextButton.click();
     await drawer.getByRole("combobox", { name: "Request to inspect", exact: true }).selectOption("edit");
     for (const width of [1100, 1440]) {

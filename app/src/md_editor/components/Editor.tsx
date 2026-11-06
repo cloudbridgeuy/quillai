@@ -117,7 +117,7 @@ import { LoreWindow } from "./LoreWindow";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
 import { apiErrorMessage } from "../../api_error";
 import { getApiBaseUrl } from "../../api_config";
-import { parseModelCatalog, resolveModelChoice, type ModelCatalog } from "../model_catalog";
+import { expectedModelId, parseModelCatalog, type ModelCatalog } from "../model_catalog";
 import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
@@ -357,12 +357,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog | null>(null);
   const inspectorRunId = useRef(0);
   const [inspectorRuns, setInspectorRuns] = useState<Record<AiAction, InspectorRun | null>>({ generate: null, edit: null });
-  const [modelsPending, setModelsPending] = useState(true);
   const [modelsRevision, setModelsRevision] = useState(0);
   const [modelsError, setModelsError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    setModelsPending(true);
     setModelsError(null);
     fetch(`${getApiBaseUrl()}/ai/models`, { signal: controller.signal })
       .then(async (response) => {
@@ -374,8 +372,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         return null;
       })
       .then((catalog) => { if (!controller.signal.aborted) setModelCatalog(catalog); })
-      .catch(() => { if (!controller.signal.aborted) setModelCatalog(null); })
-      .finally(() => { if (!controller.signal.aborted) setModelsPending(false); });
+      .catch(() => { if (!controller.signal.aborted) setModelCatalog(null); });
     return () => controller.abort();
   }, [modelsRevision]);
   const [, setContextRevision] = useState(0);
@@ -795,7 +792,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     return action === "edit"
       ? buildAiRequestPreview({
           action: "edit",
-          model: resolveModelChoice(modelCatalog, "edit", threadState.settings.editModel),
           loreEntries,
           sectionOverrides: sectionOverrides.edit,
           document: documentSlice,
@@ -807,7 +803,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         })
       : buildAiRequestPreview({
           action: "generate",
-          model: resolveModelChoice(modelCatalog, "generate", threadState.settings.continueModel),
           loreEntries,
           sectionOverrides: sectionOverrides.generate,
           document: documentSlice,
@@ -961,7 +956,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       const preparedRequest = buildRequestPreview(action, quill, normalizedSelection);
       const request = preparedRequest.request;
       const runId = ++inspectorRunId.current;
-      const inspectorRun = beginInspectorRun(runId, modelCatalog, request.model);
+      const inspectorRun = beginInspectorRun(runId, modelCatalog, expectedModelId(modelCatalog, action));
       setInspectorRuns(current => ({ ...current, [action]: inspectorRun }));
       if (action === "generate") {
         setActiveContinueWithThread(buildContextInspector(request).history.length > 0);
@@ -1338,7 +1333,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   })();
 
   const inspectorCost = buildInspectorCost(modelCatalog,
-    resolveModelChoice(modelCatalog, inspectorAction, inspectorAction === "edit" ? threadState.settings.editModel : threadState.settings.continueModel),
+    expectedModelId(modelCatalog, inspectorAction),
     typeof contextInspector === "string" ? null : contextInspector.totalTokens, inspectorRuns[inspectorAction]);
 
   const windowSettings = <>
@@ -1677,21 +1672,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </p>
           <details className="editor-advanced-section">
             <summary>{formatMessage(defaultLocale, "inspector.advanced")}</summary>
-            {(["generate", "edit"] as const).map((action) => {
-              const setting = action === "generate" ? "continueModel" : "editModel";
-              return <Field className="mt-3" label={action === "generate" ? formatMessage(defaultLocale, "inspector.continueModel") : formatMessage(defaultLocale, "inspector.editModel")} key={action}>
-                <TextField as="select" square
-                  value={resolveModelChoice(modelCatalog, action, threadState.settings[setting]) ?? ""}
-                  disabled={isBusy || !modelCatalog}
-                  onChange={(event) => updateThreadState(updateThreadSettings(threadStateRef.current, {
-                    [setting]: event.target.value,
-                  }))}>
-                  {!modelCatalog ? <option value="">{formatMessage(defaultLocale, "inspector.unavailable")}</option> : modelCatalog.models.map((model) =>
-                    <option key={model.id} value={model.id}>{model.label}</option>)}
-                </TextField>
-              </Field>;
-            })}
-            {!modelCatalog ? <p className="editor-note">{modelsPending ? formatMessage(defaultLocale, "inspector.loadingModels") : modelsError ?? formatMessage(defaultLocale, "inspector.modelsUnavailable")}</p> : null}
+            {modelsError ? <p className="editor-note">{modelsError}</p> : null}
             <Field label={formatMessage(defaultLocale, "inspector.maxOutput")} className="mt-3">
               <TextField square type="number" min="1" max="4096" step="1"
                 value={threadState.settings.maxOutputTokens} disabled={isBusy}

@@ -23,8 +23,6 @@ async function openChapter(page: Page, request: APIRequestContext, width: number
   await expect(editor.locator("p")).toHaveText([identity, "Opening line"]);
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  await page.getByText("Advanced AI controls", { exact: true }).click();
-  await page.getByRole("combobox", { name: `${action} model`, exact: true }).selectOption(action === "Edit" ? "e2e-edit" : "e2e-continue");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const before = (await (await request.get(`${provider}/control`)).json()).length as number;
   expect((await request.post(`${provider}/control/arm`, { data: { identity, model: action === "Edit" ? "e2e-edit" : "e2e-continue" } })).status()).toBe(200);

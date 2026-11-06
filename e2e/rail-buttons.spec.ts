@@ -146,8 +146,6 @@ for (const width of [1100, 1440]) {
     const { identity, provider } = await setup(page, request);
     const context = page.getByRole("button", { name: "Context inspector", exact: true });
     await context.click();
-    await page.getByText("Advanced AI controls", { exact: true }).click();
-    await page.getByRole("combobox", { name: "Continue model", exact: true }).selectOption("e2e-continue");
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();

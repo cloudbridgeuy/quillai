@@ -30,13 +30,9 @@ export function parseModelCatalog(value: unknown): ModelCatalog | null {
   return { models, defaults: { generate, edit } };
 }
 
-export function resolveModelChoice(
-  catalog: ModelCatalog | null,
-  action: AiAction,
-  saved: string | null | undefined,
-): string | undefined {
-  if (!catalog) return undefined;
-  return catalog.models.find(({ id }) => id === saved)?.id ?? catalog.defaults[action];
+/** The model the server will use for an action: Settings, else the catalog default (already in `defaults`). */
+export function expectedModelId(catalog: ModelCatalog | null, action: AiAction): string | undefined {
+  return catalog?.defaults[action];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -82,8 +82,9 @@ test("AI settings save without exposing or resending the key and refresh models"
   await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  const advanced = page.locator(".editor-advanced-section");
-  if (await advanced.getAttribute("open") === null) await advanced.locator("summary").click();
-  await expect(page.getByRole("combobox", { name: "Continue model" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Continue model" })).toHaveValue("next-model");
+  // The Inspector has no model menus; its Model line shows the model saved in Settings.
+  await expect(page.getByRole("combobox", { name: "Continue model" })).toHaveCount(0);
+  const cost = page.getByRole("region", { name: "Model and cost", exact: true });
+  await cost.scrollIntoViewIfNeeded();
+  await expect(cost.locator("dt").filter({ hasText: /^Model$/ }).locator("+ dd")).toHaveText("next-model");
 });

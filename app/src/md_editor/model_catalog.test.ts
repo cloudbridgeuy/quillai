@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { buildAiRequest } from "./ai_contract";
+import { buildInspectorCost } from "./inspector_cost";
 import { initialPersistedEditorState, parsePersistedEditorState } from "./editor_persistence";
-import { parseModelCatalog, resolveModelChoice } from "./model_catalog";
+import { expectedModelId, parseModelCatalog } from "./model_catalog";
 
 const response = {
   models: [
@@ -27,28 +27,22 @@ test("catalog parsing rejects empty, malformed and inconsistent responses withou
   }
 });
 
-test("missing and unknown persisted choices resolve to each action's server default", () => {
-  const catalog = parseModelCatalog(response);
-  for (const settings of [{}, { continueModel: "removed", editModel: "removed" },
-    { continueModel: 2, editModel: [] }]) {
+test("old persisted per-chapter model fields still parse and are ignored", () => {
+  for (const settings of [{}, { continueModel: "removed", editModel: "removed" }, { continueModel: 2, editModel: [] }]) {
     const state = initialPersistedEditorState();
     const parsed = parsePersistedEditorState(JSON.stringify({ ...state,
       threadState: { ...state.threadState, settings: { maxOutputTokens: 512, resumePrompt: "Continue", ...settings } } }));
-    expect(resolveModelChoice(catalog, "generate", parsed.threadState.settings.continueModel)).toBe(response.defaults.generate);
-    expect(resolveModelChoice(catalog, "edit", parsed.threadState.settings.editModel)).toBe(response.defaults.edit);
+    expect(parsed.threadState.settings).toEqual({ maxOutputTokens: 512, resumePrompt: "Continue" });
   }
 });
 
-test("chosen models enter both action requests while unavailable catalogs omit model", () => {
+test("expected model for an action is the catalog default, with no per-chapter pick", () => {
   const catalog = parseModelCatalog(response);
-  for (const action of ["generate", "edit"] as const) {
-    for (const model of response.models) {
-      const input = { action, model: resolveModelChoice(catalog, action, model.id),
-        document: { text: "text", delta: { ops: [{ insert: "text" }] } },
-        selection: { text: "text", delta: { ops: [{ insert: "text" }] }, range: { index: 0, length: 4 } },
-        window: { start: 0, end: 4 } };
-      expect(buildAiRequest(input).model).toBe(model.id);
-      expect(buildAiRequest({ ...input, model: resolveModelChoice(null, action, model.id) })).not.toHaveProperty("model");
-    }
-  }
+  expect(expectedModelId(catalog, "generate")).toBe(response.defaults.generate);
+  expect(expectedModelId(catalog, "edit")).toBe(response.defaults.edit);
+  expect(expectedModelId(null, "edit")).toBeUndefined();
+  const view = buildInspectorCost(catalog, expectedModelId(catalog, "edit"), 1000, null);
+  expect(view.model).toBe("Precise");
+  expect(view.estimate).toBe("≈ $0.002 · input only");
+  expect(view.estimate).not.toContain("unknown");
 });

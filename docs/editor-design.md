@@ -128,6 +128,15 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
 - Failed save or recovery failure: a floating "Not saved" pill using the shared `Alert` fail style, with `--alert` fill, white text and dot, token padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively by an alert. Saving and saved states use a status. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
 
+## Model selection
+
+- Settings → AI is the one place to choose a model for each AI action (Continue and Edit). The Inspector has no model menus.
+- Continue and Edit requests send no `model`. The server uses the model saved in Settings for the action, then the catalog default.
+- `GET /ai/models` returns `defaults` per action, which equal the Settings model when one is saved. The Inspector's Model and cost lines use `defaults[action]` for the inspected request, so cost is known whenever the catalog loads.
+- Saving AI settings fetches the catalog again, so the Inspector line follows the change.
+- "Request model" appears only when the last run used a different model than the one expected now (for example Settings changed after the run).
+- If the catalog cannot load, the Model line reads "unknown — unresolved model" and requests still work with server defaults.
+
 ## Shortcuts (prototype)
 
 | Keys | Action | Status |

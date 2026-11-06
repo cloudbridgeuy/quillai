@@ -26,8 +26,6 @@ const persistedState: PersistedEditorState = {
     settings: {
       maxOutputTokens: 900,
       resumePrompt: "Keep going from the last sentence.",
-      continueModel: "continue-choice",
-      editModel: "edit-choice",
     },
     thread: null,
   },

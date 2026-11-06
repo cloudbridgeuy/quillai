@@ -24,8 +24,6 @@ async function setup(page: Page, request: APIRequestContext) {
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(first.id) })}`);
   await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  await page.getByText("Advanced AI controls", { exact: true }).click();
-  await page.getByRole("combobox", { name: "Continue model", exact: true }).selectOption("e2e-continue");
   const run = async (index: number) => {
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity: identities[index], model: "e2e-continue" } })).status()).toBe(200);

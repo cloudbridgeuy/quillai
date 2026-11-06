@@ -24,10 +24,8 @@ test("Continue does not repeat the passage before the caret", async ({ page, req
   const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expectEditorReady(editor);
   await expect(status).toHaveText("Saved");
-  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-  await page.getByText("Advanced AI controls", { exact: true }).click();
-  await page.getByRole("combobox", { name: "Continue model", exact: true }).selectOption("e2e-repeat");
-  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+  // Stands in for the server resolving a Settings model: requests carry none.
+  await page.route(`${api}/ai/generate`, route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model: "e2e-repeat" }) }));
   await editor.evaluate(element => {
     const text = element.querySelector("p")?.firstChild;
     if (!text) throw new Error("Missing paragraph text");

@@ -9,8 +9,6 @@ export type GeneratedRange = {
 export type AiThreadSettings = {
   maxOutputTokens: number;
   resumePrompt: string;
-  continueModel: string | null;
-  editModel: string | null;
 };
 
 export type ResumableGenerateThread = {
@@ -47,8 +45,6 @@ export function initialAiThreadState(maxOutputTokens: number): AiThreadState {
     settings: {
       maxOutputTokens,
       resumePrompt: DEFAULT_RESUME_PROMPT,
-      continueModel: null,
-      editModel: null,
     },
   };
 }

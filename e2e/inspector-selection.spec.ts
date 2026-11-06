@@ -55,7 +55,6 @@ for (const openFirst of [false, true]) {
     await expect(selection).toHaveValue("<selection>\nindex=2, length=13, text=quiet harbour\n</selection>\n");
     await expect(selection).toHaveAttribute("readonly", "");
     await inspector.getByRole("combobox", { name: "Request to inspect" }).selectOption("generate");
-    await inspector.getByRole("combobox", { name: "Continue model" }).selectOption("e2e-continue");
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     const sent = page.waitForRequest(req => req.url() === `${api}/ai/generate` && req.method() === "POST");

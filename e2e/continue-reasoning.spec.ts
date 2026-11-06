@@ -24,10 +24,8 @@ for (const configured of [true, false]) {
     const status = page.getByRole("status", { name: "Chapter save status", exact: true });
     await expectEditorReady(editor);
     await expect(status).toHaveText("Saved");
-    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
-    await page.getByText("Advanced AI controls", { exact: true }).click();
-    await page.getByRole("combobox", { name: "Continue model", exact: true }).selectOption(model);
-    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
+    // Stands in for the server resolving a Settings model: requests carry none.
+    await page.route(`${api}/ai/generate`, route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model }) }));
     await editor.click();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model } })).status()).toBe(200);
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();

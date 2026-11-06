@@ -96,7 +96,7 @@ for (const width of [1100, 1440]) {
       const inspector = page.locator("#context-drawer");
       await expect(inspector.getByRole("heading", { name: "Live Prompt Context", exact: true })).toBeVisible();
       await inspector.getByText("Advanced AI controls", { exact: true }).click();
-      for (const name of ["Continue model", "Edit model"]) await expectField(inspector, name, "combobox", "select");
+      for (const name of ["Continue model", "Edit model"]) await expect(inspector.getByRole("combobox", { name, exact: true })).toHaveCount(0);
       await expectField(inspector, "Max Output Tokens", "spinbutton", "input", "number");
       await expectField(inspector, "Request to inspect", "combobox", "select");
       await expectField(inspector, "Author guidance", "textbox", "textarea");
