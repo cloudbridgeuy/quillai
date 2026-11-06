@@ -131,7 +131,7 @@ test("all create methods parse responses and preserve structured failures", asyn
     const malformed = createManuscriptClient({ fetch: async () => Response.json({ ...resource as object, title: " " }, { status: 201 }) });
     await expect(call(malformed)).rejects.toMatchObject({ status: 201, kind: "invalid_response", code: "INVALID_RESPONSE" });
     const rejected = createManuscriptClient({ fetch: async () => Response.json({ error: "Invalid title", code: "VALIDATION_ERROR" }, { status: 422 }) });
-    await expect(call(rejected)).rejects.toMatchObject({ status: 422, kind: "http", code: "VALIDATION_ERROR", message: "Invalid title" });
+    await expect(call(rejected)).rejects.toMatchObject({ status: 422, kind: "http", code: "VALIDATION_ERROR", message: "Some of that doesn't look right. Check it and try again.", detail: "Invalid title" });
   }
 });
 
@@ -187,7 +187,8 @@ test("maps backend error messages, codes, and statuses", async () => {
       throw new Error("Expected rejection");
     } catch (error) {
       expect(error).toBeInstanceOf(ManuscriptApiError);
-      expect(error).toMatchObject({ message: code === "SQLX" ? "Couldn't reach your manuscript's storage. Your text is still here; try again." : "backend message", status, code, kind: "http", ...(code === "SQLX" ? { detail: "backend message" } : {}) });
+      const messages = { NOT_FOUND: "We couldn't find that. It may have been moved or deleted.", CONFLICT: "That changed somewhere else. Reload and try again.", VALIDATION_ERROR: "Some of that doesn't look right. Check it and try again.", SQLX: "Couldn't reach your manuscript's storage. Your text is still here; try again." };
+      expect(error).toMatchObject({ message: messages[code], status, code, kind: "http", detail: "backend message" });
     }
   }
 });

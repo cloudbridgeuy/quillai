@@ -305,6 +305,14 @@ export const en = {
   "error.aiNotConfigured": "AI isn't set up yet. Open Settings → AI to add your provider.",
   "error.storage": "Couldn't reach your manuscript's storage. Your text is still here; try again.",
   "error.server": "Something went wrong on the server. Your text is still here; try again.",
+  "error.invalidLogLevel": "That log level isn't supported. Pick another one.",
+  "error.notFound": "We couldn't find that. It may have been moved or deleted.",
+  "error.conflict": "That changed somewhere else. Reload and try again.",
+  "error.validation": "Some of that doesn't look right. Check it and try again.",
+  "error.invalidRequest": "That request couldn't be read. Try again.",
+  "error.aiProviderConfig": "Your AI provider settings need attention. Open Settings → AI to check them.",
+  "error.invalidResponse": "The server sent back something unexpected. Try again.",
+  "error.generic": "Something went wrong. Try again.",
 } as const satisfies Record<string, string | PluralMessage>;
 
 export type MessageKey = keyof typeof en;
@@ -611,6 +619,14 @@ export const es = {
   "error.aiNotConfigured": "La IA aún no está configurada. Abre Configuración → IA para agregar tu proveedor.",
   "error.storage": "No se pudo acceder al almacenamiento de tu manuscrito. Tu texto sigue aquí; inténtalo de nuevo.",
   "error.server": "Ocurrió un error en el servidor. Tu texto sigue aquí; inténtalo de nuevo.",
+  "error.invalidLogLevel": "Ese nivel de registro no es compatible. Elige otro.",
+  "error.notFound": "No pudimos encontrarlo. Quizá se movió o se eliminó.",
+  "error.conflict": "Cambió en otro lugar. Recarga e inténtalo de nuevo.",
+  "error.validation": "Algo no parece correcto. Revísalo e inténtalo de nuevo.",
+  "error.invalidRequest": "No se pudo leer esa solicitud. Inténtalo de nuevo.",
+  "error.aiProviderConfig": "La configuración de tu proveedor de IA necesita atención. Abre Configuración → IA para revisarla.",
+  "error.invalidResponse": "El servidor devolvió algo inesperado. Inténtalo de nuevo.",
+  "error.generic": "Algo salió mal. Inténtalo de nuevo.",
 } as const satisfies MessageShape<typeof en>;
 
 export type CurrencyAmount = {

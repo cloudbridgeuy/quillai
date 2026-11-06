@@ -10,9 +10,7 @@ test("maps server errors in both languages and preserves other errors", () => {
   expect(apiErrorMessage("SQLX", "sqlx error", "es")).toBe("No se pudo acceder al almacenamiento de tu manuscrito. Tu texto sigue aquí; inténtalo de nuevo.");
   expect(apiErrorMessage("INTERNAL_SERVER_ERROR", "unexpected failure", "en")).toBe("Something went wrong on the server. Your text is still here; try again.");
   expect(apiErrorMessage("INTERNAL_SERVER_ERROR", "unexpected failure", "es")).toBe("Ocurrió un error en el servidor. Tu texto sigue aquí; inténtalo de nuevo.");
-  for (const code of ["VALIDATION_ERROR", "CONFLICT", "NOT_FOUND", "PROVIDER_ERROR", "UNKNOWN"]) {
-    expect(apiErrorMessage(code, "original error")).toBe("original error");
-  }
+  expect(apiErrorMessage("UNKNOWN", "original error")).toBe("Something went wrong. Try again.");
 });
 
 test("clients retain raw server error details", async () => {
@@ -48,4 +46,31 @@ test("blocked storage detail survives repeated flush failures without another pu
 test("hides server details when AI is not configured", () => {
   expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_API_KEY", "en")).toBe("AI isn't set up yet. Open Settings → AI to add your provider.");
   expect(apiErrorMessage("AI_NOT_CONFIGURED", "missing QUILLAI_AI_MODEL", "es")).toBe("La IA aún no está configurada. Abre Configuración → IA para agregar tu proveedor.");
+});
+
+const translated: Record<string, [string, string]> = {
+  SQLX: ["Couldn't reach your manuscript's storage. Your text is still here; try again.", "No se pudo acceder al almacenamiento de tu manuscrito. Tu texto sigue aquí; inténtalo de nuevo."],
+  INVALID_LOG_LEVEL: ["That log level isn't supported. Pick another one.", "Ese nivel de registro no es compatible. Elige otro."],
+  NOT_FOUND: ["We couldn't find that. It may have been moved or deleted.", "No pudimos encontrarlo. Quizá se movió o se eliminó."],
+  CONFLICT: ["That changed somewhere else. Reload and try again.", "Cambió en otro lugar. Recarga e inténtalo de nuevo."],
+  VALIDATION_ERROR: ["Some of that doesn't look right. Check it and try again.", "Algo no parece correcto. Revísalo e inténtalo de nuevo."],
+  INVALID_JSON: ["That request couldn't be read. Try again.", "No se pudo leer esa solicitud. Inténtalo de nuevo."],
+  AI_NOT_CONFIGURED: ["AI isn't set up yet. Open Settings → AI to add your provider.", "La IA aún no está configurada. Abre Configuración → IA para agregar tu proveedor."],
+  AI_PROVIDER_CONFIG_ERROR: ["Your AI provider settings need attention. Open Settings → AI to check them.", "La configuración de tu proveedor de IA necesita atención. Abre Configuración → IA para revisarla."],
+  INTERNAL_SERVER_ERROR: ["Something went wrong on the server. Your text is still here; try again.", "Ocurrió un error en el servidor. Tu texto sigue aquí; inténtalo de nuevo."],
+  INVALID_RESPONSE: ["The server sent back something unexpected. Try again.", "El servidor devolvió algo inesperado. Inténtalo de nuevo."],
+};
+
+test("every known API error code has its own translation, never server text", () => {
+  for (const [code, [en, es]] of Object.entries(translated)) {
+    expect(apiErrorMessage(code, "raw server text", "en")).toBe(en);
+    expect(apiErrorMessage(code, "raw server text", "es")).toBe(es);
+  }
+});
+
+test("unknown or missing codes use a generic translated message", () => {
+  expect(apiErrorMessage("PROVIDER_ERROR", "raw server text", "en")).toBe("Something went wrong. Try again.");
+  expect(apiErrorMessage("PROVIDER_ERROR", "raw server text", "es")).toBe("Algo salió mal. Inténtalo de nuevo.");
+  expect(apiErrorMessage(undefined as unknown as string, "raw server text", "en")).toBe("Something went wrong. Try again.");
+  expect(apiErrorMessage("", "raw server text", "es")).toBe("Algo salió mal. Inténtalo de nuevo.");
 });
