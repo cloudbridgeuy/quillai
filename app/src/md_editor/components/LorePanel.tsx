@@ -8,6 +8,7 @@ import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Select } from "../../ui/Select";
 import { inheritedPoint, pickerOptions } from "../../manuscripts/timeline_panel";
+import { LoreStates } from "./LoreStates";
 import { TimelineManager } from "./TimelineManager";
 import { Toggle } from "../../ui/Toggle";
 import { Modal } from "../../ui/Modal";
@@ -70,6 +71,7 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
       setError(failure instanceof Error ? failure.message : formatMessage(defaultLocale, "timeline.failed"));
     } finally { setPending(false); }
   }
+  const editingEntry = lore.entries.find(entry => entry.id === editingId);
   const inherited = inheritedPoint(lore.piece, lore.points);
   const emptyPointLabel = inherited ? formatMessage(defaultLocale, "timeline.inherit", { name: inherited.name }) : formatMessage(defaultLocale, "timeline.base");
   return <section className="editor-lore-panel" aria-label={formatMessage(defaultLocale, "lore.series")}>
@@ -121,6 +123,7 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
         <p id={`${formId}-pin-hint`} className="text-ui text-graphite">{PIN_HINT}</p>
       </fieldset>
       </form>
+      {editingId !== null && editingEntry ? <LoreStates key={editingId} lore={lore} entry={editingEntry} disabled={disabled || pending} /> : null}
       {error ? <Alert tone="error" variant="inline">{error}</Alert> : null}
     </Modal> : null}
   </section>;
