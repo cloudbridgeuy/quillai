@@ -158,3 +158,14 @@ test("image models price per returned image and have no token pricing", () => {
   expect(snapshotImagePricing(catalog(), { kind: "known", modelId: "sent-model" })).toEqual({ kind: "unknown", reason: "missing-model-price" });
   expect(calculateImageCost(snapshotImagePricing(null, { kind: "server-default-unresolved" }), 1)).toEqual({ kind: "unknown", reason: "unresolved-model" });
 });
+
+test("image models without a per-image price stay unknown instead of free", () => {
+  const source = JSON.parse(JSON.stringify({
+    models: [{ id: "image-model", label: "Image", kind: "image", price_per_image: 0.011, size: "1024x1024", quality: "medium" }],
+    defaults: { generate: "image-model", edit: "image-model", image: "image-model" },
+  }));
+  delete source.models[0].price_per_image;
+  const snapshot = snapshotImagePricing(source, { kind: "known", modelId: "image-model" });
+  expect(snapshot).toEqual({ kind: "unknown", reason: "invalid-price" });
+  expect(calculateImageCost(snapshot, 1)).toEqual({ kind: "unknown", reason: "invalid-price" });
+});
