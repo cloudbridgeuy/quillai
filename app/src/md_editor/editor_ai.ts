@@ -21,6 +21,10 @@ export function getSavePresentation(status: string, title: string | null, blocke
   return failed ? { label: formatMessage(defaultLocale, "editor.notSaved"), failed, detail: label } : { label, failed };
 }
 
+export function saveStatusDetail(presentation: ReturnType<typeof getSavePresentation>): string | undefined {
+  return presentation.failed ? presentation.detail : undefined;
+}
+
 export function canApplyEdit(busy: boolean, hasSelection: boolean, ready: boolean, blocked: boolean): boolean {
   return !busy && hasSelection && ready && !blocked;
 }

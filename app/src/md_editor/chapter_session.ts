@@ -13,6 +13,12 @@ export type EditorDocument = Pick<Chapter, "title" | "content" | "head_rev">;
 
 export class NoEditorChapter extends Error {}
 
+/** Trims text and ends it with "." unless it already ends a sentence. */
+export function asSentence(text: string): string {
+  const trimmed = text.trim();
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 async function loadPiece(client: Client, pieceId: number): Promise<{ scope: PieceScope; chapter: EditorDocument }> {
   const piece = await client.getPiece({ pieceId });
   if (piece.shape !== "leaf") throw new Error(formatMessage(defaultLocale, "sync.onlyTextPiece"));
@@ -102,8 +108,8 @@ export function createChapterSession(
     lastError = message;
     lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
     problem = uncertainPost || !(error instanceof TypeError)
-      ? { kind: "blocked", message: formatMessage(defaultLocale, "sync.saveStopped", { message }) }
-      : { kind: "retrying", message: formatMessage(defaultLocale, "sync.connectionInterrupted", { message }) };
+      ? { kind: "blocked", message: formatMessage(defaultLocale, "sync.saveStopped", { message: asSentence(message) }) }
+      : { kind: "retrying", message: formatMessage(defaultLocale, "sync.connectionInterrupted", { message: asSentence(message) }) };
     if (lastDetail) problem.detail = lastDetail;
     notify();
   }
@@ -144,7 +150,7 @@ export function createChapterSession(
     collapseFlight();
     problem = {
       kind: "retrying",
-      message: formatMessage(defaultLocale, "sync.saveRetry", { message: lastError ?? formatMessage(defaultLocale, "sync.unknownSynchronization") }),
+      message: formatMessage(defaultLocale, "sync.saveRetry", { message: asSentence(lastError ?? formatMessage(defaultLocale, "sync.unknownSynchronization")) }),
       ...(lastDetail ? { detail: lastDetail } : {}),
     };
     notify();
@@ -171,7 +177,7 @@ export function createChapterSession(
             lastDetail = error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined;
             problem = {
               kind: "retrying",
-              message: formatMessage(defaultLocale, "sync.saveRetry", { message: lastError }),
+              message: formatMessage(defaultLocale, "sync.saveRetry", { message: asSentence(lastError) }),
               ...(lastDetail ? { detail: lastDetail } : {}),
             };
             notify();

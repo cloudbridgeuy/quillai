@@ -400,7 +400,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   });
   await editor.click();
   await page.keyboard.type("Local work");
-  const failureDetail = "Save stopped: Save unavailable. Local work retained; polling will retry.";
+  const failureDetail = "Save stopped: Something went wrong. Try again. Local work retained; polling will retry.";
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true }).locator("span").first()).toHaveText("Not saved");
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveAttribute("title", failureDetail);
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveAccessibleDescription(failureDetail);

@@ -32,7 +32,7 @@ for (const width of [1100, 1440]) {
       await expectEditorReady(editor);
       const alert = scenario === "chapter save"
         ? page.getByRole("alert", { name: "Chapter save status", exact: true })
-        : page.getByRole("alert").filter({ hasText: "Unavailable" });
+        : page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." });
       if (scenario === "chapter save") {
         const status = page.getByRole("status", { name: "Chapter save status", exact: true });
         await expect(status).toHaveText("Saved");

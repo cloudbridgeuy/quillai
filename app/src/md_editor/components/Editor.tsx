@@ -30,6 +30,7 @@ import {
   rememberEditSelection,
   resolveContinueSelection,
   resolveEditSelection,
+  saveStatusDetail,
   shouldClearFailedRunState,
   shouldPreservePendingEditSelection,
   shouldRestoreCancelledEditSelection,
@@ -1548,11 +1549,11 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         </div>
         <div className="editor-document-status">
         {savePresentation.failed ? <Alert tone="error" className="editor-save-failed" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="assertive"
-          title={chapterSync.detail ?? savePresentation.detail} aria-describedby="chapter-save-detail">
+          title={saveStatusDetail(savePresentation)} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
-          <span id="chapter-save-detail" className="sr-only">{chapterSync.detail ?? savePresentation.detail}</span>
+          <span id="chapter-save-detail" className="sr-only">{saveStatusDetail(savePresentation)}</span>
         </Alert> : <p className="editor-save-status"
-          role="status" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="polite" title={chapterSync.detail ?? savePresentation.detail}>
+          role="status" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="polite" title={saveStatusDetail(savePresentation)}>
           <span>{savePresentation.label}</span>
         </p>}
         <TextCounts quillRef={quillRef} />

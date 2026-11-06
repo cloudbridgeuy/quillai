@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import Delta from "quill-delta";
 import { createManuscriptClient } from "../manuscripts/client";
 import { parseDelta, type Chapter, type Revision } from "../manuscripts/contract";
-import { bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter } from "./chapter_session";
+import { asSentence, bootstrapEditorChapter, canSwitchChapter, createChapterSession, loadEditorChapter } from "./chapter_session";
 import { chapterDelta } from "./chapter_sync";
 
 const scope = { seriesId: 1, bookId: 2, chapterId: 3 };
@@ -549,4 +549,21 @@ test("piece URL rejects groups and invalid ids", async () => {
   }) });
   await expect(loadEditorChapter(client, "?pieceId=9")).rejects.toThrow("Only a piece with text");
   await expect(loadEditorChapter(client, "?pieceId=0")).rejects.toThrow("positive pieceId");
+});
+
+test("asSentence ends the message with exactly one sentence mark", () => {
+  expect(asSentence("Something went wrong. Try again.")).toBe("Something went wrong. Try again.");
+  expect(asSentence("Failed to fetch")).toBe("Failed to fetch.");
+  expect(asSentence(" Wait… ")).toBe("Wait…");
+});
+
+test("composed save retry status has no double period", async () => {
+  let error: unknown = null;
+  const session = createChapterSession({
+    postDelta: async () => { throw new Error("Something went wrong. Try again."); },
+    getDeltas: async () => [],
+  }, scope, chapter, (_document, _local, problem) => { error = problem; });
+  session.edit(new Delta().insert("Atext\n"));
+  await session.tick();
+  expect(error).toEqual({ kind: "retrying", message: "Save stopped: Something went wrong. Try again. Local work retained; polling will retry." });
 });

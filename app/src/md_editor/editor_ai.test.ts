@@ -9,6 +9,8 @@ import {
   rememberEditSelection,
   resolveContinueSelection,
   resolveEditSelection,
+  getSavePresentation,
+  saveStatusDetail,
   shouldClearFailedRunState,
   shouldPreservePendingEditSelection,
   shouldRestoreCancelledEditSelection,
@@ -142,4 +144,12 @@ test("empty Continue explains length and other finishes", () => {
   expect(emptyContinueMessage("length")).toBe("The model used its whole budget without writing any text. Try again or pick another model.");
   expect(emptyContinueMessage("stop")).toBe("The model returned no text.");
   expect(emptyContinueMessage("unknown")).toBe("The model returned no text.");
+});
+
+test("saveStatusDetail keeps the composed explanation for a generic failure", () => {
+  const status = "Save stopped: Something went wrong. Try again.. Local work retained; polling will retry.";
+  const detail = saveStatusDetail(getSavePresentation(status, null, false, true));
+  expect(detail).toContain("Save stopped:");
+  expect(detail).toContain("Local work retained; polling will retry.");
+  expect(saveStatusDetail(getSavePresentation("Saved", null, false, false))).toBeUndefined();
 });
