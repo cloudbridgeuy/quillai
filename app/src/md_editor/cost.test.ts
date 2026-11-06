@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import type { AiStreamEvent } from "./ai_contract";
 import { parseAiStreamChunk, type AiStreamUsageEvent } from "./ai_stream";
-import { calculateActualCost, MAX_COST_TOKENS_PER_DIRECTION, snapshotCostPricing } from "./cost";
-import type { ModelCatalog } from "./model_catalog";
+import { calculateActualCost, calculateImageCost, MAX_COST_TOKENS_PER_DIRECTION, snapshotCostPricing, snapshotImagePricing } from "./cost";
+import type { ModelCatalog, TextModel } from "./model_catalog";
 
-function catalog(input = 0.1, output = 0.2): ModelCatalog {
+function catalog(input = 0.1, output = 0.2): ModelCatalog & { models: TextModel[] } {
   return {
     models: [{ id: "sent-model", label: "Model", input_price_per_million: input, output_price_per_million: output }],
     defaults: { generate: "sent-model", edit: "sent-model" },
@@ -140,4 +140,21 @@ test("scientific notation and finite numeric extremes remain exact rationals", (
       usd: { numerator, denominator },
     });
   }
+});
+
+test("image models price per returned image and have no token pricing", () => {
+  const source: ModelCatalog = {
+    models: [{ id: "image-model", label: "Image", kind: "image", price_per_image: 0.011, size: "1024x1024", quality: "medium" }],
+    defaults: { generate: "image-model", edit: "image-model", image: "image-model" },
+  };
+  const identity = { kind: "known", modelId: "image-model" } as const;
+  expect(snapshotCostPricing(source, identity)).toEqual({ kind: "unknown", reason: "missing-model-price" });
+  const pricing = snapshotImagePricing(source, identity);
+  expect(pricing).toEqual({ kind: "per-image", modelId: "image-model", usdPerImage: { numerator: 11n, denominator: 1000n } });
+  expect(calculateImageCost(pricing, 2)).toEqual({
+    kind: "known", modelId: "image-model", coverage: "image-count", usd: { currency: "USD", numerator: 11n, denominator: 500n },
+  });
+  expect(calculateImageCost(pricing, -1)).toEqual({ kind: "unknown", reason: "invalid-usage" });
+  expect(snapshotImagePricing(catalog(), { kind: "known", modelId: "sent-model" })).toEqual({ kind: "unknown", reason: "missing-model-price" });
+  expect(calculateImageCost(snapshotImagePricing(null, { kind: "server-default-unresolved" }), 1)).toEqual({ kind: "unknown", reason: "unresolved-model" });
 });

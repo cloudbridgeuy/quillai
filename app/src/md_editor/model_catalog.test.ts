@@ -54,3 +54,18 @@ test("actionModelDisplay names the model for an action, falling back to the id, 
   expect(actionModelDisplay({ ...catalog, models: [] }, "edit")).toEqual({ name: "provider/precise", id: "provider/precise" });
   expect(actionModelDisplay(null, "generate")).toBeNull();
 });
+
+test("catalog parsing keeps image models and the optional image default", () => {
+  const image = { id: "gpt-image-1-mini", label: "Image mini", kind: "image" as const, price_per_image: 0.011, size: "1024x1024", quality: "medium" };
+  const withImage = { models: [...response.models, image], defaults: { ...response.defaults, image: image.id } };
+  expect(parseModelCatalog({ ...withImage, models: withImage.models.map((model) => ({ kind: "text", ...model })) })?.models[2]).toEqual(image);
+  expect(expectedModelId(parseModelCatalog(withImage), "image")).toBe(image.id);
+  expect(expectedModelId(parseModelCatalog(response), "image")).toBeUndefined();
+  for (const value of [
+    { ...withImage, defaults: { ...withImage.defaults, image: "provider/fast" } },
+    { ...withImage, defaults: { ...withImage.defaults, generate: image.id } },
+    { ...withImage, models: [...response.models, { ...image, price_per_image: -1 }] },
+    { ...withImage, models: [...response.models, { ...image, size: "" }] },
+    { ...withImage, models: [...response.models, { ...image, kind: "video" }] },
+  ]) expect(parseModelCatalog(value)).toBeNull();
+});

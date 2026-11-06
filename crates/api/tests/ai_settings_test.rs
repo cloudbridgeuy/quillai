@@ -51,7 +51,7 @@ async fn settings_save_redact_omit_and_clear_each_field() {
     assert_eq!(view["key_set"], true);
     assert_eq!(
         view["sources"],
-        json!({"base_url":"saved","api_key":"saved","generate_model":"saved","edit_model":"saved"})
+        json!({"base_url":"saved","api_key":"saved","generate_model":"saved","edit_model":"saved","image_model":"none"})
     );
     let response = request(&app, "GET", "/settings/ai", json!({})).await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -208,4 +208,42 @@ async fn invalid_urls_and_models_outside_file_catalog_return_422() {
         let response = request(&app, "PUT", "/settings/ai", input).await;
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+}
+
+#[tokio::test]
+async fn image_model_saves_and_must_be_an_image_catalog_entry() {
+    let catalog = ModelCatalog::parse(&json!({"models":[
+        {"id":"text-model","label":"Text","input_price_per_million":0,"output_price_per_million":0},
+        {"id":"image-model","label":"Image","kind":"image","price_per_image":0.011,"size":"1024x1024","quality":"medium"}
+    ],"defaults":{"generate":"text-model","edit":"text-model","image":"image-model"}}).to_string()).unwrap();
+    let app = quillai_api::app(common::test_pool().await).layer(axum::Extension(Arc::new(catalog)));
+    let view = body(
+        request(
+            &app,
+            "PUT",
+            "/settings/ai",
+            json!({"image_model":"image-model"}),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(view["image_model"], "image-model");
+    assert_eq!(view["sources"]["image_model"], "saved");
+    assert_eq!(
+        body(request(&app, "GET", "/settings/ai", json!({})).await).await,
+        view
+    );
+    for update in [
+        json!({"image_model":"text-model"}),
+        json!({"generate_model":"image-model"}),
+    ] {
+        let response = request(&app, "PUT", "/settings/ai", update).await;
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+    let models = body(request(&app, "GET", "/ai/models", json!({})).await).await;
+    assert_eq!(models["defaults"]["image"], "image-model");
+    assert_eq!(models["models"][1]["kind"], "image");
+    assert_eq!(models["models"][1]["price_per_image"], 0.011);
+    let cleared = body(request(&app, "PUT", "/settings/ai", json!({"image_model":""})).await).await;
+    assert!(cleared["image_model"].is_null());
 }

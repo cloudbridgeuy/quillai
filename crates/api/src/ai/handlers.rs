@@ -36,29 +36,40 @@ pub async fn models(
     let preferred = |saved: Option<&str>, action| {
         saved
             .and_then(|id| catalog.find(id))
-            .unwrap_or_else(|| catalog.resolve(action))
-            .id
-            .clone()
+            .or_else(|| catalog.resolve(action))
+            .map(|model| model.id.clone())
     };
     let models: Vec<_> = catalog
         .models()
         .iter()
         .map(|model| {
-            serde_json::json!({
+            without_nulls(serde_json::json!({
                 "id": model.id,
                 "label": model.label,
+                "kind": model.kind,
                 "input_price_per_million": model.input_price_per_million,
                 "output_price_per_million": model.output_price_per_million,
-            })
+                "price_per_image": model.price_per_image,
+                "size": model.size,
+                "quality": model.quality,
+            }))
         })
         .collect();
     Ok(Json(serde_json::json!({
         "models": models,
-        "defaults": {
+        "defaults": without_nulls(serde_json::json!({
             "generate": preferred(saved.generate_model.as_deref(), AiAction::Generate),
             "edit": preferred(saved.edit_model.as_deref(), AiAction::Edit),
-        },
+            "image": preferred(saved.image_model.as_deref(), AiAction::Image),
+        })),
     })))
+}
+
+fn without_nulls(mut value: serde_json::Value) -> serde_json::Value {
+    if let Some(object) = value.as_object_mut() {
+        object.retain(|_, field| !field.is_null());
+    }
+    value
 }
 
 pub async fn generate(
@@ -106,7 +117,7 @@ pub async fn generate(
                 }
             })
         })
-        .or_else(|| catalog.map(|catalog| catalog.resolve(input.action)));
+        .or_else(|| catalog.and_then(|catalog| catalog.resolve(input.action)));
     let config = resolved.provider_config(action, model.map(|model| model.id.as_str()))?;
     let include_usage = model.is_none_or(|model| model.include_usage);
     let reasoning_effort = model.and_then(|model| model.reasoning_effort);

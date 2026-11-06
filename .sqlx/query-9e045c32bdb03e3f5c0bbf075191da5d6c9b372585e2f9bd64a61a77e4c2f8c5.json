@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT base_url, api_key, generate_model, edit_model FROM ai_settings WHERE id = 1",
+  "query": "SELECT base_url, api_key, generate_model, edit_model, image_model FROM ai_settings WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "name": "edit_model",
         "ordinal": 3,
         "type_info": "Text"
+      },
+      {
+        "name": "image_model",
+        "ordinal": 4,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -31,8 +36,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "c9a4107b0f5cc937b39a7a3a6f9b1a031383e71c5e9b1713ea38da94d8111b7b"
+  "hash": "9e045c32bdb03e3f5c0bbf075191da5d6c9b372585e2f9bd64a61a77e4c2f8c5"
 }

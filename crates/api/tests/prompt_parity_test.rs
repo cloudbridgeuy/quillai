@@ -184,7 +184,7 @@ async fn replay_prompt_fixture(filter: Option<&str>) {
                 .expect("completion event");
             let inserted = match input.action {
                 AiAction::Generate => "Note <replacement>Fixed</replacement> more",
-                AiAction::Edit => "Fixed",
+                AiAction::Edit | AiAction::Image => "Fixed",
             };
             assert_eq!(
                 serde_json::to_value(event).unwrap(),

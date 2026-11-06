@@ -15,16 +15,64 @@ pub enum ReasoningEffort {
     High,
 }
 
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ModelKind {
+    #[default]
+    Text,
+    Image,
+}
+
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct CatalogModel {
     pub id: String,
     pub label: String,
-    pub input_price_per_million: f64,
-    pub output_price_per_million: f64,
+    #[serde(default)]
+    pub kind: ModelKind,
+    pub input_price_per_million: Option<f64>,
+    pub output_price_per_million: Option<f64>,
+    pub price_per_image: Option<f64>,
+    pub size: Option<String>,
+    pub quality: Option<String>,
     #[serde(default = "default_include_usage")]
     pub include_usage: bool,
     pub reasoning_effort: Option<ReasoningEffort>,
+}
+
+impl CatalogModel {
+    fn validate(&self) -> Result<(), Error> {
+        let (prices, shape_ok) = match self.kind {
+            ModelKind::Text => (
+                vec![self.input_price_per_million, self.output_price_per_million],
+                self.price_per_image.is_none() && self.size.is_none() && self.quality.is_none(),
+            ),
+            ModelKind::Image => (
+                vec![self.price_per_image],
+                [&self.size, &self.quality].iter().all(|value| {
+                    value
+                        .as_deref()
+                        .is_some_and(|value| !value.trim().is_empty())
+                }),
+            ),
+        };
+        if !shape_ok {
+            return Err(config_error(format!(
+                "model {}: image models need size and quality; text models must not set price_per_image, size and quality",
+                self.id
+            )));
+        }
+        if prices
+            .iter()
+            .any(|price| price.is_none_or(|price| !price.is_finite() || price < 0.0))
+        {
+            return Err(config_error(format!(
+                "model {} prices must be present, finite, and non-negative",
+                self.id
+            )));
+        }
+        Ok(())
+    }
 }
 
 fn default_include_usage() -> bool {
@@ -36,6 +84,7 @@ fn default_include_usage() -> bool {
 struct Defaults {
     generate: String,
     edit: String,
+    image: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -51,6 +100,7 @@ pub struct ModelCatalog {
     file: bool,
     generate: usize,
     edit: usize,
+    image: Option<usize>,
 }
 
 impl ModelCatalog {
@@ -65,36 +115,39 @@ impl ModelCatalog {
             if !ids.insert(&model.id) {
                 return Err(config_error(format!("duplicate model id: {}", model.id)));
             }
-            if [
-                model.input_price_per_million,
-                model.output_price_per_million,
-            ]
-            .iter()
-            .any(|price| !price.is_finite() || *price < 0.0)
-            {
-                return Err(config_error(format!(
-                    "model {} prices must be finite and non-negative",
-                    model.id
-                )));
-            }
+            model.validate()?;
         }
-        let default_index = |action, id: &str| {
-            file.models
+        let default_index = |action, id: &str, kind| {
+            let index = file
+                .models
                 .iter()
                 .position(|model| model.id == id)
                 .ok_or_else(|| {
                     config_error(format!(
                         "default {action} model {id:?} is not in the catalog"
                     ))
-                })
+                })?;
+            if file.models[index].kind != kind {
+                return Err(config_error(format!(
+                    "default {action} model {id:?} must be a {kind:?} model"
+                )));
+            }
+            Ok(index)
         };
-        let generate = default_index("generate", &file.defaults.generate)?;
-        let edit = default_index("edit", &file.defaults.edit)?;
+        let generate = default_index("generate", &file.defaults.generate, ModelKind::Text)?;
+        let edit = default_index("edit", &file.defaults.edit, ModelKind::Text)?;
+        let image = file
+            .defaults
+            .image
+            .as_deref()
+            .map(|id| default_index("image", id, ModelKind::Image))
+            .transpose()?;
         Ok(Self {
             models: file.models,
             file: true,
             generate,
             edit,
+            image,
         })
     }
 
@@ -107,14 +160,19 @@ impl ModelCatalog {
             models: vec![CatalogModel {
                 id: id.into(),
                 label: id.into(),
-                input_price_per_million: 0.0,
-                output_price_per_million: 0.0,
+                kind: ModelKind::Text,
+                input_price_per_million: Some(0.0),
+                output_price_per_million: Some(0.0),
+                price_per_image: None,
+                size: None,
+                quality: None,
                 include_usage: true,
                 reasoning_effort: None,
             }],
             file: false,
             generate: 0,
             edit: 0,
+            image: None,
         })
     }
 
@@ -130,11 +188,13 @@ impl ModelCatalog {
         self.models.iter().find(|model| model.id == id)
     }
 
-    pub fn resolve(&self, action: AiAction) -> &CatalogModel {
-        &self.models[match action {
-            AiAction::Generate => self.generate,
-            AiAction::Edit => self.edit,
-        }]
+    pub fn resolve(&self, action: AiAction) -> Option<&CatalogModel> {
+        match action {
+            AiAction::Generate => Some(self.generate),
+            AiAction::Edit => Some(self.edit),
+            AiAction::Image => self.image,
+        }
+        .map(|index| &self.models[index])
     }
 }
 
@@ -177,13 +237,13 @@ mod tests {
     #[test]
     fn parse_and_resolve_per_action_defaults() {
         let catalog = ModelCatalog::parse(&file().to_string()).unwrap();
-        let generate = catalog.resolve(AiAction::Generate);
+        let generate = catalog.resolve(AiAction::Generate).unwrap();
         assert_eq!(generate.id, "generate-model");
         assert_eq!(generate.label, "Generate");
-        assert_eq!(generate.input_price_per_million, 0.1);
-        assert_eq!(generate.output_price_per_million, 0.2);
+        assert_eq!(generate.input_price_per_million, Some(0.1));
+        assert_eq!(generate.output_price_per_million, Some(0.2));
         assert!(generate.include_usage);
-        let edit = catalog.resolve(AiAction::Edit);
+        let edit = catalog.resolve(AiAction::Edit).unwrap();
         assert_eq!(edit.id, "edit-model");
         assert!(!edit.include_usage);
     }
@@ -237,12 +297,61 @@ mod tests {
         let catalog = load(None, Some(" legacy-model ")).unwrap().unwrap();
         assert_eq!(catalog.models.len(), 1);
         for action in [AiAction::Generate, AiAction::Edit] {
-            assert_eq!(catalog.resolve(action).id, "legacy-model");
-            assert!(catalog.resolve(action).include_usage);
-            assert_eq!(catalog.resolve(action).reasoning_effort, None);
+            let model = catalog.resolve(action).unwrap();
+            assert_eq!(model.id, "legacy-model");
+            assert!(model.include_usage);
+            assert_eq!(model.reasoning_effort, None);
         }
+        assert_eq!(catalog.resolve(AiAction::Image), None);
         assert!(load(None, None).unwrap().is_none());
         assert!(load(None, Some(" ")).is_err());
+    }
+
+    #[test]
+    fn image_entries_parse_with_kind_and_per_image_price() {
+        let catalog = ModelCatalog::parse(&file().to_string()).unwrap();
+        assert_eq!(catalog.models()[0].kind, ModelKind::Text);
+        assert_eq!(catalog.resolve(AiAction::Image), None);
+        let mut file = file();
+        file["models"].as_array_mut().unwrap().push(json!({"id":"gpt-image-1-mini","label":"Image mini","kind":"image","price_per_image":0.011,"size":"1024x1024","quality":"medium"}));
+        file["defaults"]["image"] = json!("gpt-image-1-mini");
+        let catalog = ModelCatalog::parse(&file.to_string()).unwrap();
+        let image = catalog.resolve(AiAction::Image).unwrap();
+        assert_eq!(image.kind, ModelKind::Image);
+        assert_eq!(image.price_per_image, Some(0.011));
+        assert_eq!(image.size.as_deref(), Some("1024x1024"));
+        assert_eq!(image.quality.as_deref(), Some("medium"));
+        for (pointer, value, message) in [
+            (
+                "/defaults/image",
+                json!("generate-model"),
+                "default image model",
+            ),
+            (
+                "/defaults/edit",
+                json!("gpt-image-1-mini"),
+                "default edit model",
+            ),
+            ("/models/2/price_per_image", json!(-1), "non-negative"),
+            ("/models/2/size", json!(" "), "size and quality"),
+            ("/models/2/kind", json!("video"), "unknown variant"),
+        ] {
+            let mut file = file.clone();
+            *file.pointer_mut(pointer).unwrap() = value;
+            let error = ModelCatalog::parse(&file.to_string())
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains(message), "{pointer}: {error}");
+        }
+        let mut missing = file.clone();
+        missing["models"][2]
+            .as_object_mut()
+            .unwrap()
+            .remove("quality");
+        assert!(ModelCatalog::parse(&missing.to_string()).is_err());
+        let mut text_with_image_price = file.clone();
+        text_with_image_price["models"][0]["price_per_image"] = json!(1);
+        assert!(ModelCatalog::parse(&text_with_image_price.to_string()).is_err());
     }
 
     #[test]

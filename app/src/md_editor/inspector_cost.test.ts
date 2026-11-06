@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { beginInspectorRun, buildInspectorCost, formatInspectorUsd, recordInspectorUsage } from "./inspector_cost";
-import type { ModelCatalog } from "./model_catalog";
+import type { ModelCatalog, TextModel } from "./model_catalog";
 
-const catalog: ModelCatalog = { models: [{ id: "fast", label: "Fast", input_price_per_million: 2, output_price_per_million: 6 }], defaults: { generate: "fast", edit: "fast" } };
+const catalog: ModelCatalog & { models: TextModel[] } = { models: [{ id: "fast", label: "Fast", input_price_per_million: 2, output_price_per_million: 6 }], defaults: { generate: "fast", edit: "fast" } };
 const usage = { type: "usage" as const, promptTokens: 1000, completionTokens: 500 };
 
 test("pending estimate is input only; output is a rate, not estimated usage", () => {

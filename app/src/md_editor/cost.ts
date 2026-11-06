@@ -1,6 +1,6 @@
 import type { AiStreamEvent } from "./ai_contract";
 import type { AiStreamUsageEvent } from "./ai_stream";
-import type { ModelCatalog } from "./model_catalog";
+import type { AiModel, ModelCatalog } from "./model_catalog";
 
 export const MAX_COST_TOKENS_PER_DIRECTION = 1_000_000_000;
 
@@ -22,13 +22,19 @@ export type CostPricing = UnknownPricing | Readonly<{
   outputUsdPerMillion: Rational;
 }>;
 
+export type ImagePricing = UnknownPricing | Readonly<{
+  kind: "per-image";
+  modelId: string;
+  usdPerImage: Rational;
+}>;
+
 export type ActualCost =
   | UnknownPricing
   | Readonly<{ kind: "unknown"; reason: "missing-usage" | "invalid-usage" }>
   | Readonly<{
     kind: "known";
     modelId: string;
-    coverage: "observed-usage";
+    coverage: "observed-usage" | "image-count";
     usd: Rational & { readonly currency: "USD" };
   }>;
 
@@ -39,9 +45,8 @@ export function snapshotCostPricing(
   if (identity.kind === "server-default-unresolved") {
     return { kind: "unknown", reason: "unresolved-model" };
   }
-  const models = catalog?.models.filter(({ id }) => id === identity.modelId) ?? [];
-  const model = models[0];
-  if (models.length !== 1 || !model) {
+  const model = soleModel(catalog, identity.modelId);
+  if (!model || model.kind === "image") {
     return { kind: "unknown", reason: "missing-model-price" };
   }
   const inputUsdPerMillion = decimalPrice(model.input_price_per_million);
@@ -50,6 +55,32 @@ export function snapshotCostPricing(
     return { kind: "unknown", reason: "invalid-price" };
   }
   return { kind: "priced", modelId: model.id, inputUsdPerMillion, outputUsdPerMillion };
+}
+
+export function snapshotImagePricing(
+  catalog: ModelCatalog | null,
+  identity: CostModelIdentity,
+): ImagePricing {
+  if (identity.kind === "server-default-unresolved") {
+    return { kind: "unknown", reason: "unresolved-model" };
+  }
+  const model = soleModel(catalog, identity.modelId);
+  if (model?.kind !== "image") return { kind: "unknown", reason: "missing-model-price" };
+  const usdPerImage = decimalPrice(model.price_per_image);
+  if (!usdPerImage) return { kind: "unknown", reason: "invalid-price" };
+  return { kind: "per-image", modelId: model.id, usdPerImage };
+}
+
+export function calculateImageCost(pricing: ImagePricing, images: number): ActualCost {
+  if (pricing.kind === "unknown") return pricing;
+  if (!isTokenCount(images)) return { kind: "unknown", reason: "invalid-usage" };
+  const usd = reduce(BigInt(images) * pricing.usdPerImage.numerator, pricing.usdPerImage.denominator);
+  return { kind: "known", modelId: pricing.modelId, coverage: "image-count", usd: { currency: "USD", ...usd } };
+}
+
+function soleModel(catalog: ModelCatalog | null, modelId: string): AiModel | undefined {
+  const models = catalog?.models.filter(({ id }) => id === modelId) ?? [];
+  return models.length === 1 ? models[0] : undefined;
 }
 
 export function calculateActualCost(

@@ -104,6 +104,9 @@ pub struct DevArgs {
     ai_model: Option<String>,
 
     #[clap(long)]
+    ai_image_model: Option<String>,
+
+    #[clap(long)]
     ai_models: Option<std::path::PathBuf>,
 
     #[clap(long)]
@@ -404,6 +407,7 @@ fn dev(args: DevArgs) -> Result<(), Box<dyn Error>> {
         |key| std::env::var_os(key),
         dev_env::CliSettings {
             model: args.ai_model.as_deref(),
+            image_model: args.ai_image_model.as_deref(),
             models: args.ai_models.as_deref(),
             base_url: args.ai_base_url.as_deref(),
         },

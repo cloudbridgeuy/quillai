@@ -163,6 +163,9 @@ async fn models_returns_startup_catalog_and_env_fallback_without_provider_config
         .as_object_mut()
         .unwrap()
         .remove("include_usage");
+    for model in expected["models"].as_array_mut().unwrap() {
+        model["kind"] = json!("text");
+    }
     let legacy_model = std::env::var("QUILLAI_AI_MODEL").unwrap();
     for (catalog, expected) in [
         (
@@ -174,7 +177,7 @@ async fn models_returns_startup_catalog_and_env_fallback_without_provider_config
                 .unwrap()
                 .unwrap(),
             json!({
-                "models": [{"id":"legacy-model","label":"legacy-model","input_price_per_million":0.0,"output_price_per_million":0.0}],
+                "models": [{"id":"legacy-model","label":"legacy-model","kind":"text","input_price_per_million":0.0,"output_price_per_million":0.0}],
                 "defaults":{"generate":"legacy-model","edit":"legacy-model"}
             }),
         ),

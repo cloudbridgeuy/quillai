@@ -56,7 +56,7 @@ pub fn build_prompt(input: &GenerateInput) -> String {
         ),
         match input.action {
             AiAction::Generate => GENERATE_RULES,
-            AiAction::Edit => EDIT_RULES,
+            AiAction::Edit | AiAction::Image => EDIT_RULES,
         },
         input.action.as_str(),
         instruction,

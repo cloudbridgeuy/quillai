@@ -75,6 +75,7 @@ pub struct RawSelection {
 pub enum AiAction {
     Generate,
     Edit,
+    Image,
 }
 
 impl AiAction {
@@ -82,6 +83,7 @@ impl AiAction {
         match self {
             Self::Generate => "generate",
             Self::Edit => "edit",
+            Self::Image => "image",
         }
     }
 }
@@ -183,7 +185,7 @@ impl GenerateInput {
                 .resume_prompt
                 .as_deref()
                 .or(self.instruction.as_deref()),
-            AiAction::Edit => self.instruction.as_deref(),
+            AiAction::Edit | AiAction::Image => self.instruction.as_deref(),
         }
     }
 }
@@ -225,6 +227,7 @@ impl TryFrom<String> for AiAction {
         match value.as_str() {
             "generate" => Ok(Self::Generate),
             "edit" => Ok(Self::Edit),
+            "image" => Ok(Self::Image),
             _ => Err(Error::Validation(
                 "action must be one of: generate, edit".into(),
             )),
@@ -318,6 +321,11 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         } = request;
 
         let action = AiAction::try_from(action)?;
+        if action == AiAction::Image {
+            return Err(Error::Validation(
+                "action must be one of: generate, edit".into(),
+            ));
+        }
         let lore = super::lore::parse_lore(lore)?;
         let section_overrides = SectionOverrides::try_from(section_overrides)?;
         let document = DocumentSlice::try_from(document)?;

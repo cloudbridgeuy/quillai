@@ -40,6 +40,32 @@ fn action_parses_generate() {
 }
 
 #[test]
+fn image_action_parses_but_text_request_rejects_it() {
+    assert_eq!(
+        AiAction::try_from("image".to_string()).unwrap(),
+        AiAction::Image
+    );
+    let error = GenerateInput::try_from(GenerateRequest {
+        model: None,
+        lore: empty_lore(),
+        section_overrides: empty_section_overrides(),
+        action: "image".into(),
+        document: text_document("Hello"),
+        selection: None,
+        story_context: None,
+        instruction: Some("A lighthouse".into()),
+        messages: Vec::new(),
+        resume_prompt: None,
+        max_output_tokens: None,
+    })
+    .unwrap_err();
+    assert!(
+        matches!(&error, Error::Validation(message) if message.contains("generate, edit")),
+        "{error}"
+    );
+}
+
+#[test]
 fn action_rejects_unknown_value() {
     let err = AiAction::try_from("rewrite".to_string()).unwrap_err();
     assert!(err.to_string().contains("action must be one of"));

@@ -9,6 +9,7 @@ pub struct SavedSettings {
     pub api_key: Option<String>,
     pub generate_model: Option<String>,
     pub edit_model: Option<String>,
+    pub image_model: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -25,6 +26,7 @@ pub struct Sources {
     pub api_key: Source,
     pub generate_model: Source,
     pub edit_model: Source,
+    pub image_model: Source,
 }
 
 pub struct Resolved {
@@ -32,6 +34,7 @@ pub struct Resolved {
     pub api_key: Option<String>,
     pub generate_model: Option<String>,
     pub edit_model: Option<String>,
+    pub image_model: Option<String>,
     pub sources: Sources,
 }
 
@@ -48,16 +51,19 @@ pub fn resolve(saved: SavedSettings, mut env: impl FnMut(&str) -> Option<String>
     let env_model = env("QUILLAI_AI_MODEL");
     let (generate_model, generate_source) = choose(saved.generate_model, env_model.clone());
     let (edit_model, edit_source) = choose(saved.edit_model, env_model);
+    let (image_model, image_source) = choose(saved.image_model, env("QUILLAI_AI_IMAGE_MODEL"));
     Resolved {
         base_url,
         api_key,
         generate_model,
         edit_model,
+        image_model,
         sources: Sources {
             base_url: base_source,
             api_key: key_source,
             generate_model: generate_source,
             edit_model: edit_source,
+            image_model: image_source,
         },
     }
 }
@@ -67,6 +73,7 @@ impl Resolved {
         match action {
             AiAction::Generate => self.generate_model.as_deref(),
             AiAction::Edit => self.edit_model.as_deref(),
+            AiAction::Image => self.image_model.as_deref(),
         }
     }
 
@@ -74,6 +81,7 @@ impl Resolved {
         match action {
             AiAction::Generate => self.sources.generate_model,
             AiAction::Edit => self.sources.edit_model,
+            AiAction::Image => self.sources.image_model,
         }
     }
 
@@ -122,6 +130,7 @@ mod tests {
                 api_key: saved.map(|value| format!("{value}-api_key")),
                 generate_model: saved.map(|value| format!("{value}-model")),
                 edit_model: saved.map(|value| format!("{value}-model")),
+                image_model: saved.map(|value| format!("{value}-image_model")),
             };
             let resolved = resolve(saved, |key| {
                 env.map(|value| {
@@ -140,6 +149,11 @@ mod tests {
                     "model",
                 ),
                 (resolved.edit_model, resolved.sources.edit_model, "model"),
+                (
+                    resolved.image_model,
+                    resolved.sources.image_model,
+                    "image_model",
+                ),
             ] {
                 assert_eq!(value, expected.map(|value| format!("{value}-{field}")));
                 assert_eq!(actual_source, source);
@@ -168,5 +182,26 @@ mod tests {
             resolve(SavedSettings::default(), |_| None).provider_config(AiAction::Generate, None),
             Err(crate::error::Error::AiNotConfigured)
         ));
+    }
+
+    #[test]
+    fn image_model_reads_its_own_env_key_without_text_model_fallback() {
+        let text_only = resolve(SavedSettings::default(), |key| {
+            (key == "QUILLAI_AI_MODEL").then(|| "text".into())
+        });
+        assert_eq!(text_only.model(AiAction::Image), None);
+        assert_eq!(text_only.sources.image_model, Source::None);
+        let env = resolve(SavedSettings::default(), |key| {
+            (key == "QUILLAI_AI_IMAGE_MODEL").then(|| "env-image".into())
+        });
+        assert_eq!(env.model(AiAction::Image), Some("env-image"));
+        assert_eq!(env.sources.image_model, Source::Env);
+        let saved = SavedSettings {
+            image_model: Some("saved-image".into()),
+            ..Default::default()
+        };
+        let saved = resolve(saved, |_| Some("env".into()));
+        assert_eq!(saved.model(AiAction::Image), Some("saved-image"));
+        assert_eq!(saved.model_source(AiAction::Image), Source::Saved);
     }
 }

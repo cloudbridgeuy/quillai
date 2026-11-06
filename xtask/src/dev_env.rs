@@ -1,9 +1,10 @@
 use std::ffi::OsString;
 use std::path::Path;
 
-const KEYS: [&str; 4] = [
+const KEYS: [&str; 5] = [
     "QUILLAI_AI_API_KEY",
     "QUILLAI_AI_MODEL",
+    "QUILLAI_AI_IMAGE_MODEL",
     "QUILLAI_AI_BASE_URL",
     "QUILLAI_AI_MODELS_FILE",
 ];
@@ -11,6 +12,7 @@ const KEYS: [&str; 4] = [
 #[derive(Default)]
 pub(crate) struct CliSettings<'a> {
     pub model: Option<&'a str>,
+    pub image_model: Option<&'a str>,
     pub base_url: Option<&'a str>,
     pub models: Option<&'a Path>,
 }
@@ -61,6 +63,7 @@ pub(crate) fn resolve(
         .filter_map(|key| {
             let flag = match key {
                 "QUILLAI_AI_MODEL" => cli.model.map(OsString::from),
+                "QUILLAI_AI_IMAGE_MODEL" => cli.image_model.map(OsString::from),
                 "QUILLAI_AI_BASE_URL" => cli.base_url.map(OsString::from),
                 "QUILLAI_AI_MODELS_FILE" => cli.models.map(|path| path.as_os_str().to_owned()),
                 _ => None,
@@ -82,7 +85,7 @@ mod tests {
 
     #[test]
     fn parses_assignments_quotes_comments_and_whitespace() {
-        let text = "  # settings\r\n\n export QUILLAI_AI_API_KEY = 'secret=one # two' \r\nQUILLAI_AI_MODEL=\"model name\"\nQUILLAI_AI_BASE_URL = https://example.test/v1\nQUILLAI_AI_MODELS_FILE = models.json\n";
+        let text = "  # settings\r\n\n export QUILLAI_AI_API_KEY = 'secret=one # two' \r\nQUILLAI_AI_MODEL=\"model name\"\nQUILLAI_AI_IMAGE_MODEL=image\nQUILLAI_AI_BASE_URL = https://example.test/v1\nQUILLAI_AI_MODELS_FILE = models.json\n";
         let pairs = parse(text).unwrap();
         assert_eq!(
             pairs,
@@ -90,6 +93,7 @@ mod tests {
                 .zip([
                     "secret=one # two",
                     "model name",
+                    "image",
                     "https://example.test/v1",
                     "models.json"
                 ])
@@ -139,6 +143,7 @@ mod tests {
                 let cli = if has_cli {
                     CliSettings {
                         model: (key == "QUILLAI_AI_MODEL").then_some("cli"),
+                        image_model: (key == "QUILLAI_AI_IMAGE_MODEL").then_some("cli"),
                         base_url: (key == "QUILLAI_AI_BASE_URL").then_some("cli"),
                         models: (key == "QUILLAI_AI_MODELS_FILE").then_some(Path::new("cli")),
                     }
