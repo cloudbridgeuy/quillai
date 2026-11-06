@@ -169,6 +169,10 @@ test.each([
   ["tree.create.piece.title", "Piece title"], ["tree.create.piece.creating", "Creating piece…"],
   ["tree.create.item", "Item"], ["tree.create.item.title", "Item title"],
   ["tree.create.item.creating", "Creating item…"], ["lore.saveFailed", "Could not save lore."],
+  ["timeline.open", "Timeline"], ["timeline.title", "Timeline"], ["timeline.empty", "No timeline points yet."],
+  ["timeline.name", "Point name"], ["timeline.add", "Add point"], ["timeline.rename", "Rename point"],
+  ["timeline.delete", "Delete point"], ["timeline.new", "New point"], ["timeline.failed", "Could not update the timeline."],
+  ["timeline.chapterAt", "This chapter happens at"], ["timeline.base", "No point (base text)"],
   ["lore.series", "Series lore"], ["lore.loading", "Loading lore…"],
   ["lore.retry", "Retry lore"], ["lore.empty", "No lore yet."],
   ["lore.pinned", " · pinned"], ["lore.new", "New lore"],
@@ -199,6 +203,12 @@ test("tree and lore placeholders preserve assembled English", () => {
   for (const count of [0, 1, 1000]) expect(formatMessage("en", "lore.window.matches", { count, countText: String(count) })).toBe(`${count} matches`);
   expect(formatMessage("es", "lore.window.matches", { count: 1, countText: "1" })).toBe("1 coincidencia");
   expect(formatMessage("es", "lore.window.matches", { count: 1000, countText: "1000" })).toBe("1000 coincidencias");
+});
+
+test("timeline move labels interpolate the point name in both locales", () => {
+  expect(formatMessage("en", "timeline.moveUp", { name: "Act one" })).toBe("Move Act one up");
+  expect(formatMessage("es", "timeline.moveDown", { name: "Acto uno" })).toBe("Bajar Acto uno");
+  expect(formatMessage("es", "timeline.base")).toBe("Sin punto (texto base)");
 });
 
 test.each(["Chapter", "Scene", "Universe", "Container", "Piece", "unknown", "toString"])("creation messages select full labels for %s", noun => {

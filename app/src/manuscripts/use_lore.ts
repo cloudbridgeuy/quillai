@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { EditorScope } from "./contract";
 import { effectivePoint, resolveLoreEntry, type PieceRef, type ResolvedLore, type TimelinePoint } from "../md_editor/lore_states";
 import { createLoreClient, type LoreEntry } from "./lore_client";
+import type { NamedPoint } from "./timeline_panel";
 
 type LoreState = { key: string | null; universeId: number | null; entries: LoreEntry[]; status: "loading" | "ready" | "failed"; error: string };
 
-const EMPTY_POINTS: TimelinePoint[] = [];
+const EMPTY_POINTS: NamedPoint[] = [];
 const EMPTY_ENTRIES: LoreEntry[] = [];
 
 export function useLore(scope: EditorScope | null) {
@@ -33,20 +34,21 @@ export function useLore(scope: EditorScope | null) {
   const current = state.key === key;
   const universeId = current ? state.universeId : null;
   // Timeline points and the piece's point are optional extras: a failure only means base text.
-  const [timeline, setTimeline] = useState<{ universeId: number; points: TimelinePoint[] } | null>(null);
+  const [timelineAttempt, setTimelineAttempt] = useState(0);
+  const [timeline, setTimeline] = useState<{ universeId: number; points: NamedPoint[] } | null>(null);
   useEffect(() => {
     if (universeId === null) return;
     let active = true;
-    client.timeline({ universeId }).catch((): TimelinePoint[] => []).then(points => { if (active) setTimeline({ universeId, points }); });
+    client.timeline({ universeId }).catch((): NamedPoint[] => []).then(points => { if (active) setTimeline({ universeId, points }); });
     return () => { active = false; };
-  }, [universeId, client]);
+  }, [universeId, client, timelineAttempt]);
   const [pieceRef, setPieceRef] = useState<{ pieceId: number; piece: PieceRef | null } | null>(null);
   useEffect(() => {
     if (pieceId === null) return;
     let active = true;
     client.pieceRef({ pieceId }).catch(() => null).then(piece => { if (active) setPieceRef({ pieceId, piece }); });
     return () => { active = false; };
-  }, [pieceId, client]);
+  }, [pieceId, client, timelineAttempt]);
   const points = timeline && timeline.universeId === universeId ? timeline.points : EMPTY_POINTS;
   const piece = pieceRef && pieceRef.pieceId === pieceId ? pieceRef.piece : null;
   const entries = current ? state.entries : EMPTY_ENTRIES;
@@ -56,8 +58,10 @@ export function useLore(scope: EditorScope | null) {
     return entries.map(entry => resolveLoreEntry(entry, entry.states ?? [], point, byId));
   }, [entries, points, piece]);
   return {
-    client, resolved, universeId, entries,
+    client, resolved, universeId, entries, points, piece,
     status: current ? state.status : "loading", error: state.error,
+    /** Reload timeline points and the piece's point after the author changed them. */
+    refreshTimeline: () => setTimelineAttempt(value => value + 1),
     retry: () => setAttempt(value => value + 1),
     change: (entries: LoreEntry[]) => setState(value => value.key === key ? { ...value, entries } : value),
   };

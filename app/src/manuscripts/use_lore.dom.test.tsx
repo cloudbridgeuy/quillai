@@ -49,7 +49,7 @@ test("timeline and piece failures leave lore ready with base text", async () => 
 test("switching piece keeps lore, refetches only the piece point and resolves its state", async () => {
   const calls = stubFetch({
     "/universes/2/lore": () => Response.json([entry]),
-    "/universes/2/timeline": () => Response.json([{ id: 5, position: 1 }]),
+    "/universes/2/timeline": () => Response.json([{ id: 5, name: "Act", position: 1 }]),
     "/pieces/7": () => Response.json({ parentId: null, timelinePointId: null }),
     "/pieces/8": () => Response.json({ parentId: null, timelinePointId: 5 }),
   });

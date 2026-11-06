@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { ManuscriptApiError } from "./client";
-import { createLoreClient, parseLoreEntry } from "./lore_client";
+import { createLoreClient, parseLoreEntry, parseTimelinePoint } from "./lore_client";
 import { newLoreDraft } from "./lore_panel";
 
 const entry = { ...newLoreDraft(), id: 1, universe_id: 2, name: "Mira", hidden_notes: "Author secret" };
@@ -66,4 +66,25 @@ test("parses active lore states and rejects malformed ones", () => {
   const state = { id: 3, name: "Older", pointId: 2, visibleText: "v", hiddenNotes: "h" };
   expect(parseLoreEntry({ ...entry, states: [state] }).states).toEqual([state]);
   expect(() => parseLoreEntry({ ...entry, states: [{ ...state, pointId: "2" }] })).toThrow();
+});
+
+test("timeline client uses point paths, bodies and statuses", async () => {
+  const point = { id: 5, universeId: 2, name: "Act one", position: 0 };
+  const calls: [string, RequestInit | undefined][] = [];
+  const client = createLoreClient({ baseUrl: "http://localhost:2908", fetch: async (url, init) => {
+    calls.push([url, init]);
+    if (init?.method === "DELETE") return new Response(null, { status: 204 });
+    if (url.endsWith("/pieces/7")) return Response.json({ parentId: null, timelinePointId: 5 });
+    return Response.json(point, { status: init?.method === "POST" ? 201 : 200 });
+  } });
+  expect(await client.createPoint({ universeId: 2 }, { name: "Act one", position: 0 })).toEqual({ id: 5, name: "Act one", position: 0 });
+  await client.updatePoint({ pointId: 5 }, { name: "Act 1" });
+  await client.deletePoint({ pointId: 5 });
+  await client.setPiecePoint({ pieceId: 7 }, null);
+  expect(calls.map(([url, init]) => [init?.method, url.replace("http://localhost:2908", "")])).toEqual([
+    ["POST", "/universes/2/timeline"], ["PUT", "/timeline/5"], ["DELETE", "/timeline/5"], ["PUT", "/pieces/7"],
+  ]);
+  expect(JSON.parse(String(calls[1]![1]!.body))).toEqual({ name: "Act 1" });
+  expect(JSON.parse(String(calls[3]![1]!.body))).toEqual({ timelinePointId: null });
+  expect(() => parseTimelinePoint({ id: 1, position: 0 })).toThrow();
 });

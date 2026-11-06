@@ -116,3 +116,5 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `stories-visual.spec.ts` serves `storybook/storybook-static` from a small in-spec HTTP server and screenshots each `story` entry from `index.json` (one test per story, docs entries skipped, max 1 percent pixel diff). The whole file skips when the build is missing. Written; not run for GUZ-1438.
 
 `lore-states-inspector.spec.ts` creates a universe with two timeline points and a lore entry with a state on each, then opens three pieces (point Early, point Late, no point) and checks the context inspector shows `state Young`, `state Old`, and `base` beside the entry (GUZ-1460).
+
+`lore-timeline.spec.ts` opens a piece with no point, checks the "This chapter happens at" picker shows `No point (base text)`, adds two points in the Timeline modal, moves one up, renames one, then picks it and checks the choice survives a reload (GUZ-1461 stage 1). Written; not run.
