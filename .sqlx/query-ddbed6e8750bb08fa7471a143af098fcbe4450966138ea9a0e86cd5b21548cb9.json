@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", name, point_id, visible_text, hidden_notes FROM lore_entry_states WHERE id = ? AND lore_entry_id = ? AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ddbed6e8750bb08fa7471a143af098fcbe4450966138ea9a0e86cd5b21548cb9"
+}

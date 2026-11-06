@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE lore_entry_states SET name = COALESCE(?, name), point_id = COALESCE(?, point_id), visible_text = COALESCE(?, visible_text), hidden_notes = COALESCE(?, hidden_notes) WHERE id = ? RETURNING id AS \"id!\", name, point_id, visible_text, hidden_notes",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c49305e8b7b45e68dc006d67768960d668ac01b3889877e4cfade0fc2f793ba3"
+}

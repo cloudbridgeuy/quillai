@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serde::Serialize;
 use sqlx::{sqlite::SqlitePool, SqliteConnection};
 
 use crate::error::Error;
@@ -11,10 +12,27 @@ use crate::manuscripts::{
     lore::{
         handlers::{parse_input, DeleteQuery},
         models::{LoreInput, UniverseLoreEntry},
+        states::{self, LoreState},
         store,
     },
     series::models::{CreateSeries, Series as Universe, UpdateSeries},
 };
+
+/// Universe lore entry with its active states, ordered by point position.
+#[derive(Debug, Serialize)]
+pub struct LoreWithStates {
+    #[serde(flatten)]
+    entry: UniverseLoreEntry,
+    states: Vec<LoreState>,
+}
+
+async fn with_states(
+    connection: &mut SqliteConnection,
+    entry: UniverseLoreEntry,
+) -> Result<LoreWithStates, Error> {
+    let states = states::for_entry(connection, entry.id).await?;
+    Ok(LoreWithStates { entry, states })
+}
 
 pub(crate) async fn existing_universe(
     connection: &mut SqliteConnection,
@@ -136,12 +154,21 @@ pub async fn restore_universe(
 pub async fn list_lore(
     State(pool): State<SqlitePool>,
     Path(universe_id): Path<i64>,
-) -> Result<Json<Vec<UniverseLoreEntry>>, Error> {
+) -> Result<Json<Vec<LoreWithStates>>, Error> {
     let mut transaction = pool.begin().await?;
     existing_universe(&mut transaction, universe_id).await?;
     let entries = store::list(&mut transaction, universe_id).await?;
+    let mut all = states::for_universe(&mut transaction, universe_id).await?;
     transaction.commit().await?;
-    Ok(Json(entries))
+    Ok(Json(
+        entries
+            .into_iter()
+            .map(|entry| {
+                let states = all.remove(&entry.id).unwrap_or_default();
+                LoreWithStates { entry, states }
+            })
+            .collect(),
+    ))
 }
 
 pub async fn create_lore(
@@ -160,25 +187,27 @@ pub async fn create_lore(
 pub async fn get_lore(
     State(pool): State<SqlitePool>,
     Path((universe_id, lore_id)): Path<(i64, i64)>,
-) -> Result<Json<UniverseLoreEntry>, Error> {
-    let mut connection = pool.acquire().await?;
-    existing_universe(&mut connection, universe_id).await?;
-    Ok(Json(
-        store::get(&mut connection, universe_id, lore_id).await?,
-    ))
+) -> Result<Json<LoreWithStates>, Error> {
+    let mut transaction = pool.begin().await?;
+    existing_universe(&mut transaction, universe_id).await?;
+    let entry = store::get(&mut transaction, universe_id, lore_id).await?;
+    let entry = with_states(&mut transaction, entry).await?;
+    transaction.commit().await?;
+    Ok(Json(entry))
 }
 
 pub async fn update_lore(
     State(pool): State<SqlitePool>,
     Path((universe_id, lore_id)): Path<(i64, i64)>,
     input: Result<Json<LoreInput>, JsonRejection>,
-) -> Result<Json<UniverseLoreEntry>, Error> {
+) -> Result<Json<LoreWithStates>, Error> {
     let input = parse_input(input, false)?;
-    let mut connection = pool.acquire().await?;
-    existing_universe(&mut connection, universe_id).await?;
-    Ok(Json(
-        store::update(&mut connection, universe_id, lore_id, input).await?,
-    ))
+    let mut transaction = pool.begin().await?;
+    existing_universe(&mut transaction, universe_id).await?;
+    let entry = store::update(&mut transaction, universe_id, lore_id, input).await?;
+    let entry = with_states(&mut transaction, entry).await?;
+    transaction.commit().await?;
+    Ok(Json(entry))
 }
 
 pub async fn delete_lore(
@@ -199,10 +228,11 @@ pub async fn delete_lore(
 pub async fn restore_lore(
     State(pool): State<SqlitePool>,
     Path((universe_id, lore_id)): Path<(i64, i64)>,
-) -> Result<Json<UniverseLoreEntry>, Error> {
+) -> Result<Json<LoreWithStates>, Error> {
     let mut transaction = pool.begin().await?;
     existing_universe(&mut transaction, universe_id).await?;
     let entry = store::restore(&mut transaction, universe_id, lore_id).await?;
+    let entry = with_states(&mut transaction, entry).await?;
     transaction.commit().await?;
     Ok(Json(entry))
 }

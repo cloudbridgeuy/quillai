@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO lore_entry_states (lore_entry_id, name, point_id, visible_text, hidden_notes) VALUES (?, ?, ?, COALESCE(?, ''), COALESCE(?, '')) RETURNING id AS \"id!\", name, point_id, visible_text, hidden_notes",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f5bbaab1f6110c5d7740c0995dc34d19a815a5bc3de1fc4f731a240b82a92883"
+}

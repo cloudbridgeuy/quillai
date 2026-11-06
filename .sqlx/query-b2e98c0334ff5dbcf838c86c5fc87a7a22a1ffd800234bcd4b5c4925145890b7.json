@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE lore_entry_states SET deleted_at = NULL WHERE id = ? AND lore_entry_id = ? AND deleted_at IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b2e98c0334ff5dbcf838c86c5fc87a7a22a1ffd800234bcd4b5c4925145890b7"
+}

@@ -1,10 +1,12 @@
 pub mod handlers;
 
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use sqlx::sqlite::SqlitePool;
+
+use crate::manuscripts::lore::states;
 
 pub fn routes(pool: SqlitePool) -> Router {
     Router::new()
@@ -31,6 +33,18 @@ pub fn routes(pool: SqlitePool) -> Router {
         .route(
             "/universes/{id}/lore/{lore_id}/restore",
             post(handlers::restore_lore),
+        )
+        .route(
+            "/universes/{id}/lore/{lore_id}/states",
+            get(states::list_states).post(states::create_state),
+        )
+        .route(
+            "/universes/{id}/lore/{lore_id}/states/{state_id}",
+            put(states::update_state).delete(states::delete_state),
+        )
+        .route(
+            "/universes/{id}/lore/{lore_id}/states/{state_id}/restore",
+            post(states::restore_state),
         )
         .route("/universes/{id}/restore", post(handlers::restore_universe))
         .with_state(pool)

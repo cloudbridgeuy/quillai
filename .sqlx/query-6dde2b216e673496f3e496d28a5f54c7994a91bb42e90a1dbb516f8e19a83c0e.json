@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id!\", s.name, s.point_id, s.visible_text, s.hidden_notes FROM lore_entry_states s JOIN timeline_points p ON p.id = s.point_id WHERE s.lore_entry_id = ? AND s.deleted_at IS NULL ORDER BY p.position, p.id, s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "point_id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "visible_text",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden_notes",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6dde2b216e673496f3e496d28a5f54c7994a91bb42e90a1dbb516f8e19a83c0e"
+}
