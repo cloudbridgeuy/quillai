@@ -659,7 +659,7 @@ pub(super) fn run(flag: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
                 let _ = signal_hook::low_level::raise(super::SIGTERM);
             }
         });
-        let storybook_failure = super::nightly_storybook::build(&snapshot);
+        let storybook_failure = super::nightly_storybook::build(&snapshot, &directory);
         let args = super::E2eArgs {
             ai_models: None,
             port: None,

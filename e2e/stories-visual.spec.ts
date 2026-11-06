@@ -28,6 +28,8 @@ const ids: string[] = built
   : [];
 
 test.skip(!built, "storybook/storybook-static is missing; run `bun run build` in storybook/");
+test.describe.configure({ retries: 0 });
+test.setTimeout(20_000);
 test.use({ viewport: { width: 1280, height: 720 } });
 
 let server: Server;
