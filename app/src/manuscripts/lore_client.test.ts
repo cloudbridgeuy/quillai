@@ -88,3 +88,30 @@ test("timeline client uses point paths, bodies and statuses", async () => {
   expect(JSON.parse(String(calls[3]![1]!.body))).toEqual({ timelinePointId: null });
   expect(() => parseTimelinePoint({ id: 1, position: 0 })).toThrow();
 });
+
+test("state client uses state paths, bodies and statuses and reports a 409 conflict", async () => {
+  const state = { id: 9, name: "Older", pointId: 5, visibleText: "v", hiddenNotes: "h" };
+  const calls: [string, RequestInit | undefined][] = [];
+  let conflict = false;
+  const client = createLoreClient({ baseUrl: "http://localhost:2908", fetch: async (url, init) => {
+    calls.push([url, init]);
+    if (conflict) return Response.json({ error: "dup", code: "CONFLICT" }, { status: 409 });
+    if (init?.method === "DELETE") return new Response(null, { status: 204 });
+    if (!init?.method || init.method === "GET") return Response.json([state]);
+    return Response.json(state, { status: init.method === "POST" ? 201 : 200 });
+  } });
+  const scope = { universeId: 2, loreId: 4 };
+  expect(await client.listStates(scope)).toEqual([state]);
+  expect(await client.createState(scope, { name: "Older", pointId: 5, visibleText: "v", hiddenNotes: "h" })).toEqual(state);
+  await client.updateState({ ...scope, stateId: 9 }, { name: "Newer" });
+  await client.deleteState({ ...scope, stateId: 9 });
+  expect(calls.map(([url, init]) => [init?.method ?? "GET", url.replace("http://localhost:2908", "")])).toEqual([
+    ["GET", "/universes/2/lore/4/states"], ["POST", "/universes/2/lore/4/states"],
+    ["PUT", "/universes/2/lore/4/states/9"], ["DELETE", "/universes/2/lore/4/states/9"],
+  ]);
+  expect(JSON.parse(String(calls[2]![1]!.body))).toEqual({ name: "Newer" });
+  conflict = true;
+  try { await client.createState(scope, { name: "x", pointId: 5 }); throw new Error("Expected failure"); } catch (error) {
+    expect(error).toMatchObject({ status: 409, code: "CONFLICT" });
+  }
+});

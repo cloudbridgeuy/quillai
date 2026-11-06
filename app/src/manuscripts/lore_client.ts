@@ -10,6 +10,8 @@ export type LoreEntry = LoreMatchEntry & { universe_id: number; hidden_notes: st
 export type LoreInput = Omit<LoreEntry, "id" | "universe_id" | "states">;
 export type PointScope = { pointId: number };
 export type LoreScope = UniverseScope & { loreId: number };
+export type StateScope = LoreScope & { stateId: number };
+export type LoreStateInput = { name: string; pointId: number; visibleText?: string; hiddenNotes?: string };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Expected lore object");
@@ -106,6 +108,13 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
       const parent = own.parentId === null ? null : await fields(own.parentId);
       return { timelinePointId: own.timelinePointId, parent: parent && { timelinePointId: parent.timelinePointId, parent: null } };
     },
+    listStates: (scope: LoreScope) => request(`${lorePath(scope)}/states`, "GET", 200, value => parseList(value, parseLoreState)),
+    createState: (scope: LoreScope, input: LoreStateInput) => request(`${lorePath(scope)}/states`, "POST", 201, parseLoreState, input),
+    updateState: (scope: StateScope, input: Partial<LoreStateInput>) =>
+      request(`${lorePath(scope)}/states/${encodeURIComponent(scope.stateId)}`, "PUT", 200, parseLoreState, input),
+    deleteState: (scope: StateScope) => request(`${lorePath(scope)}/states/${encodeURIComponent(scope.stateId)}`, "DELETE", 204, value => {
+      if (value !== "") throw new Error("Expected empty delete response");
+    }),
     list: (scope: UniverseScope) => request(lorePath(scope), "GET", 200, value => parseList(value, parseLoreEntry)),
     get: (scope: LoreScope) => request(lorePath(scope), "GET", 200, parseLoreEntry),
     create: (scope: UniverseScope, input: LoreInput) => request(lorePath(scope), "POST", 201, parseLoreEntry, input),
