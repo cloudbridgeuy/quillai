@@ -98,6 +98,7 @@ struct World {
     app: Router,
     images: String,
     point: i64,
+    lore: String,
 }
 
 async fn world(base_url: &str, image_model: &str) -> World {
@@ -133,7 +134,98 @@ async fn world(base_url: &str, image_model: &str) -> World {
         app,
         images: format!("/universes/{universe}/lore/{entry}/images"),
         point,
+        lore: format!("/universes/{universe}/lore"),
     }
+}
+
+async fn place_images(world: &World, level: &str) -> String {
+    let place = id_of(
+        &world.app,
+        &world.lore,
+        json!({"kind":"place","name":"Harbor","visible_text":"Salt docks.","hidden_notes":"SECRET tunnel","level":level}),
+    )
+    .await;
+    format!("{}/{place}/images", world.lore)
+}
+
+#[tokio::test]
+async fn place_maps_and_renders_keep_hidden_notes_out_and_reject_leave_out() {
+    let (base_url, mut unused) =
+        mock_images(200, r#"{"data":[{"b64_json":"UklGRmltYWdl"}]}"#).await;
+    let world = world(&base_url, "gpt-image-1-mini").await;
+    let place = place_images(&world, "include").await;
+    let hidden = place_images(&world, "leave_out").await;
+    for (uri, body) in [
+        (&hidden, json!({"purpose":"map"})),
+        (&hidden, json!({"purpose":"render","timeOfDay":"dusk"})),
+        (&world.images, json!({"purpose":"map"})),
+        (&world.images, json!({"purpose":"render"})),
+        (&place, json!({"purpose":"map","timeOfDay":"dusk"})),
+        (&place, json!({"timeOfDay":"night"})),
+    ] {
+        let response = send(&world.app, "POST", uri, body.clone()).await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{uri} {body}"
+        );
+    }
+    assert!(matches!(
+        unused.try_recv(),
+        Err(oneshot::error::TryRecvError::Empty)
+    ));
+    let mut created = Vec::new();
+    for (body, preamble) in [
+        (json!({"purpose":"map"}), "Top-down illustrated map."),
+        (
+            json!({"purpose":"render","timeOfDay":"dusk"}),
+            "Establishing view.",
+        ),
+    ] {
+        let (base_url, request) =
+            mock_images(200, r#"{"data":[{"b64_json":"UklGRmltYWdl"}]}"#).await;
+        json_of(
+            send(
+                &world.app,
+                "PUT",
+                "/settings/ai",
+                json!({"base_url": base_url}),
+            )
+            .await,
+            StatusCode::OK,
+        )
+        .await;
+        let image = json_of(
+            send(&world.app, "POST", &place, body).await,
+            StatusCode::CREATED,
+        )
+        .await;
+        let prompt = request.await.unwrap()["prompt"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(
+            prompt.starts_with(preamble)
+                && prompt.contains("Salt docks.")
+                && !prompt.contains("SECRET"),
+            "{prompt}"
+        );
+        created.push(image);
+    }
+    assert_eq!(created[0]["purpose"], "map");
+    assert_eq!(created[0]["timeOfDay"], Value::Null);
+    assert_eq!(created[1]["purpose"], "render");
+    assert_eq!(created[1]["timeOfDay"], "dusk");
+    assert!(created[1]["prompt"]
+        .as_str()
+        .unwrap()
+        .contains("Time of day: dusk."));
+    let listed = json_of(
+        send(&world.app, "GET", &place, json!({})).await,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(listed, json!(created));
 }
 
 #[tokio::test]
@@ -164,6 +256,8 @@ async fn generates_stores_lists_and_serves_a_lore_image() {
     );
     assert_eq!(created["prompt"], prompt);
     assert_eq!(created["timelinePointId"], world.point);
+    assert_eq!(created["purpose"], "portrait");
+    assert_eq!(created["timeOfDay"], Value::Null);
     assert_eq!(created["mime"], "image/webp");
     assert_eq!(created["cost"], 0.011);
     assert!(created.get("bytes").is_none());

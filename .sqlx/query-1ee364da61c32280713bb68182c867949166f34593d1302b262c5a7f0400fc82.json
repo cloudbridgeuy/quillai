@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id!\", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at FROM lore_images WHERE lore_entry_id = ? ORDER BY id",
+  "query": "SELECT id AS \"id!\", lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, cost, created_at FROM lore_images WHERE lore_entry_id = ? ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -19,38 +19,48 @@
         "type_info": "Integer"
       },
       {
-        "name": "prompt",
+        "name": "purpose",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "model",
+        "name": "time_of_day",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "size",
+        "name": "prompt",
         "ordinal": 5,
         "type_info": "Text"
       },
       {
-        "name": "quality",
+        "name": "model",
         "ordinal": 6,
         "type_info": "Text"
       },
       {
-        "name": "mime",
+        "name": "size",
         "ordinal": 7,
         "type_info": "Text"
       },
       {
-        "name": "cost",
+        "name": "quality",
         "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "cost",
+        "ordinal": 10,
         "type_info": "Float"
       },
       {
         "name": "created_at",
-        "ordinal": 9,
+        "ordinal": 11,
         "type_info": "Text"
       }
     ],
@@ -58,6 +68,8 @@
       "Right": 1
     },
     "nullable": [
+      true,
+      false,
       true,
       false,
       true,
@@ -70,5 +82,5 @@
       false
     ]
   },
-  "hash": "4f6d517245474f4f44e7a5925eb800782c3a10c9ce920160c0938c8a95b14d82"
+  "hash": "1ee364da61c32280713bb68182c867949166f34593d1302b262c5a7f0400fc82"
 }

@@ -25,6 +25,80 @@ use crate::manuscripts::universes::handlers::existing_universe;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CreateImage {
     pub timeline_point_id: Option<i64>,
+    pub purpose: Option<Purpose>,
+    pub time_of_day: Option<TimeOfDay>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Purpose {
+    Portrait,
+    Profile,
+    Map,
+    Render,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TimeOfDay {
+    Dawn,
+    #[default]
+    Day,
+    Dusk,
+    Night,
+}
+
+impl TimeOfDay {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Dawn => "dawn",
+            Self::Day => "day",
+            Self::Dusk => "dusk",
+            Self::Night => "night",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Shot {
+    Portrait,
+    Profile,
+    Map,
+    Render(TimeOfDay),
+}
+
+impl Shot {
+    pub fn parse(
+        purpose: Option<Purpose>,
+        time_of_day: Option<TimeOfDay>,
+    ) -> Result<Option<Shot>, Error> {
+        match (purpose, time_of_day) {
+            (Some(Purpose::Render), time) => Ok(Some(Shot::Render(time.unwrap_or_default()))),
+            (_, Some(_)) => Err(Error::Validation(
+                "timeOfDay is only for render images".into(),
+            )),
+            (None, None) => Ok(None),
+            (Some(Purpose::Portrait), None) => Ok(Some(Shot::Portrait)),
+            (Some(Purpose::Profile), None) => Ok(Some(Shot::Profile)),
+            (Some(Purpose::Map), None) => Ok(Some(Shot::Map)),
+        }
+    }
+
+    fn purpose(shot: Option<Shot>) -> &'static str {
+        match shot {
+            None | Some(Shot::Portrait) => "portrait",
+            Some(Shot::Profile) => "profile",
+            Some(Shot::Map) => "map",
+            Some(Shot::Render(_)) => "render",
+        }
+    }
+
+    fn time_of_day(shot: Option<Shot>) -> Option<&'static str> {
+        match shot {
+            Some(Shot::Render(time)) => Some(time.as_str()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -33,6 +107,8 @@ pub struct LoreImage {
     pub id: i64,
     pub lore_entry_id: i64,
     pub timeline_point_id: Option<i64>,
+    pub purpose: String,
+    pub time_of_day: Option<String>,
     pub prompt: String,
     pub model: String,
     pub size: String,
@@ -60,7 +136,11 @@ pub fn active_state<'a>(
         .map(|(_, state)| state)
 }
 
-pub fn image_prompt(entry: &UniverseLoreEntry, state: Option<&LoreState>) -> Result<String, Error> {
+pub fn image_prompt(
+    entry: &UniverseLoreEntry,
+    state: Option<&LoreState>,
+    shot: Option<Shot>,
+) -> Result<String, Error> {
     let visible_text = state.map_or(entry.visible_text.as_str(), |state| &state.visible_text);
     let lore = parse_lore(json!([{
         "name": entry.name,
@@ -71,15 +151,24 @@ pub fn image_prompt(entry: &UniverseLoreEntry, state: Option<&LoreState>) -> Res
     let entry = lore
         .first()
         .ok_or_else(|| Error::Validation("lore entry is set to Leave out".into()))?;
-    let preamble = match entry.kind {
-        LoreKind::Character => "Head-and-shoulders portrait",
-        LoreKind::Place => "Establishing view",
-        LoreKind::Term | LoreKind::Note => "Illustration",
+    if matches!(shot, Some(Shot::Map | Shot::Render(_))) && entry.kind != LoreKind::Place {
+        return Err(Error::Validation(
+            "map and render images are only for place lore".into(),
+        ));
+    }
+    let preamble = match (shot, entry.kind) {
+        (Some(Shot::Portrait), _) | (None, LoreKind::Character) => "Head-and-shoulders portrait",
+        (Some(Shot::Profile), _) => "Side profile portrait",
+        (Some(Shot::Map), _) => "Top-down illustrated map",
+        (Some(Shot::Render(_)), _) | (None, LoreKind::Place) => "Establishing view",
+        (None, LoreKind::Term | LoreKind::Note) => "Illustration",
     };
+    let time =
+        Shot::time_of_day(shot).map_or(String::new(), |time| format!("Time of day: {time}. "));
     let text = entry.visible_text.trim();
     let separator = if text.is_empty() { "" } else { " " };
     Ok(format!(
-        "{preamble}. Subject: {} ({}). {text}{separator}No text or lettering.",
+        "{preamble}. Subject: {} ({}). {text}{separator}{time}No text or lettering.",
         entry.name,
         entry.kind.as_str()
     ))
@@ -113,6 +202,7 @@ pub async fn create_image(
     input: Result<Json<CreateImage>, JsonRejection>,
 ) -> Result<Response, Error> {
     let Json(input) = input.map_err(Error::from_json_rejection)?;
+    let shot = Shot::parse(input.purpose, input.time_of_day)?;
     let entry = scope(&pool, universe_id, lore_id).await?;
     let prompt = {
         let mut connection = pool.acquire().await?;
@@ -127,7 +217,7 @@ pub async fn create_image(
             })
             .transpose()?;
         let states = states::for_entry(&mut connection, lore_id).await?;
-        image_prompt(&entry, active_state(point, &states, &points))?
+        image_prompt(&entry, active_state(point, &states, &points), shot)?
     };
     let resolved = config::resolve(crate::settings::ai::load(&pool).await?, |key| {
         std::env::var(key).ok()
@@ -156,11 +246,15 @@ pub async fn create_image(
         },
     )
     .await?;
+    let purpose = Shot::purpose(shot);
+    let time_of_day = Shot::time_of_day(shot);
     let image = sqlx::query_as!(
         LoreImage,
-        r#"INSERT INTO lore_images (lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, bytes, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS "id!", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at"#,
+        r#"INSERT INTO lore_images (lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, bytes, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS "id!", lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, cost, created_at"#,
         lore_id,
         input.timeline_point_id,
+        purpose,
+        time_of_day,
         prompt,
         config.model,
         size,
@@ -182,7 +276,7 @@ pub async fn list_images(
     Ok(Json(
         sqlx::query_as!(
             LoreImage,
-            r#"SELECT id AS "id!", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at FROM lore_images WHERE lore_entry_id = ? ORDER BY id"#,
+            r#"SELECT id AS "id!", lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, cost, created_at FROM lore_images WHERE lore_entry_id = ? ORDER BY id"#,
             lore_id,
         )
         .fetch_all(&pool)
@@ -273,20 +367,88 @@ mod tests {
 
     #[test]
     fn image_prompt_uses_visible_text_and_never_hidden_notes() {
-        let prompt = image_prompt(&entry("include"), None).unwrap();
+        let prompt = image_prompt(&entry("include"), None, None).unwrap();
         assert!(prompt.contains("Subject: Mara (character)"), "{prompt}");
         assert!(prompt.contains("A tall smuggler."), "{prompt}");
         assert!(prompt.contains("No text or lettering."), "{prompt}");
         let scarred = state(2, 2, "Scarred and grey.");
-        let prompt = image_prompt(&entry("known_dont_reveal"), Some(&scarred)).unwrap();
+        let prompt = image_prompt(&entry("known_dont_reveal"), Some(&scarred), None).unwrap();
         assert!(
             prompt.contains("Scarred and grey.") && !prompt.contains("smuggler"),
             "{prompt}"
         );
         assert!(!prompt.contains("SECRET"), "{prompt}");
         assert!(matches!(
-            image_prompt(&entry("leave_out"), None),
+            image_prompt(&entry("leave_out"), None, None),
             Err(Error::Validation(_))
         ));
+    }
+
+    #[test]
+    fn shot_pairs_time_of_day_only_with_render() {
+        let shot = |purpose, time| Shot::parse(purpose, time).unwrap();
+        assert_eq!(shot(None, None), None);
+        assert_eq!(shot(Some(Purpose::Map), None), Some(Shot::Map));
+        assert_eq!(
+            shot(Some(Purpose::Render), None),
+            Some(Shot::Render(TimeOfDay::Day))
+        );
+        assert_eq!(
+            shot(Some(Purpose::Render), Some(TimeOfDay::Dusk)),
+            Some(Shot::Render(TimeOfDay::Dusk))
+        );
+        for purpose in [
+            None,
+            Some(Purpose::Portrait),
+            Some(Purpose::Profile),
+            Some(Purpose::Map),
+        ] {
+            assert!(
+                matches!(
+                    Shot::parse(purpose, Some(TimeOfDay::Night)),
+                    Err(Error::Validation(_))
+                ),
+                "{purpose:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn image_prompt_per_purpose_and_time_of_day() {
+        let place = UniverseLoreEntry {
+            kind: "place".into(),
+            name: "Harbor".into(),
+            visible_text: "Salt docks.".into(),
+            hidden_notes: "SECRET tunnel".into(),
+            ..entry("include")
+        };
+        let map = image_prompt(&place, None, Some(Shot::Map)).unwrap();
+        assert_eq!(
+            map,
+            "Top-down illustrated map. Subject: Harbor (place). Salt docks. No text or lettering."
+        );
+        for time in [
+            TimeOfDay::Dawn,
+            TimeOfDay::Day,
+            TimeOfDay::Dusk,
+            TimeOfDay::Night,
+        ] {
+            let render = image_prompt(&place, None, Some(Shot::Render(time))).unwrap();
+            assert_eq!(
+                render,
+                format!(
+                    "Establishing view. Subject: Harbor (place). Salt docks. Time of day: {}. No text or lettering.",
+                    time.as_str()
+                )
+            );
+        }
+        let profile = image_prompt(&entry("include"), None, Some(Shot::Profile)).unwrap();
+        assert!(profile.starts_with("Side profile portrait. "), "{profile}");
+        for shot in [Shot::Map, Shot::Render(TimeOfDay::Day)] {
+            assert!(matches!(
+                image_prompt(&entry("include"), None, Some(shot)),
+                Err(Error::Validation(_))
+            ));
+        }
     }
 }

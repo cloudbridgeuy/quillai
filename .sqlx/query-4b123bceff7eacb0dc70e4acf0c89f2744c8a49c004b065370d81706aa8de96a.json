@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO lore_images (lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, bytes, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS \"id!\", lore_entry_id, timeline_point_id, prompt, model, size, quality, mime, cost, created_at",
+  "query": "INSERT INTO lore_images (lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, bytes, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS \"id!\", lore_entry_id, timeline_point_id, purpose, time_of_day, prompt, model, size, quality, mime, cost, created_at",
   "describe": {
     "columns": [
       {
@@ -19,45 +19,57 @@
         "type_info": "Integer"
       },
       {
-        "name": "prompt",
+        "name": "purpose",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "model",
+        "name": "time_of_day",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "size",
+        "name": "prompt",
         "ordinal": 5,
         "type_info": "Text"
       },
       {
-        "name": "quality",
+        "name": "model",
         "ordinal": 6,
         "type_info": "Text"
       },
       {
-        "name": "mime",
+        "name": "size",
         "ordinal": 7,
         "type_info": "Text"
       },
       {
-        "name": "cost",
+        "name": "quality",
         "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "mime",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "cost",
+        "ordinal": 10,
         "type_info": "Float"
       },
       {
         "name": "created_at",
-        "ordinal": 9,
+        "ordinal": 11,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 9
+      "Right": 11
     },
     "nullable": [
+      true,
+      false,
       true,
       false,
       true,
@@ -70,5 +82,5 @@
       false
     ]
   },
-  "hash": "9bc7f180ef92f003791d1c6e760c9550491e7293d41390bbfef2a1fef6b321e3"
+  "hash": "4b123bceff7eacb0dc70e4acf0c89f2744c8a49c004b065370d81706aa8de96a"
 }
