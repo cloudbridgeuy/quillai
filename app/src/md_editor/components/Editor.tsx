@@ -1497,7 +1497,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             }} />
         </div>
         {chapterSync.scope ? <LorePanel key={lore.universeId ?? "loading"}
-          lore={lore} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>{formatMessage(defaultLocale, "editor.openForLore")}</p>}
+          lore={lore} pieceId={"pieceId" in chapterSync.scope ? chapterSync.scope.pieceId : null} disabled={isBusy || !visuallyReady || chapterSync.blocked} /> : <p>{formatMessage(defaultLocale, "editor.openForLore")}</p>}
         {([ ["Markdown", "md", toMarkdown], [formatMessage(defaultLocale, "editor.textFormat"), "txt", toPlainText] ] as const).map(([label, extension, convert]) =>
           <ButtonLink key={extension} className="shrink-0 self-start" download={`${(chapterSync.title ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "chapter"}.${extension}`}
             href="#" onClick={(event) => {

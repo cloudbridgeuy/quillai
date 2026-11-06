@@ -2,11 +2,13 @@ import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import type { LoreMatchEntry } from "../md_editor/lore_match";
 import type { LoreStateRow, PieceRef, TimelinePoint } from "../md_editor/lore_states";
+import type { NamedPoint } from "./timeline_panel";
 import { ManuscriptApiError } from "./client";
 import { parseApiError, parseContainer, parseList, type SeriesScope, type UniverseScope } from "./contract";
 
 export type LoreEntry = LoreMatchEntry & { universe_id: number; hidden_notes: string; states?: readonly LoreStateRow[] };
 export type LoreInput = Omit<LoreEntry, "id" | "universe_id" | "states">;
+export type PointScope = { pointId: number };
 export type LoreScope = UniverseScope & { loreId: number };
 
 export function parseLoreEntry(value: unknown): LoreEntry {
@@ -46,10 +48,10 @@ function parseLoreState(value: unknown): LoreStateRow {
   return { id, name, pointId, visibleText, hiddenNotes };
 }
 
-export function parseTimelinePoint(value: unknown): TimelinePoint {
+export function parseTimelinePoint(value: unknown): TimelinePoint & NamedPoint {
   const row = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
-  if (typeof row.id !== "number" || typeof row.position !== "number") throw new Error("Invalid timeline point");
-  return { id: row.id, position: row.position };
+  if (typeof row.id !== "number" || typeof row.position !== "number" || typeof row.name !== "string") throw new Error("Invalid timeline point");
+  return { id: row.id, name: row.name, position: row.position };
 }
 
 function parsePieceFields(value: unknown): { parentId: number | null; timelinePointId: number | null } {
@@ -88,6 +90,15 @@ export function createLoreClient({ baseUrl = getApiBaseUrl(), fetch: fetchReques
       value => parseContainer(value).universeId),
     timeline: (scope: UniverseScope) => request(`/universes/${encodeURIComponent(scope.universeId)}/timeline`, "GET", 200,
       value => parseList(value, parseTimelinePoint)),
+    createPoint: (scope: UniverseScope, input: { name: string; position: number }) =>
+      request(`/universes/${encodeURIComponent(scope.universeId)}/timeline`, "POST", 201, parseTimelinePoint, input),
+    updatePoint: ({ pointId }: PointScope, input: { name?: string; position?: number }) =>
+      request(`/timeline/${encodeURIComponent(pointId)}`, "PUT", 200, parseTimelinePoint, input),
+    deletePoint: ({ pointId }: PointScope) => request(`/timeline/${encodeURIComponent(pointId)}`, "DELETE", 204, value => {
+      if (value !== "") throw new Error("Expected empty delete response");
+    }),
+    setPiecePoint: ({ pieceId }: { pieceId: number }, timelinePointId: number | null) =>
+      request(`/pieces/${encodeURIComponent(pieceId)}`, "PUT", 200, parsePieceFields, { timelinePointId }),
     /** Piece plus its parent (groups do not nest), each with its own timeline point. */
     pieceRef: async ({ pieceId }: { pieceId: number }): Promise<PieceRef> => {
       const fields = (id: number) => request(`/pieces/${encodeURIComponent(id)}`, "GET", 200, parsePieceFields);
