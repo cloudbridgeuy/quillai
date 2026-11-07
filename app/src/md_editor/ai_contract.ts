@@ -12,6 +12,8 @@ export type EditablePromptSectionOverrides = Pick<PromptSectionOverrides, "instr
 
 export type AiAction = "generate" | "edit";
 
+export type LoreCompleteRequest = { action: "lore_complete"; loreComplete: Pick<LoreMatchEntry, "name" | "kind"> & { text: string } };
+
 export const DEFAULT_MAX_OUTPUT_TOKENS = 512;
 export const DEFAULT_MAX_LORE_CHARACTERS = 65_536;
 export const MIN_MAX_OUTPUT_TOKENS = 1;

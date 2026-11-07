@@ -64,7 +64,7 @@ GUZ-861 is class a. `cargo xtask e2e` keeps a single API process on a temporary 
 | GUZ-909 | Better rendering of saved lore entries | Backlog | a | needed |
 | GUZ-910 | Plan for many lore matches | Backlog | c | nothing to test |
 | GUZ-911 | Clicking a lore entry cycles through its matches | Backlog | a | needed |
-| GUZ-912 | AI completion in lore text fields | Backlog | a | needed |
+| GUZ-912 | AI completion in lore text fields | Written, not run | a | `e2e/lore-complete.spec.ts` checks caret insert, request body, field scope, Stop, rollback, 503, Escape, the model setting and Leave out |
 | GUZ-913 | Explain "Pin in AI context" | Backlog | a | needed |
 | GUZ-914 | Word, character and line counts | Written, not run | a | `e2e/text-counts.spec.ts` checks document, selection and emoji counts |
 | GUZ-915 | Hint for lore keywords | Backlog | a | needed |

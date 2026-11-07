@@ -352,3 +352,73 @@ test("a 503 asks for an image model and a 422 hides the button", async () => {
   await flush();
   expect(generateButton()).toBeUndefined();
 });
+
+const ndjson = (...events: object[]) => new Response(events.map(event => `${JSON.stringify(event)}\n`).join(""));
+function stubComplete(reply: () => Response, level = "include") {
+  const calls = stubStates();
+  const states = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    const { pathname } = new URL(url);
+    if (pathname === "/ai/generate") { calls.push(`POST /ai/generate ${init?.body}`); return reply(); }
+    const response = await states(url, init);
+    if (pathname !== "/universes/2/lore") return response;
+    return Response.json((await response.json()).map((entry: object) => ({ ...entry, level })));
+  }) as typeof fetch;
+  return calls;
+}
+const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+const visible = () => { const field = byLabel("Visible text (AI context)"); if (!(field instanceof HTMLTextAreaElement)) throw new Error("visible field is not a textarea"); return field; };
+const ctrlEnter = (field: HTMLElement) => act(async () => { field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true })); });
+const aiCalls = (calls: string[]) => calls.filter(call => call.startsWith("POST /ai/generate"));
+
+test("Complete sends only name, kind and text before the caret, and inserts at the caret", async () => {
+  const calls = stubComplete(() => ndjson({ type: "delta", delta: { ops: [{ insert: "More." }] } }, { type: "done", finishReason: "stop" }));
+  await openEntry();
+  await typeInto("Visible text (AI context)", "Born here. After");
+  visible().setSelectionRange(10, 10);
+  expect(button("Complete")).toBeInstanceOf(HTMLButtonElement);
+  await press("Complete");
+  await settle();
+  expect(aiCalls(calls).map(call => JSON.parse(call.slice("POST /ai/generate ".length)))).toEqual([
+    { action: "lore_complete", loreComplete: { name: "Mira", kind: "character", text: "Born here." } },
+  ]);
+  expect(visible().value).toBe("Born here. More. After");
+});
+
+test("Complete appears once, only for the visible field; other fields ignore Ctrl+Enter", async () => {
+  const calls = stubComplete(() => ndjson({ type: "done", finishReason: "stop" }));
+  await openEntry();
+  expect([...document.querySelectorAll("button")].filter(node => node.getAttribute("aria-label") === "Complete")).toHaveLength(1);
+  for (const label of ["Hidden notes — author-only, never sent to AI", "Keywords (one per line)", "Aliases (one per line)"]) await ctrlEnter(byLabel(label));
+  await settle();
+  expect(aiCalls(calls)).toEqual([]);
+});
+
+test("a leave_out entry hides Complete and ignores Ctrl+Enter until its level changes", async () => {
+  const calls = stubComplete(() => ndjson({ type: "done", finishReason: "stop" }), "leave_out");
+  await render(<Harness />); await flush(); await flush(); await press("Mira · character"); await flush();
+  expect(button("Complete")).toBeUndefined();
+  await ctrlEnter(visible());
+  await settle();
+  expect(aiCalls(calls)).toEqual([]);
+  await typeInto("In AI requests", "include");
+  expect(button("Complete")).toBeInstanceOf(HTMLButtonElement);
+});
+
+test("a failed completion removes only the AI text and shows the error under the field", async () => {
+  stubComplete(() => ndjson({ type: "delta", delta: { ops: [{ insert: "Partial" }] } }, { type: "error", error: "provider failed" }));
+  await openEntry();
+  expect(button("Complete")).toBeInstanceOf(HTMLButtonElement);
+  await press("Complete");
+  await settle();
+  expect(visible().value).toBe("base");
+  expect(document.body.textContent).toContain("provider failed");
+  await cleanup();
+  stubComplete(() => Response.json({ error: "x", code: "AI_NOT_CONFIGURED" }, { status: 503 }));
+  await openEntry();
+  expect(button("Complete")).toBeInstanceOf(HTMLButtonElement);
+  await press("Complete");
+  await settle();
+  expect(visible().value).toBe("base");
+  expect([...document.querySelectorAll('[role="alert"]')].map(node => node.textContent)).toContain(formatMessage("en", "error.aiNotConfigured"));
+});

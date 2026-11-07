@@ -1,9 +1,12 @@
 import { defaultLocale, formatMessage } from "../../i18n/messages";
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
 import type { LoreEntry, LoreInput } from "../../manuscripts/lore_client";
 import { newLoreDraft, parseLoreTerms, replaceLoreEntry } from "../../manuscripts/lore_panel";
 import type { useLore } from "../../manuscripts/use_lore";
 import { Button } from "../../ui/Button";
+import { IconButton } from "../../ui/IconButton";
+import { effectivePoint, resolveLoreEntry } from "../lore_states";
+import { streamLoreComplete } from "../lore_complete";
 import { ListButton } from "../../ui/ListButton";
 import { Alert } from "../../ui/Alert";
 import { Select } from "../../ui/Select";
@@ -26,9 +29,17 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState("");
+  const completion = useRef<AbortController | null>(null);
+  const visibleRef = useRef<HTMLTextAreaElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const formId = useId();
   function close() {
+    completion.current?.abort();
+    completion.current = null;
+    setCompleting(false);
+    setCompleteError("");
     setDraft(null);
     setDeleteArmed(false);
     setError("");
@@ -39,6 +50,39 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
     setEditingId(entry?.id ?? null);
     setDraft(entry ?? newLoreDraft());
     setError("");
+    setCompleteError("");
+  }
+  async function complete() {
+    const caret = visibleRef.current?.selectionStart;
+    if (!draft || caret === undefined) return;
+    const before = draft.visible_text.slice(0, caret);
+    const after = draft.visible_text.slice(caret);
+    const controller = new AbortController();
+    completion.current = controller;
+    setCompleting(true);
+    setCompleteError("");
+    let inserted = "";
+    const show = (text: string) => { if (completion.current === controller) setDraft(current => current && { ...current, visible_text: before + text + after }); };
+    try {
+      await streamLoreComplete({ action: "lore_complete", loreComplete: { name: draft.name, kind: draft.kind, text: before } }, controller.signal, text => {
+        inserted += inserted === "" && /\S$/.test(before) && /^\S/.test(text) ? ` ${text}` : text;
+        show(inserted);
+      });
+    } catch (failure) {
+      show("");
+      if (completion.current === controller && !controller.signal.aborted) setCompleteError(failure instanceof Error ? failure.message : formatMessage(defaultLocale, "lore.completeFailed"));
+    } finally {
+      if (completion.current === controller) { completion.current = null; setCompleting(false); }
+    }
+  }
+  function toggleCompletion() {
+    if (completing) completion.current?.abort();
+    else if (canComplete) void complete();
+  }
+  function completeKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    toggleCompletion();
   }
   async function save(remove = false) {
     const universeId = lore.universeId;
@@ -73,6 +117,9 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
     } finally { setPending(false); }
   }
   const editingEntry = lore.entries.find(entry => entry.id === editingId);
+  const pointsById = new Map(lore.points.map(point => [point.id, point]));
+  const leftOut = draft !== null && resolveLoreEntry(draft, editingEntry?.states ?? [], effectivePoint(lore.piece, pointsById), pointsById).level === "leave_out";
+  const canComplete = draft !== null && !leftOut && !disabled && !pending && draft.name.trim() !== "";
   const inherited = inheritedPoint(lore.piece, lore.points);
   const emptyPointLabel = inherited ? formatMessage(defaultLocale, "timeline.inherit", { name: inherited.name }) : formatMessage(defaultLocale, "timeline.base");
   return <section className="editor-lore-panel" aria-label={formatMessage(defaultLocale, "lore.series")}>
@@ -95,9 +142,9 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
       <TimelineManager lore={lore} disabled={disabled || pending} />
     </> : null}
     {draft ? <Modal data-manuscript-draft title={formatMessage(defaultLocale, editingId === null ? "lore.create" : "lore.edit")} onClose={close} returnFocusRef={returnFocusRef}
-      footer={<>{editingId !== null ? <Button variant="danger" disabled={disabled || pending}
+      footer={<>{editingId !== null ? <Button variant="danger" disabled={disabled || pending || completing}
         onClick={() => { if (deleteArmed) void save(true); else setDeleteArmed(true); }}>{formatMessage(defaultLocale, deleteArmed ? "landing.deleted.confirmDelete" : "lore.delete")}</Button> : null}
-        <Button variant="primary" type="submit" form={formId} disabled={disabled || pending || !draft.name.trim()}>{formatMessage(defaultLocale, "lore.save")}</Button></>}>
+        <Button variant="primary" type="submit" form={formId} disabled={disabled || pending || completing || !draft.name.trim()}>{formatMessage(defaultLocale, "lore.save")}</Button></>}>
       <form id={formId} onSubmit={event => { event.preventDefault(); void save(); }}>
       <fieldset disabled={disabled || pending}>
         <Field className="my-3" label={formatMessage(defaultLocale, "tree.kind")}><TextField as="select" value={draft.kind}
@@ -111,8 +158,11 @@ export function LorePanel({ lore, disabled, pieceId = null }: { lore: ReturnType
             onChange={event => setDraft({ ...draft, [field]: parseLoreTerms(event.target.value) })} />
         </Field>)}
         <p id={`${formId}-terms-hint`} className="text-ui text-graphite">{TERMS_HINT}</p>
-        <Field className="my-3" label={formatMessage(defaultLocale, "lore.visible")}><StickyNote tone="green" rows={3}
-          value={draft.visible_text} onChange={event => setDraft({ ...draft, visible_text: event.target.value })} /></Field>
+        <Field className="my-3" label={formatMessage(defaultLocale, "lore.visible")}><StickyNote tone="green" rows={3} ref={visibleRef}
+          readOnly={completing} onKeyDown={completeKey} value={draft.visible_text} onChange={event => setDraft({ ...draft, visible_text: event.target.value })} /></Field>
+        {leftOut ? null : <IconButton label={formatMessage(defaultLocale, completing ? "lore.completeStop" : "lore.complete")} glyph={completing ? "■" : "✎"}
+          disabled={!completing && !canComplete} onClick={toggleCompletion} />}
+        {completeError ? <Alert tone="error" variant="inline">{completeError}</Alert> : null}
         <Field className="my-3" label={formatMessage(defaultLocale, "lore.hidden")}><StickyNote tone="green" rows={3}
           value={draft.hidden_notes} onChange={event => setDraft({ ...draft, hidden_notes: event.target.value })} /></Field>
         <Field className="my-3" label={formatMessage(defaultLocale, "lore.requests")}><TextField as="select" value={draft.level}

@@ -128,3 +128,12 @@ test("without focusAction nothing in AiSettings takes focus", async () => {
   const { container } = await setup(base);
   expect(container.contains(document.activeElement)).toBe(false);
 });
+
+test("the Lore completion menu lists text models, shows Default and saves lore_complete_model", async () => {
+  const { select, choose, save, updates } = await setup(base, Response.json(imageCatalog));
+  expect(select("Lore completion model")).toBeInstanceOf(HTMLSelectElement);
+  expect([...select("Lore completion model")!.options].map(o => `${o.value}|${o.textContent}`)).toEqual(["|Default", "m1|Model One", "m2|Model Two"]);
+  await choose("Lore completion model", "m2");
+  await save();
+  expect(updates).toEqual([{ lore_complete_model: "m2" }]);
+});
