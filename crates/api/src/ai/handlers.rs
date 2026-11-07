@@ -61,6 +61,7 @@ pub async fn models(
             "generate": preferred(saved.generate_model.as_deref(), AiAction::Generate),
             "edit": preferred(saved.edit_model.as_deref(), AiAction::Edit),
             "image": preferred(saved.image_model.as_deref(), AiAction::Image),
+            "lore_complete": preferred(saved.lore_complete_model.as_deref(), AiAction::LoreComplete),
         })),
     })))
 }

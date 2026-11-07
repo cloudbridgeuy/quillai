@@ -50,7 +50,8 @@ fn image_action_parses_but_text_request_rejects_it() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "image".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("A lighthouse".into()),
@@ -78,7 +79,8 @@ fn generate_request_parses_and_sanitizes() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: RawDocumentSlice {
+        lore_complete: None,
+        document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![
                     DeltaOp {
@@ -96,7 +98,7 @@ fn generate_request_parses_and_sanitizes() {
                 ],
             },
             text: "Hello".into(),
-        },
+        }),
         selection: Some(text_selection("", 5, 0)),
         story_context: Some("  scene notes  ".into()),
         instruction: Some("   ".into()),
@@ -136,7 +138,8 @@ fn edit_requires_non_empty_selection() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: Some(text_selection("", 0, 0)),
         story_context: None,
         instruction: Some("tighten".into()),
@@ -156,7 +159,8 @@ fn malformed_document_is_rejected_at_boundary() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: RawDocumentSlice {
+        lore_complete: None,
+        document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
                     insert: Some(InsertValue::Text("Hello".into())),
@@ -166,7 +170,7 @@ fn malformed_document_is_rejected_at_boundary() {
                 }],
             },
             text: "Hello".into(),
-        },
+        }),
         selection: None,
         story_context: None,
         instruction: None,
@@ -188,7 +192,8 @@ fn selection_must_fit_sanitized_document_text_span() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: Some(text_selection("o!", 4, 2)),
         story_context: None,
         instruction: Some("tighten".into()),
@@ -210,7 +215,8 @@ fn selection_text_must_match_document_span() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello world"),
+        lore_complete: None,
+        document: Some(text_document("Hello world")),
         selection: Some(text_selection("there", 6, 5)),
         story_context: None,
         instruction: Some("tighten".into()),
@@ -232,7 +238,8 @@ fn selected_text_uses_selection_slice_text() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello world"),
+        lore_complete: None,
+        document: Some(text_document("Hello world")),
         selection: Some(text_selection("world", 6, 5)),
         story_context: None,
         instruction: Some("tighten".into()),
@@ -252,7 +259,8 @@ fn selection_delta_text_must_match_selection_text() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello world"),
+        lore_complete: None,
+        document: Some(text_document("Hello world")),
         selection: Some(RawSelectionSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
@@ -288,7 +296,8 @@ fn document_text_must_match_sanitized_delta_text() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: RawDocumentSlice {
+        lore_complete: None,
+        document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
                     insert: Some(InsertValue::Text("Hello".into())),
@@ -298,7 +307,7 @@ fn document_text_must_match_sanitized_delta_text() {
                 }],
             },
             text: "Goodbye".into(),
-        },
+        }),
         selection: None,
         story_context: None,
         instruction: None,
@@ -320,7 +329,8 @@ fn document_and_selection_slices_reject_embeds() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: RawDocumentSlice {
+        lore_complete: None,
+        document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
                     insert: Some(InsertValue::Embed(json!({ "image": "x" }))),
@@ -330,7 +340,7 @@ fn document_and_selection_slices_reject_embeds() {
                 }],
             },
             text: "".into(),
-        },
+        }),
         selection: None,
         story_context: None,
         instruction: None,
@@ -349,7 +359,8 @@ fn document_and_selection_slices_reject_embeds() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: Some(RawSelectionSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
@@ -385,7 +396,8 @@ fn utf16_selection_indices_accept_emoji_spans() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hi 💡 there"),
+        lore_complete: None,
+        document: Some(text_document("Hi 💡 there")),
         selection: Some(text_selection("💡", 3, 2)),
         story_context: None,
         instruction: Some("tighten".into()),
@@ -425,7 +437,8 @@ fn blank_message_content_is_rejected() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("continue".into()),
@@ -450,7 +463,8 @@ fn invalid_message_role_is_rejected() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("continue".into()),
@@ -475,7 +489,8 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("continue".into()),
@@ -492,7 +507,8 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("continue".into()),
@@ -511,7 +527,8 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
-        document: text_document("Hello"),
+        lore_complete: None,
+        document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
         instruction: Some("continue".into()),
@@ -533,7 +550,8 @@ fn edit_requests_drop_generate_only_thread_fields() {
         lore: empty_lore(),
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
-        document: text_document("Hello world"),
+        lore_complete: None,
+        document: Some(text_document("Hello world")),
         selection: Some(text_selection("world", 6, 5)),
         story_context: None,
         instruction: Some("tighten".into()),

@@ -19,7 +19,8 @@ pub struct GenerateRequest {
     #[serde(default = "empty_section_overrides")]
     pub section_overrides: serde_json::Value,
     pub action: String,
-    pub document: RawDocumentSlice,
+    pub document: Option<RawDocumentSlice>,
+    pub lore_complete: Option<serde_json::Value>,
     pub selection: Option<RawSelectionSlice>,
     pub story_context: Option<String>,
     pub instruction: Option<String>,
@@ -76,6 +77,7 @@ pub enum AiAction {
     Generate,
     Edit,
     Image,
+    LoreComplete,
 }
 
 impl AiAction {
@@ -84,6 +86,7 @@ impl AiAction {
             Self::Generate => "generate",
             Self::Edit => "edit",
             Self::Image => "image",
+            Self::LoreComplete => "lore_complete",
         }
     }
 }
@@ -150,6 +153,7 @@ pub struct GenerateInput {
     pub messages: Vec<ConversationMessage>,
     pub resume_prompt: Option<String>,
     pub max_output_tokens: usize,
+    pub lore_complete: Option<super::lore_complete::LoreCompleteInput>,
 }
 
 impl GenerateInput {
@@ -185,7 +189,9 @@ impl GenerateInput {
                 .resume_prompt
                 .as_deref()
                 .or(self.instruction.as_deref()),
-            AiAction::Edit | AiAction::Image => self.instruction.as_deref(),
+            AiAction::Edit | AiAction::Image | AiAction::LoreComplete => {
+                self.instruction.as_deref()
+            }
         }
     }
 }
@@ -228,8 +234,9 @@ impl TryFrom<String> for AiAction {
             "generate" => Ok(Self::Generate),
             "edit" => Ok(Self::Edit),
             "image" => Ok(Self::Image),
+            "lore_complete" => Ok(Self::LoreComplete),
             _ => Err(Error::Validation(
-                "action must be one of: generate, edit".into(),
+                "action must be one of: generate, edit, lore_complete".into(),
             )),
         }
     }
@@ -312,6 +319,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             section_overrides,
             action,
             document,
+            lore_complete,
             selection,
             story_context,
             instruction,
@@ -323,12 +331,17 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         let action = AiAction::try_from(action)?;
         if action == AiAction::Image {
             return Err(Error::Validation(
-                "action must be one of: generate, edit".into(),
+                "action must be one of: generate, edit, lore_complete".into(),
             ));
+        }
+        if action == AiAction::LoreComplete {
+            return super::lore_complete::parse(lore_complete);
         }
         let lore = super::lore::parse_lore(lore)?;
         let section_overrides = SectionOverrides::try_from(section_overrides)?;
-        let document = DocumentSlice::try_from(document)?;
+        let document = DocumentSlice::try_from(
+            document.ok_or_else(|| Error::Validation("document is required".into()))?,
+        )?;
         let selection = selection.map(SelectionSlice::try_from).transpose()?;
         let messages = if action == AiAction::Generate {
             messages
@@ -366,6 +379,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
                 None
             },
             max_output_tokens: normalize_max_output_tokens(max_output_tokens)?,
+            lore_complete: None,
         })
     }
 }

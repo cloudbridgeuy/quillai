@@ -10,6 +10,9 @@ const EDIT_RULES: &str = concat!(
 );
 
 pub fn build_prompt(input: &GenerateInput) -> String {
+    if let Some(lore_complete) = &input.lore_complete {
+        return super::lore_complete::build_prompt(lore_complete);
+    }
     let instruction = escape_prompt_text(section_text(
         input,
         PromptSectionId::Instruction,
@@ -57,7 +60,7 @@ pub fn build_prompt(input: &GenerateInput) -> String {
         match input.action {
             AiAction::Generate => GENERATE_RULES,
             AiAction::Edit => EDIT_RULES,
-            AiAction::Image => "",
+            AiAction::Image | AiAction::LoreComplete => "",
         },
         input.action.as_str(),
         instruction,
@@ -154,6 +157,7 @@ mod tests {
             messages: vec![],
             resume_prompt: None,
             max_output_tokens: 512,
+            lore_complete: None,
         };
 
         let prompt = build_prompt(&input);
@@ -210,6 +214,7 @@ mod tests {
             messages: vec![],
             resume_prompt: None,
             max_output_tokens: 512,
+            lore_complete: None,
         };
 
         let prompt = build_prompt(&input);
@@ -259,6 +264,7 @@ mod tests {
             messages: vec![],
             resume_prompt: Some("resume from cutoff".into()),
             max_output_tokens: 512,
+            lore_complete: None,
         };
 
         let prompt = build_prompt(&input);
@@ -291,6 +297,7 @@ mod tests {
             messages: vec![],
             resume_prompt: None,
             max_output_tokens: 512,
+            lore_complete: None,
         };
 
         let prompt = build_prompt(&input);

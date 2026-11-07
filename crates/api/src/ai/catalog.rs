@@ -85,6 +85,7 @@ struct Defaults {
     generate: String,
     edit: String,
     image: Option<String>,
+    lore_complete: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -101,6 +102,7 @@ pub struct ModelCatalog {
     generate: usize,
     edit: usize,
     image: Option<usize>,
+    lore_complete: usize,
 }
 
 impl ModelCatalog {
@@ -142,12 +144,20 @@ impl ModelCatalog {
             .as_deref()
             .map(|id| default_index("image", id, ModelKind::Image))
             .transpose()?;
+        let lore_complete = file
+            .defaults
+            .lore_complete
+            .as_deref()
+            .map(|id| default_index("lore_complete", id, ModelKind::Text))
+            .transpose()?
+            .unwrap_or(generate);
         Ok(Self {
             models: file.models,
             file: true,
             generate,
             edit,
             image,
+            lore_complete,
         })
     }
 
@@ -173,6 +183,7 @@ impl ModelCatalog {
             generate: 0,
             edit: 0,
             image: None,
+            lore_complete: 0,
         })
     }
 
@@ -193,6 +204,7 @@ impl ModelCatalog {
             AiAction::Generate => Some(self.generate),
             AiAction::Edit => Some(self.edit),
             AiAction::Image => self.image,
+            AiAction::LoreComplete => Some(self.lore_complete),
         }
         .map(|index| &self.models[index])
     }

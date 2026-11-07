@@ -3,6 +3,7 @@ pub mod config;
 pub mod handlers;
 pub mod images;
 pub mod lore;
+pub mod lore_complete;
 pub mod models;
 mod overlap;
 pub mod prompt;
