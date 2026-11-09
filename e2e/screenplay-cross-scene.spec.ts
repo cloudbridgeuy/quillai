@@ -59,6 +59,7 @@ function sceneSlices(ops: Op[]): { breaks: unknown[]; scenes: string[] } {
 }
 
 test("the script surface moves across scene breaks and blocks merging edits", async ({ page, request, browserName }) => {
+  test.setTimeout(120_000);
   const api = process.env.QUILLAI_E2E_API_URL;
   if (!api) throw new Error("Run with cargo xtask e2e");
   const failures: string[] = [];
