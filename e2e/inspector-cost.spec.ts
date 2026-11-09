@@ -102,7 +102,7 @@ for (const width of [1100, 1440]) {
     generate = "e2e-repeat";
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByRole("dialog", { name: "Settings" }).getByRole("button", { name: "Save AI settings" }).click();
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Context inspector", exact: true }).click();
     await cost.scrollIntoViewIfNeeded();
     await expectCostWords(cost);
     const selected = valueFor(cost, "Model");

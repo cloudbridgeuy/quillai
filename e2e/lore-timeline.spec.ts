@@ -14,7 +14,8 @@ test("author adds timeline points and sets the chapter's point", async ({ page, 
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, pieceId: String(piece.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
 
-  const picker = page.getByLabel("This chapter happens at", { exact: true });
+  const picker = page.getByRole("combobox", { name: "This chapter happens at", exact: true });
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await expect(picker).toHaveValue("");
   await expect(picker.locator("option").first()).toHaveText("No point (base text)");
 
@@ -37,7 +38,8 @@ test("author adds timeline points and sets the chapter's point", async ({ page, 
   await expect(picker.locator("option:checked")).toHaveText("Opening");
   await page.reload();
   await expectEditorReady(page.locator(".ql-editor"));
-  await expect(page.getByLabel("This chapter happens at", { exact: true }).locator("option:checked")).toHaveText("Opening");
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "This chapter happens at", exact: true }).locator("option:checked")).toHaveText("Opening");
 });
 
 test("a chosen point applies the lore state, deleting it falls back to base, and a failed save keeps the picker", async ({ page, request }) => {
@@ -60,17 +62,24 @@ test("a chosen point applies the lore state, deleting it falls back to base, and
   await expectEditorReady(page.locator(".ql-editor"));
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const inspector = page.locator("#context-drawer");
-  const picker = page.getByLabel("This chapter happens at", { exact: true });
+  const picker = page.getByRole("combobox", { name: "This chapter happens at", exact: true });
 
   await expect(inspector).toContainText("Mira · base");
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await picker.selectOption({ label: "Late" });
   await expect(picker.locator("option:checked")).toHaveText("Late");
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(inspector).toContainText("Mira · state Old");
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await picker.selectOption({ label: "No point (base text)" });
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(inspector).toContainText("Mira · base");
 
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await picker.selectOption({ label: "Late" });
+  await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await expect(inspector).toContainText("Mira · state Old");
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await page.getByRole("button", { name: "Timeline", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Timeline", exact: true });
   await dialog.getByRole("button", { name: "Late", exact: true }).click();
@@ -83,7 +92,8 @@ test("a chosen point applies the lore state, deleting it falls back to base, and
   const other = await send("post", `${api}/universes/${universe.id}/timeline`, { name: "Later", position: 20 });
   await page.reload();
   await expectEditorReady(page.locator(".ql-editor"));
-  const reloaded = page.getByLabel("This chapter happens at", { exact: true });
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
+  const reloaded = page.getByRole("combobox", { name: "This chapter happens at", exact: true });
   await page.route(`**/pieces/${piece.id}`, route => route.request().method() === "PUT"
     ? route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "boom", code: "INTERNAL" }) })
     : route.continue());
@@ -107,8 +117,9 @@ test("a chapter without its own point shows the parent's point as inherited", as
   const child = await send("post", `${api}/pieces/${group.id}/children`, { title: "Chapter", position: 0 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, pieceId: String(child.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
 
-  const picker = page.getByLabel("This chapter happens at", { exact: true });
+  const picker = page.getByRole("combobox", { name: "This chapter happens at", exact: true });
   await expect(picker).toHaveValue("");
   await expect(picker.locator("option").first()).toHaveText("Inherit: Act one");
   await picker.selectOption({ label: "Act one" });

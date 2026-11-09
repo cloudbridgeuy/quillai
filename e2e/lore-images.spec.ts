@@ -22,6 +22,7 @@ test("lore entry generates an image and shows its thumbnail", async ({ page, req
   await page.route(`**/lore/${mira.id}/images/7`, route => route.fulfill({ contentType: "image/webp", body: Buffer.from("RIFFimage") }));
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await page.getByRole("region", { name: "Series lore", exact: true }).getByRole("button", { name: /Mira/ }).click();
   const dialog = page.getByRole("dialog", { name: "Edit lore" });
   await expect(dialog.getByText(/Estimated cost: /)).toBeVisible();
@@ -51,6 +52,7 @@ test("place lore chooses map or render and Leave out hides Generate", async ({ p
   await page.route(`**/lore/${harbor.id}/images/*`, route => route.fulfill({ contentType: "image/webp", body: Buffer.from("RIFFimage") }));
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
+  await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   const lore = page.getByRole("region", { name: "Series lore", exact: true });
   await lore.getByRole("button", { name: /Harbor/ }).click();
   const dialog = page.getByRole("dialog", { name: "Edit lore" });

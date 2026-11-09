@@ -23,18 +23,18 @@ test("author adds, edits and deletes a lore state in the entry modal and sees th
   await expect(states.getByText("No states yet.", { exact: true })).toBeVisible();
 
   await states.getByLabel("State name", { exact: true }).fill("Young");
-  await states.getByLabel("Point", { exact: true }).selectOption({ label: "Early" });
+  await states.getByRole("combobox", { name: "Point", exact: true }).selectOption({ label: "Early" });
   await states.getByLabel("State text", { exact: true }).fill("YOUNG_TEXT");
   await states.getByRole("button", { name: "Add state", exact: true }).click();
   await expect(states.getByRole("button", { name: "Young · Early", exact: true })).toBeVisible();
 
   await states.getByLabel("State name", { exact: true }).fill("Duplicate");
-  await states.getByLabel("Point", { exact: true }).selectOption({ label: "Early" });
+  await states.getByRole("combobox", { name: "Point", exact: true }).selectOption({ label: "Early" });
   await states.getByRole("button", { name: "Add state", exact: true }).click();
   await expect(states.getByText("This entry already has a state at that point.", { exact: true })).toBeVisible();
 
   await states.getByRole("button", { name: "Young · Early", exact: true }).click();
-  await states.getByLabel("Point", { exact: true }).selectOption({ label: "Late" });
+  await states.getByRole("combobox", { name: "Point", exact: true }).selectOption({ label: "Late" });
   await states.getByRole("button", { name: "Save state", exact: true }).click();
   await expect(states.getByRole("button", { name: "Young · Late", exact: true })).toBeVisible();
 
