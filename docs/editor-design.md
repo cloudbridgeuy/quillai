@@ -189,7 +189,7 @@ New spec `e2e/lore-complete.spec.ts` (proposed name), at 1100px and 1440px:
 
 ## Dialogue typing (GUZ-1532)
 
-Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; "Open" marks questions for the owner. Today the prose editor has no quote or dash handling; its only typing rewrite is the markdown shortcut (`app/src/md_editor/components/Editor.tsx:123-165`).
+Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; "Owner decision" marks the owner's answers to its open questions. Today the prose editor has no quote or dash handling; its only typing rewrite is the markdown shortcut (`app/src/md_editor/components/Editor.tsx:123-165`).
 
 ### Triggers and replacements
 
@@ -198,7 +198,8 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 - `"` becomes `“` in opening context, otherwise `”` (proposed). After an em dash it opens: `—“Hola”` (proposed).
 - `'` becomes `‘` in opening context, otherwise `’` (proposed). So `don't` → `don’t`, `'Hi'` → `‘Hi’`.
 - Nested quotes need no state: `"She said 'no'"` → `“She said ‘no’”` from the same context rule (proposed).
-- Known limits: `rock 'n' roll` gives `‘n’` and `'90s` gives `‘90s` (leading apostrophe after a space looks like an opening quote). Accept them, as word processors do; Undo gives the straight `'` and the author can type `’` by hand (proposed). Open: add a fix-up that turns `‘` into `’` when the next typed character is a digit?
+- Known limits: `rock 'n' roll` gives `‘n’` and `'90s` gives `‘90s` (leading apostrophe after a space looks like an opening quote). Accept `‘n’`, as word processors do; Undo gives the straight `'` and the author can type `’` by hand (proposed).
+- Digit fix-up: when the author types a digit and the character before it is the `‘` the previous keystroke's replacement made, that `‘` becomes `’`, so `'90s` gives `’90s` (owner decision). The editor remembers the index of its last `‘`; a `‘` typed by hand or pasted is left alone. The fix-up is its own undo step, like other replacements.
 - `--` becomes `—` anywhere on a line, not only at line start, because Spanish dialogue tags need mid-line dashes: `--Hola --dijo--.` → `—Hola —dijo—.` (proposed). A hyphen typed after `—` stays a hyphen; `---` never becomes two dashes (proposed). No en dash rule (proposed).
 
 ### Undo
@@ -210,16 +211,16 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 - Markdown shortcuts: they act only when the last inserted character is `*` or `_` (`Editor.tsx:135`) and run for source `user` (`Editor.tsx:124`) from the shared text-change listener (`Editor.tsx:253-256`). Dialogue triggers are disjoint, so neither rewrite fires the other. The dialogue rewrite runs in the same listener, after `processMarkdownSyntax` (proposed).
 - Paste: inserts more than one character, so it is never converted (proposed). Pasted straight quotes stay straight.
-- IME: no replacement while Quill reports an active composition; the composed text is never rewritten (proposed). Open: dead-key layouts (Spanish, US International) may produce `'` and `"` through composition; the build ticket checks this in Chromium before deciding whether committed composition text of exactly one trigger character converts.
-- AI text: Continue and Edit insert with non-`user` sources, which the shortcut guard skips (`Editor.tsx:124`); the same guard means AI text is never converted (proposed). Typing a quote during a stream converts only the typed character. `--` is not converted while a Continue stream is active, because the first hyphen may be AI-owned text that rollback must delete (proposed).
-- Continue overlap removal runs on the server against the document text before the caret (`crates/api/src/ai/handlers.rs:128-135`). Open: if the model echoes straight quotes where the document has curly ones, overlap may not match. The build ticket checks `crates/api/src/ai/overlap.rs` and, if needed, files a follow-up to fold quote forms when comparing; this spec changes no server code.
+- IME: no replacement while Quill reports an active composition; the composed text is never rewritten (proposed). Dead-key layouts (Spanish, US International): when a composition commits exactly one `"` or `'`, the same rule applies (owner decision). The build ticket confirms the composition events in Chromium.
+- AI text: Continue and Edit insert with non-`user` sources, which the shortcut guard skips (`Editor.tsx:124`); the same guard means AI text is never converted (proposed). AI-inserted text stays straight, so a manuscript may mix curly typed quotes with straight AI quotes; accepted for this ticket, and a follow-up ticket converts AI text after a run finishes (owner decision). Typing a quote during a stream converts only the typed character. `--` is not converted while a Continue stream is active, because the first hyphen may be AI-owned text that rollback must delete (proposed).
+- Continue overlap removal runs on the server against the document text before the caret (`crates/api/src/ai/handlers.rs:128-135`). If the model echoes straight quotes where the document has curly ones, overlap may not match. The build ticket reads `crates/api/src/ai/overlap.rs` and files a follow-up to fold quote forms only if matching really breaks; this spec changes no server code (owner decision).
 - Chapter sync: every editor text-change calls `chapterSync.documentChanged` (`Editor.tsx:1623`), which reads the whole Quill document and passes it to the session's `edit` (`app/src/md_editor/use_chapter_sync.ts:286-288`, `app/src/md_editor/chapter_session.ts:245`). A `user` replacement is one more text-change, so it reaches the server through the same path as typing. `chapter_session.ts` does not change. The extra `user` change also counts as a manual edit for the Continue thread (`Editor.tsx:1629-1633`), as the typed character already does.
 
 ### Language
 
 - No manuscript language exists yet (GUZ-691, `docs/rules-engine.md`). EPUB export uses the UI locale (`Editor.tsx:465`).
 - Options: one global rule; an author setting (`“”` or `«»`); or wait for GUZ-691.
-- Recommended (proposed): one global rule now, `“ ” ‘ ’` plus `--` → `—`, always on. It serves English and the many Spanish writers who use `“”` for quotes and `—` for dialogue. `«»` stays typed by hand. When GUZ-691 adds series language, revisit per-language quote pairs. Open: should authors get an off switch in Settings now?
+- Recommended (proposed): one global rule now, `“ ” ‘ ’` plus `--` → `—`, always on. It serves English and the many Spanish writers who use `“”` for quotes and `—` for dialogue. `«»` stays typed by hand. When GUZ-691 adds series language, revisit per-language quote pairs. No Settings off switch now; undo reverses each replacement (owner decision).
 
 ### Screenplay mode
 
@@ -231,10 +232,10 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ### Tests
 
-- Pure function in new `app/src/md_editor/dialogue_typing.ts`: `(lineBeforeCaret, typed) => { remove: number; insert: string } | null` (proposed). Red/green Bun tests in `dialogue_typing.test.ts` for each rule above, including line start, after space, after `(` and `—`, after a letter or punctuation, `don't`, nested single quotes, the two known limits, `--` at line start and mid-line, `---`, and non-trigger characters.
+- Pure function in new `app/src/md_editor/dialogue_typing.ts`: `(lineBeforeCaret, typed) => { remove: number; insert: string } | null` (proposed). Red/green Bun tests in `dialogue_typing.test.ts` for each rule above, including line start, after space, after `(` and `—`, after a letter or punctuation, `don't`, nested single quotes, `rock 'n' roll`, the digit fix-up (`'90s` → `’90s`, and no fix-up after a hand-typed `‘`), `--` at line start and mid-line, `---`, and non-trigger characters.
 - E2E cases, written in new `e2e/dialogue-typing.spec.ts` (proposed name), not run in the ticket, at 1100px and 1440px:
   1. Typing `"Hi," she said.` saves `“Hi,” she said.`; reload shows it.
-  2. `don't` and `'no'` inside double quotes save `don’t` and `‘no’`.
+  2. `don't` and `'no'` inside double quotes save `don’t` and `‘no’`; `the '90s` saves `the ’90s`.
   3. `--Hola --dijo--.` saves `—Hola —dijo—.`
   4. One Cmd/Ctrl+Z after `"` shows `"`; a second removes it.
   5. Pasting `"x" -- 'y'` keeps all characters straight.
