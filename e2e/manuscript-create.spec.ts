@@ -11,6 +11,7 @@ for (const width of [1100, 1440]) {
     const api = process.env.QUILLAI_E2E_API_URL;
     if (!api) throw new Error("Run with cargo xtask e2e");
     const errors: string[] = [];
+    const streamCloses: string[] = [];
     const posts: string[] = [];
     page.on("response", response => {
       if (response.url().startsWith(api) && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
@@ -19,7 +20,10 @@ for (const width of [1100, 1440]) {
     page.on("requestfailed", req => {
       const error = req.failure()?.errorText;
       const cancelledCatalog = req.url() === `${api}/ai/models` && (error === "net::ERR_ABORTED" || error === "cancelled");
-      if (req.url().startsWith(api) && !cancelledCatalog) errors.push(`${error} ${req.url()}`);
+      const streamClose = (error === "net::ERR_ABORTED" || error === "cancelled") && req.url().startsWith(api)
+        && /^\/series\/\d+\/books\/\d+\/chapters\/\d+\/events$/.test(req.url().slice(api.length));
+      if (streamClose) streamCloses.push(req.url());
+      else if (req.url().startsWith(api) && !cancelledCatalog) errors.push(`${error} ${req.url()}`);
     });
     page.on("request", req => {
       if (req.url().startsWith(api) && req.method() === "POST") posts.push(req.url());
@@ -118,6 +122,7 @@ for (const width of [1100, 1440]) {
     await expect(seriesRow.getByRole("button", { name: "+ Piece", exact: true })).toBeInViewport();
     await expect(seriesRow.getByRole("button", { name: "+ Chapter", exact: true })).toBeInViewport();
     expect(errors).toEqual([]);
+    expect(new Set(streamCloses).size).toBe(streamCloses.length);
     await page.screenshot({ path: `../target/guz-891/${testInfo.project.name}/create-${width}.png` });
   });
 }
