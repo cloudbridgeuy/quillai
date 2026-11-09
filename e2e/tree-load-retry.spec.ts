@@ -15,9 +15,10 @@ for (const width of [1100, 1440]) {
     const book = await post(`/series/${series.id}/books`, { title: `${prefix} book`, position: 0 });
     const chapter = await post(`/series/${series.id}/books/${book.id}/chapters`, { title: `${prefix} chapter`, position: 0, kind: "chapter" });
     await page.setViewportSize({ width, height: 1000 });
-    await page.route(`${api}/tree`, route => route.fulfill({
+    let failing = true;
+    await page.route(`${api}/tree`, route => failing ? route.fulfill({
       status: 503, json: { error: "Could not load manuscript.", code: "INTERNAL_ERROR" },
-    }), { times: 1 });
+    }) : route.continue());
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     await expectEditorReady(page.locator(".ql-editor"));
     await page.getByRole("button", { name: "Manuscript", exact: true }).click();
@@ -25,6 +26,7 @@ for (const width of [1100, 1440]) {
     const retry = outline.getByRole("button", { name: "Try loading again", exact: true });
     await expect(retry).toBeVisible();
     await expect(outline.getByRole("button", { name: "Retry manuscript", exact: true })).toHaveCount(0);
+    failing = false;
     await retry.click();
     await expect(outline.getByRole("button", { name: chapter.title, exact: true })).toBeVisible();
     await expect(retry).toHaveCount(0);

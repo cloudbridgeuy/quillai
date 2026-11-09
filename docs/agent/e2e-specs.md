@@ -76,7 +76,7 @@
 
 `tree-delete.spec.ts` covers row controls, immediate deletion, Undo and Recently deleted for six item kinds at 1100px and 1440px. It gates an open chapter save to check deletion waits for pending text.
 
-`tree-load-retry.spec.ts` at 1100px and 1440px fails the tree fetch once, checks the exact "Try loading again" button and absence of "Retry manuscript", then retries and checks the seeded chapter is visible. Written; not run for GUZ-886.
+`tree-load-retry.spec.ts` at 1100px and 1440px fails the tree fetch until retry, checks the exact "Try loading again" button and absence of "Retry manuscript", then retries and checks the seeded chapter is visible. Written; not run for GUZ-886.
 
 `create-form-fit.spec.ts` at 1100px and 1440px checks every field and button of the container and loose piece create forms sits inside the tree area without manual scrolling (the open form scrolls itself into view; Label and Format sit side by side), create controls align with sibling rows, and the no-scope lore wording. The initial no-scope visit mocks an empty series list to isolate it from the shared E2E database; screenshots in `target/guz-971/<browser>/`.
 
