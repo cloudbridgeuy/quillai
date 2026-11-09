@@ -20,13 +20,14 @@ test("recent edited chapters can be forgotten across reloads", async ({ page, re
     await editor.click();
     await page.keyboard.type(`Edited ${name}`);
     await page.getByRole("button", { name: "Library", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Resume", exact: true })).toBeVisible();
   }
   const resume = page.getByRole("region", { name: "Resume", exact: true });
   await expect(resume.getByText(`${prefix} First`, { exact: true })).toBeVisible();
   await expect(resume.getByText(`${prefix} Second`, { exact: true })).toBeVisible();
-  const first = resume.locator("div").filter({ has: resume.getByText(`${prefix} First`, { exact: true }) }).filter({ has: page.getByRole("button", { name: "Forget", exact: true }) }).last();
+  const first = resume.locator("div").filter({ has: page.getByText(`${prefix} First`, { exact: true }) }).filter({ has: page.getByRole("button", { name: "Forget", exact: true }) }).last();
   await first.getByRole("button", { name: "Forget", exact: true }).click();
   await page.reload();
-  await expect(resume.getByText(`${prefix} First`, { exact: true })).toHaveCount(0);
   await expect(resume.getByText(`${prefix} Second`, { exact: true })).toBeVisible();
+  await expect(resume.getByText(`${prefix} First`, { exact: true })).toHaveCount(0);
 });

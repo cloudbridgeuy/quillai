@@ -9,7 +9,7 @@ test("recent activity opens an edited chapter after reload", async ({ page, requ
     expect(response.status()).toBe(201);
     return response.json();
   };
-  const title = `Activity ${testInfo.project.name}`;
+  const title = `Activity ${testInfo.project.name} ${testInfo.retry}`;
   const series = await post("/series", { title, position: 0 });
   const book = await post(`/series/${series.id}/books`, { title, position: 0 });
   const chapter = await post(`/series/${series.id}/books/${book.id}/chapters`, { title, position: 0, kind: "chapter" });
@@ -19,6 +19,7 @@ test("recent activity opens an edited chapter after reload", async ({ page, requ
   await editor.click();
   await page.keyboard.type("Recent activity edit");
   await page.getByRole("button", { name: "Library", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Resume", exact: true })).toBeVisible();
   await page.reload();
   const activity = page.getByRole("region", { name: "Recent activity" });
   await expect(activity.getByText(title, { exact: true })).toBeVisible();
