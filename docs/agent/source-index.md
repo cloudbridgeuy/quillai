@@ -38,6 +38,7 @@
 | `main.rs` | `cargo xtask dev` runner: starts API and frontend concurrently, prefixes logs, and stops both on Ctrl-C. Dev opens `<workspace root>/quillai.db` unless `--db-url` or `QUILLAI_API_DB_URL` is set. `cargo xtask lint` runs fmt, clippy, tests, dependency and file-size checks, the project compiler `app/node_modules/typescript/bin/tsc --noEmit -p app`, the story type check `storybook/node_modules/typescript/bin/tsc --noEmit -p storybook`, and the `ui` design-system check, with short output (logs in `target/xtask-lint/`) |
 | `dev_database.rs` | Pure dev API database arguments: forward `--db-url` / `QUILLAI_API_DB_URL` unchanged, otherwise absolute `<workspace>/quillai.db` with `mode=rwc` |
 | `check_i18n.rs` | Lint check `i18n`: hard-coded JSX text and UI prop literals; shrink-only per-file counts in `xtask/i18n-waivers.json`. See [testing](testing.md). |
+| `check_e2e_specs.rs` | Lint check `e2e-specs`: every `e2e/*.spec.ts` file must be listed in `testMatch` in `e2e/playwright.config.ts`, and every entry must exist. See [testing](testing.md). |
 | `hooks.rs` | `cargo xtask install-hooks`; see [testing](testing.md). |
 | `nightly.rs` | `cargo xtask nightly`: detached main snapshot, streamed results, timeout and reports; see [testing](testing.md). |
 | `nightly_launchd.rs` | `cargo xtask install-nightly [--uninstall]`; see [testing](testing.md). |

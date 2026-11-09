@@ -13,6 +13,7 @@ use std::time::Duration;
 
 mod ai_smoke;
 mod check_claude_md;
+mod check_e2e_specs;
 mod check_i18n;
 mod check_ui;
 mod dev_database;
@@ -308,11 +309,12 @@ fn lint(args: LintArgs) -> Result<bool, Box<dyn Error>> {
         failed += usize::from(!passed);
     }
     type SourceCheck = fn(&std::path::Path, &std::path::Path) -> std::io::Result<bool>;
-    let source_checks: [(&str, SourceCheck); 4] = [
+    let source_checks: [(&str, SourceCheck); 5] = [
         ("file-length", check_file_lengths),
         ("ui", check_ui::run),
         ("i18n", check_i18n::run),
         ("claude-md-size", check_claude_md::run),
+        ("e2e-specs", check_e2e_specs::run),
     ];
     for (name, check) in source_checks {
         let path = logs.join(format!("{name}.log"));

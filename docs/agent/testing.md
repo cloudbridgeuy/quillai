@@ -32,7 +32,7 @@ The tracked `e2e/known-failures.txt` uses `browser spec:line ticket`, with `*` f
 
 ## Commit gate
 
-`cargo xtask lint` must print `All 12 checks passed.` before commit. Run `cargo xtask install-hooks` once per clone to install the tracked pre-commit hook; worktrees share this configuration. The installer refuses to replace an existing `core.hooksPath` other than `.githooks`.
+`cargo xtask lint` must print `All 14 checks passed.` before commit. Lint check `e2e-specs` fails when an `e2e/*.spec.ts` file is missing from `testMatch` in `e2e/playwright.config.ts`, or `testMatch` lists a file that does not exist. Run `cargo xtask install-hooks` once per clone to install the tracked pre-commit hook; worktrees share this configuration. The installer refuses to replace an existing `core.hooksPath` other than `.githooks`.
 
 The `i18n` check scans tracked and untracked, non-ignored `app/src/**/*.tsx`, excluding `*.test.tsx`, `*.dom.test.tsx`, and `*.fixture.tsx`. It counts JSX text children containing letters and literal values in `aria-label`, `title`, `placeholder`, `label`, `alt`, `description`, and `heading`, including braces-wrapped literals and nested ternary branches. Template literals count when their static text contains letters. Call arguments, comparison operands, and other dynamic values are ignored; JSX nested inside expressions is scanned. Each text node, literal branch, or template counts once, including multiline text. Use the message helper and `app/src/i18n/messages.ts` for new UI strings.
 
