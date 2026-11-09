@@ -187,6 +187,61 @@ New spec `e2e/lore-complete.spec.ts` (proposed name), at 1100px and 1440px:
 8. Settings → AI Lore completion model persists and appears in `defaults.lore_complete`.
 9. A Leave out entry shows no Complete button, and Ctrl/Cmd+Enter in its field sends no request; Ctrl/Cmd+Enter outside the modal still runs Continue.
 
+## Dialogue typing (GUZ-1532)
+
+Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; "Open" marks questions for the owner. Today the prose editor has no quote or dash handling; its only typing rewrite is the markdown shortcut (`app/src/md_editor/components/Editor.tsx:123-165`).
+
+### Triggers and replacements
+
+- A replacement runs only when the author types one character: the change inserts exactly one `"`, `'`, or `-` (a selection it replaces may be deleted in the same change). Anything else is ignored (proposed).
+- Context is the character before the typed one on the same line. "Opening context" is line start, whitespace, or one of `( [ { — – “ ‘ «` (proposed).
+- `"` becomes `“` in opening context, otherwise `”` (proposed). After an em dash it opens: `—“Hola”` (proposed).
+- `'` becomes `‘` in opening context, otherwise `’` (proposed). So `don't` → `don’t`, `'Hi'` → `‘Hi’`.
+- Nested quotes need no state: `"She said 'no'"` → `“She said ‘no’”` from the same context rule (proposed).
+- Known limits: `rock 'n' roll` gives `‘n’` and `'90s` gives `‘90s` (leading apostrophe after a space looks like an opening quote). Accept them, as word processors do; Undo gives the straight `'` and the author can type `’` by hand (proposed). Open: add a fix-up that turns `‘` into `’` when the next typed character is a digit?
+- `--` becomes `—` anywhere on a line, not only at line start, because Spanish dialogue tags need mid-line dashes: `--Hola --dijo--.` → `—Hola —dijo—.` (proposed). A hyphen typed after `—` stays a hyphen; `---` never becomes two dashes (proposed). No en dash rule (proposed).
+
+### Undo
+
+- Quill history records user changes only (`Editor.tsx:242`). The markdown shortcut applies its rewrite with source `silent` (`Editor.tsx:156`), so history does not store it as a separate step.
+- Proposed: call `quill.history.cutoff()`, apply the replacement with source `user`, then `cutoff()` again. The replacement is then its own undo step: one Cmd/Ctrl+Z restores the straight character the author typed; a second removes it. Redo reapplies the curly form.
+
+### Interactions
+
+- Markdown shortcuts: they act only when the last inserted character is `*` or `_` (`Editor.tsx:135`) and run for source `user` (`Editor.tsx:124`) from the shared text-change listener (`Editor.tsx:253-256`). Dialogue triggers are disjoint, so neither rewrite fires the other. The dialogue rewrite runs in the same listener, after `processMarkdownSyntax` (proposed).
+- Paste: inserts more than one character, so it is never converted (proposed). Pasted straight quotes stay straight.
+- IME: no replacement while Quill reports an active composition; the composed text is never rewritten (proposed). Open: dead-key layouts (Spanish, US International) may produce `'` and `"` through composition; the build ticket checks this in Chromium before deciding whether committed composition text of exactly one trigger character converts.
+- AI text: Continue and Edit insert with non-`user` sources, which the shortcut guard skips (`Editor.tsx:124`); the same guard means AI text is never converted (proposed). Typing a quote during a stream converts only the typed character. `--` is not converted while a Continue stream is active, because the first hyphen may be AI-owned text that rollback must delete (proposed).
+- Continue overlap removal runs on the server against the document text before the caret (`crates/api/src/ai/handlers.rs:128-135`). Open: if the model echoes straight quotes where the document has curly ones, overlap may not match. The build ticket checks `crates/api/src/ai/overlap.rs` and, if needed, files a follow-up to fold quote forms when comparing; this spec changes no server code.
+- Chapter sync: every editor text-change calls `chapterSync.documentChanged` (`Editor.tsx:1623`), which reads the whole Quill document and passes it to the session's `edit` (`app/src/md_editor/use_chapter_sync.ts:286-288`, `app/src/md_editor/chapter_session.ts:245`). A `user` replacement is one more text-change, so it reaches the server through the same path as typing. `chapter_session.ts` does not change. The extra `user` change also counts as a manual edit for the Continue thread (`Editor.tsx:1629-1633`), as the typed character already does.
+
+### Language
+
+- No manuscript language exists yet (GUZ-691, `docs/rules-engine.md`). EPUB export uses the UI locale (`Editor.tsx:465`).
+- Options: one global rule; an author setting (`“”` or `«»`); or wait for GUZ-691.
+- Recommended (proposed): one global rule now, `“ ” ‘ ’` plus `--` → `—`, always on. It serves English and the many Spanish writers who use `“”` for quotes and `—` for dialogue. `«»` stays typed by hand. When GUZ-691 adds series language, revisit per-language quote pairs. Open: should authors get an off switch in Settings now?
+
+### Screenplay mode
+
+- Out of scope (proposed). Script groups turn off markdown shortcuts (`Editor.tsx:1621`) and use their own text-change path (`app/src/md_editor/use_script_sync.ts:349`); dialogue blocks (`app/src/md_editor/script_blocks.ts:5`) keep typed characters unchanged. The same `markdownShortcuts` gate turns off dialogue typing.
+
+### Export
+
+- Exports write the characters stored in the document; there is no conversion at export (proposed). Markdown escapes only markdown markers (`app/src/md_editor/export_text.ts:7`); DOCX and EPUB escape XML only (`app/src/md_editor/docx_export.ts:4`, `app/src/md_editor/epub_export.ts:4`). Curly quotes and `—` pass through as UTF-8. FDX (`app/src/md_editor/fdx.ts:23`) gets only screenplay text, which this feature does not change. Older text keeps its straight quotes; no migration (proposed).
+
+### Tests
+
+- Pure function in new `app/src/md_editor/dialogue_typing.ts`: `(lineBeforeCaret, typed) => { remove: number; insert: string } | null` (proposed). Red/green Bun tests in `dialogue_typing.test.ts` for each rule above, including line start, after space, after `(` and `—`, after a letter or punctuation, `don't`, nested single quotes, the two known limits, `--` at line start and mid-line, `---`, and non-trigger characters.
+- E2E cases, written in new `e2e/dialogue-typing.spec.ts` (proposed name), not run in the ticket, at 1100px and 1440px:
+  1. Typing `"Hi," she said.` saves `“Hi,” she said.`; reload shows it.
+  2. `don't` and `'no'` inside double quotes save `don’t` and `‘no’`.
+  3. `--Hola --dijo--.` saves `—Hola —dijo—.`
+  4. One Cmd/Ctrl+Z after `"` shows `"`; a second removes it.
+  5. Pasting `"x" -- 'y'` keeps all characters straight.
+  6. `**bold**` still formats; a quote typed after it closes correctly.
+  7. Continue-streamed straight quotes stay straight; a quote typed during the stream converts; `--` during the stream stays `--`.
+  8. A screenplay group keeps typed `"` and `--` unchanged.
+
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
