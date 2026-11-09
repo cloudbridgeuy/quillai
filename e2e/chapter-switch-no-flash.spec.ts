@@ -1,30 +1,64 @@
 import { expect, test, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-type Sample = { opacity: number[]; window: boolean; loading: boolean };
+const BUSY_DELAY_MS = 300;
 
-async function startSampling(page: Page) {
-  await page.evaluate(() => {
-    const state = window as unknown as { flashSamples: Sample[]; sampling: boolean };
+type Sample = { at: number; opacity: number[]; window: boolean; loading: boolean; settled: boolean; continueDisabled: boolean; continueOpacity: number };
+type SamplerState = { flashSamples: Sample[]; sampling: boolean; flashStart: number | null };
+
+async function startSampling(page: Page, actionEvent: "click" | "keydown", expectedTitle: string) {
+  await page.evaluate(({ actionEvent, expectedTitle }) => {
+    const state = window as unknown as SamplerState;
     state.flashSamples = [];
     state.sampling = true;
+    state.flashStart = null;
+    window.addEventListener(actionEvent, () => { state.flashStart = performance.now(); }, { capture: true, once: true });
     const baseline = Array.from(document.querySelectorAll<HTMLButtonElement>(".editor-rail button, .ql-toolbar button, .editor-manuscript-tree button")).filter(element => !element.disabled && getComputedStyle(element).opacity === "1");
     const frame = () => {
       const controls = baseline.filter(element => element.isConnected);
+      const continueButton = document.querySelector<HTMLButtonElement>('.editor-rail button[aria-label="Continue writing"]');
       state.flashSamples.push({
+        at: performance.now(),
         opacity: Array.from(controls, element => Number(getComputedStyle(element).opacity)),
         window: Boolean(document.querySelector(".editor-continue-window")),
         loading: document.querySelector('[aria-label="Chapter save status"]')?.textContent?.includes("Loading chapter…") ?? false,
+        settled: document.querySelector(".editor-chapter-title")?.textContent === expectedTitle && document.querySelector(".ql-editor")?.getAttribute("contenteditable") === "true",
+        continueDisabled: continueButton?.disabled ?? false,
+        continueOpacity: continueButton ? Number(getComputedStyle(continueButton).opacity) : Number.NaN,
       });
       if (state.sampling) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }, { actionEvent, expectedTitle });
+}
+
+async function stopSampling(page: Page) {
+  return page.evaluate(async () => {
+    const state = window as unknown as SamplerState;
+    for (let frames = 0; frames < 2; frames++) await new Promise(requestAnimationFrame);
+    state.sampling = false;
+    return { samples: state.flashSamples, start: state.flashStart };
+  });
+}
+
+function flashClause(sample: Sample): string | null {
+  if (sample.opacity.length < 5) return "fewer than 5 controls";
+  if (!sample.opacity.every(value => value === 1)) return "opacity not 1";
+  if (!sample.window) return "continue window missing";
+  if (sample.loading) return "loading status shown";
+  return null;
+}
+
+function flashFaults(samples: Sample[], start: number) {
+  return samples.flatMap(sample => {
+    const clause = flashClause(sample);
+    return clause ? [{ clause, t: Math.round(sample.at - start), sample }] : [];
   });
 }
 
 for (const width of [1100, 1440]) {
   for (const action of ["switch", "create"] as const) {
-    for (const delay of [200, 1000]) {
+    for (const delay of action === "switch" ? [50, 1000] : [200, 1000]) {
       test(`${action} chapter with ${delay}ms delay at ${width}px`, async ({ page, request }) => {
         const api = process.env.QUILLAI_E2E_API_URL;
         if (!api) throw new Error("Run with cargo xtask e2e");
@@ -58,25 +92,26 @@ for (const width of [1100, 1440]) {
           }
           await route.continue();
         });
-        if (delay === 200) await startSampling(page);
+        const expectedTitle = action === "switch" ? "Flash second" : "Flash created";
+        await startSampling(page, action === "switch" ? "click" : "keydown", expectedTitle);
         if (action === "switch") await outline.getByRole("button", { name: "Flash second", exact: true }).click();
         else await outline.getByRole("textbox", { name: "Chapter title" }).press("Enter");
-        if (delay === 1000) {
-          await expect(page.getByLabel("Chapter save status")).toHaveText("Loading chapter…");
-          const continued = page.locator('.editor-rail button[aria-label="Continue writing"]');
-          await expect(continued).toBeDisabled();
-          await expect(continued).toHaveCSS("opacity", "0.5");
-        }
-        await expect(page.locator(".editor-chapter-title")).toHaveText(action === "switch" ? "Flash second" : "Flash created");
+        await expect(page.locator(".editor-chapter-title")).toHaveText(expectedTitle);
         await expectEditorReady(editor);
-        if (delay === 200) {
-          const samples = await page.evaluate(() => {
-            const state = window as unknown as { flashSamples: Sample[]; sampling: boolean };
-            state.sampling = false;
-            return state.flashSamples;
-          });
-          expect(samples.length).toBeGreaterThan(2);
-          expect(samples.every(sample => sample.opacity.length >= 5 && sample.opacity.every(value => value === 1) && sample.window && !sample.loading)).toBe(true);
+        const { samples, start } = await stopSampling(page);
+        expect(samples.length).toBeGreaterThan(2);
+        if (delay === 1000) {
+          const states = samples.map(({ loading, continueDisabled, continueOpacity }) => ({ loading, continueDisabled, continueOpacity }));
+          expect(states.some(state => state.loading && state.continueDisabled && state.continueOpacity === 0.5), `no single busy sample: ${JSON.stringify(states.slice(-20))}`).toBe(true);
+        } else {
+          expect(start, "action event never reached the page").not.toBeNull();
+          const actionStart = start as number;
+          const beforeBusy = samples.filter(sample => sample.at < actionStart + BUSY_DELAY_MS);
+          const afterLoad = samples.slice(samples.findIndex(sample => sample.at >= actionStart && sample.settled));
+          expect(beforeBusy.filter(sample => sample.at >= actionStart).length, "no sample in the first 300ms after the action").toBeGreaterThan(0);
+          expect(samples.some(sample => sample.at >= actionStart && sample.settled), "no sample after load finished").toBe(true);
+          expect(flashFaults(beforeBusy, actionStart), "flash before the busy threshold").toEqual([]);
+          expect(flashFaults(afterLoad, actionStart), "flash after load finished").toEqual([]);
         }
         expect(intercepted).toBeGreaterThan(0);
       });
