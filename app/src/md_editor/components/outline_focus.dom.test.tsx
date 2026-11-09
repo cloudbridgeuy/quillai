@@ -51,3 +51,15 @@ test("leaves focus alone when it started outside or moved elsewhere", async () =
   await switchWith("outline", "other");
   expect(document.activeElement?.id).toBe("other");
 });
+
+test("returns focus to the region when a removed draft field held it", async () => {
+  const view = await render(<Harness />);
+  const draft = document.createElement("input");
+  view.querySelector("#outline")!.append(draft);
+  draft.focus();
+  await act(async () => setPending(true));
+  draft.blur();
+  draft.remove();
+  await act(async () => setPending(false));
+  expect(document.activeElement?.id).toBe("outline");
+});
