@@ -116,6 +116,7 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 - Inspector Document and Selection show read-only request content. Instruction, Story context, and history remain editable for the next request.
 - The inspector Full prompt button opens a read-only modal with ordered prompt parts, estimated tokens, and Copy. Escape closes it.
 - Inspector section "Lore in window": the lore Continue would send, with type, match count, and level. It shares `context_inspector.ts`'s injected lore model and budget, even when inspecting Edit. Leave-out entries and budget skips are absent; unmatched pins remain with zero matches and disabled navigation. Click a matched entry to scroll to its next match (wrapping after the last) and open its card. Each further click on the same entry moves to the following match and the card stays open; Escape or an outside click closes it. Clicking only scrolls and never moves the caret.
+- Lore scale: the default window holds about 32 matches; Whole document can reach thousands, and that cost is unmeasured. Every injected entry stays listed, with no row cap. Scroll and resize redraw the matches only while a card is open.
 
 ## Continue
 

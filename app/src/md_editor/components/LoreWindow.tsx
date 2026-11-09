@@ -53,7 +53,7 @@ export function LoreWindow({ quill, start, lore }: { quill: Quill; start: number
       if (match) timer = setTimeout(() => setActive({ id: match.entry.id, start: match.start }), 600);
     };
     const dismiss = () => setActive(null);
-    const measure = () => redraw(value => value + 1);
+    const measure = () => { if (selected) redraw(value => value + 1); };
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape") dismiss();
       if (event.altKey && event.key.toLowerCase() === "l") {
