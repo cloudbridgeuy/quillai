@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::error::Error;
 
-pub const MAX_LORE_BYTES: usize = 65_536;
+pub const MAX_LORE_BYTES: usize = 262_144;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -1,12 +1,14 @@
 use serde::Deserialize;
 
-use super::lore::{LoreKind, MAX_LORE_BYTES};
+use super::lore::LoreKind;
 use super::models::{
     AiAction, DocumentSlice, GenerateInput, SectionOverrides, DEFAULT_MAX_OUTPUT_TOKENS,
 };
 use super::prompt::escape_prompt_text;
 use super::segments::DeltaDocument;
 use crate::error::Error;
+
+const MAX_LORE_COMPLETE_BYTES: usize = 65_536;
 
 pub const LORE_COMPLETE_RULES: &str = "You are completing a reference note about a story element. Respond with plain text only, and do not exceed two sentences. Start exactly where the note ends. Do not repeat or rephrase it. ";
 
@@ -27,9 +29,9 @@ pub fn parse(value: Option<serde_json::Value>) -> Result<GenerateInput, Error> {
     if lore_complete.name.trim().is_empty() {
         return Err(Error::Validation("loreComplete name is required".into()));
     }
-    if lore_complete.text.len() > MAX_LORE_BYTES {
+    if lore_complete.text.len() > MAX_LORE_COMPLETE_BYTES {
         return Err(Error::Validation(format!(
-            "loreComplete text exceeds {MAX_LORE_BYTES} UTF-8 bytes"
+            "loreComplete text exceeds {MAX_LORE_COMPLETE_BYTES} UTF-8 bytes"
         )));
     }
     Ok(GenerateInput {

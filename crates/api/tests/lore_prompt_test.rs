@@ -38,7 +38,7 @@ fn lore_byte_limit_counts_utf8_and_markers_before_escaping() {
         assert!(parse(json!([entry]))
             .unwrap_err()
             .to_string()
-            .contains("65536 UTF-8 bytes"));
+            .contains("262144 UTF-8 bytes"));
     }
 }
 
@@ -51,6 +51,12 @@ fn leave_out_is_removed_at_boundary_and_renderer() {
     input.lore = serde_json::from_value(json!([entry])).unwrap();
     assert!(!build_prompt(&input).contains("SECRET"));
     assert!(!build_prompt(&input).contains("<lore>"));
+}
+
+#[test]
+fn lore_just_over_the_ui_budget_is_accepted() {
+    let entry = json!({"name": "Mara", "kind": "term", "visible_text": "x".repeat(65_537), "level": "include"});
+    assert!(parse(json!([entry])).is_ok());
 }
 
 #[test]
