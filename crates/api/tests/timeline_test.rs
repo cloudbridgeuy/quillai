@@ -262,3 +262,22 @@ async fn piece_point_sets_keeps_on_absent_and_clears_on_null() {
         Value::Null
     );
 }
+
+#[tokio::test]
+async fn renaming_a_leaf_returns_every_integer_the_client_parses() {
+    let w = world().await;
+    let body = request(
+        &w.app,
+        "PUT",
+        &format!("/pieces/{}", w.piece),
+        json!({"title":"Renamed"}),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(body["title"], "Renamed");
+    for field in ["id", "universeId", "position", "headRev"] {
+        assert!(body[field].is_i64(), "{field} is not an integer: {body}");
+    }
+    assert!(body["containerId"].is_null(), "{body}");
+    assert!(body["parentId"].is_null(), "{body}");
+}

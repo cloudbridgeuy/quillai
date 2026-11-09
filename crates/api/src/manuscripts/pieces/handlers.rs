@@ -231,7 +231,7 @@ pub async fn update_piece(
     let point_id = input.timeline_point_id.flatten();
     let piece = sqlx::query_as!(
         Piece,
-        r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format), timeline_point_id = CASE WHEN ? THEN ? ELSE timeline_point_id END WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id, title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
+        r#"UPDATE pieces SET title = COALESCE(?, title), position = COALESCE(?, position), label = COALESCE(?, label), format = COALESCE(?, format), timeline_point_id = CASE WHEN ? THEN ? ELSE timeline_point_id END WHERE id = ? RETURNING id AS "id!", universe_id, container_id, parent_id AS "parent_id?", title, position, label, format, shape, timeline_point_id AS "timeline_point_id?""#,
         input.title,
         input.position,
         input.label,
