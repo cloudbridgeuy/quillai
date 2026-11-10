@@ -29,6 +29,22 @@ pub const CATALOGUE: &[RuleDef] = &[
         languages: &["en"],
         params: &[],
     },
+    RuleDef {
+        id: "repeated-word",
+        languages: &["en"],
+        params: &[ParamDef {
+            key: "window",
+            kind: ParamKind::Int { min: 1, max: 100 },
+        }],
+    },
+    RuleDef {
+        id: "same-sentence-start",
+        languages: &["en"],
+        params: &[ParamDef {
+            key: "count",
+            kind: ParamKind::Int { min: 2, max: 10 },
+        }],
+    },
 ];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
@@ -141,9 +157,41 @@ mod tests {
             shipped,
             vec![
                 ("dialogue-punctuation", english, 0),
-                ("redundant-phrases", english, 0)
+                ("redundant-phrases", english, 0),
+                ("repeated-word", english, 1),
+                ("same-sentence-start", english, 1)
             ]
         );
+    }
+
+    fn shipped_accepts(rule: &str, params: Value) -> bool {
+        parse_update(json!({"rules": {rule: {"params": params}}}), CATALOGUE).is_ok()
+    }
+
+    #[test]
+    fn repeated_word_window_is_bounded_from_1_to_100() {
+        assert!(shipped_accepts("repeated-word", json!({"window": 1})));
+        assert!(shipped_accepts("repeated-word", json!({"window": 20})));
+        assert!(shipped_accepts("repeated-word", json!({"window": 100})));
+        assert!(!shipped_accepts("repeated-word", json!({"window": 0})));
+        assert!(!shipped_accepts("repeated-word", json!({"window": 101})));
+        assert!(!shipped_accepts("repeated-word", json!({"window": 2.5})));
+    }
+
+    #[test]
+    fn same_sentence_start_count_is_bounded_from_2_to_10() {
+        assert!(shipped_accepts("same-sentence-start", json!({"count": 2})));
+        assert!(shipped_accepts("same-sentence-start", json!({"count": 3})));
+        assert!(shipped_accepts("same-sentence-start", json!({"count": 10})));
+        assert!(!shipped_accepts("same-sentence-start", json!({"count": 1})));
+        assert!(!shipped_accepts(
+            "same-sentence-start",
+            json!({"count": 11})
+        ));
+        assert!(!shipped_accepts(
+            "same-sentence-start",
+            json!({"count": "3"})
+        ));
     }
 
     fn accepts(params: Value) -> bool {
