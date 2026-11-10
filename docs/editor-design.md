@@ -243,6 +243,74 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
   7. Continue-streamed straight quotes stay straight; a quote typed during the stream converts; `--` during the stream stays `--`.
   8. A screenplay group keeps typed `"` and `--` unchanged.
 
+## Dialogue exchange (GUZ-1534)
+
+Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; the rest is existing behaviour with a citation. The author asks for a dialogue exchange between chosen characters at the caret, written from those characters' lore.
+
+### Action and trigger
+
+- New AI action `dialogue`, not a Continue variant (proposed): it needs its own speakers, prompt rules, and model row, and must not touch the Continue thread or history. Dispatch follows the `lore_complete` pattern (`crates/api/src/ai/models.rs:331-338`); the client union in `app/src/md_editor/ai_contract.ts` gets the same member.
+- Right rail gets a Dialogue IconButton below Edit selection (proposed). It toggles a Dialogue box at the Edit box position (right 72px, top 96px, 280px) with a lavender `--pi-lav` flag "Dialogue" (proposed). It sends nothing until Write is pressed. Esc closes it and restores the editor selection, like the Edit note (Sticky notes, above).
+- The box holds a speaker list and a brief. Speakers: checkboxes for the chapter's resolved lore entries of kind `character` whose level is not `leave_out`, pins first, then by name; 1 to 6 may be chosen (proposed). If `app/src/ui/` has no checkbox primitive, the build adds one with its story first (Frontend Conventions). Brief: a StickyNote textarea for goal or topic, optional (proposed). Enter writes, Shift+Enter inserts a newline.
+- No keyboard shortcut in this build (proposed). Write is disabled with no speakers, a busy session, a chapter not ready, or a blocked save, the same checks Edit uses.
+- Below 1100px the box sits in document flow between the rails and the editor is locked during the run, as for narrow-screen Continue (Caret and scroll, above).
+
+### Lore sent
+
+- Lore comes from `useLore`, which already resolves each entry at the chapter's timeline point with `resolveLoreEntry` (`app/src/manuscripts/use_lore.ts:56-61`, `app/src/md_editor/lore_states.ts:29`). No second resolver.
+- Chosen speakers are always sent, as if pinned, ahead of all other entries (proposed). Other entries use the existing matcher over the transmitted window with the same 65,536 UTF-16 budget (`ai_contract.ts:124-130`, `app/src/md_editor/lore_match.ts:16`), so places and terms named in the scene still arrive.
+- `leave_out` entries are never sent: the client filter (`ai_contract.ts:126`, `:129`) and the server filter (`crates/api/src/ai/lore.rs:47`) both stay. A speaker whose resolved level changes to `leave_out` is unchecked.
+- `known_dont_reveal` keeps its prompt marker (`crates/api/src/ai/prompt.rs:84-85`). Dialogue rules add: characters may act on such facts but never state them (proposed).
+- The 262,144 UTF-8 byte lore cap stays (`lore.rs:5`, `:48`); forced speakers count toward it, and overflow is a 422 shown in the box.
+- Privacy: request lore entries carry only `name`, `kind`, `visible_text`, `level` (`ai_contract.ts:104`); the server type rejects any other field (`lore.rs:8`), so hidden notes and author-only state notes never enter the request. "Author-only notes never enter AI requests" (Lore, above) stays unchanged.
+
+### Context
+
+- Document: the same `calculateDocumentWindow` slice Continue sends (`app/src/md_editor/window.ts:20`), cut at the caret; Window Size and Whole document apply (proposed). Text after the caret is not sent (proposed; open question 2).
+- Story context and author guidance are sent as for Continue (`.claude/context/ai-streaming.md:56`); no Instruction, history, or resume prompt (proposed).
+
+### Output
+
+- Prose: each spoken line is its own paragraph; short action beats are allowed between lines (proposed). Output always starts a new paragraph at the caret; a non-empty selection collapses to its end first (proposed).
+- Quote style: the rules ask the model to match the dialogue marks in the text before the caret (`“”`, `"`, `«»`, or `—`), else straight `"` (proposed). Text stays as the model writes it; GUZ-1532 never converts AI text (`Editor.tsx:124`), and GUZ-1535 handles conversion after a run.
+- Screenplay group: the model writes `CHARACTER`, optional `(parenthetical)`, and dialogue lines; a pure parser maps them to `character`, `parenthetical`, `dialogue` blocks (`app/src/md_editor/script_blocks.ts:5-7`) and inserts each block when its line completes (proposed). The editor is locked during a screenplay run (proposed), because script groups use their own sync path (`app/src/md_editor/use_script_sync.ts:349`).
+- Streaming, tint, Stop, server cancellation, and failure rollback reuse desktop Continue's AI-owned range tracking in prose (Caret and scroll, AI text, above). Screenplay rollback deletes the inserted blocks.
+- Length: rules ask for 4 to 12 spoken lines; fixed max output 1,024 tokens, not the drawer's Max Output Tokens (proposed).
+
+### Model
+
+- Settings → AI gets a Dialogue model row; the build adds a `dialogue_model` column by migration beside `lore_complete_model` (`crates/api/src/settings/ai.rs:24`). Requests send no `model` (Model selection, above).
+- Unset: the server uses the catalog `defaults.dialogue`, which falls back to the `generate` default when the file omits it, exactly as `lore_complete` does (`crates/api/src/ai/catalog.rs:147-153`). Env `QUILLAI_AI_MODEL` fills it like the other text models; never the image model (`docs/agent/api-routes.md:6`, `:62`).
+
+### API
+
+- `POST /ai/generate` (`crates/api/src/ai/mod.rs:24`) with `action: "dialogue"` and `dialogue: { speakers: string[], brief: string }`, plus the Continue fields `document`, `window`, `storyContext`, `lore`. NDJSON stream as Continue.
+- 422 `Validation` before provider start when: `dialogue` missing; speakers empty, above 6, duplicated, or not the name of a `character` entry in request `lore`; brief above 4,096 UTF-8 bytes; lore above 262,144 bytes (proposed). Document limits are Continue's.
+- Parsing, `DIALOGUE_RULES`, and prompt assembly go in a new `crates/api/src/ai/dialogue.rs`; `provider.rs` (994 of 1000 lines) changes only by a match arm. Speaker names go in escaped tags, as lore (`.claude/context/ai-streaming.md:64`).
+
+### Inspector and cost
+
+- No Inspector request view or cost line in this build, as for lore completion (Lore field completion, above). Unlike lore completion, this request carries the manuscript window and lore, so the follow-up that adds lore completion's view should add Dialogue too (proposed; open question 3).
+
+### Tests
+
+- Bun red/green: `dialogue_request.ts` (speaker forcing, matcher order, `leave_out` drop, no hidden notes) and `script_exchange.ts` (line parser, partial lines). Rust red/green in `dialogue.rs` and an API integration test per 422 case plus `defaults.dialogue` fallback.
+- E2E, written in `e2e/dialogue-exchange.spec.ts`, not run, mocked provider, 1100px and 1440px: (1) two speakers stream at the caret and persist after reload; (2) request body holds speakers, brief, speaker lore first, no `hidden_notes`, no `model`; (3) a `leave_out` character is not listed; (4) Stop and server error roll back only AI text and keep author inserts; (5) screenplay group gets character/dialogue blocks; (6) 503 `AI_NOT_CONFIGURED` shows the error with no text change; (7) Settings Dialogue model persists into `defaults.dialogue`.
+
+### Stages (each ≤ ~400 lines)
+
+1. API: action, `dialogue.rs`, migration, settings and catalog defaults, Rust tests.
+2. Pure client: request assembly and screenplay parser with Bun tests.
+3. UI: rail button, Dialogue box, Settings row, streaming hookup, E2E spec.
+
+### Open questions
+
+1. Entry point: new action (recommended) or Continue with an instruction? A Continue variant would mix with the thread and resume prompt.
+2. Text after the caret: send none (recommended), or up to one paragraph so a mid-scene insert can lead into what follows?
+3. Inspector and cost: defer with lore completion (recommended), or show a Dialogue view and cost line now?
+4. Shortcut: none now (recommended), or a key such as Ctrl/Cmd+Shift+D?
+5. Speaker limit 6 and brief cap 4,096 bytes: accept (recommended)?
+
 ## Saves
 
 - Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
