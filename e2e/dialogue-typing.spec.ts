@@ -81,7 +81,8 @@ for (const width of [1100, 1440]) {
       expect((await savedOps()).find(op => op.insert === "bold")?.attributes).toEqual({ bold: true });
     });
 
-    test("composition commits of one quote convert", async ({ page, request }) => {
+    test("composition commits of one quote convert", async ({ page, request, browserName }) => {
+      test.skip(browserName !== "chromium", "CDP IME only exists in Chromium");
       const { editor, saved } = await openChapter(page, request, `Composition ${width}`);
       const session = await page.context().newCDPSession(page);
       await page.keyboard.type("a ");
