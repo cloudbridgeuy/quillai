@@ -310,18 +310,18 @@ Stages for GUZ-690, each under about 400 changed lines, red test first. Passive 
 
 ## GUZ-1533 dialogue rules
 
-Spec only; no code in the spec stage. "Owner decision" marks the owner's answers; "Proposed" marks choices this spec makes for owner review. GUZ-692 owns English dialogue punctuation (`dialogue-punctuation`) and -ly adverbs (`adverbs`); GUZ-1533 duplicates neither.
+Spec only; no code in the spec stage. "Owner decision" marks the owner's answers, including the choices the spec proposed and the owner accepted. GUZ-692 owns English dialogue punctuation (`dialogue-punctuation`) and -ly adverbs (`adverbs`); GUZ-1533 duplicates neither.
 
 ### Spanish dash detector
 
 - Owner decision: the dash detector runs only when the series language is `es`, and only for a paragraph whose first non-whitespace character is `—` (U+2014). English zones do not change, so a mid-paragraph `—` in English prose is never dialogue.
 - Owner decision: the language joins the analysis cache key. Today the analysis key is the paragraph text alone (`engine.ts:55`) while the hint key already holds the language (`engine.ts:57`). `analyzeParagraph(text, language)` is the new signature, and the key becomes `[language, text]`.
 - Owner decision: text inside dash dialogue is dialogue for scope. `ParagraphAnalysis.dialogue` and `Word.zone` stay the only channels (`shared_pass.ts:4`); no new field.
-- Proposed: scan left to right. The leading `—` opens dialogue. Each later `—` toggles between dialogue and tag narration. The two dashes that bound a tag belong to the narration span; the leading `—` belongs to the dialogue span. So `—Hola —dijo ella—. ¿Qué tal?` has dialogue `—Hola `, narration `—dijo ella—`, dialogue `. ¿Qué tal?`. A tag with no closing dash runs to the paragraph end (`—Hola —dijo ella.`).
-- Proposed: only `—` is a dash mark. `-` and `–` are not (GUZ-1532 types `—`, `docs/editor-design.md:206`).
-- Proposed: in a dash paragraph the quote scan is skipped; dashes alone set the zones.
-- Owner decision: `«` and `»` are quote marks in `es` only. Nested quotes, Proposed: while a `«` span is open only `»` closes it; `“`, `”` and `"` inside are ignored, so `«dijo “no” y calló»` is one span. English quote scanning is unchanged.
-- Proposed (dialogue across paragraphs): unchanged from the built pass (`shared_pass.ts:47`, rules-engine Known limits). An unclosed quote, or a dash paragraph, runs to the paragraph end, and the next paragraph starts fresh. A paragraph that continues speech with an open quote only is its own dialogue span. State never crosses paragraphs (Q7).
+- Owner decision: scan left to right. The leading `—` opens dialogue. Each later `—` toggles between dialogue and tag narration. The two dashes that bound a tag belong to the narration span; the leading `—` belongs to the dialogue span. So `—Hola —dijo ella—. ¿Qué tal?` has dialogue `—Hola `, narration `—dijo ella—`, dialogue `. ¿Qué tal?`. A tag with no closing dash runs to the paragraph end (`—Hola —dijo ella.`).
+- Owner decision: only `—` is a dash mark. `-` and `–` are not (GUZ-1532 types `—`, `docs/editor-design.md:206`).
+- Owner decision: in a dash paragraph the quote scan is skipped; dashes alone set the zones.
+- Owner decision: `«` and `»` are quote marks in `es` only. Nested quotes, Owner decision: while a `«` span is open only `»` closes it; `“`, `”` and `"` inside are ignored, so `«dijo “no” y calló»` is one span. English quote scanning is unchanged.
+- Owner decision (dialogue across paragraphs): unchanged from the built pass (`shared_pass.ts:47`, rules-engine Known limits). An unclosed quote, or a dash paragraph, runs to the paragraph end, and the next paragraph starts fresh. A paragraph that continues speech with an open quote only is its own dialogue span. State never crosses paragraphs (Q7).
 - Measured: no shipped rule changes behaviour. Only `watch-words` runs in `es` and its default scope is `both` (`watch_words.ts:8`, `:11`); the other six declare `languages: ["en"]`.
 
 ### Rules
@@ -329,16 +329,16 @@ Spec only; no code in the spec stage. "Owner decision" marks the owner's answers
 | Rule id | Languages | Scope | Default | Params | Message keys (en / es) |
 |---------|-----------|-------|---------|--------|------------------------|
 | `dash-tag-punctuation` | es | both | on | none | `rules.dashTagPunctuation.label` "Dash tag punctuation" / "Puntuación de la raya de acotación"; `hints.dashTagPunctuation` "No period or comma before a dialogue dash tag" / "Sin punto ni coma antes de la raya de la acotación" |
-| `dash-tag-unclosed` | es | both | on | none | `rules.dashTagUnclosed.label` "Unclosed dash tag" / "Acotación sin cerrar"; `hints.dashTagUnclosed` "Close the dialogue tag with a dash" / "Cierra la acotación con una raya" |
-| `said-bookisms` | en, es | narration | off | none | `rules.bookisms.label` "Said-bookisms" / "Verbos de habla marcados"; `hints.bookism` "“{word}” is a said-bookism; consider “said”" / "“{word}” es un verbo de habla marcado; considera “dijo”" (`messageArgs`: `word`) |
+| `dash-tag-unclosed` | es | both | off | none | `rules.dashTagUnclosed.label` "Unclosed dash tag" / "Acotación sin cerrar"; `hints.dashTagUnclosed` "Close the dialogue tag with a dash" / "Cierra la acotación con una raya" |
+| `said-bookisms` | en, es | narration | off | none | `rules.bookisms.label` "Said-bookisms" / "Verbos de habla marcados"; `hints.bookism` "“{word}” is a said-bookism; consider “said”" / "«{word}» es un verbo de habla marcado; considera «dijo»" (`messageArgs`: `word`) |
 
-- Owner decisions: new rule ids; `dialogue-punctuation` stays `en` (no `es` added). Both dash rules default on; said-bookisms default off. Every key exists in both locales.
-- Proposed: a tag is a narration span that opens with `—` and whose first or second word is in the Spanish tag-verb list (below). The list gates both dash rules, so a parenthetical `—` pair is never flagged.
+- Owner decisions: new rule ids; `dialogue-punctuation` stays `en` (no `es` added). `dash-tag-punctuation` defaults on; `dash-tag-unclosed` and `said-bookisms` default off. `dash-tag-unclosed` is off because a tag can end a dialogue line and narration can continue with no closing dash (`—Ya voy —dijo Juan. Y salió corriendo.`), which is valid Spanish; the rule cannot tell continued narration from resumed speech. Every key exists in both locales.
+- Owner decision: a tag is a narration span that opens with `—` and whose first or second word is in the Spanish tag-verb list (below). The list gates both dash rules, so a parenthetical `—` pair is never flagged.
 - `dash-tag-punctuation`: hints a `.` or `,` right before a tag-opening `—` (optional space between). `—Hola. —dijo ella—.` and `—Hola, —dijo ella—.` are hinted; `—¿Qué? —preguntó—.` and `—Hola —dijo ella—.` are not. The hint covers the one punctuation character (length 1).
-- `dash-tag-unclosed`: hints the sentence-final `.`, `!` or `?` inside a tag when text follows it in the same paragraph and no closing `—` came first (`—Hola —dijo ella. ¿Qué tal?`). A tag that ends the paragraph, closed or not, is valid. The hint covers that one character. Proposed: a tag with no sentence end before the paragraph end gets no hint.
-- `said-bookisms`: hints a listed word in a narration zone within 3 words after the end of a dialogue span or within 3 words before the start of one, in the same paragraph. Proposed: exact lowercase forms, no stemming; the hint covers the word.
-- Proposed lists, fixed data in the repo, one file each: Spanish tag verbs (about 25, past tense and present: dijo, preguntó, respondió, contestó, añadió, murmuró, susurró, gritó, exclamó, replicó, comentó, explicó, continuó, siguió, insistió, suspiró, musitó, masculló, gruñó, espetó, ladró, siseó, bramó, farfulló, ordenó). English bookisms (about 20: hissed, snarled, growled, barked, spat, purred, breathed, gasped, chirped, mused, cooed, drawled, bellowed, retorted, panted, sneered, whined, crooned, grunted, boomed). Spanish bookisms (about 16: siseó, gruñó, espetó, ladró, susurró, bramó, rugió, masculló, farfulló, graznó, bufó, jadeó, musitó, ronroneó, canturreó, vociferó). Owner reviews all three lists; `said-bookisms` has no params, so no bounds.
-- Proposed: catalogue entries (app and `crates/api/src/manuscripts/rules/catalogue.rs`, shape `:10-19`) have empty `params` for all three.
+- `dash-tag-unclosed`: hints the sentence-final `.`, `!` or `?` inside a tag when text follows it in the same paragraph and no closing `—` came first (`—Hola —dijo ella. ¿Qué tal?`). A tag that ends the paragraph, closed or not, is valid. The hint covers that one character. Owner decision: a tag with no sentence end before the paragraph end gets no hint.
+- `said-bookisms`: hints a listed word in a narration zone within 3 words after the end of a dialogue span or within 3 words before the start of one, in the same paragraph. Owner decision: exact lowercase forms, no stemming; the hint covers the word.
+- Owner decision lists, fixed data in the repo, one file each: Spanish tag verbs (about 25, past tense and present: dijo, preguntó, respondió, contestó, añadió, murmuró, susurró, gritó, exclamó, replicó, comentó, explicó, continuó, siguió, insistió, suspiró, musitó, masculló, gruñó, espetó, ladró, siseó, bramó, farfulló, ordenó). English bookisms (about 20: hissed, snarled, growled, barked, spat, purred, breathed, gasped, chirped, mused, cooed, drawled, bellowed, retorted, panted, sneered, whined, crooned, grunted, boomed). Spanish bookisms (about 16: siseó, gruñó, espetó, ladró, susurró, bramó, rugió, masculló, farfulló, graznó, bufó, jadeó, musitó, ronroneó, canturreó, vociferó). Owner reviews all three lists; `said-bookisms` has no params, so no bounds.
+- Owner decision: catalogue entries (app and `crates/api/src/manuscripts/rules/catalogue.rs`, shape `:10-19`) have empty `params` for all three.
 
 ### Straddling hints
 
@@ -362,6 +362,7 @@ Each stage is under about 400 changed lines including tests, red test first.
 
 - Heuristic: a Spanish dash paragraph with no tag verb in the list gets no dash hint (missed hints, no false ones). The list is the tuning knob.
 - GUZ-1532 types `—` anywhere (`docs/editor-design.md:206`); the paragraph-start trigger and the `es` gate keep that from making English prose dialogue.
+- `dash-tag-unclosed` cannot tell continued narration from resumed speech after a tag, so it is off by default.
 - GUZ-1535 converts AI quotes after a run (`docs/editor-design.md:278`); it does not change dash text, so no overlap in code.
 
 ## Settled questions
