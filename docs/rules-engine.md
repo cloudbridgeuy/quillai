@@ -140,7 +140,7 @@ Order is by reliability.
 | Reliable | Repeated word | on | `window` (words) | Same word within N words; skips common function words |
 | Reliable | Same sentence start | on | `count` | Several consecutive sentences starting with the same word |
 | Useful | Passive voice | on | `maxAdverbs` | Existing `prose.ts` logic |
-| Useful | -ly adverbs | on | `max` (max per sentence) | Most useful on dialogue tags |
+| Useful | -ly adverbs | on | `max` (-ly adverbs a sentence may hold; default 1) | Most useful on dialogue tags |
 | Useful | Filter words | on | none | saw, felt, noticed, realized |
 | Useful | Began to / started to | on | none | |
 | Useful | Long sentence | on | `maxWords` | |
@@ -265,13 +265,15 @@ Owner decisions:
 | `redundant-phrases` | en | narration | none | `phrase` |
 | `repeated-word` | en | narration | `window` 20 words | `word` |
 | `same-sentence-start` | en | narration | `count` 3 | `word`, `count` |
-| `adverbs` | en | both | `max` 2 per sentence (label `rules.adverbs.max`) | `word` |
+| `adverbs` | en | both | `max` 1 (label `rules.adverbs.max`) | `word` |
 | `watch-words` | en, es | both | off; `words` empty list | `word` |
 | `passive-voice` | en | narration | `maxAdverbs` 3 | none |
 
-Scope cells are the defaults the rule declares, not owner-set. The dialogue-punctuation hint is anchored at the closing mark, which sits inside the dialogue span, so its scope is `both`.
+Owner decision: the default numbers are repeated-word `window` 20, same-sentence-start `count` 3, passive `maxAdverbs` 3, adverbs `max` 1. Scopes, rule ids and `messageArgs` names are worker picks, not owner-set; scope cells are the defaults the rule declares. The dialogue-punctuation hint is anchored at the closing mark, which sits inside the dialogue span, so its scope is `both`.
 
-Hand test: `She quickly ran quickly to the door` gives an `adverbs` hint on each `quickly` and a `repeated-word` hint on the second `quickly`. A Bun test over `createEngine` (`engine.ts:36`) with `RULES` pins this.
+Owner decision: adverbs `max` is the number of -ly adverbs a sentence may contain. When a sentence has more than `max`, every -ly adverb in it gets a hint. At the default of 1, a sentence with a single -ly adverb, including a dialogue tag, gets no adverb hint.
+
+Hand test: `She quickly ran quickly to the door` has two -ly adverbs (2 > 1), so the `adverbs` rule hints each `quickly`; the `repeated-word` rule hints the second `quickly`, which repeats within `window` 20 words. A Bun test over `createEngine` (`engine.ts:36`) with `RULES` pins this.
 
 Every rule gets Bun tests in its own file, including a dialogue case and a narration case. `RULES` (`engine.ts:29`) and the server catalogue (see Storage and API) gain each rule in the same stage.
 
