@@ -140,7 +140,7 @@ Order is by reliability.
 | Reliable | Repeated word | on | `window` (words) | Same word within N words; skips common function words |
 | Reliable | Same sentence start | on | `count` | Several consecutive sentences starting with the same word |
 | Useful | Passive voice | on | `maxAdverbs` | Existing `prose.ts` logic |
-| Useful | -ly adverbs | on | none | Most useful on dialogue tags |
+| Useful | -ly adverbs | on | `max` (max per sentence) | Most useful on dialogue tags |
 | Useful | Filter words | on | none | saw, felt, noticed, realized |
 | Useful | Began to / started to | on | none | |
 | Useful | Long sentence | on | `maxWords` | |
@@ -215,6 +215,7 @@ Owner decision: rule labels, param labels and hint messages are i18n message key
 - `Rule.label` becomes `labelKey`; `ParamDef.label` becomes `labelKey`; `Hint.message` becomes `messageKey` (`engine.ts:11`, `:8-9`, `:17`).
 - `HintSettings.tsx:50-53` renders `t(rule.labelKey)` and `t(param.labelKey)`.
 - Both locales get every key.
+- Owner decision (GUZ-692): `Hint` gains optional `messageArgs?: FormatValues` (`app/src/i18n/messages.ts:786`). `HintTip` passes it to `formatMessage(locale, key, values)` (`messages.ts:854-857`) in place of the bare `t(key)` (`HintTip.tsx:14`, `:77`). `Rule.check` sets it when the message names a word or number.
 
 ### Piece to series
 
@@ -246,6 +247,44 @@ Below 1100px (`Editor.tsx:319`, `:544`) there is no Settings popover and no togg
 - GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts` (`analyzeProse`, `app/src/md_editor/prose.ts:302`).
 - GUZ-690: the hint overlay and tip wait for the engine and are built on it, not as a passive-only overlay.
 - GUZ-1533: Spanish em-dash detector and further dialogue rules.
+
+## GUZ-692 rule batch
+
+Owner decisions:
+
+- Passive voice ships in GUZ-692, as the last stage. English only, param `maxAdverbs`.
+- Watch words work in en and es. Every other GUZ-692 rule is en only.
+- Leísmo stays out of the catalogue. The keys `rules.leismo.label` and `hints.longSentence` (`messages.ts:308`, `:312`) stay until the Spanish follow-up.
+- Redundant phrases: a fixed list of about 15 body-part phrases, in the repo.
+- Repeated word: function words come from one small fixed en list, in one file.
+- `Hint.messageArgs` is added (see Overlay and tip).
+
+| Rule id | Languages | Scope | Defaults | `messageArgs` |
+|---------|-----------|-------|----------|---------------|
+| `dialogue-punctuation` | en | both | none | none |
+| `redundant-phrases` | en | narration | none | `phrase` |
+| `repeated-word` | en | narration | `window` 20 words | `word` |
+| `same-sentence-start` | en | narration | `count` 3 | `word`, `count` |
+| `adverbs` | en | both | `max` 2 per sentence (label `rules.adverbs.max`) | `word` |
+| `watch-words` | en, es | both | off; `words` empty list | `word` |
+| `passive-voice` | en | narration | `maxAdverbs` 3 | none |
+
+Scope cells are the defaults the rule declares, not owner-set. The dialogue-punctuation hint is anchored at the closing mark, which sits inside the dialogue span, so its scope is `both`.
+
+Hand test: `She quickly ran quickly to the door` gives an `adverbs` hint on each `quickly` and a `repeated-word` hint on the second `quickly`. A Bun test over `createEngine` (`engine.ts:36`) with `RULES` pins this.
+
+Every rule gets Bun tests in its own file, including a dialogue case and a narration case. `RULES` (`engine.ts:29`) and the server catalogue (see Storage and API) gain each rule in the same stage.
+
+Stages for GUZ-692, each under about 400 changed lines including tests, red test first:
+
+| Stage | Content | Estimate |
+|-------|---------|----------|
+| S1 | `messageArgs` on `Hint`, `HintTip` pass-through, keys for the batch (en and es). Red: tip shows an interpolated message | ~200 lines |
+| S2 | `dialogue-punctuation` and `redundant-phrases`: rules, catalogue entries (app and server), Bun tests, Rust catalogue test | ~350 lines |
+| S3 | `repeated-word` (function-word list) and `same-sentence-start`, with `window` and `count` | ~350 lines |
+| S4 | `adverbs` (-ly, dialogue tags, exceptions such as family, only, early) and `watch-words` | ~300 lines |
+| S5 | `passive-voice` ported from `analyzeProse` (`prose.ts:302`); `MAX_ADVERBS` (`prose.ts:13`) becomes the `maxAdverbs` param | ~350 lines |
+| S6 | Hand-test unit; `e2e/hint-tip.spec.ts` gets `RULES_SHIPPED` true and `FLAGGED_TEXT` set to the hand-test text (written, not run) | ~120 lines |
 
 Stages for GUZ-691, each under about 400 changed lines, red test first:
 
