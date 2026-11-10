@@ -118,6 +118,29 @@ test("no recompute while the AI is active, one pass when it ends", () => {
   expect(runs).toEqual(["en:a cat"]);
 });
 
+test("an AI-source change during an AI run gets one pass when the AI ends", () => {
+  const { runner, advance, runs, config, setText } = setup();
+  runner.setConfig(config);
+  runs.length = 0;
+  runner.setGate({ aiActive: true });
+  setText("a cat cat");
+  runner.textChanged("api");
+  advance(1000);
+  expect(runs).toEqual([]);
+  runner.setGate({ aiActive: false });
+  expect(runs).toEqual(["en:a cat cat"]);
+});
+
+test("an AI-source change while unblocked schedules and runs nothing", () => {
+  const { runner, advance, runs, config, pending } = setup();
+  runner.setConfig(config);
+  runs.length = 0;
+  runner.textChanged("api");
+  expect(pending()).toBe(0);
+  advance(1000);
+  expect(runs).toEqual([]);
+});
+
 test("no recompute during composition, one pass when it ends", () => {
   const { runner, advance, runs, config } = setup();
   runner.setConfig(config);

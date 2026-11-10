@@ -39,7 +39,10 @@ export function createHintRunner({ engine, getText, onHints, timers = browserTim
 
   return {
     textChanged(source: string) {
-      if (source !== "user") return;
+      if (source !== "user") {
+        dirty = true;
+        return;
+      }
       cancel();
       handle = timers.set(run, delay);
     },
