@@ -155,20 +155,20 @@ Spanish is planned (the owner wants English and Spanish) and is a follow-up: it 
 
 ## Storage and API
 
-Status of every point in this section: Proposed (owner review), not an owner decision.
+Q1 is an owner decision. Every other point in this section is Proposed (owner review).
 
-Q1. Columns (Proposed, owner review). Since `migrations/20261025000000_story_model.up.sql`, `series` is no longer a table. It is the view `legacy_series` over `containers` of kind `book_series` (`migrations/20261025000000_story_model.up.sql:222-223`, recreated with deleted filters at `migrations/20261101000002_container_trash.up.sql:17-19`). Lore is scoped to the universe and series lore routes resolve it through `series_universe` (`crates/api/src/manuscripts/lore/handlers.rs:24-32`). "Per series, like lore" therefore means per universe. One migration adds to `universes` (`migrations/20261025000000_story_model.up.sql:1-5`):
+Q1. Columns (Owner decision). Settings are per series: each series keeps its own config. Since `migrations/20261025000000_story_model.up.sql`, `series` is no longer a table. It is the view `legacy_series` over `containers` of kind `book_series` (`migrations/20261025000000_story_model.up.sql:222-223`, recreated with deleted filters at `migrations/20261101000002_container_trash.up.sql:17-19`); a series id is its container id. One migration adds to `containers` (`migrations/20261025000000_story_model.up.sql:7-13`):
 
 - `language TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es'))`.
 - `rules_config TEXT NOT NULL DEFAULT '{}'`, a JSON object keyed by rule id, each value `{enabled?, scope?, params?}` as in Config storage. `language` lives in its own column, not in the JSON.
 
-Existing rows get the defaults, so no data migration. The down migration drops both columns.
+Only `book_series` rows are read or written; the columns keep their defaults on `tv_series` and `collection` rows. Existing rows get the defaults, so no data migration. The down migration drops both columns.
 
 Q2. Routes (Proposed, owner review):
 
 - `GET /series/{id}/rules` returns `{language, rules}`. `rules` is the stored object as saved, not merged with defaults; the client merges with the catalogue. Missing or deleted series: 404 `NOT_FOUND`.
 - `PUT /series/{id}/rules` takes `{language?, rules?}`. `rules` replaces the whole stored object; a partial body keeps the omitted field. Returns the same shape as GET (200).
-- The handler resolves the universe with `series_universe`, so every series in one universe shares one config.
+- The handler resolves the series id to its container row through `legacy_series`. A missing id, a deleted container or universe, or a container that is not `book_series` is 404 `NOT_FOUND`.
 
 Validation against the catalogue (Proposed, owner review). The server holds the rule catalogue as data: id, languages, scope list, and each param's kind, min and max. It runs no rule.
 
