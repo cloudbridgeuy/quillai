@@ -494,3 +494,10 @@ test("the leísmo label and long sentence hint stay", () => {
   expect(formatMessage("en", "rules.leismo.label")).toBe("Leísmo");
   expect(formatMessage("en", "hints.longSentence")).toBe("This sentence is long");
 });
+
+test.each([
+  ["en", "hints.watch", { word: "suddenly" }, "“suddenly” is on your watch list"],
+  ["es", "hints.watch", { word: "de repente" }, "«de repente» está en tu lista de vigiladas"],
+] as const)("watch word hint message %s", (locale, key, values, expected) => {
+  expect(formatMessage(locale, key, values)).toBe(expected);
+});

@@ -45,6 +45,22 @@ pub const CATALOGUE: &[RuleDef] = &[
             kind: ParamKind::Int { min: 2, max: 10 },
         }],
     },
+    RuleDef {
+        id: "adverbs",
+        languages: &["en"],
+        params: &[ParamDef {
+            key: "max",
+            kind: ParamKind::Int { min: 0, max: 9 },
+        }],
+    },
+    RuleDef {
+        id: "watch-words",
+        languages: &["en", "es"],
+        params: &[ParamDef {
+            key: "words",
+            kind: ParamKind::Words,
+        }],
+    },
 ];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
@@ -159,7 +175,9 @@ mod tests {
                 ("dialogue-punctuation", english, 0),
                 ("redundant-phrases", english, 0),
                 ("repeated-word", english, 1),
-                ("same-sentence-start", english, 1)
+                ("same-sentence-start", english, 1),
+                ("adverbs", english, 1),
+                ("watch-words", &["en", "es"][..], 1)
             ]
         );
     }
@@ -191,6 +209,34 @@ mod tests {
         assert!(!shipped_accepts(
             "same-sentence-start",
             json!({"count": "3"})
+        ));
+    }
+
+    #[test]
+    fn adverbs_max_is_bounded_from_0_to_9() {
+        assert!(shipped_accepts("adverbs", json!({"max": 0})));
+        assert!(shipped_accepts("adverbs", json!({"max": 1})));
+        assert!(shipped_accepts("adverbs", json!({"max": 9})));
+        assert!(!shipped_accepts("adverbs", json!({"max": -1})));
+        assert!(!shipped_accepts("adverbs", json!({"max": 10})));
+        assert!(!shipped_accepts("adverbs", json!({"max": 1.5})));
+    }
+
+    #[test]
+    fn watch_words_must_be_an_array_of_nonblank_strings() {
+        assert!(shipped_accepts("watch-words", json!({"words": []})));
+        assert!(shipped_accepts(
+            "watch-words",
+            json!({"words": ["suddenly", "all of a sudden"]})
+        ));
+        assert!(!shipped_accepts(
+            "watch-words",
+            json!({"words": ["ok", " "]})
+        ));
+        assert!(!shipped_accepts("watch-words", json!({"words": [1]})));
+        assert!(!shipped_accepts(
+            "watch-words",
+            json!({"words": "suddenly"})
         ));
     }
 

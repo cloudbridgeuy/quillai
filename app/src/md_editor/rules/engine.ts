@@ -1,7 +1,9 @@
 import { dialoguePunctuation } from "./dialogue_punctuation";
+import { adverbs } from "./adverbs";
 import { redundantPhrases } from "./redundant_phrases";
 import { repeatedWord } from "./repeated_word";
 import { sameSentenceStart } from "./same_sentence_start";
+import { watchWords } from "./watch_words";
 import { analyzeParagraph, splitParagraphs, type ParagraphAnalysis } from "./shared_pass";
 import type { FormatValues, MessageKey } from "../../i18n/messages";
 
@@ -30,7 +32,7 @@ export type Rule = {
 export type StoredRuleConfig = { enabled?: boolean; scope?: Scope; params?: Record<string, ParamValue> };
 export type StoredRules = Record<string, StoredRuleConfig>;
 
-export const RULES: readonly Rule[] = [dialoguePunctuation, redundantPhrases, repeatedWord, sameSentenceStart];
+export const RULES: readonly Rule[] = [dialoguePunctuation, redundantPhrases, repeatedWord, sameSentenceStart, adverbs, watchWords];
 
 export function resolveConfig(rule: Rule, stored: StoredRuleConfig | undefined): RuleConfig {
   const params = Object.fromEntries(rule.params.map((def) => [def.key, stored?.params?.[def.key] ?? def.default]));
