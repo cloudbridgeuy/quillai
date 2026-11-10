@@ -112,7 +112,7 @@ Per series, stored server-side like lore, not in browser storage. The series als
 }
 ```
 
-Missing rules or keys fall back to the rule's defaults, so adding a rule needs no migration of existing configs. Unknown ids are ignored. API routes, table or column shape, and validation are for GUZ-691.
+Missing rules or keys fall back to the rule's defaults, so adding a rule needs no migration of existing configs. Unknown ids are ignored. Columns, routes and validation are in Storage and API, below.
 
 ## Rule catalogue
 
@@ -153,16 +153,70 @@ Spanish is planned (the owner wants English and Spanish) and is a follow-up: it 
 - Config changes invalidate the hint cache but not the analysis cache.
 - Rules are pure, so the whole pass could later move to a worker without API change.
 
+## Storage and API
+
+Status of every point in this section: Proposed (owner review), not an owner decision.
+
+Q1. Columns (Proposed, owner review). Since `migrations/20261025000000_story_model.up.sql`, `series` is no longer a table. It is the view `legacy_series` over `containers` of kind `book_series` (`migrations/20261025000000_story_model.up.sql:222-223`, recreated with deleted filters at `migrations/20261101000002_container_trash.up.sql:17-19`). Lore is scoped to the universe and series lore routes resolve it through `series_universe` (`crates/api/src/manuscripts/lore/handlers.rs:24-32`). "Per series, like lore" therefore means per universe. One migration adds to `universes` (`migrations/20261025000000_story_model.up.sql:1-5`):
+
+- `language TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es'))`.
+- `rules_config TEXT NOT NULL DEFAULT '{}'`, a JSON object keyed by rule id, each value `{enabled?, scope?, params?}` as in Config storage. `language` lives in its own column, not in the JSON.
+
+Existing rows get the defaults, so no data migration. The down migration drops both columns.
+
+Q2. Routes (Proposed, owner review):
+
+- `GET /series/{id}/rules` returns `{language, rules}`. `rules` is the stored object as saved, not merged with defaults; the client merges with the catalogue. Missing or deleted series: 404 `NOT_FOUND`.
+- `PUT /series/{id}/rules` takes `{language?, rules?}`. `rules` replaces the whole stored object; a partial body keeps the omitted field. Returns the same shape as GET (200).
+- The handler resolves the universe with `series_universe`, so every series in one universe shares one config.
+
+Validation against the catalogue (Proposed, owner review). The server holds the rule catalogue as data: id, languages, scope list, and each param's kind, min and max. It runs no rule.
+
+- Malformed JSON body: 400 `INVALID_JSON` (`crates/api/src/error.rs:37`, `:51`).
+- `language` not `en` or `es`; `scope` not `narration`, `dialogue` or `both`; `enabled` not a boolean; an `int` param out of `min..max` or not an integer; a `words` param not an array of nonblank strings: 422 `VALIDATION_ERROR` (`crates/api/src/error.rs:36`, `:50`).
+- Unknown rule ids and unknown param keys are kept, not rejected, so an older server never drops config from a newer client. The engine ignores them (Config storage, above).
+
+## Settings toggles
+
+Q8 (Proposed, owner review). The desktop Settings popover (`docs/editor-design.md:78`) gets a Hints section for the series of the open chapter:
+
+- Language select (English, Spanish) and one checkbox per rule that supports that language, in catalogue order. Rules for the other language are hidden (Languages, above).
+- `int` params show as a number field; the watch-words list shows as a text field, one word per line.
+- Each change saves with `PUT /series/{id}/rules`; a failed save shows the error and restores the last saved value. The preference is not in local storage.
+- Scope override has no control in v1; it stays at the rule default unless set through the API.
+- Below 1100px there is no Settings popover, so there are no toggles; the saved config still applies.
+- A piece outside a `book_series` container has no series, so the section is absent and no rules run.
+
+## Scope of GUZ-691 and GUZ-690
+
+Q3 (Proposed, owner review). GUZ-691 ships the engine and the toggles only, with no visible hint. The overlay (drawn from `quill.getBounds`, as in `app/src/md_editor/components/ContinueWindow.tsx:19-20`) and the hover/click tip belong to GUZ-690.
+
 ## Delivery
 
 - GUZ-691: engine, shared pass with dialogue detection, per-series config and storage, rule toggle UI.
-- GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts`.
-- GUZ-690: the hint overlay waits for the engine and is built on it, not as a passive-only overlay.
+- GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts` (`analyzeProse`, `app/src/md_editor/prose.ts:302`).
+- GUZ-690: the hint overlay and tip wait for the engine and are built on it, not as a passive-only overlay.
+- GUZ-1533: Spanish em-dash detector and further dialogue rules.
+
+Stages for GUZ-691, each under about 400 changed lines, red test first:
+
+| Stage | Content | Estimate |
+|-------|---------|----------|
+| S1 | Shared pass: paragraphs, sentences, words, quote dialogue zones; Bun tests | ~250 lines |
+| S2 | Engine: rule registry, language and scope filter, offset shift, LRU caches; one test rule | ~300 lines |
+| S3 | Migration, catalogue data, `GET`/`PUT /series/{id}/rules`, Rust integration tests | ~350 lines |
+| S4 | Settings Hints section (story first for any new `app/src/ui/` primitive), client, DOM tests, E2E spec written, not run | ~350 lines |
+| GUZ-690 | Overlay and tip, E2E at 1100px and 1440px | separate ticket |
+
+## Settled questions
+
+Each answer is Proposed (owner review), not an owner decision.
+
+- Q4. A hint that crosses a dialogue/narration boundary is kept when its start is in the rule's scope, and dropped otherwise. It is not clipped.
+- Q5. One neutral underline for every tier in v1. Tier colors wait for author feedback.
+- Q6. No per-hint "ignore this one" in v1. Turning a rule off is the only control.
+- Q7. No cross-paragraph rules in v1. The per-paragraph cache stays exact.
 
 ## Open questions
 
-- Hints that straddle a dialogue/narration boundary: clip, drop, or keep if the start is in scope?
-- Should hint colors differ by tier, or is one neutral underline enough?
-- Is a per-hint "ignore this one" needed, and where would it be stored (series config or per chapter)?
-- Do cross-paragraph rules (repeated word across a paragraph break) ever justify uncached neighbors?
 - Spell checking: possible rule source, undecided.
