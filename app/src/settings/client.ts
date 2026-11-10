@@ -2,9 +2,12 @@ import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import { parseApiError } from "../manuscripts/contract";
 import type { PromptAiAction } from "../md_editor/ai_contract";
+import type { Language, StoredRules } from "../md_editor/rules/engine";
 import { parseModelCatalog, type ModelAction, type ModelCatalog } from "../md_editor/model_catalog";
 
 export type AuthorGuidance = { text: string };
+export type SeriesRules = { language: Language; rules: StoredRules };
+export type SeriesRulesUpdate = Partial<SeriesRules>;
 
 type Source = "saved" | "env" | "none";
 type ModelField = "generate_model" | "edit_model" | "image_model" | "lore_complete_model" | "dialogue_model";
@@ -60,6 +63,11 @@ export class SettingsApiError extends Error {
   }
 }
 
+function parseSeriesRules(value: unknown): SeriesRules {
+  if (typeof value !== "object" || value === null || !("language" in value) || (value.language !== "en" && value.language !== "es") || !("rules" in value) || typeof value.rules !== "object" || value.rules === null || Array.isArray(value.rules)) throw new Error("Expected series rules");
+  return { language: value.language, rules: value.rules as StoredRules };
+}
+
 function parseAuthorGuidance(value: unknown): AuthorGuidance {
   if (typeof value !== "object" || value === null || !("text" in value) || typeof value.text !== "string") {
     throw new Error("Expected author guidance text");
@@ -71,8 +79,8 @@ export function createSettingsClient({
   baseUrl = getApiBaseUrl(),
   fetch: fetchRequest = globalThis.fetch,
 }: { baseUrl?: string; fetch?: (url: string, init?: RequestInit) => Promise<Response> } = {}) {
-  async function request<T>(path: string, parse: (value: unknown) => T, method: "GET" | "PUT", input?: AuthorGuidance | AiSettingsUpdate): Promise<T> {
-    const response = await fetchRequest(`${baseUrl.replace(/\/+$/, "")}/settings/${path}`, {
+  async function request<T>(path: string, parse: (value: unknown) => T, method: "GET" | "PUT", input?: AuthorGuidance | AiSettingsUpdate | SeriesRulesUpdate): Promise<T> {
+    const response = await fetchRequest(`${baseUrl.replace(/\/+$/, "")}/${path}`, {
       method,
       headers: { Accept: "application/json", ...(input === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(input === undefined ? {} : { body: JSON.stringify(input) }),
@@ -94,10 +102,12 @@ export function createSettingsClient({
     }
   }
   return {
-    getAuthorGuidance: () => request("author-guidance", parseAuthorGuidance, "GET"),
-    putAuthorGuidance: (input: AuthorGuidance) => request("author-guidance", parseAuthorGuidance, "PUT", input),
-    getAiSettings: () => request("ai", parseAiSettings, "GET"),
-    putAiSettings: (input: AiSettingsUpdate) => request("ai", parseAiSettings, "PUT", input),
+    getAuthorGuidance: () => request("settings/author-guidance", parseAuthorGuidance, "GET"),
+    putAuthorGuidance: (input: AuthorGuidance) => request("settings/author-guidance", parseAuthorGuidance, "PUT", input),
+    getAiSettings: () => request("settings/ai", parseAiSettings, "GET"),
+    putAiSettings: (input: AiSettingsUpdate) => request("settings/ai", parseAiSettings, "PUT", input),
+    getSeriesRules: (seriesId: number) => request(`series/${seriesId}/rules`, parseSeriesRules, "GET"),
+    putSeriesRules: (seriesId: number, input: SeriesRulesUpdate) => request(`series/${seriesId}/rules`, parseSeriesRules, "PUT", input),
     async getModelCatalog(): Promise<ModelCatalog | null> {
       try {
         const response = await fetchRequest(`${baseUrl.replace(/\/+$/, "")}/ai/models`, { headers: { Accept: "application/json" } });

@@ -33,6 +33,8 @@
 
 `settings-popover.spec.ts` checks Settings dismissal and equal row gaps at 1100px and 1440px.
 
+`hint-settings.spec.ts` checks the Settings Hints section at 1100px and 1440px: the language saves with `PUT /series/{id}/rules` and survives a reload, and a failed save shows the error and restores the language. At 1099px there is no Hints section. Written; not run for GUZ-691 S4.
+
 `ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, checks Modal and Popover dismissal and Modal focus restoration, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.
 
 `edit-note.spec.ts` checks the Edit rail toggle, selection restoration, card and note geometry, and matching text sizes at 1100px and 1440px.

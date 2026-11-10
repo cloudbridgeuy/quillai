@@ -92,6 +92,7 @@ import { buildContextInspector } from "../context_inspector";
 import { continueSelectionNote, formatPromptParts } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
 import { AiSettings } from "../../settings/AiSettings";
+import { HintSettings } from "../../settings/HintSettings";
 import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
 import { TextCounts } from "./TextCounts";
@@ -1489,6 +1490,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Toggle label={formatMessage(defaultLocale, "editor.showContinueWindow")} checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
           <Toggle label={formatMessage(defaultLocale, "editor.tintAiText")} checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
           <AiSettings client={settingsClient} focusAction={settingsFocus} onSaved={() => setModelsRevision(value => value + 1)} />
+          {chapterSync.scope && "chapterId" in chapterSync.scope ? <HintSettings key={chapterSync.scope.seriesId} client={settingsClient} seriesId={chapterSync.scope.seriesId} /> : null}
         </Popover> : null}
       </nav>
       {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"
