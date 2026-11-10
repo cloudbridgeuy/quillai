@@ -63,7 +63,7 @@ type RuleConfig = {
 1. Split the chapter plain text into paragraphs (on `\n`).
 2. For each paragraph, run the shared pass once: sentences, words, and dialogue/narration spans. This yields a `ParagraphAnalysis`.
 3. For each enabled rule whose `languages` include the series language, call `check()` with the analysis and that rule's config.
-4. Drop hints that fall entirely outside the rule's scope; clip or drop hints that straddle a boundary (the rule declares nothing about this; the engine decides, see Open questions).
+4. Drop hints that fall entirely outside the rule's scope; clip or drop hints that straddle a boundary (the rule declares nothing about this; settled in Q4, Settled questions).
 5. Shift to document offsets and hand the list to the overlay.
 
 ```ts
@@ -95,7 +95,7 @@ Known limits:
 
 - Nested quotes (a quotation inside speech, or single-quoted dialogue in British style) are not modeled. Inner marks are ignored or can flip state wrongly.
 - Dialogue spanning paragraphs is only partly handled, as above.
-- Spanish em-dash dialogue (`—Hola —dijo`) has no quote marks and needs its own detector. This is a known future need and part of the Spanish follow-up.
+- Spanish em-dash dialogue (`—Hola —dijo`) has no quote marks and needs its own detector. Specified in GUZ-1533 dialogue rules, below.
 - Stray or unbalanced quotes yield wrong zones for the rest of that paragraph only.
 
 ## Shared pass as built (S1)
@@ -111,7 +111,7 @@ Known limits of the built pass:
 
 - Abbreviations such as "Mr." end a sentence.
 - Spanish `«»` are not dialogue marks.
-- Spanish em-dash dialogue is not detected; it is left to GUZ-1533 (see :98 and :160).
+- Spanish em-dash dialogue is not detected; it is left to GUZ-1533 (Known limits, above, and GUZ-1533 dialogue rules, below).
 
 ## Config storage
 
@@ -157,7 +157,7 @@ Rule lists are fixed data in the repo. Exact default numbers are set when each r
 
 English first. Every rule declares which languages it supports; the series language selects them. A rule that lacks the series language is not run and is hidden from the toggle UI.
 
-Spanish is planned (the owner wants English and Spanish) and is a follow-up: it needs its own word lists, its own rule set, and the em-dash dialogue detector. Not designed here.
+Spanish is planned (the owner wants English and Spanish) and is a follow-up: it needs its own word lists and its own rule set. The em-dash dialogue detector and the first Spanish dialogue rules are in GUZ-1533 dialogue rules, below.
 
 ## Performance
 
@@ -246,7 +246,7 @@ Below 1100px (`Editor.tsx:319`, `:544`) there is no Settings popover and no togg
 - GUZ-691: engine, shared pass with dialogue detection, per-series config and storage, rule toggle UI.
 - GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts` into `app/src/md_editor/rules/passive_voice.ts` (`prose.ts` is gone; `analyzeProse` is now `passiveSpans`).
 - GUZ-690: the hint overlay and tip wait for the engine and are built on it, not as a passive-only overlay.
-- GUZ-1533: Spanish em-dash detector and further dialogue rules.
+- GUZ-1533: Spanish em-dash detector and further dialogue rules (spec below; build stages S1-S3).
 
 ## GUZ-692 rule batch
 
@@ -307,6 +307,62 @@ Stages for GUZ-690, each under about 400 changed lines, red test first. Passive 
 | S3 | Tip: hover, tap, caret and Escape, `preventDefault` on mousedown. Red: DOM test | ~250 lines |
 | S4 | Piece to series resolver, `Editor.tsx` wiring, `HintSettings` for pieces. Red: resolver test (leaf, group child, non-`book_series`) | ~250 lines |
 | S5 | Persistence and AI-request test: no hint data in `quillai.editor.state.v1` or the built request. E2E spec at 1100px and 1440px, written not run, blocked on the first real rule from GUZ-692 | ~200 lines |
+
+## GUZ-1533 dialogue rules
+
+Spec only; no code in the spec stage. "Owner decision" marks the owner's answers; "Proposed" marks choices this spec makes for owner review. GUZ-692 owns English dialogue punctuation (`dialogue-punctuation`) and -ly adverbs (`adverbs`); GUZ-1533 duplicates neither.
+
+### Spanish dash detector
+
+- Owner decision: the dash detector runs only when the series language is `es`, and only for a paragraph whose first non-whitespace character is `—` (U+2014). English zones do not change, so a mid-paragraph `—` in English prose is never dialogue.
+- Owner decision: the language joins the analysis cache key. Today the analysis key is the paragraph text alone (`engine.ts:55`) while the hint key already holds the language (`engine.ts:57`). `analyzeParagraph(text, language)` is the new signature, and the key becomes `[language, text]`.
+- Owner decision: text inside dash dialogue is dialogue for scope. `ParagraphAnalysis.dialogue` and `Word.zone` stay the only channels (`shared_pass.ts:4`); no new field.
+- Proposed: scan left to right. The leading `—` opens dialogue. Each later `—` toggles between dialogue and tag narration. The two dashes that bound a tag belong to the narration span; the leading `—` belongs to the dialogue span. So `—Hola —dijo ella—. ¿Qué tal?` has dialogue `—Hola `, narration `—dijo ella—`, dialogue `. ¿Qué tal?`. A tag with no closing dash runs to the paragraph end (`—Hola —dijo ella.`).
+- Proposed: only `—` is a dash mark. `-` and `–` are not (GUZ-1532 types `—`, `docs/editor-design.md:206`).
+- Proposed: in a dash paragraph the quote scan is skipped; dashes alone set the zones.
+- Owner decision: `«` and `»` are quote marks in `es` only. Nested quotes, Proposed: while a `«` span is open only `»` closes it; `“`, `”` and `"` inside are ignored, so `«dijo “no” y calló»` is one span. English quote scanning is unchanged.
+- Proposed (dialogue across paragraphs): unchanged from the built pass (`shared_pass.ts:47`, rules-engine Known limits). An unclosed quote, or a dash paragraph, runs to the paragraph end, and the next paragraph starts fresh. A paragraph that continues speech with an open quote only is its own dialogue span. State never crosses paragraphs (Q7).
+- Measured: no shipped rule changes behaviour. Only `watch-words` runs in `es` and its default scope is `both` (`watch_words.ts:8`, `:11`); the other six declare `languages: ["en"]`.
+
+### Rules
+
+| Rule id | Languages | Scope | Default | Params | Message keys (en / es) |
+|---------|-----------|-------|---------|--------|------------------------|
+| `dash-tag-punctuation` | es | both | on | none | `rules.dashTagPunctuation.label` "Dash tag punctuation" / "Puntuación de la raya de acotación"; `hints.dashTagPunctuation` "No period or comma before a dialogue dash tag" / "Sin punto ni coma antes de la raya de la acotación" |
+| `dash-tag-unclosed` | es | both | on | none | `rules.dashTagUnclosed.label` "Unclosed dash tag" / "Acotación sin cerrar"; `hints.dashTagUnclosed` "Close the dialogue tag with a dash" / "Cierra la acotación con una raya" |
+| `said-bookisms` | en, es | narration | off | none | `rules.bookisms.label` "Said-bookisms" / "Verbos de habla marcados"; `hints.bookism` "“{word}” is a said-bookism; consider “said”" / "“{word}” es un verbo de habla marcado; considera “dijo”" (`messageArgs`: `word`) |
+
+- Owner decisions: new rule ids; `dialogue-punctuation` stays `en` (no `es` added). Both dash rules default on; said-bookisms default off. Every key exists in both locales.
+- Proposed: a tag is a narration span that opens with `—` and whose first or second word is in the Spanish tag-verb list (below). The list gates both dash rules, so a parenthetical `—` pair is never flagged.
+- `dash-tag-punctuation`: hints a `.` or `,` right before a tag-opening `—` (optional space between). `—Hola. —dijo ella—.` and `—Hola, —dijo ella—.` are hinted; `—¿Qué? —preguntó—.` and `—Hola —dijo ella—.` are not. The hint covers the one punctuation character (length 1).
+- `dash-tag-unclosed`: hints the sentence-final `.`, `!` or `?` inside a tag when text follows it in the same paragraph and no closing `—` came first (`—Hola —dijo ella. ¿Qué tal?`). A tag that ends the paragraph, closed or not, is valid. The hint covers that one character. Proposed: a tag with no sentence end before the paragraph end gets no hint.
+- `said-bookisms`: hints a listed word in a narration zone within 3 words after the end of a dialogue span or within 3 words before the start of one, in the same paragraph. Proposed: exact lowercase forms, no stemming; the hint covers the word.
+- Proposed lists, fixed data in the repo, one file each: Spanish tag verbs (about 25, past tense and present: dijo, preguntó, respondió, contestó, añadió, murmuró, susurró, gritó, exclamó, replicó, comentó, explicó, continuó, siguió, insistió, suspiró, musitó, masculló, gruñó, espetó, ladró, siseó, bramó, farfulló, ordenó). English bookisms (about 20: hissed, snarled, growled, barked, spat, purred, breathed, gasped, chirped, mused, cooed, drawled, bellowed, retorted, panted, sneered, whined, crooned, grunted, boomed). Spanish bookisms (about 16: siseó, gruñó, espetó, ladró, susurró, bramó, rugió, masculló, farfulló, graznó, bufó, jadeó, musitó, ronroneó, canturreó, vociferó). Owner reviews all three lists; `said-bookisms` has no params, so no bounds.
+- Proposed: catalogue entries (app and `crates/api/src/manuscripts/rules/catalogue.rs`, shape `:10-19`) have empty `params` for all three.
+
+### Straddling hints
+
+- Owner decision: a hint is kept when its start offset is in the rule's scope and dropped otherwise; it is never clipped. Measured: `inScope` reads only `hint.start` (`engine.ts:65-69`, applied at `:58`), the same as Q4. Nothing changes; the Pipeline step 4 pointer now names Q4.
+
+### Advisory
+
+Same as every rule: hints never block saving, never change text, and never enter the Delta or the AI request. Each rule gets Bun tests with a dialogue case and a narration case in `en` and `es` where the rule supports the language, red first. The E2E spec is written, not run.
+
+### Build stages
+
+Each stage is under about 400 changed lines including tests, red test first.
+
+| Stage | Content | Estimate |
+|-------|---------|----------|
+| S1 | `analyzeParagraph(text, language)`, dash detector, `«»` in es, `[language, text]` analysis key. Red: `—Hola —dijo ella—. ¿Qué tal?` gives the three spans in es and none in en; en zones unchanged; the same text in two languages does not share a cache entry | ~280 lines |
+| S2 | `dash-tag-punctuation` and `dash-tag-unclosed`, Spanish tag-verb list, app and server catalogue, en and es keys, Rust catalogue test. Red: the examples above | ~350 lines |
+| S3 | `said-bookisms` and its two lists, catalogue and keys, `e2e/dialogue-hints.spec.ts` written not run | ~300 lines |
+
+### Risks
+
+- Heuristic: a Spanish dash paragraph with no tag verb in the list gets no dash hint (missed hints, no false ones). The list is the tuning knob.
+- GUZ-1532 types `—` anywhere (`docs/editor-design.md:206`); the paragraph-start trigger and the `es` gate keep that from making English prose dialogue.
+- GUZ-1535 converts AI quotes after a run (`docs/editor-design.md:278`); it does not change dash text, so no overlap in code.
 
 ## Settled questions
 
