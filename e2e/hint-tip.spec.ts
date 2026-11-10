@@ -1,8 +1,7 @@
 import { expect, test, type Page, type APIRequestContext } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 
-const FLAGGED_TEXT = "She walked very quickly home.";
-const RULES_SHIPPED = false;
+const FLAGGED_TEXT = "She quickly ran quickly to the door.";
 
 async function openFlaggedChapter(page: Page, request: APIRequestContext, width: number) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -20,7 +19,6 @@ async function openFlaggedChapter(page: Page, request: APIRequestContext, width:
 
 for (const width of [1100, 1440]) {
   test(`a flagged word is underlined and its tip opens and closes without changing the chapter at ${width}px`, async ({ page, request }) => {
-    test.fixme(!RULES_SHIPPED, "RULES is empty until GUZ-692 ships a rule; set RULES_SHIPPED and FLAGGED_TEXT to the first rule's trigger");
     const { apiUrl, seriesId, bookId, chapterId } = await openFlaggedChapter(page, request, width);
     const chapterUrl = `${apiUrl}/series/${seriesId}/books/${bookId}/chapters/${chapterId}`;
     const before = await (await request.get(chapterUrl)).json();
