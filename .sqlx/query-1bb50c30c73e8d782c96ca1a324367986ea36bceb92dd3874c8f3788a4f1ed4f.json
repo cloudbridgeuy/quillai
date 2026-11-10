@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT language, rules_config FROM containers WHERE id IN (SELECT id FROM legacy_series WHERE id = ?)",
+  "describe": {
+    "columns": [
+      {
+        "name": "language",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "rules_config",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "1bb50c30c73e8d782c96ca1a324367986ea36bceb92dd3874c8f3788a4f1ed4f"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE containers SET language = COALESCE(?, language), rules_config = COALESCE(?, rules_config) WHERE id IN (SELECT id FROM legacy_series WHERE id = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "2ed022de76e07856fc72490acfd0244c66af720594ad70d88f559b360b5523be"
+}

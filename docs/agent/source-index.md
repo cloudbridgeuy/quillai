@@ -18,6 +18,7 @@
 | `manuscripts/series/` | Series CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/series_test.rs` |
 | `manuscripts/books/` | Series-scoped book CRUD models, validation, handlers, and route wiring; HTTP coverage in `crates/api/tests/books_test.rs` |
 | `manuscripts/lore/` | Series lore façade over universe lore (`store.rs` holds universe-keyed CRUD), field validation, JSON-array storage, and boolean pin mapping; HTTP coverage in `crates/api/tests/lore_test.rs` |
+| `manuscripts/rules/` | Per-series prose rule settings (GUZ-691, `docs/rules-engine.md` Storage and API): `GET`/`PUT /series/{id}/rules` over `containers.language`/`rules_config`, resolved through `legacy_series`; `catalogue.rs` holds the server rule catalogue (empty until rules ship) and body validation. HTTP coverage in `crates/api/tests/series_rules_test.rs` |
 | `manuscripts/chapters/` | Book-scoped chapter CRUD and revision sync over the `legacy_chapters` view, validated Delta input, rebuilt content, metadata validation, and ordering; HTTP coverage in `crates/api/tests/chapters_test.rs` |
 | `manuscripts/leaf_sync.rs` | Shared leaf Delta history and server-priority submit (snapshot every 100) for chapter and piece delta routes |
 | `manuscripts/universes/`, `containers/`, `pieces/` | Story model routes (camelCase JSON, lore stays snake_case with `universe_id`); `mod.rs` holds JSON input parsing, PUT key rejection, and trigger RAISE → 422 mapping; HTTP coverage in `crates/api/tests/story_routes_test.rs` |
