@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { defaultLocale, formatMessage } from "../i18n/messages";
+import { defaultLocale, formatMessage, type MessageKey } from "../i18n/messages";
 import { RULES, resolveConfig, type Language, type ParamDef, type ParamValue, type Rule, type StoredRuleConfig } from "../md_editor/rules/engine";
 import { Alert } from "../ui/Alert";
 import { Field } from "../ui/Field";
@@ -9,7 +9,7 @@ import { TextField } from "../ui/TextField";
 import { Toggle } from "../ui/Toggle";
 import type { createSettingsClient, SeriesRules, SeriesRulesUpdate } from "./client";
 
-const t = (key: string) => formatMessage(defaultLocale, key);
+const t = (key: MessageKey) => formatMessage(defaultLocale, key);
 
 function parseParam(param: ParamDef, text: string): ParamValue {
   return param.kind === "int" ? Number(text.trim()) : text.split("\n").map(word => word.trim()).filter(Boolean);
@@ -50,14 +50,14 @@ export function HintSettings({ client, seriesId, rules = RULES }: { client: Retu
     {rules.filter(rule => rule.languages.includes(view.language)).map(rule => {
       const config = resolveConfig(rule, view.rules[rule.id]);
       return <div key={rule.id} className="space-y-2">
-        <Toggle label={rule.label} checked={config.enabled} onChange={event => saveRule(rule.id, { enabled: event.currentTarget.checked })} />
+        <Toggle label={t(rule.labelKey)} checked={config.enabled} onChange={event => saveRule(rule.id, { enabled: event.currentTarget.checked })} />
         {rule.params.map(param => {
           const draftKey = `${rule.id}.${param.key}`;
           const value = config.params[param.key];
           const onBlur = () => saveParam(rule, param, draftKey);
           const text = drafts[draftKey] ?? (Array.isArray(value) ? value.join("\n") : String(value));
           const setDraft = (next: string) => setDrafts({ ...drafts, [draftKey]: next });
-          return <Field key={param.key} label={param.label}>
+          return <Field key={param.key} label={t(param.labelKey)}>
             {param.kind === "int"
               ? <TextField type="number" min={param.min} max={param.max} step={1} value={text} onChange={event => setDraft(event.currentTarget.value)} onBlur={onBlur} />
               : <TextField as="textarea" rows={4} value={text} onChange={event => setDraft(event.currentTarget.value)} onBlur={onBlur} />}

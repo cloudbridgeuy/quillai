@@ -9,9 +9,9 @@ import { HintSettings } from "./HintSettings";
 afterEach(cleanup);
 
 const rules: Rule[] = [
-  { id: "adverbs", label: "Adverbs", languages: ["en"], defaultEnabled: true, defaultScope: "both", params: [{ key: "max", kind: "int", label: "Max per sentence", default: 2, min: 1, max: 9 }], check: () => [] },
-  { id: "watch", label: "Watch words", languages: ["en", "es"], defaultEnabled: false, defaultScope: "narration", params: [{ key: "words", kind: "words", label: "Words", default: ["just"] }], check: () => [] },
-  { id: "leismo", label: "Leísmo", languages: ["es"], defaultEnabled: true, defaultScope: "both", params: [], check: () => [] },
+  { id: "adverbs", labelKey: "rules.adverbs.label", languages: ["en"], defaultEnabled: true, defaultScope: "both", params: [{ key: "max", kind: "int", labelKey: "rules.adverbs.max", default: 2, min: 1, max: 9 }], check: () => [] },
+  { id: "watch", labelKey: "rules.watch.label", languages: ["en", "es"], defaultEnabled: false, defaultScope: "narration", params: [{ key: "words", kind: "words", labelKey: "rules.watch.words", default: ["just"] }], check: () => [] },
+  { id: "leismo", labelKey: "rules.leismo.label", languages: ["es"], defaultEnabled: true, defaultScope: "both", params: [], check: () => [] },
 ];
 
 async function setup(stored: SeriesRules, { failPut = false, catalogue = rules }: { failPut?: boolean; catalogue?: readonly Rule[] } = {}) {

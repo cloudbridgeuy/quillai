@@ -7,16 +7,16 @@ type Call = { doc: ParagraphAnalysis; params: RuleConfig["params"] };
 function wordRule(word: string, overrides: Partial<Rule> = {}, calls: Call[] = []): Rule {
   return {
     id: `word-${word}`,
-    label: word,
+    labelKey: "rules.adverbs.label",
     languages: ["en"],
     defaultEnabled: true,
-    params: [{ key: "max", kind: "int", label: "Max", default: 3, min: 1, max: 9 }],
+    params: [{ key: "max", kind: "int", labelKey: "rules.adverbs.max", default: 3, min: 1, max: 9 }],
     defaultScope: "both",
     check(doc, config) {
       calls.push({ doc, params: config.params });
       return doc.words
         .filter((w) => w.lower === word)
-        .map((w) => ({ ruleId: `word-${word}`, start: w.start, length: w.end - w.start, message: word }));
+        .map((w) => ({ ruleId: `word-${word}`, start: w.start, length: w.end - w.start, messageKey: "hints.adverb" }));
     },
     ...overrides,
   };
@@ -28,8 +28,8 @@ const spans = (text: string, hints: { start: number; length: number }[]) =>
 test("missing rules and keys fall back to the rule defaults", () => {
   const rule = wordRule("x", {
     params: [
-      { key: "max", kind: "int", label: "Max", default: 3, min: 1, max: 9 },
-      { key: "words", kind: "words", label: "Words", default: ["a"] },
+      { key: "max", kind: "int", labelKey: "rules.adverbs.max", default: 3, min: 1, max: 9 },
+      { key: "words", kind: "words", labelKey: "rules.watch.words", default: ["a"] },
     ],
   });
   expect(resolveConfig(rule, undefined)).toEqual({ enabled: true, scope: "both", params: { max: 3, words: ["a"] } });
@@ -45,8 +45,8 @@ test("shifts paragraph hints to document offsets", () => {
   const text = "a cat\nthe cat sat";
   const hints = createEngine([wordRule("cat")]).run(text, "en", {});
   expect(hints).toEqual([
-    { ruleId: "word-cat", start: 2, length: 3, message: "cat" },
-    { ruleId: "word-cat", start: 10, length: 3, message: "cat" },
+    { ruleId: "word-cat", start: 2, length: 3, messageKey: "hints.adverb" },
+    { ruleId: "word-cat", start: 10, length: 3, messageKey: "hints.adverb" },
   ]);
   expect(spans(text, hints)).toEqual(["cat", "cat"]);
 });
@@ -67,17 +67,17 @@ test("scope keeps a hint whose start is in scope and drops the rest, without cli
   const straddle: Rule = {
     ...wordRule("go", { defaultScope: "narration" }),
     check: () => [
-      { ruleId: "s", start: 1, length: 2, message: "in dialogue" },
-      { ruleId: "s", start: 10, length: 2, message: "narration" },
-      { ruleId: "s", start: 3, length: 9, message: "starts in dialogue" },
-      { ruleId: "s", start: 10, length: 7, message: "narration to end" },
+      { ruleId: "s", start: 1, length: 2, messageKey: "hints.adverb" },
+      { ruleId: "s", start: 10, length: 2, messageKey: "hints.repeatedWord" },
+      { ruleId: "s", start: 3, length: 9, messageKey: "hints.sameStart" },
+      { ruleId: "s", start: 10, length: 7, messageKey: "hints.longSentence" },
     ],
   };
   const engine = createEngine([straddle]);
-  expect(engine.run(text, "en", {}).map((h) => h.message)).toEqual(["narration", "narration to end"]);
-  expect(engine.run(text, "en", { "word-go": { scope: "dialogue" } }).map((h) => h.message)).toEqual([
-    "in dialogue",
-    "starts in dialogue",
+  expect(engine.run(text, "en", {}).map((h) => h.messageKey)).toEqual(["hints.repeatedWord", "hints.longSentence"]);
+  expect(engine.run(text, "en", { "word-go": { scope: "dialogue" } }).map((h) => h.messageKey)).toEqual([
+    "hints.adverb",
+    "hints.sameStart",
   ]);
   expect(engine.run(text, "en", { "word-go": { scope: "both" } })).toHaveLength(4);
 });

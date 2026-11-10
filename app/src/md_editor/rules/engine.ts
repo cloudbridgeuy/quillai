@@ -1,20 +1,21 @@
 import { analyzeParagraph, splitParagraphs, type ParagraphAnalysis } from "./shared_pass";
+import type { MessageKey } from "../../i18n/messages";
 
 export type Scope = "narration" | "dialogue" | "both";
 export type Language = "en" | "es";
 export type ParamValue = number | string[];
 
 export type ParamDef =
-  | { key: string; kind: "int"; label: string; default: number; min: number; max: number }
-  | { key: string; kind: "words"; label: string; default: string[] };
+  | { key: string; kind: "int"; labelKey: MessageKey; default: number; min: number; max: number }
+  | { key: string; kind: "words"; labelKey: MessageKey; default: string[] };
 
-export type Hint = { ruleId: string; start: number; length: number; message: string };
+export type Hint = { ruleId: string; start: number; length: number; messageKey: MessageKey };
 
 export type RuleConfig = { enabled: boolean; scope: Scope; params: Record<string, ParamValue> };
 
 export type Rule = {
   id: string;
-  label: string;
+  labelKey: MessageKey;
   languages: Language[];
   defaultEnabled: boolean;
   params: ParamDef[];
