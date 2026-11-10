@@ -119,6 +119,7 @@ import { apiErrorMessage } from "../../api_error";
 import { getApiBaseUrl } from "../../api_config";
 import { actionModelDisplay, expectedModelId, parseModelCatalog, type ModelCatalog } from "../model_catalog";
 import { beginInspectorRun, buildInspectorCost, recordInspectorUsage, type InspectorRun } from "../inspector_cost";
+import { dialogueTyping } from "../dialogue_typing_editor";
 
 function processMarkdownSyntax(quill: Quill, delta: DeltaT, source: string) {
   if (source !== "user") return;
@@ -170,6 +171,7 @@ export type ComponentPropsT = {
   onTextChange: OnTextChangeFn;
   onSelectionChange: OnSelectionChangeFn;
   markdownShortcuts: boolean;
+  dashesBlocked?: () => boolean;
 };
 
 function getStoredEditorState(): PersistedEditorState {
@@ -207,17 +209,19 @@ function getAiErrorMessage(responseText: string, status: number): Error {
 }
 
 export const Component = forwardRef<Quill, ComponentPropsT>(
-  ({ readOnly, defaultValue, onTextChange, onSelectionChange, markdownShortcuts }, ref) => {
+  ({ readOnly, defaultValue, onTextChange, onSelectionChange, markdownShortcuts, dashesBlocked }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const defaultValueRef = useRef(defaultValue);
     const initialReadOnlyRef = useRef(readOnly);
     const markdownShortcutsRef = useRef(markdownShortcuts);
     const onTextChangeRef = useRef(onTextChange);
     const onSelectionChangeRef = useRef(onSelectionChange);
+    const dashesBlockedRef = useRef(dashesBlocked);
 
     useLayoutEffect(() => {
       onTextChangeRef.current = onTextChange;
       onSelectionChangeRef.current = onSelectionChange;
+      dashesBlockedRef.current = dashesBlocked;
     });
 
     useEffect(() => {
@@ -250,9 +254,11 @@ export const Component = forwardRef<Quill, ComponentPropsT>(
 
       quill.enable(!initialReadOnlyRef.current);
 
+      const typeDialogue = dialogueTyping(quill, () => dashesBlockedRef.current?.() ?? false);
       quill.on(Quill.events.TEXT_CHANGE, (delta, oldDelta, source) => {
         if (markdownShortcutsRef.current) processMarkdownSyntax(quill, delta, source);
         onTextChangeRef.current?.(delta, oldDelta, source);
+        if (markdownShortcutsRef.current) typeDialogue(delta, source);
       });
 
       quill.on(Quill.events.SELECTION_CHANGE, (range, oldRange, source) => {
@@ -1619,6 +1625,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
                 );
               }}
               markdownShortcuts={scriptGroupId === undefined}
+              dashesBlocked={() => aiRunStateRef.current.status === "continuing"}
               onTextChange={(delta, oldDelta, source) => {
                 chapterSync.documentChanged(delta, oldDelta);
                 const quill = quillRef.current;
