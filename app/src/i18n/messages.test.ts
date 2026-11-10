@@ -458,3 +458,39 @@ test("explicit sync failure state overrides status wording", () => {
   expect(getSavePresentation("Saved · export", null, false, false)).toEqual({ label: "Saved · export", failed: false });
   expect(getSavePresentation("Guardado", null, true, false)).toEqual({ label: "Not saved", failed: true, detail: "Guardado" });
 });
+
+test.each([
+  ["en", "hints.adverb", { word: "quickly" }, "Consider cutting “quickly”"],
+  ["es", "hints.adverb", { word: "rápidamente" }, "Considera quitar «rápidamente»"],
+  ["en", "hints.repeatedWord", { word: "door" }, "“door” repeats nearby"],
+  ["es", "hints.repeatedWord", { word: "puerta" }, "«puerta» se repite cerca"],
+  ["en", "hints.sameStart", { count: 3, word: "She" }, "3 sentences in a row start with “She”"],
+  ["es", "hints.sameStart", { count: 3, word: "Ella" }, "3 oraciones seguidas empiezan con «Ella»"],
+  ["en", "hints.redundantPhrase", { phrase: "nodded his head" }, "“nodded his head” can be shorter"],
+  ["es", "hints.redundantPhrase", { phrase: "asintió con la cabeza" }, "«asintió con la cabeza» se puede acortar"],
+  ["en", "hints.dialoguePunctuation", undefined, "Use a comma, not a period, before a dialogue tag"],
+  ["es", "hints.dialoguePunctuation", undefined, "Usa una coma, no un punto, antes de la acotación"],
+  ["en", "hints.passive", undefined, "Passive voice"],
+  ["es", "hints.passive", undefined, "Voz pasiva"],
+] as const)("hint message %s %s", (locale, key, values, expected) => {
+  expect(formatMessage(locale, key, values)).toBe(expected);
+});
+
+test.each([
+  ["rules.dialoguePunctuation.label", "Dialogue punctuation", "Puntuación del diálogo"],
+  ["rules.redundantPhrases.label", "Redundant phrases", "Frases redundantes"],
+  ["rules.repeatedWord.label", "Repeated words", "Palabras repetidas"],
+  ["rules.repeatedWord.window", "Window (words)", "Ventana (palabras)"],
+  ["rules.sameStart.label", "Same sentence start", "Mismo inicio de oración"],
+  ["rules.sameStart.count", "Sentences in a row", "Oraciones seguidas"],
+  ["rules.passive.label", "Passive voice", "Voz pasiva"],
+  ["rules.passive.maxAdverbs", "Max adverbs inside", "Máximo de adverbios dentro"],
+] as const)("rule label %s", (key, english, spanish) => {
+  expect(formatMessage("en", key)).toBe(english);
+  expect(formatMessage("es", key)).toBe(spanish);
+});
+
+test("the leísmo label and long sentence hint stay", () => {
+  expect(formatMessage("en", "rules.leismo.label")).toBe("Leísmo");
+  expect(formatMessage("en", "hints.longSentence")).toBe("This sentence is long");
+});

@@ -11,7 +11,7 @@ export const HINT_TIP_DELAY_MS = 300;
 const sameHint = (a: Hint, b: Hint) => a.ruleId === b.ruleId && a.start === b.start && a.length === b.length;
 
 export function HintTip({ quill, hints, rules = RULES, timers = browserTimers, locale = defaultLocale }: { quill: Quill; hints: readonly Hint[]; rules?: readonly Rule[]; timers?: Timers; locale?: Locale }) {
-  const t = (key: Hint["messageKey"]) => formatMessage(locale, key);
+  const t = (key: Hint["messageKey"], args?: Hint["messageArgs"]) => formatMessage(locale, key, args);
   const [tip, setTip] = useState<{ hint: Hint; anchor: { left: number; top: number } } | null>(null);
   const hintsRef = useRef(hints);
   hintsRef.current = hints;
@@ -74,6 +74,6 @@ export function HintTip({ quill, hints, rules = RULES, timers = browserTimers, l
   const rule = rules.find((candidate) => candidate.id === current.hint.ruleId);
   return <Popover open anchor={current.anchor} onOpenChange={(open) => { if (!open) setTip(null); }} ignoreRefs={ignoreRefs} role="tooltip" onMouseDown={(event) => event.preventDefault()}>
     {rule ? <strong className="block">{t(rule.labelKey)}</strong> : null}
-    <span>{t(current.hint.messageKey)}</span>
+    <span>{t(current.hint.messageKey, current.hint.messageArgs)}</span>
   </Popover>;
 }

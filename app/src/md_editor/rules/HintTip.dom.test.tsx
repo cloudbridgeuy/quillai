@@ -125,3 +125,16 @@ test("the tip shows the rule name and message in the given locale", async () => 
   expect(tip()?.textContent ?? "").toContain(formatMessage("es", "rules.adverbs.label"));
   expect(tip()?.textContent ?? "").toContain(formatMessage("es", "hints.adverb"));
 });
+
+test("the tip names the word from messageArgs in the given locale", async () => {
+  const withArgs: Hint = { ...hint, messageArgs: { word: "quickly" } };
+  for (const locale of ["en", "es"] as const) {
+    const { advance, tip, fire } = await setup([withArgs], locale);
+    await fire("pointermove", ...onHint);
+    await advance(HINT_TIP_DELAY_MS);
+    expect(tip()?.textContent ?? "").toContain(formatMessage(locale, "hints.adverb", { word: "quickly" }));
+    expect(tip()?.textContent ?? "").toContain("quickly");
+    expect(tip()?.textContent ?? "").not.toContain("{word}");
+    await cleanup();
+  }
+});
