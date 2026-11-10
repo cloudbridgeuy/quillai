@@ -155,7 +155,7 @@ Spanish is planned (the owner wants English and Spanish) and is a follow-up: it 
 
 ## Storage and API
 
-Q1 is an owner decision. Every other point in this section is Proposed (owner review).
+Q1 is an owner decision. Every other point in this section is an owner decision.
 
 Q1. Columns (Owner decision). Settings are per series: each series keeps its own config. Since `migrations/20261025000000_story_model.up.sql`, `series` is no longer a table. It is the view `legacy_series` over `containers` of kind `book_series` (`migrations/20261025000000_story_model.up.sql:222-223`, recreated with deleted filters at `migrations/20261101000002_container_trash.up.sql:17-19`); a series id is its container id. One migration adds to `containers` (`migrations/20261025000000_story_model.up.sql:7-13`):
 
@@ -164,13 +164,13 @@ Q1. Columns (Owner decision). Settings are per series: each series keeps its own
 
 Only `book_series` rows are read or written; the columns keep their defaults on `tv_series` and `collection` rows. Existing rows get the defaults, so no data migration. The down migration drops both columns.
 
-Q2. Routes (Proposed, owner review):
+Q2. Routes (Owner decision):
 
 - `GET /series/{id}/rules` returns `{language, rules}`. `rules` is the stored object as saved, not merged with defaults; the client merges with the catalogue. Missing or deleted series: 404 `NOT_FOUND`.
 - `PUT /series/{id}/rules` takes `{language?, rules?}`. `rules` replaces the whole stored object; a partial body keeps the omitted field. Returns the same shape as GET (200).
 - The handler resolves the series id to its container row through `legacy_series`. A missing id, a deleted container or universe, or a container that is not `book_series` is 404 `NOT_FOUND`.
 
-Validation against the catalogue (Proposed, owner review). The server holds the rule catalogue as data: id, languages, scope list, and each param's kind, min and max. It runs no rule.
+Validation against the catalogue (Owner decision). The server holds the rule catalogue as data: id, languages, scope list, and each param's kind, min and max. It runs no rule.
 
 - Malformed JSON body: 400 `INVALID_JSON` (`crates/api/src/error.rs:37`, `:51`).
 - `language` not `en` or `es`; `scope` not `narration`, `dialogue` or `both`; `enabled` not a boolean; an `int` param out of `min..max` or not an integer; a `words` param not an array of nonblank strings: 422 `VALIDATION_ERROR` (`crates/api/src/error.rs:36`, `:50`).
@@ -178,7 +178,7 @@ Validation against the catalogue (Proposed, owner review). The server holds the 
 
 ## Settings toggles
 
-Q8 (Proposed, owner review). The desktop Settings popover (`docs/editor-design.md:78`) gets a Hints section for the series of the open chapter:
+Q8 (Owner decision). The desktop Settings popover (`docs/editor-design.md:78`) gets a Hints section for the series of the open chapter:
 
 - Language select (English, Spanish) and one checkbox per rule that supports that language, in catalogue order. Rules for the other language are hidden (Languages, above).
 - `int` params show as a number field; the watch-words list shows as a text field, one word per line.
@@ -189,7 +189,7 @@ Q8 (Proposed, owner review). The desktop Settings popover (`docs/editor-design.m
 
 ## Scope of GUZ-691 and GUZ-690
 
-Q3 (Proposed, owner review). GUZ-691 ships the engine and the toggles only, with no visible hint. The overlay (drawn from `quill.getBounds`, as in `app/src/md_editor/components/ContinueWindow.tsx:19-20`) and the hover/click tip belong to GUZ-690.
+Q3 (Owner decision). GUZ-691 ships the engine and the toggles only, with no visible hint. The overlay (drawn from `quill.getBounds`, as in `app/src/md_editor/components/ContinueWindow.tsx:19-20`) and the hover/click tip belong to GUZ-690.
 
 ## Delivery
 
@@ -210,7 +210,7 @@ Stages for GUZ-691, each under about 400 changed lines, red test first:
 
 ## Settled questions
 
-Each answer is Proposed (owner review), not an owner decision.
+Each answer is an owner decision.
 
 - Q4. A hint that crosses a dialogue/narration boundary is kept when its start is in the rule's scope, and dropped otherwise. It is not clipped.
 - Q5. One neutral underline for every tier in v1. Tier colors wait for author feedback.
