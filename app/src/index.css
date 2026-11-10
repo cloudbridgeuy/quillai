@@ -637,6 +637,10 @@ body {
   box-shadow: var(--note-shadow);
 }
 
+.editor-dialogue-flag {
+  background: var(--pi-lav);
+}
+
 .editor-edit-box :is(.editor-edit-flag, .editor-sticky-note, .editor-note) {
   @apply text-label;
 }
