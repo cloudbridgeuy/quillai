@@ -98,6 +98,21 @@ Known limits:
 - Spanish em-dash dialogue (`—Hola —dijo`) has no quote marks and needs its own detector. This is a known future need and part of the Spanish follow-up.
 - Stray or unbalanced quotes yield wrong zones for the rest of that paragraph only.
 
+## Shared pass as built (S1)
+
+`app/src/md_editor/rules/shared_pass.ts`, tested in `shared_pass.test.ts`. `splitParagraphs(text)` returns `{start, text}` per paragraph; `analyzeParagraph(text)` returns the `ParagraphAnalysis` above. All offsets are UTF-16 units.
+
+- Paragraphs: the text splits on every `\n`. Empty paragraphs are kept, including the one after a trailing `\n`, so each `start` is the exact document offset.
+- Sentences: a sentence starts at the first non-whitespace character and ends after a run of `.`, `!`, `?` or `…`, plus any closing `”`, `’`, `"`, `)` or `]`, when whitespace or the text end follows. Leading and trailing whitespace is not part of a sentence. An unterminated last sentence is kept. An empty paragraph has no sentences.
+- Words: runs of letters, marks and digits (`\p{L}`, `\p{M}`, `\p{N}`), joined by `'` or `’` (`Ana’s` is one word). `lower` is `toLowerCase()` only; `’` is not normalized to `'`. A word's `zone` is set by its start offset.
+- Quote marks: straight `"` opens in narration and closes in dialogue. `“` opens in narration and is ignored inside dialogue. `”` closes dialogue and is ignored in narration. A straight `"` can close a span opened by `“`. An unclosed quote runs to the paragraph end. State never crosses paragraphs. `‘`, `’` and `'` are never marks.
+
+Known limits of the built pass:
+
+- Abbreviations such as "Mr." end a sentence.
+- Spanish `«»` are not dialogue marks.
+- Spanish em-dash dialogue is not detected; it is left to GUZ-1533 (see :98 and :160).
+
 ## Config storage
 
 Per series, stored server-side like lore, not in browser storage. The series also carries its language.
