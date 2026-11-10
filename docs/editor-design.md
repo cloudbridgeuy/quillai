@@ -284,7 +284,7 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ### API
 
-- `POST /ai/generate` (`crates/api/src/ai/mod.rs:24`) with `action: "dialogue"` and `dialogue: { speakers: string[], brief: string }`, plus the Continue fields `document`, `window`, `storyContext`, `lore`. NDJSON stream as Continue.
+- `POST /ai/generate` (`crates/api/src/ai/mod.rs:24`) with `action: "dialogue"` and `dialogue: { speakers: string[], brief: string }`, plus `document`, `storyContext`, `lore` (`document` is the client window slice cut at the caret, Context above). NDJSON stream as Continue.
 - 422 `Validation` before provider start when: `dialogue` missing; speakers empty, above 6, duplicated, or not the name of a `character` entry in request `lore`; brief above 4,096 UTF-8 bytes (owner decision); lore above 262,144 bytes (proposed). Document limits are Continue's.
 - Parsing, `DIALOGUE_RULES`, and prompt assembly go in a new `crates/api/src/ai/dialogue.rs`; `provider.rs` (994 of 1000 lines) changes only by a match arm. Speaker names go in escaped tags, as lore (`.claude/context/ai-streaming.md:64`).
 
