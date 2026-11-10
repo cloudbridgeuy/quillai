@@ -18,7 +18,18 @@ pub struct RuleDef {
     pub params: &'static [ParamDef],
 }
 
-pub const CATALOGUE: &[RuleDef] = &[];
+pub const CATALOGUE: &[RuleDef] = &[
+    RuleDef {
+        id: "dialogue-punctuation",
+        languages: &["en"],
+        params: &[],
+    },
+    RuleDef {
+        id: "redundant-phrases",
+        languages: &["en"],
+        params: &[],
+    },
+];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
 const SCOPES: [&str; 3] = ["narration", "dialogue", "both"];
@@ -118,6 +129,22 @@ mod tests {
             },
         ],
     }];
+
+    #[test]
+    fn catalogue_lists_the_shipped_rules() {
+        let shipped: Vec<_> = CATALOGUE
+            .iter()
+            .map(|rule| (rule.id, rule.languages, rule.params.len()))
+            .collect();
+        let english: &[&str] = &["en"];
+        assert_eq!(
+            shipped,
+            vec![
+                ("dialogue-punctuation", english, 0),
+                ("redundant-phrases", english, 0)
+            ]
+        );
+    }
 
     fn accepts(params: Value) -> bool {
         parse_update(
