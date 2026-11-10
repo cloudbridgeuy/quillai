@@ -206,6 +206,40 @@ Q8 (Owner decision). The desktop Settings popover (`docs/editor-design.md:78`) g
 
 Q3 (Owner decision). GUZ-691 ships the engine and the toggles only, with no visible hint. The overlay (drawn from `quill.getBounds`, as in `app/src/md_editor/components/ContinueWindow.tsx:19-20`) and the hover/click tip belong to GUZ-690.
 
+## Overlay and tip (GUZ-690)
+
+Owner decision: passive voice stays in GUZ-692 (Delivery, GUZ-692 bullet). GUZ-690 ships the overlay and the tip only, tested with a test rule. The GUZ-690 E2E spec waits for the first real rule.
+
+Owner decision: rule labels, param labels and hint messages are i18n message keys (en and es in `app/src/i18n/messages.ts`, where `settings.hints.*` lives at `:300-303` and `:679-682`), not plain strings. The type change, built before GUZ-692 adds rules:
+
+- `Rule.label` becomes `labelKey`; `ParamDef.label` becomes `labelKey`; `Hint.message` becomes `messageKey` (`engine.ts:11`, `:8-9`, `:17`).
+- `HintSettings.tsx:50-53` renders `t(rule.labelKey)` and `t(param.labelKey)`.
+- Both locales get every key.
+
+### Piece to series
+
+Pieces outside a chapter scope get rules too. Chapter scopes already carry `seriesId` (`Editor.tsx:1493`). A `PieceScope` is `{universeId, pieceId}` (`contract.ts:27`) and is not widened. A hook resolves `pieceId -> seriesId | null` from existing calls only, no new API:
+
+1. `getPiece({pieceId})` (`client.ts:166`) returns `containerId` (`contract.ts:39`).
+2. A child of a group has `containerId` null (children attach only with it cleared, `docs/agent/api-routes.md:59`, `:61`), so use `parentId` and call `getPiece` on the group once for its `containerId`.
+3. `listContainers({universeId})` (`client.ts:163`) returns `kind` (`contract.ts:31`). The series id is the container id when its kind is `book_series` (`:175`); any other result is `null`.
+
+`null` means no Hints section and no rules (`:203`). `loadPiece` (`chapter_session.ts:22-27`) keeps dropping the container; the resolver, not the scope, owns the lookup. Script groups (`scriptGroupId`, `Editor.tsx:433`) are out of scope: prose only. Inferred from the existing chapter path, not run: the resolved id feeds `HintSettings` and the hint runner exactly as `chapterSync.scope.seriesId` does now.
+
+### Proposed answers (owner review)
+
+Each answer is the narrowest reading consistent with current editor code.
+
+- a. Tip trigger. Proposed (owner review): pointer rest on a hint opens the tip; a tap or click toggles it. Keyboard: a collapsed caret inside a hint opens it (selection changes, `Editor.tsx:267-269`); Escape closes it. The overlay keeps `pointer-events: none` like the continue window (`ContinueWindow.tsx:41`, `index.css:517-527`), so hit-testing is done on `quill.root` pointer events against hint rects. Rail buttons use `mousedown preventDefault` so they never steal the caret (`editor-design.md:75`); the tip does the same. Content: rule label (`labelKey`) and `messageKey` text. No "ignore" button (Q6). Any new `app/src/ui/` primitive gets its story first (`CLAUDE.md`); prefer the existing `Popover` (`app/src/ui/Popover.tsx`).
+- b. Debounce. Proposed (owner review): 400 ms idle after the last user `TEXT_CHANGE`, per `:166`. No debounce exists in `Editor.tsx` to reuse (only the tint timer, `:323`), so the hook owns one timer. Config changes recompute at once.
+- c. Multi-line hints. Proposed (owner review): `getBounds(index, length)` returns one rect (`ContinueWindow.tsx:19-20` uses it for two points only). Walk the hint's words, call `getBounds` per word, and start a new segment whenever `top` changes; draw one underline per line segment. Only hints inside the viewport are measured. Measured on scroll, resize and `ResizeObserver`, as in `ContinueWindow.tsx:27-30`.
+- d. Continue, AI-streamed and busy text. Proposed (owner review): hints recompute only from `source === "user"` text changes (`Editor.tsx:262`). While `isAiActive()` (`Editor.tsx:404`) there is no recompute; one runs when it ends. Until `chapterSync.ready`, nothing is drawn. AI-inserted text gets hints after that one pass, like any text.
+- e. Piece language. Proposed (owner review): the language is the resolved series' language from `GET /series/{id}/rules` (`:184`), the same read `HintSettings` makes; no series, no rules.
+- f. Selection and IME. Proposed (owner review): a non-collapsed selection does not hide hints and does not open the tip. While Quill reports `composition.isComposing` (used at `dialogue_typing.dom.test.tsx:120`), no recompute and no tip; one recompute runs when composition ends.
+- g. Layering. Proposed (owner review): the overlay is a sibling in `quill.container`, never in the Delta, and sits at z-index 4 (`editor-design.md:86`, "hint 4"); no `--z-hint` token exists yet (`ui/tokens.css:30-36`), so S2 adds one. AI tint is only a CSS colour on `.ql-editor[data-ai-tint]` (`index.css:913-920`) and does not move text, so the two do not collide. The continue marker (`.editor-continue-window`, no z-index) sits at `left: -24px` outside the text; the underline stays on text.
+
+Below 1100px (`Editor.tsx:319`, `:544`) there is no Settings popover and no toggles (`:202`), but the saved config still applies, so the overlay and tip draw there too. Proposed (owner review): same rules, tip opens by tap or caret; no drawer interaction.
+
 ## Delivery
 
 - GUZ-691: engine, shared pass with dialogue detection, per-series config and storage, rule toggle UI.
@@ -221,7 +255,17 @@ Stages for GUZ-691, each under about 400 changed lines, red test first:
 | S2 | Engine: rule registry, language and scope filter, offset shift, LRU caches; one test rule | ~300 lines |
 | S3 | Migration, catalogue data, `GET`/`PUT /series/{id}/rules`, Rust integration tests | ~350 lines |
 | S4 | Settings Hints section (story first for any new `app/src/ui/` primitive), client, DOM tests, E2E spec written, not run | ~350 lines |
-| GUZ-690 | Overlay and tip, E2E at 1100px and 1440px | separate ticket |
+| GUZ-690 | Overlay and tip, E2E at 1100px and 1440px | separate ticket, S1-S5 below |
+
+Stages for GUZ-690, each under about 400 changed lines, red test first. Passive voice is not in this ticket.
+
+| Stage | Content | Estimate |
+|-------|---------|----------|
+| S1 | Message-key type change (`labelKey`, `messageKey`), en and es keys, `HintSettings` update; hint runner hook: debounce, user-source filter, `engine.run`, series config read. Red: Bun test with a test rule | ~300 lines |
+| S2 | Overlay component and `--z-hint`: per-line `getBounds` rects, scroll/resize/`ResizeObserver`. Red: DOM test for rects, resize, and an unchanged Delta (no `formatText`) | ~300 lines |
+| S3 | Tip: hover, tap, caret and Escape, `preventDefault` on mousedown. Red: DOM test | ~250 lines |
+| S4 | Piece to series resolver, `Editor.tsx` wiring, `HintSettings` for pieces. Red: resolver test (leaf, group child, non-`book_series`) | ~250 lines |
+| S5 | Persistence and AI-request test: no hint data in `quillai.editor.state.v1` or the built request. E2E spec at 1100px and 1440px, written not run, blocked on the first real rule from GUZ-692 | ~200 lines |
 
 ## Settled questions
 
