@@ -95,3 +95,63 @@ test("a stray closing quote in narration is ignored", () => {
 test("empty paragraph has no sentences, words or dialogue", () => {
   expect(analyzeParagraph("")).toEqual({ text: "", sentences: [], words: [], dialogue: [] });
 });
+
+const dialogueOf = (text: string, language: "en" | "es") => slices(text, analyzeParagraph(text, language).dialogue);
+
+test("es dash paragraph: leading dash opens dialogue, tag dashes are narration", () => {
+  expect(dialogueOf("—Hola —dijo ella—. ¿Qué tal?", "es")).toEqual(["—Hola ", ". ¿Qué tal?"]);
+});
+
+test("es dash paragraph: word zones follow the dash spans", () => {
+  const words = analyzeParagraph("—Hola —dijo ella—. ¿Qué tal?", "es").words;
+  expect(words.map((w) => `${w.text}:${w.zone}`)).toEqual([
+    "Hola:dialogue",
+    "dijo:narration",
+    "ella:narration",
+    "Qué:dialogue",
+    "tal:dialogue",
+  ]);
+});
+
+test("es dash paragraph: an unclosed tag runs to the paragraph end", () => {
+  expect(dialogueOf("—Hola —dijo ella.", "es")).toEqual(["—Hola "]);
+});
+
+test("es dash paragraph: leading whitespace is allowed and later dashes toggle", () => {
+  expect(dialogueOf("  —Uno —dijo— dos —dijo— tres", "es")).toEqual(["—Uno ", " dos ", " tres"]);
+});
+
+test("es dash paragraph: the quote scan is skipped", () => {
+  expect(dialogueOf("—Dijo “no y calló", "es")).toEqual(["—Dijo “no y calló"]);
+});
+
+test("es: a dash not at paragraph start is not dash dialogue", () => {
+  expect(dialogueOf("Ella dijo —no— y se fue", "es")).toEqual([]);
+});
+
+test("en: a leading dash is not dialogue", () => {
+  expect(dialogueOf("—Hola —dijo ella—. ¿Qué tal?", "en")).toEqual([]);
+});
+
+test("es: only U+2014 starts a dash paragraph", () => {
+  expect(dialogueOf("-Hola -dijo ella-.", "es")).toEqual([]);
+  expect(dialogueOf("–Hola –dijo ella–.", "es")).toEqual([]);
+});
+
+test("es: guillemets are quote marks and ignore inner quote marks", () => {
+  expect(dialogueOf("Ella «dijo “no” y calló» fin", "es")).toEqual(["«dijo “no” y calló»"]);
+  expect(dialogueOf("Ella «dijo \"no\" y calló» fin", "es")).toEqual(["«dijo \"no\" y calló»"]);
+});
+
+test("es: an unclosed guillemet runs to the paragraph end and state does not cross paragraphs", () => {
+  expect(dialogueOf("Ella «dijo no", "es")).toEqual(["«dijo no"]);
+  expect(dialogueOf("fin»", "es")).toEqual([]);
+});
+
+test("en: guillemets are not quote marks and quote zones are unchanged", () => {
+  expect(dialogueOf("Ella «dijo “no” y calló» fin", "en")).toEqual(["“no”"]);
+});
+
+test("es: straight and curly quotes still work outside guillemets", () => {
+  expect(dialogueOf("Ella dijo “no” y \"sí\" fin", "es")).toEqual(["“no”", '"sí"']);
+});

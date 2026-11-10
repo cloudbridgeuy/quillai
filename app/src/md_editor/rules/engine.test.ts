@@ -111,3 +111,22 @@ test("the cache is bounded and evicts the least recently used paragraph", () => 
   engine.run("a\nb", "en", {});
   expect(calls.map((c) => c.doc.text)).toEqual(["b"]);
 });
+
+test("the same text in en and es does not share an analysis", () => {
+  const calls: Call[] = [];
+  const engine = createEngine([wordRule("hola", { languages: ["en", "es"] }, calls)]);
+  engine.run("—Hola —dijo ella—.", "en", {});
+  engine.run("—Hola —dijo ella—.", "es", {});
+  expect(calls).toHaveLength(2);
+  expect(calls[0]?.doc === calls[1]?.doc).toBe(false);
+  expect(calls[0]?.doc.dialogue).toEqual([]);
+  expect(calls[1]?.doc.dialogue).toEqual([{ start: 0, end: 6 }, { start: 17, end: 18 }]);
+});
+
+test("a dash paragraph scopes hints by dash zones in es", () => {
+  const text = "—Hola —dijo ella—. Dijo dijo.";
+  const inDialogue = createEngine([wordRule("dijo", { languages: ["es"], defaultScope: "dialogue" })]);
+  expect(spans(text, inDialogue.run(text, "es", {}))).toEqual(["Dijo", "dijo"]);
+  const inNarration = createEngine([wordRule("dijo", { languages: ["es"], defaultScope: "narration" })]);
+  expect(spans(text, inNarration.run(text, "es", {}))).toEqual(["dijo"]);
+});

@@ -1,10 +1,12 @@
 export type Span = { start: number; end: number };
+export type Language = "en" | "es";
 export type Zone = "narration" | "dialogue";
 export type Word = Span & { text: string; lower: string; zone: Zone };
 export type ParagraphAnalysis = { text: string; sentences: Span[]; words: Word[]; dialogue: Span[] };
 export type Paragraph = { start: number; text: string };
 
 const SENTENCE = /\S.*?(?:[.!?…]+["”’)\]]*(?=\s|$)|(?=\s*$))/gsu;
+const DASH_PARAGRAPH = /^\s*—/u;
 const WORD = /[\p{L}\p{M}\p{N}]+(?:['’][\p{L}\p{M}\p{N}]+)*/gu;
 
 export function splitParagraphs(text: string): Paragraph[] {
@@ -16,8 +18,8 @@ export function splitParagraphs(text: string): Paragraph[] {
   });
 }
 
-export function analyzeParagraph(text: string): ParagraphAnalysis {
-  const dialogue = dialogueSpans(text);
+export function analyzeParagraph(text: string, language: Language = "en"): ParagraphAnalysis {
+  const dialogue = language === "es" && DASH_PARAGRAPH.test(text) ? dashSpans(text) : quoteSpans(text, language);
   const inDialogue = (offset: number) => dialogue.some((span) => offset >= span.start && offset < span.end);
   const words = Array.from(text.matchAll(WORD), (match): Word => {
     const start = match.index;
@@ -33,12 +35,37 @@ export function analyzeParagraph(text: string): ParagraphAnalysis {
   return { text, sentences, words, dialogue };
 }
 
-function dialogueSpans(text: string): Span[] {
+function dashSpans(text: string): Span[] {
+  const spans: Span[] = [];
+  let open = text.indexOf("—");
+  let inTag = false;
+  for (let i = open + 1; i < text.length; i++) {
+    if (text[i] !== "—") continue;
+    if (inTag) open = i + 1;
+    else spans.push({ start: open, end: i });
+    inTag = !inTag;
+  }
+  if (!inTag) spans.push({ start: open, end: text.length });
+  return spans.filter((span) => span.end > span.start);
+}
+
+function quoteSpans(text: string, language: Language): Span[] {
+  const guillemets = language === "es";
   const spans: Span[] = [];
   let open = -1;
+  let inGuillemets = false;
   for (let i = 0; i < text.length; i++) {
     const mark = text[i];
-    if (open < 0 && (mark === '"' || mark === "“")) open = i;
+    if (inGuillemets) {
+      if (mark === "»") {
+        spans.push({ start: open, end: i + 1 });
+        open = -1;
+        inGuillemets = false;
+      }
+    } else if (open < 0 && guillemets && mark === "«") {
+      open = i;
+      inGuillemets = true;
+    } else if (open < 0 && (mark === '"' || mark === "“")) open = i;
     else if (open >= 0 && (mark === '"' || mark === "”")) {
       spans.push({ start: open, end: i + 1 });
       open = -1;

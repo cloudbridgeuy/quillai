@@ -52,7 +52,7 @@ export function createEngine(rules: readonly Rule[] = RULES, capacity = 2000) {
         .filter(({ config }) => config.enabled);
 
       return splitParagraphs(text).flatMap((paragraph) => {
-        const doc = analyses(paragraph.text, () => analyzeParagraph(paragraph.text));
+        const doc = analyses(JSON.stringify([language, paragraph.text]), () => analyzeParagraph(paragraph.text, language));
         return active.flatMap(({ rule, config }) => {
           const key = JSON.stringify([rule.id, language, config, paragraph.text]);
           return hints(key, () => rule.check(doc, config).filter((hint) => inScope(doc, hint.start, config.scope)));
