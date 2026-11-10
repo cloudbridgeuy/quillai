@@ -5,6 +5,7 @@ import { adverbs } from "./adverbs";
 import { redundantPhrases } from "./redundant_phrases";
 import { repeatedWord } from "./repeated_word";
 import { passiveVoice } from "./passive_voice";
+import { saidBookisms } from "./said_bookisms";
 import { sameSentenceStart } from "./same_sentence_start";
 import { watchWords } from "./watch_words";
 import { analyzeParagraph, splitParagraphs, type ParagraphAnalysis } from "./shared_pass";
@@ -35,7 +36,7 @@ export type Rule = {
 export type StoredRuleConfig = { enabled?: boolean; scope?: Scope; params?: Record<string, ParamValue> };
 export type StoredRules = Record<string, StoredRuleConfig>;
 
-export const RULES: readonly Rule[] = [dialoguePunctuation, redundantPhrases, repeatedWord, sameSentenceStart, adverbs, watchWords, passiveVoice, dashTagPunctuation, dashTagUnclosed];
+export const RULES: readonly Rule[] = [dialoguePunctuation, redundantPhrases, repeatedWord, sameSentenceStart, adverbs, watchWords, passiveVoice, dashTagPunctuation, dashTagUnclosed, saidBookisms];
 
 export function resolveConfig(rule: Rule, stored: StoredRuleConfig | undefined): RuleConfig {
   const params = Object.fromEntries(rule.params.map((def) => [def.key, stored?.params?.[def.key] ?? def.default]));

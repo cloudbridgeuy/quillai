@@ -29,6 +29,10 @@ test("the tag verb may be the second word", () => {
   expect(run("—Hola. —Ana dijo—.").map((h) => h.start)).toEqual([5]);
 });
 
+test("a present-tense tag verb makes a tag", () => {
+  expect(run("—Hola. —dice ella—.").map((h) => h.start)).toEqual([5]);
+});
+
 test("a dash pair without a tag verb is never hinted", () => {
   expect(run("—Hola. —y entonces nada—.")).toEqual([]);
   expect(run("—Ven, —con calma— dijo.")).toEqual([]);

@@ -79,6 +79,11 @@ pub const CATALOGUE: &[RuleDef] = &[
         languages: &["es"],
         params: &[],
     },
+    RuleDef {
+        id: "said-bookisms",
+        languages: &["en", "es"],
+        params: &[],
+    },
 ];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
@@ -199,7 +204,8 @@ mod tests {
                 ("watch-words", &["en", "es"][..], 1),
                 ("passive-voice", english, 1),
                 ("dash-tag-punctuation", spanish, 0),
-                ("dash-tag-unclosed", spanish, 0)
+                ("dash-tag-unclosed", spanish, 0),
+                ("said-bookisms", &["en", "es"][..], 0)
             ]
         );
     }

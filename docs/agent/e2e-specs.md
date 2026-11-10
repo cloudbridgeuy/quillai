@@ -37,6 +37,8 @@
 
 `hint-tip.spec.ts` checks at 1100px and 1440px that a flagged word is underlined, the pointer-rest tip opens and Escape closes it, and the chapter read back from the API is unchanged. The chapter text is "She quickly ran quickly to the door.", which the default rules flag with two Adverbs hints and one repeated-word hint. Written; not run for GUZ-690 S4 or GUZ-692 S6.
 
+`dialogue-hints.spec.ts` (GUZ-1533 S3, written not run) checks at 1100px and 1440px that a Spanish series (`PUT /series/{id}/rules`) underlines a typed `—Hola. —dijo ella—.` with the Dash tag punctuation tip, that an English series with `said-bookisms` enabled underlines `hissed` in `"Stop," he hissed.`, and that the saved chapter text equals what was typed (curly quotes from GUZ-1532 typing included).
+
 `ui-components.spec.ts` serves `e2e/fixtures/ui-components/` with `Bun.serve`, asserts every design-system primitive and key attributes, checks Modal and Popover dismissal and Modal focus restoration, and captures full-page screenshots at 1100px and 1440px in `target/guz-874/<browser>/` and `target/guz-884/<browser>/`.
 
 `edit-note.spec.ts` checks the Edit rail toggle, selection restoration, card and note geometry, and matching text sizes at 1100px and 1440px.
