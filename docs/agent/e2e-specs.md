@@ -131,3 +131,13 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `dialogue-typing.spec.ts` (GUZ-1532) at 1100px and 1440px types `"Hi," she said.` and checks the saved `“Hi,” she said.` survives reload; checks `don’t`, nested `‘no’`, the `’90s` fix-up, and `—Hola —dijo—.`; one Cmd/Ctrl+Z restores the straight `"` and a second removes it; a paste stays straight; `**bold**` still formats; a CDP IME commit of one `"` converts; Continue-streamed quotes stay straight while a typed quote converts and `--` stays during the stream; a screenplay group keeps `"` and `--`.
 
 `dialogue-exchange.spec.ts` (GUZ-1534, stage 3a) at 1100px and 1440px picks a Dialogue model in Settings → AI, checks the PUT body is `{ dialogue_model }`, that the re-fetched catalog reports it as `defaults.dialogue`, and that the menu keeps it with "Saved here" after reload. Stage 3b adds cases (1)–(6) at both widths with a page-side mocked `/ai/generate` stream: two speakers stream as a new paragraph at the caret and persist after reload, and a mid-line caret splits the line there; the request body holds speakers, brief, speaker lore first, no `model` and no hidden notes; a Leave out character is not listed; Stop and a stream error roll back only AI text and keep author typing; a screenplay group gets character/parenthetical/dialogue blocks; 503 `AI_NOT_CONFIGURED` shows the friendly error with no text change.
+
+## Sync-push fixture coverage (GUZ-1195)
+
+`continue-reservation.spec.ts` (formerly `continue-poll.spec.ts`) holds the first delta read while Continue is reserved; it already drives the nudge through `fixtures/fake-event-source.ts`. Behaviour unchanged, rename only. `chapter_session.test.ts` keeps the failed-POST recovery test under a title without the 1000 ms claim.
+
+Rows of `docs/sync-push.md` "Existing E2E impact":
+- Done: `offline-stale-base.spec.ts` (installs the fake EventSource), `continue-reservation.spec.ts`.
+- Stay (keep POST failure, API seed or remote-save fixtures; no poll dependency): the `Keep` rows, including `chapter-sync`, `save-recovery`, `alerts-toggles`, `author-guidance`, `chapter-emoji-sync`, `emoji-cursor-remote`, `real-route-stream`, `stream-remote-edit`, `continue-tie-order`, `screenplay-scroll`, `screenplay-format`, and the API-seed-only specs. The `reload-in-flight` stream-cleanup addition was not checked.
+- Stage 2 (still an `Edit` row): `continue-unsaved.spec.ts` (`:36,:45` real `deltas?since=` route, no fake), `screenplay-ai.spec.ts` (`:58` counts real `/scenes/deltas` requests during AI), `screenplay-cross-scene.spec.ts` (`polls()` at `:98`; named in nightly ticket GUZ-1514, wait until after it).
+- `screenplay-ai.spec.ts:49` is a known failure (GUZ-1212, `e2e/known-failures.txt`); no edits here.

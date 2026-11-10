@@ -7,7 +7,7 @@ import { installFakeEventSource } from "./fixtures/fake-event-source";
 const fakeChapterPieceId = 1;
 
 for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while waiting"] as const) {
-  test(`${outcome}: Continue reserves a clean chapter during polling`, async ({ context, page, request }) => {
+  test(`${outcome}: Continue reserves a clean chapter during a held delta read`, async ({ context, page, request }) => {
     const apiUrl = process.env.QUILLAI_E2E_API_URL;
     if (!apiUrl) throw new Error("Run with cargo xtask e2e");
     const failures: string[] = [];
@@ -39,17 +39,17 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       await expectEditorReady(tab.locator(".ql-editor"));
       await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
     }
-    let releasePoll!: () => void;
-    const pollRelease = new Promise<void>(resolve => { releasePoll = resolve; });
-    let pollHeld!: () => void;
-    const held = new Promise<void>(resolve => { pollHeld = resolve; });
-    let polls = 0;
+    let releaseRead!: () => void;
+    const readRelease = new Promise<void>(resolve => { releaseRead = resolve; });
+    let readHeld!: () => void;
+    const held = new Promise<void>(resolve => { readHeld = resolve; });
+    let reads = 0;
     await page.route(`${chapterUrl}/deltas?since=*`, async route => {
-      polls++;
+      reads++;
       const response = await route.fetch();
-      if (polls === 1) {
-        pollHeld();
-        await pollRelease;
+      if (reads === 1) {
+        readHeld();
+        await readRelease;
       }
       await route.fulfill({ response });
     });
@@ -101,7 +101,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       }
       await page.clock.runFor(2000);
       expect(generations).toBe(0);
-      expect(polls).toBe(1);
+      expect(reads).toBe(1);
       if (outcome === "Stop waiting") {
         await stop.click();
         await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
@@ -116,7 +116,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
         await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
         await expect(stop).toBeHidden();
       }
-      releasePoll();
+      releaseRead();
       if (outcome === "Finish" || outcome === "Stop") {
         const stream = await streaming;
         stream.write(`${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "Generated text" }] } })}\n`);
@@ -141,10 +141,10 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
         await expect.poll(() => tab.locator(".ql-editor").evaluate(element => Array.from(element.querySelectorAll("p"), paragraph => `${paragraph.textContent}\n`).join(""))).toBe(expectedText);
       }
       if (outcome !== "Finish" && outcome !== "Stop") expect(generations).toBe(0);
-      expect(polls).toBeGreaterThan(1);
+      expect(reads).toBeGreaterThan(1);
       expect(failures).toEqual([]);
     } finally {
-      releasePoll();
+      releaseRead();
       await new Promise<void>((resolve, reject) => {
         server.close(error => error ? reject(error) : resolve());
         server.closeAllConnections();

@@ -30,7 +30,7 @@ test("serializes polling and posting while retaining edits made during the reque
   expect(gets).toBe(1);
 });
 
-test("failed POST waits for the next 1000 ms poll tick to recover before resubmitting", async () => {
+test("failed POST recovers on a later tick before resubmitting", async () => {
   let posts = 0;
   let pollTime = 1000;
   const historyTimes: number[] = [];
