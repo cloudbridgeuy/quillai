@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import Quill from "quill";
 import { Delta } from "quill/core";
 import { act } from "react";
-import { defaultLocale, formatMessage } from "../../i18n/messages";
+import { defaultLocale, formatMessage, type Locale } from "../../i18n/messages";
 import { cleanup, render } from "../../test/dom";
 import type { Hint, Rule } from "./engine";
 import { HINT_TIP_DELAY_MS, HintTip } from "./HintTip";
@@ -14,7 +14,7 @@ const hint: Hint = { ruleId: "cat", start: 6, length: 4, messageKey: "hints.adve
 const label = formatMessage(defaultLocale, "rules.adverbs.label");
 const message = formatMessage(defaultLocale, "hints.adverb");
 
-async function setup(hints: readonly Hint[] = [hint]) {
+async function setup(hints: readonly Hint[] = [hint], locale: Locale = defaultLocale) {
   const quill = new Quill(document.body.appendChild(document.createElement("div")));
   quill.setContents(new Delta().insert("alpha beta gamma\n"), "silent");
   quill.getBounds = (index: number, length = 0) => ({ left: index * 10, top: 10, width: length * 10, height: 20, bottom: 30, right: index * 10 + length * 10 });
@@ -29,7 +29,7 @@ async function setup(hints: readonly Hint[] = [hint]) {
     now += ms;
     for (const [id, timer] of [...pending]) if (timer.at <= now) { pending.delete(id); timer.run(); }
   });
-  await render(<HintTip quill={quill} hints={hints} rules={[rule]} timers={timers} />);
+  await render(<HintTip quill={quill} hints={hints} rules={[rule]} timers={timers} locale={locale} />);
   const tip = () => document.body.querySelector<HTMLElement>("[role=tooltip]");
   const fire = (type: string, x: number, y: number, target: Element = quill.root) => act(async () => { target.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y })); });
   const tap = async (x: number, y: number) => { await fire("pointerdown", x, y); await fire("click", x, y); };
@@ -116,4 +116,12 @@ test("opening, tapping and closing leave the document, selection and focus alone
   expect(quill.root.innerHTML).toBe(html);
   expect(quill.getSelection()).toEqual({ index: 2, length: 0 });
   expect(document.activeElement).toBe(focused);
+});
+
+test("the tip shows the rule name and message in the given locale", async () => {
+  const { advance, tip, fire } = await setup([hint], "es");
+  await fire("pointermove", ...onHint);
+  await advance(HINT_TIP_DELAY_MS);
+  expect(tip()?.textContent ?? "").toContain(formatMessage("es", "rules.adverbs.label"));
+  expect(tip()?.textContent ?? "").toContain(formatMessage("es", "hints.adverb"));
 });

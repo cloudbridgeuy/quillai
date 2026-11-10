@@ -1,6 +1,6 @@
 import Quill from "quill";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { defaultLocale, formatMessage } from "../../i18n/messages";
+import { defaultLocale, formatMessage, type Locale } from "../../i18n/messages";
 import { Popover } from "../../ui/Popover";
 import { RULES, type Hint, type Rule } from "./engine";
 import { locateHint, type At, type Located } from "./hint_geometry";
@@ -9,9 +9,9 @@ import { browserTimers, type Timers } from "./hint_runner";
 export const HINT_TIP_DELAY_MS = 300;
 
 const sameHint = (a: Hint, b: Hint) => a.ruleId === b.ruleId && a.start === b.start && a.length === b.length;
-const t = (key: Hint["messageKey"]) => formatMessage(defaultLocale, key);
 
-export function HintTip({ quill, hints, rules = RULES, timers = browserTimers }: { quill: Quill; hints: readonly Hint[]; rules?: readonly Rule[]; timers?: Timers }) {
+export function HintTip({ quill, hints, rules = RULES, timers = browserTimers, locale = defaultLocale }: { quill: Quill; hints: readonly Hint[]; rules?: readonly Rule[]; timers?: Timers; locale?: Locale }) {
+  const t = (key: Hint["messageKey"]) => formatMessage(locale, key);
   const [tip, setTip] = useState<{ hint: Hint; anchor: { left: number; top: number } } | null>(null);
   const hintsRef = useRef(hints);
   hintsRef.current = hints;
