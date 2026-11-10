@@ -13,7 +13,7 @@ export type HintRunnerOptions = {
   delay?: number;
 };
 
-const browserTimers: Timers = { set: (callback, ms) => setTimeout(callback, ms), clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>) };
+export const browserTimers: Timers = { set: (callback, ms) => setTimeout(callback, ms), clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>) };
 
 export function createHintRunner({ engine, getText, onHints, timers = browserTimers, delay = HINT_DEBOUNCE_MS }: HintRunnerOptions) {
   let config: SeriesRules | null | undefined;

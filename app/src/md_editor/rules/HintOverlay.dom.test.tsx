@@ -82,3 +82,20 @@ test("no hints draws nothing", async () => {
   await mount();
   expect(underlines(quill)).toEqual([]);
 });
+
+test("two hints on the same word both draw, with unique React keys", async () => {
+  const { quill, moveTo, mount } = setup([hint(6, 4), { ...hint(6, 4), ruleId: "other" }]);
+  const errors: string[] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => { errors.push(args.map(String).join(" ")); };
+  try {
+    await mount();
+    expect(underlines(quill)).toHaveLength(2);
+    moveTo(50);
+    await act(async () => { window.dispatchEvent(new Event("resize")); });
+    expect(underlines(quill).map((el) => el.style.top)).toEqual(["50px", "50px"]);
+  } finally {
+    console.error = original;
+  }
+  expect(errors.filter((line) => line.includes("same key"))).toEqual([]);
+});
