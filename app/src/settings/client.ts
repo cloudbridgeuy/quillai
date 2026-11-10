@@ -7,15 +7,16 @@ import { parseModelCatalog, type ModelAction, type ModelCatalog } from "../md_ed
 export type AuthorGuidance = { text: string };
 
 type Source = "saved" | "env" | "none";
-type ModelField = "generate_model" | "edit_model" | "image_model" | "lore_complete_model";
-export type AiSettings = { base_url: string | null; generate_model: string | null; edit_model: string | null; image_model?: string | null; lore_complete_model?: string | null; key_set: boolean; sources: Record<"base_url" | "api_key" | "generate_model" | "edit_model", Source> & { image_model?: Source; lore_complete_model?: Source } };
+type ModelField = "generate_model" | "edit_model" | "image_model" | "lore_complete_model" | "dialogue_model";
+export type AiSettings = { base_url: string | null; generate_model: string | null; edit_model: string | null; image_model?: string | null; lore_complete_model?: string | null; dialogue_model?: string | null; key_set: boolean; sources: Record<"base_url" | "api_key" | "generate_model" | "edit_model", Source> & { image_model?: Source; lore_complete_model?: Source; dialogue_model?: Source } };
 export type AiSettingsUpdate = { base_url?: string; api_key?: string } & Partial<Record<ModelField, string>>;
-export type AiSettingsForm = { base_url: string; models: Record<AiAction, string> & { image?: string; lore_complete?: string }; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
+export type AiSettingsForm = { base_url: string; models: Record<AiAction, string> & { image?: string; lore_complete?: string; dialogue?: string }; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
 
-export const aiModelActions: readonly { action: ModelAction | "lore_complete"; field: ModelField; labelKey: string }[] = [
+export const aiModelActions: readonly { action: ModelAction | "lore_complete" | "dialogue"; field: ModelField; labelKey: string }[] = [
   { action: "generate", field: "generate_model", labelKey: "settings.ai.continueModel" },
   { action: "edit", field: "edit_model", labelKey: "settings.ai.editModel" },
   { action: "lore_complete", field: "lore_complete_model", labelKey: "settings.ai.loreCompleteModel" },
+  { action: "dialogue", field: "dialogue_model", labelKey: "settings.ai.dialogueModel" },
   { action: "image", field: "image_model", labelKey: "settings.ai.imageModel" },
 ];
 
@@ -47,7 +48,9 @@ function parseAiSettings(value: unknown): AiSettings {
   const imageSource = sources.image_model === "saved" || sources.image_model === "env" || sources.image_model === "none" ? { image_model: sources.image_model as Source } : {};
   const lore = "lore_complete_model" in value ? { lore_complete_model: typeof value.lore_complete_model === "string" ? value.lore_complete_model : null } : {};
   const loreSource = sources.lore_complete_model === "saved" || sources.lore_complete_model === "env" || sources.lore_complete_model === "none" ? { lore_complete_model: sources.lore_complete_model as Source } : {};
-  return { base_url: value.base_url, generate_model: value.generate_model, edit_model: value.edit_model, ...image, ...lore, key_set: value.key_set, sources: { base_url: sources.base_url as Source, api_key: sources.api_key as Source, generate_model: sources.generate_model as Source, edit_model: sources.edit_model as Source, ...imageSource, ...loreSource } };
+  const dialogue = "dialogue_model" in value ? { dialogue_model: typeof value.dialogue_model === "string" ? value.dialogue_model : null } : {};
+  const dialogueSource = sources.dialogue_model === "saved" || sources.dialogue_model === "env" || sources.dialogue_model === "none" ? { dialogue_model: sources.dialogue_model as Source } : {};
+  return { base_url: value.base_url, generate_model: value.generate_model, edit_model: value.edit_model, ...image, ...lore, ...dialogue, key_set: value.key_set, sources: { base_url: sources.base_url as Source, api_key: sources.api_key as Source, generate_model: sources.generate_model as Source, edit_model: sources.edit_model as Source, ...imageSource, ...loreSource, ...dialogueSource } };
 }
 
 export class SettingsApiError extends Error {

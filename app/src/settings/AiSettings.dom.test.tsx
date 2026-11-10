@@ -137,3 +137,22 @@ test("the Lore completion menu lists text models, shows Default and saves lore_c
   await save();
   expect(updates).toEqual([{ lore_complete_model: "m2" }]);
 });
+
+test("the Dialogue menu lists text models, shows Default and saves dialogue_model", async () => {
+  const { select, choose, save, updates } = await setup(base, Response.json(imageCatalog));
+  expect(select("Dialogue model")).toBeInstanceOf(HTMLSelectElement);
+  expect([...select("Dialogue model")!.options].map(o => `${o.value}|${o.textContent}`)).toEqual(["|Default", "m1|Model One", "m2|Model Two"]);
+  await choose("Dialogue model", "m2");
+  await save();
+  expect(updates).toEqual([{ dialogue_model: "m2" }]);
+});
+
+test("a saved dialogue_model loads into the Dialogue menu and Default clears it", async () => {
+  const savedDialogue = { ...base, dialogue_model: "m1", sources: { ...base.sources, dialogue_model: "saved" } };
+  const { select, choose, save, updates, container } = await setup(savedDialogue);
+  expect(select("Dialogue model")?.value).toBe("m1");
+  expect(container.querySelector("[data-model-action='dialogue'] .editor-note")?.textContent).toBe("Saved here");
+  await choose("Dialogue model", "");
+  await save();
+  expect(updates).toEqual([{ dialogue_model: "" }]);
+});

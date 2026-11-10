@@ -14,12 +14,12 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
   const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [settings, setSettings] = useState<AiSettings | null>(null);
   const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
-  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "", image: "", lore_complete: "" }, key: { action: "keep" } });
+  const [form, setForm] = useState<AiSettingsForm>({ base_url: "", models: { generate: "", edit: "", image: "", lore_complete: "", dialogue: "" }, key: { action: "keep" } });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(true);
   function apply(value: AiSettings) {
     setSettings(value);
-    setForm({ base_url: value.base_url ?? "", models: { generate: value.generate_model ?? "", edit: value.edit_model ?? "", image: value.image_model ?? "", lore_complete: value.lore_complete_model ?? "" }, key: { action: "keep" } });
+    setForm({ base_url: value.base_url ?? "", models: { generate: value.generate_model ?? "", edit: value.edit_model ?? "", image: value.image_model ?? "", lore_complete: value.lore_complete_model ?? "", dialogue: value.dialogue_model ?? "" }, key: { action: "keep" } });
   }
   useEffect(() => {
     let active = true;
@@ -48,7 +48,7 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
   const source = (value: "saved" | "env" | "none") => formatMessage(defaultLocale, value === "saved" ? "settings.ai.savedHere" : value === "env" ? "settings.ai.fromEnv" : "settings.ai.notSet");
   function modelOptions({ action, field }: (typeof aiModelActions)[number]) {
     const saved = form.models[action];
-    const defaultModel = action === "lore_complete" ? undefined : catalog!.defaults[action];
+    const defaultModel = action === "lore_complete" || action === "dialogue" ? undefined : catalog!.defaults[action];
     const fallback = settings!.sources[field] === "saved" || defaultModel === undefined ? formatMessage(defaultLocale, "settings.ai.default") : formatMessage(defaultLocale, "settings.ai.defaultModel", { model: defaultModel });
     const models = catalog!.models.filter(({ kind }) => (kind === "image") === (action === "image"));
     const options = [{ value: "", label: fallback }, ...models.map(({ id, label }) => ({ value: id, label: label || id }))];
@@ -61,7 +61,7 @@ export function AiSettings({ client, onSaved, focusAction }: { client: ReturnTyp
     {settings ? <div className="space-y-3">
       <Field label={formatMessage(defaultLocale, "settings.ai.baseUrl")}><TextField value={form.base_url} disabled={pending} onChange={event => setForm({ ...form, base_url: event.target.value })} /></Field>
       <p className="editor-note">{source(settings.sources.base_url)}</p>
-      {aiModelActions.filter(({ action }) => action === "lore_complete" ? catalog !== null : action !== "image" || catalog?.models.some(({ kind }) => kind === "image")).map(entry => {
+      {aiModelActions.filter(({ action }) => action === "lore_complete" || action === "dialogue" ? catalog !== null : action !== "image" || catalog?.models.some(({ kind }) => kind === "image")).map(entry => {
         const { action, field, labelKey } = entry;
         const label = formatMessage(defaultLocale, labelKey);
         const noteId = `ai-model-source-${action}`;
