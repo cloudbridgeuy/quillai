@@ -59,5 +59,6 @@ export function useHintRunner({ quill, client, seriesId, ready, aiActive, engine
   }, [quill, engine, timers, client, seriesId]);
 
   const setConfig = useCallback((config: SeriesRules | null) => runner.current?.setConfig(config), []);
-  return { hints, setConfig };
+  const recheck = useCallback(() => runner.current?.recheck(), []);
+  return { hints, setConfig, recheck };
 }

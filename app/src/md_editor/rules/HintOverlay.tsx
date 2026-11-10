@@ -21,15 +21,23 @@ export function HintOverlay({ quill, hints }: { quill: Quill; hints: readonly Hi
         .map((rect, line) => ({ ...rect, key: `${hint.ruleId}:${hint.start}:${hint.length}:${line}` })));
       setRects((previous) => (sameRects(previous, next) ? previous : next));
     };
+    let frame: number | undefined;
+    const schedule = () => {
+      frame ??= requestAnimationFrame(() => {
+        frame = undefined;
+        measure();
+      });
+    };
     measure();
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver(schedule);
     observer.observe(quill.root);
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", schedule, true);
+    window.addEventListener("resize", schedule);
     return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
       observer.disconnect();
-      window.removeEventListener("scroll", measure, true);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
     };
   }, [quill, hints]);
 

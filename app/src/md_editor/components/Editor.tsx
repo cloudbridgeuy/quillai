@@ -93,6 +93,10 @@ import { continueSelectionNote, formatPromptParts } from "../prompt_sections";
 import { createSettingsClient } from "../../settings/client";
 import { AiSettings } from "../../settings/AiSettings";
 import { HintSettings } from "../../settings/HintSettings";
+import { HintOverlay } from "../rules/HintOverlay";
+import { HintTip } from "../rules/HintTip";
+import { usePieceSeries } from "../rules/piece_series";
+import { useHintRunner } from "../rules/use_hint_runner";
 import { aiShortcut, aiShortcutFocusAllowed, panelShortcut, transitionPanel, type PanelState } from "../editor_panels";
 import { ManuscriptTree } from "./ManuscriptTree";
 import { TextCounts } from "./TextCounts";
@@ -402,7 +406,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const lastCursorRangeRef = useRef<{ index: number; length: number } | null>(null);
   const lastEditSelectionRef = useRef<{ index: number; length: number } | null>(null);
   const isAiActive = () => ["continuing", "editing", "cancelling"].includes(aiRunStateRef.current.status);
+  const recheckHintsRef = useRef<() => void>(() => {});
   const onRemoteChange = () => {
+    recheckHintsRef.current();
     lastCursorRangeRef.current = null;
     lastEditSelectionRef.current = null;
     clearContinueTint();
@@ -433,6 +439,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const chapterSync = scriptGroupId === undefined
     ? useChapterSync(quillRef, isAiActive, onRemoteChange, createStartRef, createStatusRef)
     : useScriptSync(quillRef, isAiActive, onRemoteChange, scriptGroupId);
+  const [manuscriptClient] = useState(createManuscriptClient);
+  const chapterScope = chapterSync.scope && "chapterId" in chapterSync.scope ? chapterSync.scope : null;
+  const pieceScope = scriptGroupId === undefined && chapterSync.scope && "pieceId" in chapterSync.scope ? chapterSync.scope : null;
+  const pieceSeriesId = usePieceSeries(manuscriptClient, pieceScope);
+  const hintSeriesId = chapterScope?.seriesId ?? pieceSeriesId;
+  const hintQuill = quillRef.current;
+  const { hints, setConfig: setHintConfig, recheck: recheckHints } = useHintRunner({ quill: hintQuill, client: settingsClient, seriesId: hintSeriesId, ready: chapterSync.ready, aiActive: ["continuing", "editing", "cancelling"].includes(aiRunState.status) });
+  recheckHintsRef.current = recheckHints;
   const editorAvailableRef = useRef(false);
   editorAvailableRef.current = chapterSync.ready && !chapterSync.blocked && !creating;
 
@@ -1418,6 +1432,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   return (
     <div className="editor-shell">
+      {chapterSync.ready && hintQuill ? <><HintOverlay quill={hintQuill} hints={hints} /><HintTip quill={hintQuill} hints={hints} /></> : null}
       {desktop && showContinueWindow && (chapterSync.ready || pending) && markerQuill ? <ContinueWindow
         quill={markerQuill} start={markerWindow.start} end={markerWindow.end}
         modelName={modelName(continueModel)} modelId={continueModel?.id} onModelClick={() => openModelSettings("generate")} /> : null}
@@ -1490,7 +1505,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <Toggle label={formatMessage(defaultLocale, "editor.showContinueWindow")} checked={showContinueWindow} onChange={(event) => setShowContinueWindow(event.target.checked)} />
           <Toggle label={formatMessage(defaultLocale, "editor.tintAiText")} checked={aiTextTint} onChange={(event) => setAiTextTint(event.target.checked)} />
           <AiSettings client={settingsClient} focusAction={settingsFocus} onSaved={() => setModelsRevision(value => value + 1)} />
-          {chapterSync.scope && "chapterId" in chapterSync.scope ? <HintSettings key={chapterSync.scope.seriesId} client={settingsClient} seriesId={chapterSync.scope.seriesId} /> : null}
+          {hintSeriesId === null ? null : <HintSettings key={hintSeriesId} client={settingsClient} seriesId={hintSeriesId} onSaved={setHintConfig} />}
         </Popover> : null}
       </nav>
       {panel === "manuscript" ? <aside inert={pending || undefined} id="manuscript-drawer" className="editor-drawer editor-drawer-left"

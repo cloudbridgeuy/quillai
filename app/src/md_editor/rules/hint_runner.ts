@@ -55,6 +55,10 @@ export function createHintRunner({ engine, getText, onHints, timers = browserTim
       gate = { ...gate, ...next };
       if (wasBlocked && !blocked() && dirty) run();
     },
+    recheck() {
+      dirty = true;
+      run();
+    },
     dispose: cancel,
   };
 }

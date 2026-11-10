@@ -6,7 +6,13 @@ import { cleanup, render } from "../../test/dom";
 import type { Hint } from "./engine";
 import { HintOverlay } from "./HintOverlay";
 
-afterEach(cleanup);
+const originalFrames = { request: window.requestAnimationFrame, cancel: window.cancelAnimationFrame };
+
+afterEach(() => {
+  window.requestAnimationFrame = originalFrames.request;
+  window.cancelAnimationFrame = originalFrames.cancel;
+  cleanup();
+});
 
 const hint = (start: number, length: number): Hint => ({ ruleId: "cat", start, length, messageKey: "hints.adverb" });
 
@@ -15,7 +21,15 @@ function setup(hints: Hint[]) {
   quill.setContents(new Delta().insert("alpha beta gamma\n"), "silent");
   let top = 10;
   quill.getBounds = (index: number, length = 0) => ({ left: index * 10, top, width: length * 10, height: 20, bottom: top + 20, right: index * 10 + length * 10 });
-  return { quill, moveTo: (next: number) => { top = next; }, mount: () => render(<HintOverlay quill={quill} hints={hints} />) };
+  const queue = new Map<number, FrameRequestCallback>();
+  let nextFrame = 1;
+  window.requestAnimationFrame = (callback) => { const id = nextFrame++; queue.set(id, callback); return id; };
+  window.cancelAnimationFrame = (id) => { queue.delete(id); };
+  const flush = () => act(async () => { for (const [id, callback] of [...queue]) { queue.delete(id); callback(0); } });
+  let calls = 0;
+  const measured = quill.getBounds;
+  quill.getBounds = (index: number, length?: number) => { calls++; return measured.call(quill, index, length); };
+  return { quill, flush, queue, measures: () => calls, moveTo: (next: number) => { top = next; }, mount: () => render(<HintOverlay quill={quill} hints={hints} />) };
 }
 
 const underlines = (quill: Quill) => [...quill.container.querySelectorAll<HTMLElement>("[data-hint-underline]")];
@@ -39,13 +53,15 @@ test("underlines are inert, hidden from assistive tech, and layered by the hint 
 });
 
 test("repositions on window resize and on scroll", async () => {
-  const { quill, moveTo, mount } = setup([hint(6, 4)]);
+  const { quill, flush, moveTo, mount } = setup([hint(6, 4)]);
   await mount();
   moveTo(50);
   await act(async () => { window.dispatchEvent(new Event("resize")); });
+  await flush();
   expect(underlines(quill)[0]?.style.top).toBe("50px");
   moveTo(90);
   await act(async () => { window.dispatchEvent(new Event("scroll")); });
+  await flush();
   expect(underlines(quill)[0]?.style.top).toBe("90px");
 });
 
@@ -84,7 +100,7 @@ test("no hints draws nothing", async () => {
 });
 
 test("two hints on the same word both draw, with unique React keys", async () => {
-  const { quill, moveTo, mount } = setup([hint(6, 4), { ...hint(6, 4), ruleId: "other" }]);
+  const { quill, flush, moveTo, mount } = setup([hint(6, 4), { ...hint(6, 4), ruleId: "other" }]);
   const errors: string[] = [];
   const original = console.error;
   console.error = (...args: unknown[]) => { errors.push(args.map(String).join(" ")); };
@@ -93,9 +109,34 @@ test("two hints on the same word both draw, with unique React keys", async () =>
     expect(underlines(quill)).toHaveLength(2);
     moveTo(50);
     await act(async () => { window.dispatchEvent(new Event("resize")); });
+    await flush();
     expect(underlines(quill).map((el) => el.style.top)).toEqual(["50px", "50px"]);
   } finally {
     console.error = original;
   }
   expect(errors.filter((line) => line.includes("same key"))).toEqual([]);
+});
+
+test("bursts of scroll and resize remeasure once per animation frame", async () => {
+  const { flush, queue, measures, mount } = setup([hint(6, 4)]);
+  await mount();
+  const round = measures();
+  await act(async () => {
+    for (let index = 0; index < 3; index++) window.dispatchEvent(new Event("resize"));
+    for (let index = 0; index < 2; index++) window.dispatchEvent(new Event("scroll"));
+  });
+  expect(measures()).toBe(round);
+  expect(queue.size).toBe(1);
+  await flush();
+  expect(measures()).toBe(round * 2);
+});
+
+test("unmounting cancels a pending remeasure", async () => {
+  const { flush, measures, mount } = setup([hint(6, 4)]);
+  await mount();
+  await act(async () => { window.dispatchEvent(new Event("resize")); });
+  const before = measures();
+  cleanup();
+  await flush();
+  expect(measures()).toBe(before);
 });

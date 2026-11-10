@@ -15,7 +15,7 @@ function parseParam(param: ParamDef, text: string): ParamValue {
   return param.kind === "int" ? Number(text.trim()) : text.split("\n").map(word => word.trim()).filter(Boolean);
 }
 
-export function HintSettings({ client, seriesId, rules = RULES }: { client: ReturnType<typeof createSettingsClient>; seriesId: number; rules?: readonly Rule[] }) {
+export function HintSettings({ client, seriesId, rules = RULES, onSaved }: { client: ReturnType<typeof createSettingsClient>; seriesId: number; rules?: readonly Rule[]; onSaved?: (config: SeriesRules) => void }) {
   const [saved, setSaved] = useState<SeriesRules | null>(null);
   const [view, setView] = useState<SeriesRules | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -35,6 +35,7 @@ export function HintSettings({ client, seriesId, rules = RULES }: { client: Retu
       const value = await client.putSeriesRules(seriesId, update);
       setSaved(value);
       setView(value);
+      onSaved?.(value);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
       setView(saved);

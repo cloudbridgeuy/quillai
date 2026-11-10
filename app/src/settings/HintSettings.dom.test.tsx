@@ -14,7 +14,7 @@ const rules: Rule[] = [
   { id: "leismo", labelKey: "rules.leismo.label", languages: ["es"], defaultEnabled: true, defaultScope: "both", params: [], check: () => [] },
 ];
 
-async function setup(stored: SeriesRules, { failPut = false, catalogue = rules }: { failPut?: boolean; catalogue?: readonly Rule[] } = {}) {
+async function setup(stored: SeriesRules, { failPut = false, catalogue = rules, onSaved }: { failPut?: boolean; catalogue?: readonly Rule[]; onSaved?: (config: SeriesRules) => void } = {}) {
   const calls: { method: string; url: string; body?: unknown }[] = [];
   let state = stored;
   const client = createSettingsClient({ baseUrl: "http://api.test", fetch: async (url, init) => {
@@ -27,7 +27,7 @@ async function setup(stored: SeriesRules, { failPut = false, catalogue = rules }
     } else calls.push({ method, url });
     return Response.json(state);
   } });
-  const container = await render(<HintSettings client={client} seriesId={7} rules={catalogue} />);
+  const container = await render(<HintSettings client={client} seriesId={7} rules={catalogue} onSaved={onSaved} />);
   const control = <T extends HTMLElement>(label: string, selector: string) => [...container.querySelectorAll("label")].find(el => el.querySelector("span")?.textContent === label)?.querySelector<T>(selector) ?? undefined;
   const toggles = () => [...container.querySelectorAll<HTMLInputElement>("input[type=checkbox]")].map(box => [box.parentElement?.textContent, box.checked]);
   const edit = (el: HTMLInputElement | HTMLTextAreaElement | undefined, value: string) => act(async () => {
@@ -95,4 +95,20 @@ test("the watch-words field is one word per line", async () => {
   expect(control<HTMLTextAreaElement>("Words", "textarea")?.value).toBe("so\nvery");
   await edit(control<HTMLTextAreaElement>("Words", "textarea"), " really \n\nquite\n");
   expect(calls.at(-1)?.body).toEqual({ rules: { watch: { params: { words: ["really", "quite"] } } } });
+});
+
+test("a successful save pushes the saved config to onSaved", async () => {
+  const saved: SeriesRules[] = [];
+  const { control } = await setup({ language: "en", rules: {} }, { onSaved: (config) => saved.push(config) });
+  const box = control<HTMLInputElement>("Adverbs", "input");
+  if (box) await click(box);
+  expect(saved).toEqual([{ language: "en", rules: { adverbs: { enabled: false } } }]);
+});
+
+test("a failed save does not call onSaved", async () => {
+  const saved: SeriesRules[] = [];
+  const { control } = await setup({ language: "en", rules: {} }, { failPut: true, onSaved: (config) => saved.push(config) });
+  const box = control<HTMLInputElement>("Adverbs", "input");
+  if (box) await click(box);
+  expect(saved).toEqual([]);
 });

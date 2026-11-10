@@ -36,7 +36,7 @@ async function mount(overrides: Partial<UseHintRunnerOptions> = {}, series: Seri
   };
   const fetched: number[] = [];
   const client = { getSeriesRules: async (id: number) => { fetched.push(id); return series; } };
-  const seen: { hints: Hint[]; setConfig: (config: SeriesRules | null) => void }[] = [];
+  const seen: { hints: Hint[]; setConfig: (config: SeriesRules | null) => void; recheck: () => void }[] = [];
   let update: (next: UseHintRunnerOptions) => void = () => {};
   const base: UseHintRunnerOptions = { quill, client, seriesId: 7, ready: true, aiActive: false, engine: createEngine([catRule]), timers, ...overrides };
   function Probe() {
@@ -111,4 +111,12 @@ test("no series id means no hints and no request", async () => {
 test("nothing is computed before the editor is ready", async () => {
   const { hints } = await mount({ ready: false });
   expect(hints()).toEqual([]);
+});
+
+test("recheck after a silent load recomputes for the new text", async () => {
+  const { quill, seen, hints } = await mount();
+  await act(async () => { quill.setContents(new Delta().insert("cat cat cat\n"), "silent"); });
+  expect(hints()).toHaveLength(1);
+  await act(async () => seen.at(-1)!.recheck());
+  expect(hints()).toHaveLength(3);
 });

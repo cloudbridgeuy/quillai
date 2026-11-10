@@ -178,3 +178,23 @@ test("dispose cancels a pending recompute", () => {
   advance(1000);
   expect(runs).toEqual([]);
 });
+
+test("recheck recomputes once with the current text although no change event fired", () => {
+  const { runner, emitted, config, setText } = setup();
+  runner.setConfig(config);
+  emitted.length = 0;
+  setText("a cat cat");
+  runner.recheck();
+  expect(emitted).toEqual([[{ ruleId: "cat", start: 2, length: 3, messageKey: "hints.adverb" }, { ruleId: "cat", start: 6, length: 3, messageKey: "hints.adverb" }]]);
+});
+
+test("recheck while the AI is active waits and runs once when it ends", () => {
+  const { runner, emitted, config, setText } = setup({ ready: true, aiActive: true });
+  runner.setConfig(config);
+  setText("a cat cat");
+  runner.recheck();
+  expect(emitted).toHaveLength(0);
+  runner.setGate({ aiActive: false });
+  expect(emitted).toHaveLength(1);
+  expect(emitted[0]).toHaveLength(2);
+});
