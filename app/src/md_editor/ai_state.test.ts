@@ -10,6 +10,13 @@ import {
   startEditing,
 } from "./ai_state";
 
+test("startContinuing runs dialogue as its own action", () => {
+  expect(startContinuing(idleAiRunState, "dialogue")).toEqual({
+    ok: true,
+    state: { status: "continuing", action: "dialogue" },
+  });
+});
+
 test("startContinuing transitions idle to continuing", () => {
   expect(startContinuing(idleAiRunState)).toEqual({
     ok: true,

@@ -10,7 +10,8 @@ export type PromptSectionOverrides = Partial<Record<Exclude<PromptSectionId, "hi
 
 export type EditablePromptSectionOverrides = Pick<PromptSectionOverrides, "instruction" | "story_context" | "history">;
 
-export type AiAction = "generate" | "edit";
+export type AiAction = "generate" | "edit" | "dialogue";
+export type PromptAiAction = Exclude<AiAction, "dialogue">;
 
 export type LoreCompleteRequest = { action: "lore_complete"; loreComplete: Pick<LoreMatchEntry, "name" | "kind"> & { text: string } };
 

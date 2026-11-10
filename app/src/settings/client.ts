@@ -1,7 +1,7 @@
 import { apiErrorMessage } from "../api_error";
 import { getApiBaseUrl } from "../api_config";
 import { parseApiError } from "../manuscripts/contract";
-import type { AiAction } from "../md_editor/ai_contract";
+import type { PromptAiAction } from "../md_editor/ai_contract";
 import { parseModelCatalog, type ModelAction, type ModelCatalog } from "../md_editor/model_catalog";
 
 export type AuthorGuidance = { text: string };
@@ -10,7 +10,7 @@ type Source = "saved" | "env" | "none";
 type ModelField = "generate_model" | "edit_model" | "image_model" | "lore_complete_model" | "dialogue_model";
 export type AiSettings = { base_url: string | null; generate_model: string | null; edit_model: string | null; image_model?: string | null; lore_complete_model?: string | null; dialogue_model?: string | null; key_set: boolean; sources: Record<"base_url" | "api_key" | "generate_model" | "edit_model", Source> & { image_model?: Source; lore_complete_model?: Source; dialogue_model?: Source } };
 export type AiSettingsUpdate = { base_url?: string; api_key?: string } & Partial<Record<ModelField, string>>;
-export type AiSettingsForm = { base_url: string; models: Record<AiAction, string> & { image?: string; lore_complete?: string; dialogue?: string }; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
+export type AiSettingsForm = { base_url: string; models: Record<PromptAiAction, string> & { image?: string; lore_complete?: string; dialogue?: string }; key: { action: "keep" | "remove" } | { action: "replace"; value: string } };
 
 export const aiModelActions: readonly { action: ModelAction | "lore_complete" | "dialogue"; field: ModelField; labelKey: string }[] = [
   { action: "generate", field: "generate_model", labelKey: "settings.ai.continueModel" },

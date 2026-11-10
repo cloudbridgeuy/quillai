@@ -1,6 +1,6 @@
-import type { AiAction } from "./ai_contract";
+import type { PromptAiAction } from "./ai_contract";
 
-export type ModelAction = AiAction | "image";
+export type ModelAction = PromptAiAction | "image";
 
 export type TextModel = {
   id: string;
@@ -23,7 +23,7 @@ export type AiModel = TextModel | ImageModel;
 
 export type ModelCatalog = {
   models: AiModel[];
-  defaults: Record<AiAction, string> & { image?: string };
+  defaults: Record<PromptAiAction, string> & { image?: string };
 };
 
 export function parseModelCatalog(value: unknown): ModelCatalog | null {
@@ -59,7 +59,7 @@ export function expectedModelId(catalog: ModelCatalog | null, action: ModelActio
 }
 
 /** Display name (catalog label, else id) and id of the model an action will use; null without a catalog. */
-export function actionModelDisplay(catalog: ModelCatalog | null, action: AiAction): { name: string; id: string } | null {
+export function actionModelDisplay(catalog: ModelCatalog | null, action: PromptAiAction): { name: string; id: string } | null {
   const id = expectedModelId(catalog, action);
   if (!catalog || id === undefined) return null;
   return { name: catalog.models.find((model) => model.id === id)?.label ?? id, id };

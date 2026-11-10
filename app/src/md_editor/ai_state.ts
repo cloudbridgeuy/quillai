@@ -2,7 +2,7 @@ import type { AiAction } from "./ai_contract";
 
 export type AiRunState =
   | { status: "idle" }
-  | { status: "continuing"; action: "generate" }
+  | { status: "continuing"; action: "generate" | "dialogue" }
   | { status: "editing"; action: "edit" }
   | { status: "cancelling"; action: AiAction }
   | { status: "failed"; action: AiAction | null; error: string; detail?: string }
@@ -14,12 +14,12 @@ export type AiStateTransitionResult =
 
 export const idleAiRunState: AiRunState = { status: "idle" };
 
-export function startContinuing(state: AiRunState): AiStateTransitionResult {
+export function startContinuing(state: AiRunState, action: "generate" | "dialogue" = "generate"): AiStateTransitionResult {
   if (!isIdle(state)) {
     return invalidTransition(state, "continuing");
   }
 
-  return success({ status: "continuing", action: "generate" });
+  return success({ status: "continuing", action });
 }
 
 export function startEditing(state: AiRunState): AiStateTransitionResult {

@@ -15,6 +15,7 @@ import {
   buildAiGenerateUrl,
   buildAiRequestPreview,
   type AiAction,
+  type PromptAiAction,
   type AiRequestPreview,
   type EditablePromptSectionOverrides,
 } from "../ai_contract";
@@ -113,6 +114,8 @@ import { appendContinueFragment, createContinueStream, transformContinueSelectio
 import { editTintRemoval, renderContinueTint } from "../continue_tint";
 import { trackEditSelectionHighlight } from "../edit_selection_highlight";
 import { ContinueWindow } from "./ContinueWindow";
+import { DialogueBox } from "./DialogueBox";
+import { createDialogueStream, dialogueCaret, dialogueRunRequest, feedDialogue, finishDialogue, type DialogueChoice, type DialogueFeed } from "../dialogue_stream";
 import { LoreWindow } from "./LoreWindow";
 import { defaultLocale, formatMessage } from "../../i18n/messages";
 import { apiErrorMessage } from "../../api_error";
@@ -291,13 +294,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   const [range, setRange] = useState<RangeT | null>(null);
   const [panel, setPanel] = useState<PanelState>(null);
-  const [settingsFocus, setSettingsFocus] = useState<AiAction | undefined>();
+  const [settingsFocus, setSettingsFocus] = useState<PromptAiAction | undefined>();
   const settingsRef = useRef<HTMLDivElement>(null);
   const bookDownloadRef = useRef<HTMLAnchorElement>(null);
   const [bookExportError, setBookExportError] = useState(false);
   const [chapterExportError, setChapterExportError] = useState(false);
   const [bookExportPending, setBookExportPending] = useState(false);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
+  const [dialogueOpen, setDialogueOpen] = useState(false);
   const editInstructionRef = useRef<HTMLTextAreaElement>(null);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const continueTriggerRef = useRef<HTMLButtonElement>(null);
@@ -321,8 +325,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [aiRunState, setAiRunState] = useState<AiRunState>(idleAiRunState);
   const [emptyContinueNotice, setEmptyContinueNotice] = useState<string | null>(null);
   const [activeContinueWithThread, setActiveContinueWithThread] = useState<boolean | null>(null);
-  const [sectionOverrides, setSectionOverrides] = useState<Record<AiAction, EditablePromptSectionOverrides>>({ generate: {}, edit: {} });
-  const [inspectorAction, setInspectorAction] = useState<AiAction>("generate");
+  const [sectionOverrides, setSectionOverrides] = useState<Record<PromptAiAction, EditablePromptSectionOverrides>>({ generate: {}, edit: {} });
+  const [inspectorAction, setInspectorAction] = useState<PromptAiAction>("generate");
   const [fullPromptOpen, setFullPromptOpen] = useState(false);
   const [copyNotice, setCopyNotice] = useState<{ prompt: string; tone: "success" | "error" } | null>(null);
   const [settingsClient] = useState(createSettingsClient);
@@ -363,7 +367,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const [threadState, setThreadState] = useState<AiThreadState>(initialEditorState.threadState);
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog | null>(null);
   const inspectorRunId = useRef(0);
-  const [inspectorRuns, setInspectorRuns] = useState<Record<AiAction, InspectorRun | null>>({ generate: null, edit: null });
+  const [inspectorRuns, setInspectorRuns] = useState<Record<PromptAiAction, InspectorRun | null>>({ generate: null, edit: null });
   const [modelsRevision, setModelsRevision] = useState(0);
   const [modelsError, setModelsError] = useState<string | null>(null);
   useEffect(() => {
@@ -622,6 +626,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   function closePanels() {
     setEditBoxOpen(false);
+    setDialogueOpen(false);
     setPanel(transitionPanel(panel, "close"));
     const selection = lastCursorRangeRef.current;
     if (selection) {
@@ -661,7 +666,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     }
   }
 
-  function openModelSettings(action: AiAction) {
+  function openModelSettings(action: PromptAiAction) {
     setEditBoxOpen(false);
     setSettingsFocus(action);
     setPanel("settings");
@@ -838,7 +843,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         });
   }
 
-  async function runAiAction(action: AiAction) {
+  async function runAiAction(action: AiAction, dialogue?: DialogueChoice) {
     if (deleteAbortRef.current) return;
     const reservation = chapterSync.reserveAi();
     if (!reservation) {
@@ -846,13 +851,13 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       return;
     }
     try {
-      await runReservedAiAction(action, reservation);
+      await runReservedAiAction(action, reservation, dialogue);
     } finally {
       reservation?.release();
     }
   }
 
-  async function runReservedAiAction(action: AiAction, reservation: ReturnType<typeof chapterSync.reserveAi>) {
+  async function runReservedAiAction(action: AiAction, reservation: ReturnType<typeof chapterSync.reserveAi>, dialogue?: DialogueChoice) {
     const quill = quillRef.current;
     if (!quill) {
       setAiFailure(null, "Editor is not ready yet.");
@@ -871,9 +876,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     }
 
     const started =
-      action === "generate"
-        ? startContinuing(baseState.state)
-        : startEditing(baseState.state);
+      action === "edit"
+        ? startEditing(baseState.state)
+        : startContinuing(baseState.state, action);
 
     if (!started.ok) {
       setAiFailure(null, started.reason);
@@ -932,8 +937,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       : null;
     const documentLength = Math.max(quill.getLength() - 1, 0);
     const anchor =
-      action === "edit"
-        ? normalizedSelection?.index ?? 0
+      action === "edit" ? normalizedSelection?.index ?? 0
+        : action === "dialogue" ? dialogueCaret(normalizedSelection, documentLength)
         : normalizedSelection?.index ?? documentLength;
     const selectionLength = action === "edit" ? normalizedSelection?.length ?? 0 : 0;
     const selectedDelta =
@@ -943,15 +948,20 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     const keepsLineEnding = deleteLength < selectionLength;
     let heldLineEnding: Delta | null = null;
     let didDeleteSelection = false;
-    const concurrentContinue = action === "generate" && desktop;
-    if (concurrentContinue) {
-      continueStreamRef.current = createContinueStream(quill.getText(), anchor);
-      quill.root.dataset.aiTint = "streaming";
-    }
+    const concurrentContinue = desktop && (action === "generate" || (action === "dialogue" && scriptGroupId === undefined));
+    const tracked = concurrentContinue || action === "dialogue";
+    let dialogueFeed: DialogueFeed | null = null;
+    if (dialogue) {
+      const created = createDialogueStream(quill.getText(), anchor, scriptGroupId === undefined ? null : quill.getFormat(anchor, 0));
+      continueStreamRef.current = created.stream;
+      dialogueFeed = created.feed;
+    } else if (concurrentContinue) continueStreamRef.current = createContinueStream(quill.getText(), anchor);
+    if (tracked) quill.root.dataset.aiTint = "streaming";
+    const dialogueAnchor = continueStreamRef.current?.anchor ?? anchor;
 
     const rollbackContinue = () => {
       const stream = continueStreamRef.current;
-      if (!concurrentContinue || !stream || !isActiveEditor()) return;
+      if (!tracked || !stream || !isActiveEditor()) return;
       applyContinueChange(quill, stream.removal);
       clearContinueTint();
     };
@@ -971,11 +981,10 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         }
       };
 
-      const preparedRequest = buildRequestPreview(action, quill, normalizedSelection);
+      const preparedRequest = buildRequestPreview(action, quill, dialogue ? { index: dialogueAnchor, length: 0 } : normalizedSelection);
       const request = preparedRequest.request;
       const runId = ++inspectorRunId.current;
-      const inspectorRun = beginInspectorRun(runId, modelCatalog, expectedModelId(modelCatalog, action));
-      setInspectorRuns(current => ({ ...current, [action]: inspectorRun }));
+      if (action !== "dialogue") setInspectorRuns(current => ({ ...current, [action]: beginInspectorRun(runId, modelCatalog, expectedModelId(modelCatalog, action)) }));
       if (action === "generate") {
         setActiveContinueWithThread(buildContextInspector(request).history.length > 0);
       }
@@ -987,7 +996,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(request),
+          body: JSON.stringify(dialogue ? dialogueRunRequest(dialogue, preparedRequest, dialogueAnchor, loreEntries, storyContext) : request),
           signal: controller.signal,
         },
       );
@@ -996,7 +1005,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         throw getAiErrorMessage(await response.text(), response.status);
       }
 
-      setSectionOverrides((current) => ({ ...current, [action]: {} }));
+      if (action !== "dialogue") setSectionOverrides((current) => ({ ...current, [action]: {} }));
 
       assertEditorActive();
 
@@ -1015,6 +1024,14 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
       let terminalOutcome: "done" | "cancelled" | null = null;
       let finishReason: "stop" | "length" | "unknown" = "unknown";
       let generatedText = "";
+      const appendTracked = (fragment: Delta) => {
+        if (!continueStreamRef.current) return;
+        const appended = appendContinueFragment(continueStreamRef.current, fragment, quill.getText());
+        continueStreamRef.current = appended.state;
+        applyContinueChange(quill, appended.change);
+        renderContinueTint(quill, appended.state.removal, tintEnabledRef.current);
+        nextInsertIndex = appended.state.end;
+      };
 
       const applyEvents = (events: ReturnType<typeof parseAiStreamChunk>["events"]) => {
         for (const event of events) {
@@ -1028,6 +1045,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               .map((op) => (typeof op.insert === "string" ? op.insert : ""))
               .join("");
             generatedText += fragmentText;
+            if (dialogueFeed) {
+              const fed = feedDialogue(dialogueFeed, fragmentText);
+              dialogueFeed = fed.feed;
+              appendTracked(fed.fragment);
+              continue;
+            }
             let fragment = new Delta(toQuillDeltaDocument(event.delta));
             if (keepsLineEnding) {
               if (heldLineEnding) fragment = heldLineEnding.concat(fragment);
@@ -1036,11 +1059,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
               if (heldLineEnding) fragment = fragment.slice(0, end);
             }
             if (concurrentContinue && continueStreamRef.current) {
-              const appended = appendContinueFragment(continueStreamRef.current, fragment, quill.getText());
-              continueStreamRef.current = appended.state;
-              applyContinueChange(quill, appended.change);
-              renderContinueTint(quill, appended.state.removal, tintEnabledRef.current);
-              nextInsertIndex = appended.state.end;
+              appendTracked(fragment);
               continue;
             }
             quill.updateContents(
@@ -1056,7 +1075,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           }
 
           if (event.type === "usage") {
-            if (isActiveEditor()) setInspectorRuns(current => ({
+            if (isActiveEditor() && action !== "dialogue") setInspectorRuns(current => ({
               ...current, [action]: recordInspectorUsage(current[action], runId, event),
             }));
             continue;
@@ -1113,17 +1132,19 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         throw new Error("AI stream ended before a terminal event arrived.");
       }
 
+      if (dialogueFeed && terminalOutcome === "done") appendTracked(finishDialogue(dialogueFeed));
       const finished = finishRun(aiRunStateRef.current, terminalOutcome);
       if (!finished.ok) {
         throw new Error(finished.reason);
       }
 
       updateAiRunState(finished.state);
-      if (concurrentContinue && terminalOutcome === "cancelled") {
+      if (tracked && terminalOutcome === "cancelled") {
         rollbackContinue();
-        updateThreadState(finishCancelledThread(threadStateRef.current));
+        if (!dialogue) updateThreadState(finishCancelledThread(threadStateRef.current));
         return;
       }
+      if (dialogue) return;
       if (action === "generate" && terminalOutcome === "done" && generatedText.length === 0) {
         setEmptyContinueNotice(emptyContinueMessage(finishReason));
         return;
@@ -1181,12 +1202,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         const finished = finishRun(aiRunStateRef.current, "cancelled");
         if (finished.ok) {
           updateAiRunState(finished.state);
-          updateThreadState(finishCancelledThread(threadStateRef.current));
+          if (!dialogue) updateThreadState(finishCancelledThread(threadStateRef.current));
         } else {
           setAiFailure(action, "Cancellation did not complete cleanly.");
         }
 
-        if (concurrentContinue) {
+        if (tracked) {
           rollbackContinue();
           return;
         }
@@ -1235,9 +1256,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           setAiFailure(action, failureMessage, detail);
         }
 
-        if (concurrentContinue) {
+        if (tracked) {
           rollbackContinue();
-          updateThreadState(finishCancelledThread(threadStateRef.current));
+          if (!dialogue) updateThreadState(finishCancelledThread(threadStateRef.current));
           return;
         }
 
@@ -1273,7 +1294,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
         }
       }
     } finally {
-      if (concurrentContinue && continueStreamRef.current && isActiveEditor()) {
+      if (tracked && continueStreamRef.current && isActiveEditor()) {
         quill.root.dataset.aiTint = "fading";
         tintTimerRef.current = setTimeout(clearContinueTint, 2050);
       }
@@ -1305,6 +1326,12 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
 
   const editAvailable = canApplyEdit(isBusy, hasSelection, visuallyReady, chapterSync.blocked) && editRejection === null;
 
+  function writeDialogue(choice: DialogueChoice) {
+    if (pending || isBusy) return;
+    setDialogueOpen(false);
+    void runAiAction("dialogue", choice);
+  }
+
   function applyEdit() {
     if (pending || editRejection !== null || !canApplyEdit(continueClickAction(aiRunStateRef.current) === "stop", hasSelection, chapterSync.ready, chapterSync.blocked)) return;
     setEditBoxOpen(false);
@@ -1320,7 +1347,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
   );
   const isResumingOutput =
-    aiRunState.status === "continuing" &&
+    aiRunState.status === "continuing" && aiRunState.action === "generate" &&
     shouldUseResumeThread(threadState, normalizedInstructionText());
   const threadPresentation = getThreadPresentation(
     threadState,
@@ -1444,6 +1471,8 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
             disabled={!editAvailable}>{formatMessage(defaultLocale, "editor.apply")}</Button>
         </div>
         </Popover>
+        <DialogueBox loreEntries={loreEntries} disabled={isBusy || !visuallyReady || chapterSync.blocked} ignoreRefs={[editorCanvasRef]}
+          open={dialogueOpen} onOpenChange={(open) => open ? setDialogueOpen(true) : closePanels()} onWrite={writeDialogue} />
         <IconButton label={formatMessage(defaultLocale, "editor.contextInspector")} glyph={<span aria-hidden="true">◫</span>} title={formatMessage(defaultLocale, "shortcut.title", { action: formatMessage(defaultLocale, "editor.contextInspector"), keys: "Ctrl/Cmd+]" })}
           aria-controls="context-drawer" aria-expanded={panel === "context"}
           onMouseDown={(event) => event.preventDefault()}
@@ -1611,7 +1640,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           <div ref={editorCanvasRef} inert={pending || undefined} className="editor-canvas">
             <Component
               ref={quillRef}
-              readOnly={creating || deleting || (isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null)) || !chapterSync.ready || chapterSync.blocked}
+              readOnly={creating || deleting || (isBusy && !waitingForSave && !(desktop && aiRunState.status === "continuing" && continueStreamRef.current !== null && (aiRunState.action === "generate" || scriptGroupId === undefined))) || !chapterSync.ready || chapterSync.blocked}
               defaultValue={new Delta()}
               onSelectionChange={(nextRange) => {
                 setRange(nextRange);
