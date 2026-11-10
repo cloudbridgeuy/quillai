@@ -245,14 +245,14 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ## Dialogue exchange (GUZ-1534)
 
-Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; the rest is existing behaviour with a citation. The author asks for a dialogue exchange between chosen characters at the caret, written from those characters' lore.
+Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this spec makes; "Owner decision" marks the owner's answers to its open questions; the rest is existing behaviour with a citation. The author asks for a dialogue exchange between chosen characters at the caret, written from those characters' lore.
 
 ### Action and trigger
 
-- New AI action `dialogue`, not a Continue variant (proposed): it needs its own speakers, prompt rules, and model row, and must not touch the Continue thread or history. Dispatch follows the `lore_complete` pattern (`crates/api/src/ai/models.rs:331-338`); the client union in `app/src/md_editor/ai_contract.ts` gets the same member.
+- New AI action `dialogue`, not a Continue variant (owner decision): it needs its own speakers, prompt rules, and model row, and must not touch the Continue thread or history. Dispatch follows the `lore_complete` pattern (`crates/api/src/ai/models.rs:331-338`); the client union in `app/src/md_editor/ai_contract.ts` gets the same member.
 - Right rail gets a Dialogue IconButton below Edit selection (proposed). It toggles a Dialogue box at the Edit box position (right 72px, top 96px, 280px) with a lavender `--pi-lav` flag "Dialogue" (proposed). It sends nothing until Write is pressed. Esc closes it and restores the editor selection, like the Edit note (Sticky notes, above).
-- The box holds a speaker list and a brief. Speakers: checkboxes for the chapter's resolved lore entries of kind `character` whose level is not `leave_out`, pins first, then by name; 1 to 6 may be chosen (proposed). If `app/src/ui/` has no checkbox primitive, the build adds one with its story first (Frontend Conventions). Brief: a StickyNote textarea for goal or topic, optional (proposed). Enter writes, Shift+Enter inserts a newline.
-- No keyboard shortcut in this build (proposed). Write is disabled with no speakers, a busy session, a chapter not ready, or a blocked save, the same checks Edit uses.
+- The box holds a speaker list and a brief. Speakers: checkboxes for the chapter's resolved lore entries of kind `character` whose level is not `leave_out`, pins first, then by name; 1 to 6 may be chosen (owner decision). If `app/src/ui/` has no checkbox primitive, the build adds one with its story first (Frontend Conventions). Brief: a StickyNote textarea for goal or topic, optional (proposed). Enter writes, Shift+Enter inserts a newline.
+- No keyboard shortcut in this build (owner decision). Write is disabled with no speakers, a busy session, a chapter not ready, or a blocked save, the same checks Edit uses.
 - Below 1100px the box sits in document flow between the rails and the editor is locked during the run, as for narrow-screen Continue (Caret and scroll, above).
 
 ### Lore sent
@@ -266,7 +266,7 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ### Context
 
-- Document: the same `calculateDocumentWindow` slice Continue sends (`app/src/md_editor/window.ts:20`), cut at the caret; Window Size and Whole document apply (proposed). Text after the caret is not sent (proposed; open question 2).
+- Document: the same `calculateDocumentWindow` slice Continue sends (`app/src/md_editor/window.ts:20`), cut at the caret; Window Size and Whole document apply (proposed). Text after the caret is not sent (owner decision).
 - Story context and author guidance are sent as for Continue (`.claude/context/ai-streaming.md:56`); no Instruction, history, or resume prompt (proposed).
 
 ### Output
@@ -285,12 +285,12 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 ### API
 
 - `POST /ai/generate` (`crates/api/src/ai/mod.rs:24`) with `action: "dialogue"` and `dialogue: { speakers: string[], brief: string }`, plus the Continue fields `document`, `window`, `storyContext`, `lore`. NDJSON stream as Continue.
-- 422 `Validation` before provider start when: `dialogue` missing; speakers empty, above 6, duplicated, or not the name of a `character` entry in request `lore`; brief above 4,096 UTF-8 bytes; lore above 262,144 bytes (proposed). Document limits are Continue's.
+- 422 `Validation` before provider start when: `dialogue` missing; speakers empty, above 6, duplicated, or not the name of a `character` entry in request `lore`; brief above 4,096 UTF-8 bytes (owner decision); lore above 262,144 bytes (proposed). Document limits are Continue's.
 - Parsing, `DIALOGUE_RULES`, and prompt assembly go in a new `crates/api/src/ai/dialogue.rs`; `provider.rs` (994 of 1000 lines) changes only by a match arm. Speaker names go in escaped tags, as lore (`.claude/context/ai-streaming.md:64`).
 
 ### Inspector and cost
 
-- No Inspector request view or cost line in this build, as for lore completion (Lore field completion, above). Unlike lore completion, this request carries the manuscript window and lore, so the follow-up that adds lore completion's view should add Dialogue too (proposed; open question 3).
+- No Inspector request view or cost line in this build, as for lore completion (Lore field completion, above). Unlike lore completion, this request carries the manuscript window and lore, so the follow-up that adds lore completion's view adds Dialogue too (owner decision).
 
 ### Tests
 
@@ -299,17 +299,10 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ### Stages (each ≤ ~400 lines)
 
-1. API: action, `dialogue.rs`, migration, settings and catalog defaults, Rust tests.
-2. Pure client: request assembly and screenplay parser with Bun tests.
-3. UI: rail button, Dialogue box, Settings row, streaming hookup, E2E spec.
-
-### Open questions
-
-1. Entry point: new action (recommended) or Continue with an instruction? A Continue variant would mix with the thread and resume prompt.
-2. Text after the caret: send none (recommended), or up to one paragraph so a mid-scene insert can lead into what follows?
-3. Inspector and cost: defer with lore completion (recommended), or show a Dialogue view and cost line now?
-4. Shortcut: none now (recommended), or a key such as Ctrl/Cmd+Shift+D?
-5. Speaker limit 6 and brief cap 4,096 bytes: accept (recommended)?
+- 1) API: action, `dialogue.rs`, migration, settings and catalog defaults, Rust tests.
+- 2) Pure client: request assembly and screenplay parser with Bun tests.
+- 3a) UI system: checkbox primitive with its story first (only if `app/src/ui/` lacks one), plus the Settings → AI Dialogue model row.
+- 3b) Editor: rail button, Dialogue box, streaming hookup, E2E spec.
 
 ## Saves
 
@@ -318,8 +311,8 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ## Model selection
 
-- Settings → AI is the one place to choose a model for each AI action (Continue and Edit). The Inspector has no model menus.
-- Continue and Edit requests send no `model`. The server uses the model saved in Settings for the action, then the catalog default.
+- Settings → AI is the one place to choose a model for each text AI action: Continue, Edit, and lore completion (`crates/api/src/settings/ai.rs:21-22`, `:24`; `crates/api/src/ai/catalog.rs:204-205`, `:207`), plus Dialogue (proposed, Dialogue exchange above). The Inspector has no model menus.
+- Text action requests send no `model`. The server uses the model saved in Settings for the action, then the catalog default.
 - `GET /ai/models` returns `defaults` per action, which equal the Settings model when one is saved. The Inspector's Model and cost lines use `defaults[action]` for the inspected request, so cost is known whenever the catalog loads.
 - Saving AI settings fetches the catalog again, so the Inspector line follows the change.
 - "Request model" appears only when the last run used a different model than the one expected now (for example Settings changed after the run).
