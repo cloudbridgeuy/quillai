@@ -109,6 +109,7 @@ WebKit page errors containing `due to access control checks` are ignored for in-
 `sync-push-screenplay.spec.ts` checks idle grouped reads, native remote scene delivery, scroll preservation and deleted-scene fallback at 1100px and 1440px. `sync-push-chapter.spec.ts` checks idle delta reads, native stream remote saves, deleted-leaf fallback and page lifecycle reconnect for legacy chapters and pieces at 1100px and 1440px. `fixtures/fake-event-source.ts` provides controllable EventSource events for deterministic fixture tests.
 
 `caret-restore.spec.ts` checks chapter switch and reload selection and viewport restoration from the first populated frame at 1100px and 1440px.
+`caret-reflow.spec.ts` checks that at 1100px the caret line keeps its viewport position when the Manuscript drawer opens and the editor narrows (GUZ-1409).
 
 `tree-rename.spec.ts` checks series, book, chapter and piece rename at 1100px and 1440px: Enter/blur saves trimmed titles, Escape cancels, blank titles fail, unchanged titles send no request, server titles persist, and the open chapter header and tab update. Written; not run for GUZ-895.
 

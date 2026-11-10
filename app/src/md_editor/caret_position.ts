@@ -44,12 +44,32 @@ export function writeCaretPosition(key: string, value: CaretPosition, storage?: 
   } catch {}
 }
 
+export function anchorDelta(before: number, after: number, viewportHeight: number): number {
+  return before >= 0 && before < viewportHeight ? after - before : 0;
+}
+
 export function createCaretTracker(quill: Quill) {
   let key: string | null = null;
   let range: { index: number; length: number } | null = null;
   let timer: number | undefined;
   let pending: CaretPosition | null = null;
+  let anchor: number | null = null;
+  let width = quill.root.getBoundingClientRect().width;
   const previousRestoration = window.history.scrollRestoration;
+  function caretTop(): number | null {
+    const bounds = range && quill.getBounds(range.index, 0);
+    return bounds ? quill.container.getBoundingClientRect().top + bounds.top : null;
+  }
+  function reflow() {
+    const nextWidth = quill.root.getBoundingClientRect().width;
+    const top = caretTop();
+    const delta = pending || nextWidth === width || anchor === null || top === null ? 0 : anchorDelta(anchor, top, window.innerHeight);
+    width = nextWidth;
+    if (delta) window.scrollBy(0, delta);
+    anchor = top === null ? null : top - delta;
+  }
+  const observer = new ResizeObserver(reflow);
+  observer.observe(quill.root);
   function apply(saved: CaretPosition) {
     const safe = safeCaretPosition(saved, quill.getText());
     if (!safe) return;
@@ -57,6 +77,7 @@ export function createCaretTracker(quill: Quill) {
     range = { index: safe.index, length: safe.length };
     const bounds = quill.getBounds(safe.index, 0);
     if (bounds) window.scrollBy(0, quill.container.getBoundingClientRect().top + bounds.top - safe.offsetTop);
+    anchor = caretTop();
   }
   function flush() {
     window.clearTimeout(timer);
@@ -70,6 +91,7 @@ export function createCaretTracker(quill: Quill) {
     writeCaretPosition(key, { ...safe, offsetTop });
   }
   function schedule() {
+    anchor = caretTop();
     window.clearTimeout(timer);
     timer = window.setTimeout(flush, 250);
   }
@@ -95,6 +117,7 @@ export function createCaretTracker(quill: Quill) {
     flush,
     close() {
       flush();
+      observer.disconnect();
       quill.off("selection-change", selection);
       window.removeEventListener("scroll", schedule);
       window.history.scrollRestoration = previousRestoration;
