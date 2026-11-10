@@ -1,16 +1,8 @@
 // Passive-voice hints. Offsets are UTF-16 code units, the same units Quill uses.
-// A be-verb, then up to three adverbs, then a participle: "was carefully written".
+// A be-verb, then up to maxAdverbs adverbs, then a participle: "was carefully written".
 // The span runs from the be-verb through the participle.
 
-export type Hint = {
-  kind: "passive";
-  index: number;
-  length: number;
-  message: string;
-};
-
-const PASSIVE_MESSAGE = "Passive voice";
-const MAX_ADVERBS = 3;
+import type { Rule } from "./engine";
 
 const BE_VERBS = new Set([
   "am",
@@ -299,22 +291,36 @@ const NOT_ADVERBS = new Set([
 
 type Word = { key: string; index: number; end: number };
 
-export function analyzeProse(text: string): Hint[] {
+export const passiveVoice: Rule = {
+  id: "passive-voice",
+  labelKey: "rules.passive.label",
+  languages: ["en"],
+  defaultEnabled: true,
+  params: [{ key: "maxAdverbs", kind: "int", labelKey: "rules.passive.maxAdverbs", default: 3, min: 0, max: 6 }],
+  defaultScope: "narration",
+  check: (doc, config) =>
+    passiveSpans(doc.text, Number(config.params.maxAdverbs)).map((span) => ({
+      ruleId: "passive-voice",
+      start: span.index,
+      length: span.length,
+      messageKey: "hints.passive" as const,
+    })),
+};
+
+function passiveSpans(text: string, maxAdverbs: number): { index: number; length: number }[] {
   const found = words(text);
-  const hints: Hint[] = [];
+  const hints: { index: number; length: number }[] = [];
 
   for (let i = 0; i < found.length; i++) {
     const be = found[i];
     if (!be || !BE_VERBS.has(be.key)) continue;
 
-    const participle = participleAfter(text, found, i);
+    const participle = participleAfter(text, found, i, maxAdverbs);
     if (!participle) continue;
 
     hints.push({
-      kind: "passive",
       index: be.index,
       length: participle.word.end - be.index,
-      message: PASSIVE_MESSAGE,
     });
     i = participle.index;
   }
@@ -326,6 +332,7 @@ function participleAfter(
   text: string,
   found: readonly Word[],
   beIndex: number,
+  maxAdverbs: number,
 ): { word: Word; index: number } | null {
   const be = found[beIndex];
   if (!be) return null;
@@ -337,7 +344,7 @@ function participleAfter(
     const next = found[j];
     if (!next || !isOpenGap(text.slice(end, next.index))) return null;
 
-    if (adverbs < MAX_ADVERBS && isAdverb(next.key) && !isParticiple(next.key)) {
+    if (adverbs < maxAdverbs && isAdverb(next.key) && !isParticiple(next.key)) {
       adverbs += 1;
       end = next.end;
       continue;

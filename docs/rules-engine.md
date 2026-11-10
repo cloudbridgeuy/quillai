@@ -244,7 +244,7 @@ Below 1100px (`Editor.tsx:319`, `:544`) there is no Settings popover and no togg
 ## Delivery
 
 - GUZ-691: engine, shared pass with dialogue detection, per-series config and storage, rule toggle UI.
-- GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts` (`analyzeProse`, `app/src/md_editor/prose.ts:302`).
+- GUZ-692: first rule batch, starting with the reliable tier and passive voice ported from `prose.ts` into `app/src/md_editor/rules/passive_voice.ts` (`prose.ts` is gone; `analyzeProse` is now `passiveSpans`).
 - GUZ-690: the hint overlay and tip wait for the engine and are built on it, not as a passive-only overlay.
 - GUZ-1533: Spanish em-dash detector and further dialogue rules.
 
@@ -285,7 +285,7 @@ Stages for GUZ-692, each under about 400 changed lines including tests, red test
 | S2 | `dialogue-punctuation` and `redundant-phrases`: rules, catalogue entries (app and server), Bun tests, Rust catalogue test | ~350 lines |
 | S3 | `repeated-word` (function-word list) and `same-sentence-start`, with `window` and `count` | ~350 lines |
 | S4 | `adverbs` (-ly, dialogue tags, exceptions such as family, only, early) and `watch-words` | ~300 lines |
-| S5 | `passive-voice` ported from `analyzeProse` (`prose.ts:302`); `MAX_ADVERBS` (`prose.ts:13`) becomes the `maxAdverbs` param | ~350 lines |
+| S5 | `passive-voice` ported from `analyzeProse` into `rules/passive_voice.ts`; `MAX_ADVERBS` becomes the `maxAdverbs` param (min 0, max 6) | ~350 lines |
 | S6 | Hand-test unit; `e2e/hint-tip.spec.ts` gets `RULES_SHIPPED` true and `FLAGGED_TEXT` set to the hand-test text (written, not run) | ~120 lines |
 
 Stages for GUZ-691, each under about 400 changed lines, red test first:

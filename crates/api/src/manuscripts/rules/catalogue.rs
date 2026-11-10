@@ -61,6 +61,14 @@ pub const CATALOGUE: &[RuleDef] = &[
             kind: ParamKind::Words,
         }],
     },
+    RuleDef {
+        id: "passive-voice",
+        languages: &["en"],
+        params: &[ParamDef {
+            key: "maxAdverbs",
+            kind: ParamKind::Int { min: 0, max: 6 },
+        }],
+    },
 ];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
@@ -177,7 +185,8 @@ mod tests {
                 ("repeated-word", english, 1),
                 ("same-sentence-start", english, 1),
                 ("adverbs", english, 1),
-                ("watch-words", &["en", "es"][..], 1)
+                ("watch-words", &["en", "es"][..], 1),
+                ("passive-voice", english, 1)
             ]
         );
     }
@@ -220,6 +229,19 @@ mod tests {
         assert!(!shipped_accepts("adverbs", json!({"max": -1})));
         assert!(!shipped_accepts("adverbs", json!({"max": 10})));
         assert!(!shipped_accepts("adverbs", json!({"max": 1.5})));
+    }
+
+    #[test]
+    fn passive_voice_max_adverbs_is_bounded_from_0_to_6() {
+        assert!(shipped_accepts("passive-voice", json!({"maxAdverbs": 0})));
+        assert!(shipped_accepts("passive-voice", json!({"maxAdverbs": 3})));
+        assert!(shipped_accepts("passive-voice", json!({"maxAdverbs": 6})));
+        assert!(!shipped_accepts("passive-voice", json!({"maxAdverbs": -1})));
+        assert!(!shipped_accepts("passive-voice", json!({"maxAdverbs": 7})));
+        assert!(!shipped_accepts(
+            "passive-voice",
+            json!({"maxAdverbs": "3"})
+        ));
     }
 
     #[test]

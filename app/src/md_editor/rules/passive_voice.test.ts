@@ -1,5 +1,14 @@
 import { expect, test } from "bun:test";
-import { analyzeProse } from "./prose";
+import { formatMessage } from "../../i18n/messages";
+import { createEngine, RULES, type Scope } from "./engine";
+
+const ID = "passive-voice";
+const hints = (text: string, stored: { scope?: Scope; maxAdverbs?: number } = {}, language: "en" | "es" = "en") =>
+  createEngine()
+    .run(text, language, { [ID]: { scope: stored.scope, params: stored.maxAdverbs === undefined ? undefined : { maxAdverbs: stored.maxAdverbs } } })
+    .filter((hint) => hint.ruleId === ID);
+const analyzeProse = (text: string) =>
+  hints(text).map((hint) => ({ kind: "passive", index: hint.start, length: hint.length, message: formatMessage("en", hint.messageKey) }));
 
 test("flags was written with exact UTF-16 offsets", () => {
   const text = "The letter was written by Ana.";
@@ -183,4 +192,57 @@ test("an adjectival clause does not swallow a later passive", () => {
 
 test("empty text has no hints", () => {
   expect(analyzeProse("")).toEqual([]);
+});
+
+test("a plain passive is flagged from the be-verb through the participle, with no message args", () => {
+  const text = "The door was opened by her";
+  expect(hints(text)).toEqual([{ ruleId: ID, start: 9, length: 10, messageKey: "hints.passive" }]);
+  expect(text.slice(9, 19)).toBe("was opened");
+});
+
+test("up to maxAdverbs adverbs may sit inside, one more is not caught", () => {
+  expect(hints("The letter was quickly, quietly, slowly written.")).toHaveLength(1);
+  expect(hints("The letter was quickly, quietly, slowly, gently written.")).toEqual([]);
+  expect(hints("The letter was quickly, quietly, slowly, gently written.", { maxAdverbs: 4 })).toHaveLength(1);
+  expect(hints("The letter was carefully written.", { maxAdverbs: 0 })).toEqual([]);
+  expect(hints("The letter was written.", { maxAdverbs: 0 })).toHaveLength(1);
+});
+
+test("a stative be + adjective is not flagged", () => {
+  expect(hints("She was tired.")).toEqual([]);
+});
+
+test("hints are shifted to the document offset of their paragraph", () => {
+  expect(hints("Hi.\nThe door was opened.").map((h) => h.start)).toEqual([13]);
+});
+
+test("default scope is narration; dialogue passives need dialogue or both", () => {
+  const dialogue = '"The door was opened," she said.';
+  const narration = "The door was opened.";
+  expect(hints(dialogue)).toEqual([]);
+  expect(hints(dialogue, { scope: "narration" })).toEqual([]);
+  expect(hints(dialogue, { scope: "dialogue" })).toHaveLength(1);
+  expect(hints(dialogue, { scope: "both" })).toHaveLength(1);
+  expect(hints(narration)).toHaveLength(1);
+  expect(hints(narration, { scope: "dialogue" })).toEqual([]);
+});
+
+test("the rule is English only", () => {
+  expect(hints("The door was opened.", {}, "es")).toEqual([]);
+});
+
+test("the rule is registered with the spec defaults and the agreed bounds", () => {
+  expect(RULES.find((rule) => rule.id === ID)).toMatchObject({
+    labelKey: "rules.passive.label",
+    languages: ["en"],
+    defaultEnabled: true,
+    defaultScope: "narration",
+    params: [{ key: "maxAdverbs", kind: "int", labelKey: "rules.passive.maxAdverbs", default: 3, min: 0, max: 6 }],
+  });
+});
+
+test("the message renders in both locales with no placeholder left", () => {
+  const [hint] = hints("The door was opened.");
+  expect(formatMessage("en", hint!.messageKey, hint!.messageArgs)).toBe("Passive voice");
+  expect(formatMessage("es", hint!.messageKey, hint!.messageArgs)).toBe("Voz pasiva");
 });
