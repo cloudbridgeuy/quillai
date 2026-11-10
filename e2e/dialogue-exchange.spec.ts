@@ -84,6 +84,7 @@ async function mockGenerate(page: Page) {
 const setMock = (page: Page, mode: DialogueMock["mode"], chunks: string[]) =>
   page.evaluate(([mode, chunks]) => Object.assign(window.dialogueMock!, { mode, chunks }), [mode, chunks] as const);
 const sent = (page: Page) => page.evaluate(() => window.dialogueMock!.requests.map(body => JSON.parse(body) as Record<string, unknown>));
+const lineStart = process.platform === "darwin" ? "Meta+ArrowLeft" : "Home";
 const plain = (ops: Op[]) => ops.map(op => (typeof op.insert === "string" ? op.insert : "")).join("");
 
 async function proseChapter(page: Page, request: APIRequestContext, width: number) {
@@ -109,7 +110,7 @@ async function writeDialogue(page: Page, speakers: string[], brief = "", caret?:
   await page.locator(".ql-editor").click();
   await page.keyboard.press("Control+End");
   if (caret !== undefined) {
-    await page.keyboard.press("Home");
+    await page.keyboard.press(lineStart);
     for (let step = 0; step < caret; step++) await page.keyboard.press("ArrowRight");
   }
   await page.getByRole("button", { name: "Dialogue", exact: true }).click();
@@ -173,7 +174,7 @@ for (const width of [1100, 1440]) {
     await writeDialogue(page, ["Ana"]);
     await expect(editor).toContainText("Not yet");
     await editor.locator("p").first().click();
-    await page.keyboard.press("Home");
+    await page.keyboard.press(lineStart);
     await page.keyboard.type("Then ");
     await page.getByRole("button", { name: "Stop AI", exact: true }).click();
     await expect(editor.locator("p")).toHaveText(["Then They reached the Keep."]);
