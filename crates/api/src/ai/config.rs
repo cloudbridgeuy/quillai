@@ -11,6 +11,7 @@ pub struct SavedSettings {
     pub edit_model: Option<String>,
     pub image_model: Option<String>,
     pub lore_complete_model: Option<String>,
+    pub dialogue_model: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -29,6 +30,7 @@ pub struct Sources {
     pub edit_model: Source,
     pub image_model: Source,
     pub lore_complete_model: Source,
+    pub dialogue_model: Source,
 }
 
 pub struct Resolved {
@@ -38,6 +40,7 @@ pub struct Resolved {
     pub edit_model: Option<String>,
     pub image_model: Option<String>,
     pub lore_complete_model: Option<String>,
+    pub dialogue_model: Option<String>,
     pub sources: Sources,
 }
 
@@ -54,7 +57,9 @@ pub fn resolve(saved: SavedSettings, mut env: impl FnMut(&str) -> Option<String>
     let env_model = env("QUILLAI_AI_MODEL");
     let (generate_model, generate_source) = choose(saved.generate_model, env_model.clone());
     let (edit_model, edit_source) = choose(saved.edit_model, env_model.clone());
-    let (lore_complete_model, lore_complete_source) = choose(saved.lore_complete_model, env_model);
+    let (lore_complete_model, lore_complete_source) =
+        choose(saved.lore_complete_model, env_model.clone());
+    let (dialogue_model, dialogue_source) = choose(saved.dialogue_model, env_model);
     let (image_model, image_source) = choose(saved.image_model, env("QUILLAI_AI_IMAGE_MODEL"));
     Resolved {
         base_url,
@@ -63,6 +68,7 @@ pub fn resolve(saved: SavedSettings, mut env: impl FnMut(&str) -> Option<String>
         edit_model,
         image_model,
         lore_complete_model,
+        dialogue_model,
         sources: Sources {
             base_url: base_source,
             api_key: key_source,
@@ -70,6 +76,7 @@ pub fn resolve(saved: SavedSettings, mut env: impl FnMut(&str) -> Option<String>
             edit_model: edit_source,
             image_model: image_source,
             lore_complete_model: lore_complete_source,
+            dialogue_model: dialogue_source,
         },
     }
 }
@@ -81,6 +88,7 @@ impl Resolved {
             AiAction::Edit => self.edit_model.as_deref(),
             AiAction::Image => self.image_model.as_deref(),
             AiAction::LoreComplete => self.lore_complete_model.as_deref(),
+            AiAction::Dialogue => self.dialogue_model.as_deref(),
         }
     }
 
@@ -90,6 +98,7 @@ impl Resolved {
             AiAction::Edit => self.sources.edit_model,
             AiAction::Image => self.sources.image_model,
             AiAction::LoreComplete => self.sources.lore_complete_model,
+            AiAction::Dialogue => self.sources.dialogue_model,
         }
     }
 
@@ -112,9 +121,10 @@ impl Resolved {
                 model.or(self.model(action)),
                 match action {
                     AiAction::Image => "QUILLAI_AI_IMAGE_MODEL",
-                    AiAction::Generate | AiAction::Edit | AiAction::LoreComplete => {
-                        "QUILLAI_AI_MODEL"
-                    }
+                    AiAction::Generate
+                    | AiAction::Edit
+                    | AiAction::LoreComplete
+                    | AiAction::Dialogue => "QUILLAI_AI_MODEL",
                 },
             )?,
             api_key: required(self.api_key.as_deref(), "QUILLAI_AI_API_KEY")?,
@@ -148,6 +158,7 @@ mod tests {
                 edit_model: saved.map(|value| format!("{value}-model")),
                 image_model: saved.map(|value| format!("{value}-image_model")),
                 lore_complete_model: saved.map(|value| format!("{value}-model")),
+                dialogue_model: saved.map(|value| format!("{value}-model")),
             };
             let resolved = resolve(saved, |key| {
                 env.map(|value| {
@@ -166,6 +177,11 @@ mod tests {
                     "model",
                 ),
                 (resolved.edit_model, resolved.sources.edit_model, "model"),
+                (
+                    resolved.dialogue_model,
+                    resolved.sources.dialogue_model,
+                    "model",
+                ),
                 (
                     resolved.image_model,
                     resolved.sources.image_model,

@@ -86,6 +86,7 @@ struct Defaults {
     edit: String,
     image: Option<String>,
     lore_complete: Option<String>,
+    dialogue: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -103,6 +104,7 @@ pub struct ModelCatalog {
     edit: usize,
     image: Option<usize>,
     lore_complete: usize,
+    dialogue: usize,
 }
 
 impl ModelCatalog {
@@ -151,6 +153,13 @@ impl ModelCatalog {
             .map(|id| default_index("lore_complete", id, ModelKind::Text))
             .transpose()?
             .unwrap_or(generate);
+        let dialogue = file
+            .defaults
+            .dialogue
+            .as_deref()
+            .map(|id| default_index("dialogue", id, ModelKind::Text))
+            .transpose()?
+            .unwrap_or(generate);
         Ok(Self {
             models: file.models,
             file: true,
@@ -158,6 +167,7 @@ impl ModelCatalog {
             edit,
             image,
             lore_complete,
+            dialogue,
         })
     }
 
@@ -184,6 +194,7 @@ impl ModelCatalog {
             edit: 0,
             image: None,
             lore_complete: 0,
+            dialogue: 0,
         })
     }
 
@@ -205,6 +216,7 @@ impl ModelCatalog {
             AiAction::Edit => Some(self.edit),
             AiAction::Image => self.image,
             AiAction::LoreComplete => Some(self.lore_complete),
+            AiAction::Dialogue => Some(self.dialogue),
         }
         .map(|index| &self.models[index])
     }

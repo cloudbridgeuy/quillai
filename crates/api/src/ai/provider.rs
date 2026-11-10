@@ -878,6 +878,7 @@ mod tests {
             resume_prompt: None,
             max_output_tokens: 777,
             lore_complete: None,
+            dialogue: None,
         };
 
         let body = serde_json::to_value(ChatCompletionRequest::from_input(
@@ -937,6 +938,7 @@ mod tests {
             resume_prompt: Some("resume".into()),
             max_output_tokens: 777,
             lore_complete: None,
+            dialogue: None,
         };
 
         let body = serde_json::to_value(ChatCompletionRequest::from_input(

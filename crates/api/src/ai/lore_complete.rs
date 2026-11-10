@@ -50,6 +50,7 @@ pub fn parse(value: Option<serde_json::Value>) -> Result<GenerateInput, Error> {
         resume_prompt: None,
         max_output_tokens: DEFAULT_MAX_OUTPUT_TOKENS,
         lore_complete: Some(lore_complete),
+        dialogue: None,
     })
 }
 

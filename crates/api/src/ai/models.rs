@@ -21,6 +21,7 @@ pub struct GenerateRequest {
     pub action: String,
     pub document: Option<RawDocumentSlice>,
     pub lore_complete: Option<serde_json::Value>,
+    pub dialogue: Option<serde_json::Value>,
     pub selection: Option<RawSelectionSlice>,
     pub story_context: Option<String>,
     pub instruction: Option<String>,
@@ -78,6 +79,7 @@ pub enum AiAction {
     Edit,
     Image,
     LoreComplete,
+    Dialogue,
 }
 
 impl AiAction {
@@ -87,6 +89,7 @@ impl AiAction {
             Self::Edit => "edit",
             Self::Image => "image",
             Self::LoreComplete => "lore_complete",
+            Self::Dialogue => "dialogue",
         }
     }
 }
@@ -154,6 +157,7 @@ pub struct GenerateInput {
     pub resume_prompt: Option<String>,
     pub max_output_tokens: usize,
     pub lore_complete: Option<super::lore_complete::LoreCompleteInput>,
+    pub dialogue: Option<super::dialogue::DialogueInput>,
 }
 
 impl GenerateInput {
@@ -189,7 +193,7 @@ impl GenerateInput {
                 .resume_prompt
                 .as_deref()
                 .or(self.instruction.as_deref()),
-            AiAction::Edit | AiAction::Image | AiAction::LoreComplete => {
+            AiAction::Edit | AiAction::Image | AiAction::LoreComplete | AiAction::Dialogue => {
                 self.instruction.as_deref()
             }
         }
@@ -235,8 +239,9 @@ impl TryFrom<String> for AiAction {
             "edit" => Ok(Self::Edit),
             "image" => Ok(Self::Image),
             "lore_complete" => Ok(Self::LoreComplete),
+            "dialogue" => Ok(Self::Dialogue),
             _ => Err(Error::Validation(
-                "action must be one of: generate, edit, lore_complete".into(),
+                "action must be one of: generate, edit, lore_complete, dialogue".into(),
             )),
         }
     }
@@ -320,6 +325,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             action,
             document,
             lore_complete,
+            dialogue,
             selection,
             story_context,
             instruction,
@@ -331,7 +337,7 @@ impl TryFrom<GenerateRequest> for GenerateInput {
         let action = AiAction::try_from(action)?;
         if action == AiAction::Image {
             return Err(Error::Validation(
-                "action must be one of: generate, edit, lore_complete".into(),
+                "action must be one of: generate, edit, lore_complete, dialogue".into(),
             ));
         }
         if action == AiAction::LoreComplete {
@@ -352,6 +358,9 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             Vec::new()
         };
         validate_selection(selection.as_ref(), &document)?;
+        let dialogue = (action == AiAction::Dialogue)
+            .then(|| super::dialogue::parse(dialogue, &lore))
+            .transpose()?;
 
         if action == AiAction::Edit
             && selection
@@ -378,8 +387,13 @@ impl TryFrom<GenerateRequest> for GenerateInput {
             } else {
                 None
             },
-            max_output_tokens: normalize_max_output_tokens(max_output_tokens)?,
+            max_output_tokens: if dialogue.is_some() {
+                super::dialogue::DIALOGUE_MAX_OUTPUT_TOKENS
+            } else {
+                normalize_max_output_tokens(max_output_tokens)?
+            },
             lore_complete: None,
+            dialogue,
         })
     }
 }

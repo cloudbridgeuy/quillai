@@ -51,6 +51,7 @@ fn image_action_parses_but_text_request_rejects_it() {
         section_overrides: empty_section_overrides(),
         action: "image".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -80,6 +81,7 @@ fn generate_request_parses_and_sanitizes() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![
@@ -139,6 +141,7 @@ fn edit_requires_non_empty_selection() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: Some(text_selection("", 0, 0)),
         story_context: None,
@@ -160,6 +163,7 @@ fn malformed_document_is_rejected_at_boundary() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
@@ -193,6 +197,7 @@ fn selection_must_fit_sanitized_document_text_span() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: Some(text_selection("o!", 4, 2)),
         story_context: None,
@@ -216,6 +221,7 @@ fn selection_text_must_match_document_span() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello world")),
         selection: Some(text_selection("there", 6, 5)),
         story_context: None,
@@ -239,6 +245,7 @@ fn selected_text_uses_selection_slice_text() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello world")),
         selection: Some(text_selection("world", 6, 5)),
         story_context: None,
@@ -260,6 +267,7 @@ fn selection_delta_text_must_match_selection_text() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello world")),
         selection: Some(RawSelectionSlice {
             delta: DeltaDocument {
@@ -297,6 +305,7 @@ fn document_text_must_match_sanitized_delta_text() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
@@ -330,6 +339,7 @@ fn document_and_selection_slices_reject_embeds() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(RawDocumentSlice {
             delta: DeltaDocument {
                 ops: vec![DeltaOp {
@@ -360,6 +370,7 @@ fn document_and_selection_slices_reject_embeds() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: Some(RawSelectionSlice {
             delta: DeltaDocument {
@@ -397,6 +408,7 @@ fn utf16_selection_indices_accept_emoji_spans() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hi 💡 there")),
         selection: Some(text_selection("💡", 3, 2)),
         story_context: None,
@@ -438,6 +450,7 @@ fn blank_message_content_is_rejected() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -464,6 +477,7 @@ fn invalid_message_role_is_rejected() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -490,6 +504,7 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -508,6 +523,7 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -528,6 +544,7 @@ fn token_limit_defaults_and_bounds_are_enforced() {
         section_overrides: empty_section_overrides(),
         action: "generate".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello")),
         selection: None,
         story_context: None,
@@ -551,6 +568,7 @@ fn edit_requests_drop_generate_only_thread_fields() {
         section_overrides: empty_section_overrides(),
         action: "edit".into(),
         lore_complete: None,
+        dialogue: None,
         document: Some(text_document("Hello world")),
         selection: Some(text_selection("world", 6, 5)),
         story_context: None,

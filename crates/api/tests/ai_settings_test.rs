@@ -51,7 +51,7 @@ async fn settings_save_redact_omit_and_clear_each_field() {
     assert_eq!(view["key_set"], true);
     assert_eq!(
         view["sources"],
-        json!({"base_url":"saved","api_key":"saved","generate_model":"saved","edit_model":"saved","image_model":"none","lore_complete_model":"none"})
+        json!({"base_url":"saved","api_key":"saved","generate_model":"saved","edit_model":"saved","image_model":"none","lore_complete_model":"none","dialogue_model":"none"})
     );
     let response = request(&app, "GET", "/settings/ai", json!({})).await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -135,7 +135,7 @@ async fn saved_model_defaults_and_generation_update_without_restart() {
             let listing = body(request(&app, "GET", "/ai/models", json!({})).await).await;
             assert_eq!(
                 listing["defaults"],
-                json!({"generate":"explicit-model","edit":"saved-model","lore_complete":"explicit-model"})
+                json!({"generate":"explicit-model","edit":"saved-model","lore_complete":"explicit-model","dialogue":"explicit-model"})
             );
         }
         body(
@@ -151,7 +151,7 @@ async fn saved_model_defaults_and_generation_update_without_restart() {
         let listing = body(request(&app, "GET", "/ai/models", json!({})).await).await;
         assert_eq!(
             listing["defaults"],
-            json!({"generate":"saved-model","edit":"saved-model","lore_complete":if file_catalog { "explicit-model" } else { "saved-model" }})
+            json!({"generate":"saved-model","edit":"saved-model","lore_complete":if file_catalog { "explicit-model" } else { "saved-model" },"dialogue":if file_catalog { "explicit-model" } else { "saved-model" }})
         );
         assert_eq!(
             listing["models"].as_array().unwrap().len(),
@@ -188,7 +188,7 @@ async fn saved_model_defaults_and_generation_update_without_restart() {
             let listing = body(request(&app, "GET", "/ai/models", json!({})).await).await;
             assert_eq!(
                 listing["defaults"],
-                json!({"generate":"explicit-model","edit":"saved-model","lore_complete":"explicit-model"})
+                json!({"generate":"explicit-model","edit":"saved-model","lore_complete":"explicit-model","dialogue":"explicit-model"})
             );
         }
     }
