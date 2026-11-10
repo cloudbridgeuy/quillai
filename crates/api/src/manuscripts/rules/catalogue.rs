@@ -69,6 +69,16 @@ pub const CATALOGUE: &[RuleDef] = &[
             kind: ParamKind::Int { min: 0, max: 6 },
         }],
     },
+    RuleDef {
+        id: "dash-tag-punctuation",
+        languages: &["es"],
+        params: &[],
+    },
+    RuleDef {
+        id: "dash-tag-unclosed",
+        languages: &["es"],
+        params: &[],
+    },
 ];
 
 const LANGUAGES: [&str; 2] = ["en", "es"];
@@ -177,6 +187,7 @@ mod tests {
             .map(|rule| (rule.id, rule.languages, rule.params.len()))
             .collect();
         let english: &[&str] = &["en"];
+        let spanish: &[&str] = &["es"];
         assert_eq!(
             shipped,
             vec![
@@ -186,7 +197,9 @@ mod tests {
                 ("same-sentence-start", english, 1),
                 ("adverbs", english, 1),
                 ("watch-words", &["en", "es"][..], 1),
-                ("passive-voice", english, 1)
+                ("passive-voice", english, 1),
+                ("dash-tag-punctuation", spanish, 0),
+                ("dash-tag-unclosed", spanish, 0)
             ]
         );
     }
