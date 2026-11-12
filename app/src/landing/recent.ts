@@ -41,6 +41,36 @@ export function saveRecent(items: LastEdited[]): void {
   try { window.localStorage.setItem(RECENT_KEY, JSON.stringify(items)); } catch {}
 }
 
+function storedId(params: URLSearchParams, name: string): number | null {
+  const values = params.getAll(name);
+  if (values.length !== 1 || !/^[0-9]+$/.test(values[0] ?? "")) return null;
+  const value = Number(values[0]);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function matchesGone(item: LastEdited, params: URLSearchParams): boolean {
+  const scope = item.scope;
+  const pieceId = storedId(params, "pieceId");
+  if (pieceId !== null && "pieceId" in scope && scope.pieceId === pieceId) {
+    const universeId = storedId(params, "universeId");
+    return universeId === null || scope.universeId === universeId;
+  }
+  const seriesId = storedId(params, "seriesId");
+  const bookId = storedId(params, "bookId");
+  const chapterId = storedId(params, "chapterId");
+  return seriesId !== null && bookId !== null && chapterId !== null && "chapterId" in scope
+    && scope.seriesId === seriesId && scope.bookId === bookId && scope.chapterId === chapterId;
+}
+
+export function forgetStoredIds(search: string): void {
+  const params = new URLSearchParams(search);
+  try {
+    saveRecent(readRecent().filter(item => !matchesGone(item, params)));
+    const legacy = parseLastEdited(window.localStorage.getItem(LAST_EDITED_KEY));
+    if (legacy && matchesGone(legacy, params)) window.localStorage.removeItem(LAST_EDITED_KEY);
+  } catch {}
+}
+
 export function rememberEdited(raw: string): void {
   const item = parseLastEdited(raw);
   if (item) saveRecent(pushRecent(readRecent(), item));

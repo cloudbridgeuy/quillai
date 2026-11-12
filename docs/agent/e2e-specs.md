@@ -95,6 +95,8 @@
 `landing-tips.spec.ts` checks that dismissing Tips persists after reload. Written; not run for GUZ-975.
 
 `landing-recent.spec.ts` edits two chapters, checks both Resume rows, and verifies Forget persists after reload.
+
+`stale-saved-state.spec.ts` at 1100px opens a fresh database with a URL and `localStorage` recent/lastEdited ids that are not in the database, checks home loads with those rows gone and no check error, then creates a universe with + Universe. Written; not run for GUZ-1572.
 WebKit page errors containing `due to access control checks` are ignored for in-flight fetch teardown during reload (GUZ-1163).
 
 `reload-in-flight.spec.ts` checks server-authoritative reload, full unsaved recovery export, and resumed saves at 1100px.

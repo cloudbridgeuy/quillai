@@ -1,4 +1,4 @@
-import { rememberEdited } from "../landing/recent";
+import { forgetStoredIds, rememberEdited } from "../landing/recent";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Quill from "quill";
 import { createManuscriptClient, ManuscriptApiError } from "../manuscripts/client";
@@ -174,11 +174,16 @@ export function useChapterSync(
     queueMicrotask(() => {
       if (disposed) return;
       void loadEditorChapter(client, window.location.search).then(({ scope, chapter }) => openChapter(scope, chapter)).catch((error: unknown) => {
-        if (!disposed) {
-          setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
-          setStatus(error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.chapterLoadFailed"), true);
-          setNeedsChapter(error instanceof NoEditorChapter);
+        if (disposed) return;
+        if (error instanceof ManuscriptApiError && error.status === 404) {
+          forgetStoredIds(window.location.search);
+          setNeedsChapter(true);
+          window.location.assign(landingUrl(window.location.href).href);
+          return;
         }
+        setDetail(error instanceof ManuscriptApiError && error.detail !== error.message ? error.detail : undefined);
+        setStatus(error instanceof Error ? error.message : formatMessage(defaultLocale, "sync.chapterLoadFailed"), true);
+        setNeedsChapter(error instanceof NoEditorChapter);
       });
     });
     const timer = window.setInterval(() => {

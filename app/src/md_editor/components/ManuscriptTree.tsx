@@ -6,7 +6,8 @@ import { IconButton } from "../../ui/IconButton";
 import { ListButton } from "../../ui/ListButton";
 import { TextField } from "../../ui/TextField";
 import { Alert } from "../../ui/Alert";
-import { createManuscriptClient } from "../../manuscripts/client";
+import { apiErrorMessage } from "../../api_error";
+import { createManuscriptClient, ManuscriptApiError } from "../../manuscripts/client";
 import { Field } from "../../ui/Field";
 import type { EditorScope, Piece } from "../../manuscripts/contract";
 import {
@@ -179,7 +180,11 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
   }, [draftKey]);
 
   async function create() {
-    if (!draft || disabled || deleting || submitting.current || renameRef.current?.pending || state.status !== "ready") return;
+    if (submitting.current || renameRef.current?.pending) return;
+    if (!draft || disabled || deleting || state.status !== "ready") {
+      if (draft) dispatch({ type: "failed", message: apiErrorMessage("", "") });
+      return;
+    }
     const title = createTitle(draft.fields.title);
     dispatch({ type: "submit" });
     if (!title) return;
@@ -224,7 +229,7 @@ export function ManuscriptTree({ selectedChapter, disabled, busy = true, onCreat
       if (opened) onSelect(opened, opensScript);
       dispatch({ type: "created" });
     } catch (error) {
-      dispatch({ type: "failed", message: error instanceof Error ? error.message : formatMessage(defaultLocale, "tree.createFailed") });
+      dispatch({ type: "failed", message: apiErrorMessage(error instanceof ManuscriptApiError ? error.code : "", "") });
     } finally {
       submitting.current = false;
       if (opensChapter) onCreatePending?.(false);
