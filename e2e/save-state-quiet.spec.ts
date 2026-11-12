@@ -27,11 +27,13 @@ test("save state stays quiet while saves succeed and shows the pill on failure",
   });
   await page.goto(`/?${query}`);
   const editor = page.locator(".ql-editor");
+  const saveRegion = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expect(editor).toHaveText("Opening line");
   await expectEditorReady(editor);
   await expectSaved(page);
-  await expect(page.getByText("Saved", { exact: true })).toBeHidden();
-  await expect(page.getByText("Unsaved changes", { exact: true })).toBeHidden();
+  await expect(saveRegion).toHaveCSS("position", "absolute");
+  await expect(saveRegion).toHaveCSS("width", "1px");
+  await expect(saveRegion).not.toContainText("Unsaved changes");
 
   const savedPost = page.waitForResponse((response) => (
     response.url() === deltaUrl && response.request().method() === "POST" && response.ok()
@@ -41,8 +43,9 @@ test("save state stays quiet while saves succeed and shows the pill on failure",
   await page.keyboard.type(" more");
   await savedPost;
   await expectSaved(page);
-  await expect(page.getByText("Saved", { exact: true })).toBeHidden();
-  await expect(page.getByText("Unsaved changes", { exact: true })).toBeHidden();
+  await expect(saveRegion).toHaveCSS("position", "absolute");
+  await expect(saveRegion).toHaveCSS("width", "1px");
+  await expect(saveRegion).not.toContainText("Unsaved changes");
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveCount(0);
 
   await page.route(deltaUrl, (route) => (

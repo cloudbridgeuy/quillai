@@ -370,7 +370,9 @@ test("settings persist outside the sheet and failed saves show the red recovery 
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     await expectSaved(page);
-    await expect(page.getByText("Saved", { exact: true })).toBeHidden();
+    const saveRegion = page.getByRole("status", { name: "Chapter save status", exact: true });
+    await expect(saveRegion).toHaveCSS("position", "absolute");
+    await expect(saveRegion).toHaveCSS("width", "1px");
     const sheet = await page.locator(".editor-page").boundingBox();
     if (!sheet) throw new Error("Missing sheet");
     savedSheetTops.set(width, sheet.y);
@@ -397,10 +399,12 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   const pill = page.getByRole("alert", { name: "Chapter save status", exact: true });
   const title = page.locator(".editor-chapter-title");
   const toolbar = page.locator(".editor-page .ql-toolbar");
+  const leftRail = page.locator(".editor-rail-left");
+  const rightRail = page.locator(".editor-rail-right");
   const clearOfChrome = async () => {
     const pillBox = await pill.boundingBox();
     if (!pillBox) throw new Error("Missing failure pill");
-    for (const chrome of [title, toolbar]) {
+    for (const chrome of [title, toolbar, leftRail, rightRail]) {
       const box = await chrome.boundingBox();
       if (!box) throw new Error("Missing editor chrome");
       const apart = pillBox.x + pillBox.width <= box.x || box.x + box.width <= pillBox.x
