@@ -32,3 +32,17 @@ storybook/storybook-static
 .claude
 
 /eval-fixtures/
+
+# OS metadata
+.DS_Store
+
+# SQLite WAL side files
+*.db-shm
+*.db-wal
+
+# Local backups (quillai.env.bak, quillai.env.bak2, ...)
+*.bak
+*.bak[0-9]*
+
+# Loose local assets at the repo root
+/logo_with_text.png
