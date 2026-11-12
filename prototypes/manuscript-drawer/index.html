@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — Manuscript drawer redesign (static mockup, GUZ-1575..1579)</title>
+<style>
+/* Tokens copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;--st-blue:#7C9BB0;
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --panel-shadow:0 0 40px rgba(31,41,51,.12);--popover-shadow:0 8px 30px rgba(31,41,51,.12);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,monospace;
+  /* NEW token proposed here */
+  --hover-tint:rgba(31,41,51,.06); /* neutral row and icon hover; replaces the pink that read as delete */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1100px;margin:0 0 40px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* editor frame */
+.frame{position:relative;background:var(--desk);height:640px;overflow:hidden;border-radius:2px}
+.lrail{position:absolute;left:0;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.lrail span{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite)}
+.lrail span.on{background:var(--pi-green);color:var(--ink)}
+.top{position:absolute;left:0;right:0;top:10px;text-align:center;color:var(--graphite);font-size:11px;line-height:1.3}
+.sheet{position:absolute;left:50%;margin-left:-300px;top:48px;bottom:-20px;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);border-radius:2px;padding:40px 56px;font:21px/1.75 var(--serif)}
+.sheet p{margin:0 0 .6em}
+.drawer{position:absolute;left:56px;top:0;bottom:0;width:300px;background:var(--paper);box-shadow:var(--panel-shadow);padding:6px 12px 12px;display:flex;flex-direction:column;z-index:2}
+.drawer .grow{flex:1;min-height:0}
+
+/* SectionHeading: heading, rule, action on the right */
+.sh{display:flex;align-items:center;gap:8px;height:24px;margin:12px 0 4px}
+.sh b{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);white-space:nowrap}
+.sh i{flex:1;height:1px;background:var(--rule)}
+
+/* IconButton small: 24px target, 16px glyph */
+.ib{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--graphite);position:relative}
+.ib.hov{background:var(--hover-tint);color:var(--ink)}
+.ib.foc{box-shadow:0 0 0 2px rgba(78,98,114,.35);color:var(--ink)}
+
+/* TreeRow: 13px, one line, ellipsis, kind on the right */
+.tr{position:relative;display:flex;align-items:center;gap:2px;height:28px;padding-right:2px;border-radius:4px;font-size:13px;line-height:1.5}
+.tr .tw{flex:none;width:16px;height:16px;color:var(--graphite)}
+.tr .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:2px}
+.tr .tk{flex:none;font-size:11px;line-height:1.3;color:var(--graphite);white-space:nowrap;padding:0 6px 0 8px}
+.tr .ta{display:none;flex:none;gap:0}
+.tr.sel{background:var(--pi-blue)}
+.tr.hov{background:var(--hover-tint)}
+.tr.sel.hov{background:var(--pi-blue)}
+.tr.hov .ta,.tr.foc .ta,.tr.touch .ta{display:flex}
+.tr.hov .tk,.tr.foc .tk,.tr.touch .tk{display:none}
+.tr.foc{box-shadow:inset 0 0 0 2px rgba(78,98,114,.35)}
+.d1{padding-left:14px}.d2{padding-left:28px}.d3{padding-left:42px}.d0{padding-left:0}
+
+.menu{position:absolute;z-index:5;top:27px;right:50px;min-width:132px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--popover-shadow);padding:4px;font-size:13px}
+.menu div{padding:4px 10px;border-radius:4px;display:flex;justify-content:space-between;gap:16px}
+.menu div.hov{background:var(--hover-tint)}
+.menu small{color:var(--graphite);font-size:11px}
+.tipb{position:absolute;z-index:6;top:-24px;right:0;background:var(--ink);color:var(--paper);font-size:11px;line-height:1.3;padding:3px 7px;border-radius:4px;white-space:nowrap}
+
+/* Exports */
+.ex{display:flex;align-items:center;gap:6px;min-height:30px;font-size:13px}
+.ex .el{flex:1;min-width:0;white-space:nowrap}
+.ex .eb{display:flex;gap:4px;flex:none}
+.cb{display:inline-flex;align-items:center;height:24px;padding:0 7px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap}
+.cb.hov{background:var(--hover-tint)}
+.exnote{color:var(--graphite);font-size:11px;line-height:1.3;margin:2px 0 0}
+
+/* row state board */
+.board{background:var(--desk);padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:10px}
+.panel{background:var(--paper);box-shadow:var(--sheet-shadow);padding:12px 12px 14px;min-width:0}
+.panel h3{font:600 11px/1.3 var(--mono);color:var(--graphite);margin:0 0 8px}
+.panel p{margin:8px 0 0;color:var(--graphite);font-size:11px;line-height:1.4}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="plus" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></symbol>
+  <symbol id="pen" viewBox="0 0 16 16"><path d="M3 13l.7-2.9L10.6 3.2l2.2 2.2-6.9 6.9L3 13zM9.3 4.5l2.2 2.2"/></symbol>
+  <symbol id="bin" viewBox="0 0 16 16"><path d="M3 4.5h10M6.3 4.5V3h3.4v1.5M4.4 4.5l.6 8.5h6l.6-8.5M6.8 7v3.6M9.2 7v3.6"/></symbol>
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+  <symbol id="down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="home" viewBox="0 0 16 16"><path d="M2.5 8L8 3l5.5 5M4 7v6h8V7"/></symbol>
+  <symbol id="lines" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></symbol>
+</svg>
+
+<h1>Manuscript drawer redesign</h1>
+<p class="lede">Static rebuild of the lost mockup for GUZ-1575..1579. One row size, one section pattern, add actions on the row, one Exports section. Nothing here is wired; hover and focus states are drawn.</p>
+
+<section class="state" id="drawer-1-default">
+  <h2>1 · Default</h2>
+  <p class="cap"><b>Rows are 13px, one line, cut with an ellipsis.</b> The kind sits small on the right. The "+ Chapter", "+ Piece" and "+ Universe" rows are gone. Every section uses the same heading: label, rule, action on the right. Exports is one collapsed section.</p>
+  <div class="frame" data-state="default"></div>
+  <div class="spec">TreeRow: height 28px · text 13px/1.5 · indent 14px per level · kind 11px graphite, right-aligned
+SectionHeading: 11px/600, tracking .2em, slate · rule 1px --rule · 24px IconButton on the right
+Manuscript + adds a Universe. Series lore + adds a lore entry. Timeline is a plain row that opens the timeline.</div>
+</section>
+
+<section class="state" id="drawer-2-add-hover">
+  <h2>2 · Add on the row</h2>
+  <p class="cap"><b>Add, rename and delete sit on the row.</b> They replace the kind while the row is hovered, focused or touched. The universe row's + offers Container or Piece; a book's + adds a chapter with no menu. Hover is a neutral tint, not pink.</p>
+  <div class="frame" data-state="hover"></div>
+  <div class="board">
+    <div class="panel"><h3>rest</h3><div data-row="rest"></div><p>Kind shown, no actions.</p></div>
+    <div class="panel"><h3>hover</h3><div data-row="hov"></div><p>Neutral tint. Actions replace the kind. Tooltip names the action.</p></div>
+    <div class="panel"><h3>keyboard focus</h3><div data-row="foc"></div><p>Focus ring on the row; Tab moves through +, rename, delete.</p></div>
+    <div class="panel"><h3>touch</h3><div data-row="touch"></div><p>No hover on touch: actions always show. Targets are 24px.</p></div>
+  </div>
+  <div class="spec">IconButton small: 24×24 target (the first mockup used 22) · 16px glyph · radius 7px · hover --hover-tint rgba(31,41,51,.06)
+Row + by kind: Universe → menu Container / Piece · Container → Book or Piece by its kind · Book → Chapter · Chapter and Piece → no +</div>
+</section>
+
+<section class="state" id="drawer-4-exports-open">
+  <h2>4 · Exports open</h2>
+  <p class="cap"><b>One collapsible Exports section.</b> Chapter offers Markdown, Text and Word. Book adds EPUB. Backup is the last row. This replaces the three "Download" buttons, the "Book:" link line and the backup button.</p>
+  <div class="frame" data-state="exports"></div>
+  <div class="spec">Exports heading uses the same SectionHeading; its action is the open/close chevron. Closed by default, state remembered.
+Compact button: height 24px · 12px/500 · radius 7px · border --rule. Chapter and Book rows are hidden when no chapter is open.</div>
+</section>
+
+<script>
+const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const ib = (n, cls = "", extra = "") => `<span class="ib ${cls}">${ic(n)}${extra}</span>`;
+function row(depth, tw, title, kind, o = {}) {
+  const twisty = tw ? `<span class="tw">${ic(tw)}</span>` : `<span class="tw"></span>`;
+  const plus = o.noPlus ? "" : ib("plus", o.plusCls || "", o.tip ? `<span class="tipb">${o.tip}</span>` : "");
+  return `<div class="tr d${depth} ${o.cls || ""}">${twisty}<span class="tt">${title}</span><span class="tk">${kind}</span>`
+    + `<span class="ta">${plus}${ib("pen")}${ib("bin")}</span>${o.after || ""}</div>`;
+}
+const heading = (label, icon, cls = "") => `<div class="sh"><b>${label}</b><i></i>${ib(icon, cls)}</div>`;
+function drawer(state) {
+  const hover = state === "hover", open = state === "exports";
+  const menu = `<div class="menu"><div class="hov">Container<small>series, collection</small></div><div>Piece</div></div>`;
+  return `<div class="lrail"><span>${ic("home")}</span><span class="on">${ic("lines")}</span></div>
+  <div class="top">Saved<br>412 words · 2,268 characters · 9 lines</div>
+  <div class="sheet"><p>“I won’t go back,” she said — and meant it. The ’90s were over.</p><p>She fell into the shape of a wall, cursing him, and all the saints that promised her salvation and didn’t.</p><p>The road out of Emberhold still smelled of the granary.</p></div>
+  <div class="drawer">
+    ${heading("Manuscript", "plus")}
+    ${row(0, "down", "Audit Universe", "Universe", hover ? { cls: "hov", plusCls: "hov", after: menu } : {})}
+    ${row(1, "down", "The Ember Saga", "Book series")}
+    ${row(2, "down", "Ashes of Dawn", "Book")}
+    ${row(3, "", "The Burning Road", "Chapter", { cls: "sel", noPlus: true })}
+    ${row(3, "", "The Night the Granary Burned and Nobody Came", "Chapter", { noPlus: true })}
+    ${row(3, "", "What the River Kept", "Chapter", { noPlus: true })}
+    ${row(2, "right", "A Crown of Cinders", "Book")}
+    ${row(1, "right", "Stories from the Border", "Collection")}
+    ${row(1, "", "Field Notes on the Ember Cult", "Piece", { noPlus: true })}
+    ${heading("Series lore", "plus")}
+    ${row(0, "", "Mara Voss", "Character", { noPlus: true })}
+    ${row(0, "", "Captain Hale", "Character", { noPlus: true })}
+    ${row(0, "", "Emberhold", "Place", { noPlus: true })}
+    ${row(0, "", "The Ember Cult", "Term", { noPlus: true })}
+    ${row(0, "", "Timeline", "4 points", { noPlus: true })}
+    <div class="grow"></div>
+    ${heading("Exports", open ? "down" : "right", open ? "hov" : "")}
+    ${open ? `
+    <div class="ex"><span class="el">Chapter</span><span class="eb"><span class="cb">Markdown</span><span class="cb">Text</span><span class="cb">Word</span></span></div>
+    <div class="ex"><span class="el">Book</span><span class="eb"><span class="cb">Markdown</span><span class="cb">Text</span><span class="cb">Word</span><span class="cb">EPUB</span></span></div>
+    <div class="ex"><span class="el">Backup</span><span class="eb"><span class="cb">Download</span></span></div>
+    <p class="exnote">Chapter: The Burning Road · Book: Ashes of Dawn</p>` : ""}
+  </div>`;
+}
+document.querySelectorAll(".frame").forEach(f => { f.innerHTML = drawer(f.dataset.state); });
+document.querySelectorAll("[data-row]").forEach(el => {
+  const s = el.dataset.row;
+  const o = s === "rest" ? {} : { cls: s, plusCls: s === "hov" ? "hov" : s === "foc" ? "foc" : "", tip: s === "hov" ? "Add chapter" : "" };
+  el.innerHTML = row(0, "down", "Ashes of Dawn", "Book", o);
+});
+</script>
+</body>
+</html>

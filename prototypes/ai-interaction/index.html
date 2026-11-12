@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — AI interaction redesign (static mockup)</title>
+<style>
+/* Existing tokens, copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;
+  --st-blue:#7C9BB0;--st-lav:#9B8BB8;--st-tan:#B79A6C;--placeholder:#6b6f73;
+  --note-gradient:rgba(31,41,51,.045);--note-focus-ring:0 0 0 2px rgba(78,98,114,.35);
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --note-shadow:0 1px 1px rgba(31,41,51,.06),0 6px 14px -6px rgba(31,41,51,.22);
+  --edit-shadow:0 10px 30px rgba(31,41,51,.13);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,Menlo,monospace;
+
+  /* NEW tokens proposed by this redesign */
+  --ai-ink:#2E6E96;            /* AI-written text while fresh. 5.5:1 on paper */
+  --ai-target:var(--pi-blue);  /* text an Edit run is working on */
+  --ai-target-soft:#E9F1F6;    /* low point of the target pulse */
+  --ai-fade-hold:1.5s;         /* wait after the run ends */
+  --ai-fade-duration:10s;      /* ai-ink to ink */
+  --ai-fade-ease:cubic-bezier(.4,0,.6,1);
+  --ai-pulse:1.6s;             /* target and mark pulse period */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1100px;margin:0 0 40px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+
+/* editor frame */
+.frame{position:relative;background:var(--desk);height:420px;overflow:hidden;border-radius:2px}
+.sheet{position:absolute;left:130px;top:24px;bottom:-20px;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);border-radius:2px;padding:36px 56px;font:21px/1.75 var(--serif)}
+.sheet p{margin:0 0 .6em}
+.bracket{position:absolute;left:106px;top:60px;height:300px;width:9px;border:2px solid var(--st-blue);border-right:0;opacity:.6}
+.rail{position:absolute;right:0;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.rail .ib{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite);font-size:16px;opacity:.35}
+.rail .ib.on{opacity:.95;background:var(--pi-green);color:var(--ink)}
+.rail .ib.lav{background:var(--pi-lav)}
+.rail .cont{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;color:var(--ink);font-size:16px}
+.rail .cont small{font-size:10px;line-height:1.3}
+.rail .cont.stop{color:var(--ai-ink)}
+.rail .gear{margin-top:auto}
+.kbd{display:inline-block;font:10px/1.3 var(--mono);color:var(--graphite);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--paper);white-space:nowrap}
+.tip{position:absolute;right:64px;top:12px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap}
+.tip .kbd{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35)}
+
+/* 1. AI ink */
+.ai{color:var(--ai-ink)}
+.ai.live{animation:ai-fade var(--ai-fade-duration) var(--ai-fade-ease) var(--ai-fade-hold) both}
+@keyframes ai-fade{from{color:var(--ai-ink)}to{color:var(--ink)}}
+
+/* 2. stream marks */
+.mark{position:relative;display:inline-block;width:0;height:1em;vertical-align:baseline}
+.mark::before{content:"";position:absolute;left:-1px;top:-.28em;width:2px;height:1.45em;background:var(--ai-ink);border-radius:1px}
+.mark::after{content:"";position:absolute;left:-4px;top:-.5em;width:8px;height:8px;border-radius:999px;background:var(--ai-ink);animation:mark-pulse var(--ai-pulse) ease-in-out infinite}
+@keyframes mark-pulse{0%,100%{box-shadow:0 0 0 0 rgba(46,110,150,.45)}50%{box-shadow:0 0 0 6px rgba(46,110,150,0)}}
+.head{display:inline-block;width:.42em;height:1em;margin-left:2px;vertical-align:-.12em;background:var(--ai-ink);opacity:.55;border-radius:1px;animation:head-blink 1s steps(2,jump-none) infinite}
+@keyframes head-blink{to{opacity:.15}}
+.gutter-tick{position:absolute;left:112px;width:12px;height:2px;background:var(--ai-ink)}
+
+/* 3. highlights */
+.sel-pending{background:var(--pi-pink)}
+.sel-target{background:var(--ai-target);animation:target-pulse var(--ai-pulse) ease-in-out infinite;box-shadow:0 2px 0 var(--st-blue)}
+@keyframes target-pulse{0%,100%{background:var(--ai-target)}50%{background:var(--ai-target-soft)}}
+.sel-native{background:#B4D5FE}
+
+/* tool card (Edit, Dialogue) */
+.card{position:absolute;right:72px;top:40px;width:280px;background:var(--paper);border-radius:4px;box-shadow:var(--edit-shadow);padding:30px 16px 12px;font-size:12px;line-height:1.4}
+.card.static{position:relative;right:auto;top:auto}
+.flag{position:absolute;left:-12px;top:-9px;padding:4px 22px 4px 14px;background:var(--pi-pink);font-weight:500;font-size:12px;line-height:1.4;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);filter:drop-shadow(0 1px 1px rgba(31,41,51,.12))}
+.flagwrap{position:absolute;left:-12px;top:-9px;filter:drop-shadow(0 3px 4px rgba(31,41,51,.18))}
+.flagwrap .flag{position:static;filter:none;display:inline-block}
+.flag.lav{background:var(--pi-lav)}
+.flag.blue{background:var(--pi-blue)}
+.note{display:block;width:100%;min-height:76px;max-height:168px;overflow:auto;border-radius:1px;padding:14px 12px 10px;background-color:var(--pi-pink);
+  background-image:linear-gradient(var(--note-gradient),transparent 12px);box-shadow:var(--note-shadow);font:12px/1.5 var(--sans);color:var(--ink)}
+.note.lav{background-color:var(--pi-lav)}
+.note.green{background-color:var(--pi-green)}
+.note.focus{box-shadow:var(--note-focus-ring),var(--note-shadow)}
+.note .ph{color:var(--placeholder)}
+.caret{display:inline-block;width:1px;height:1.1em;background:var(--ink);vertical-align:-.15em}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.model{color:var(--graphite);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:5px 12px;font:600 12px/1.4 var(--sans);border:1px solid var(--rule);background:var(--paper);color:var(--ink);white-space:nowrap}
+.btn.primary{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.btn.primary .kbd{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.4)}
+.btn[disabled],.btn.off{opacity:.45}
+.keys{display:flex;flex-wrap:wrap;gap:4px 12px;margin:10px 0 0;padding-top:8px;border-top:1px solid var(--rule);color:var(--graphite);font-size:11px;line-height:1.3}
+.keys span{white-space:nowrap}
+.lbl{color:var(--graphite);margin:0 0 4px}
+.chk{display:flex;align-items:center;gap:8px;padding:3px 0}
+.chk i{width:14px;height:14px;border:1px solid var(--pencil);border-radius:3px;display:grid;place-items:center;font-style:normal;font-size:10px;color:var(--paper)}
+.chk.on i{background:var(--slate);border-color:var(--slate)}
+.status{display:flex;align-items:center;gap:8px;color:var(--ai-ink)}
+.dot{width:8px;height:8px;border-radius:999px;background:var(--ai-ink);animation:mark-pulse var(--ai-pulse) ease-in-out infinite}
+
+/* fade strip */
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.strip>div{background:var(--paper);box-shadow:var(--sheet-shadow);padding:14px 16px;font:17px/1.6 var(--serif)}
+.strip small{display:block;font:11px/1.3 var(--mono);color:var(--graphite);margin-bottom:6px}
+
+/* generic boards */
+.board{background:var(--desk);padding:28px;display:grid;gap:28px}
+.cols2{grid-template-columns:1fr 1fr}.cols3{grid-template-columns:repeat(3,1fr)}.cols4{grid-template-columns:repeat(4,1fr)}
+.panel{background:var(--paper);box-shadow:var(--sheet-shadow);padding:20px;position:relative}
+.panel>h3{font:600 11px/1.3 var(--mono);color:var(--graphite);margin:0 0 12px;text-transform:none;letter-spacing:0}
+.x{color:var(--alert)} .ok{color:#3d6b3a}
+
+/* 6. FieldAssist */
+.fa-bar{display:flex;align-items:center;gap:10px;margin-top:8px;min-height:28px;color:var(--graphite);font-size:12px}
+.fa-bar .why{margin-left:auto;text-align:right}
+.note.running{box-shadow:0 0 0 2px var(--ai-ink),var(--note-shadow)}
+.note.ro{cursor:default}
+.spark{color:var(--ai-ink)}
+.err{color:var(--alert);display:flex;gap:6px;align-items:baseline;margin-top:6px}
+.err::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--alert);flex:none}
+
+/* 7. settings */
+.set{width:300px;font-size:13px}
+.set h4{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 8px}
+.set label{display:block;color:var(--graphite);font-size:12px;margin:10px 0 4px}
+.inp{border:1px solid var(--rule);border-radius:4px;padding:7px 10px;display:flex;justify-content:space-between;background:var(--paper)}
+.src{color:var(--graphite);font-size:12px;margin:4px 0 0}
+.strike{outline:2px solid var(--alert);outline-offset:2px;border-radius:2px}
+.keyrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}.pill::before{content:"";width:7px;height:7px;border-radius:999px;background:#6f9a66}
+.pill.none::before{background:var(--pencil)}
+
+@media (prefers-reduced-motion:reduce){
+  .ai.live,.mark::after,.head,.sel-target,.dot{animation:none}
+  /* reduced motion: tint holds, then switches to ink in one step (JS clears the highlight) */
+}
+</style>
+</head>
+<body>
+<h1>QuillAI — AI interaction redesign</h1>
+<p class="lede">Static mockup for the owner's audit notes 1–7. Design only; no product code. All colours are existing tokens from <code>app/src/ui/tokens.css</code> except the new <code>--ai-*</code> tokens listed in state 11. Renders of each state are in <code>renders/</code>.</p>
+
+<!-- 01 -->
+<section class="state" id="s01-continue-streaming">
+<h2>01 · Continue streaming — AI ink, origin mark, writing head</h2>
+<p class="cap"><b>Items 1 and 2.</b> Fresh AI text is <code>--ai-ink</code> (blue), clearly not author ink. A pin stays at the caret where Continue was triggered; a soft block shows where text is arriving. The rail Continue control is Stop, at full opacity, with its shortcut.</p>
+<div class="frame">
+  <div class="bracket"></div><div class="gutter-tick" style="top:185px"></div>
+  <div class="sheet">
+    <p>Mara pulled the horse up short at the ridge. Below them the river had taken the lower road, and with it the only bridge Tomas trusted.</p>
+    <p>"We go around," he said.<span class="mark" title="Continue started here"></span> <span class="ai">She did not answer at once. The wind came up the slope smelling of wet slate, and somewhere under it was woodsmoke that had no business being there</span><span class="head"></span></p>
+  </div>
+  <div class="rail">
+    <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
+    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+<div class="spec">origin mark: 2px --ai-ink bar + 8px dot at the insertion anchor, plus a 12px gutter tick. Overlay element positioned from the tracked anchor (same technique as the Continue bracket). Never Delta content.
+writing head: .42em block, --ai-ink at 55%, after the last AI character. Both vanish when the run ends (success, Stop, failure).
+reduced motion: no pulse, no blink; the marks are static.</div>
+</section>
+
+<!-- 02 -->
+<section class="state" id="s02-fade">
+<h2>02 · Fade back to ink</h2>
+<p class="cap"><b>Item 1.</b> "Generated text in a distinct colour that slowly fades back to normal ink." Hold 1.5s after the run ends, then 10s to <code>--ink</code>. Today: <code>--slate</code>, 250ms hold, 1.8s (too close to ink, too quick). The last frame of this strip is live in a browser.</p>
+<div class="strip">
+  <div><small>streaming</small>We go around. <span style="color:#2E6E96">She did not answer at once.</span></div>
+  <div><small>done + 1.5s (hold)</small>We go around. <span style="color:#2E6E96">She did not answer at once.</span></div>
+  <div><small>+ 5s</small>We go around. <span style="color:#295775">She did not answer at once.</span></div>
+  <div><small>+ 8.5s</small>We go around. <span style="color:#244054">She did not answer at once.</span></div>
+  <div><small>+ 11.5s · plain ink (live)</small>We go around. <span class="ai live">She did not answer at once.</span></div>
+</div>
+<div class="spec">colour: --ai-ink #2E6E96 (5.5:1 on --paper, AA for body text). Applies to Continue, Edit replacement and Dialogue.
+fade: transition --ai-stream-color var(--ai-fade-duration) var(--ai-fade-ease) var(--ai-fade-hold)  =  10s cubic-bezier(.4,0,.6,1) after 1.5s.
+author typing inside AI text is never tinted (unchanged). A new run during a fade restarts the hold for all still-tinted text.
+reload: tint does not persist. It is local presentation, not chapter content; after reload all text is ink.
+reduced motion: no transition. Tint holds 4s after the run ends, then switches to ink in one step.
+Settings "Tint AI text" off: plain ink throughout; origin mark and writing head still show.</div>
+</section>
+
+<!-- 03 -->
+<section class="state" id="s03-continue-idle">
+<h2>03 · Continue control — placement and shortcut</h2>
+<p class="cap"><b>Item 2.</b> Recommendation: Continue stays at the top of the right rail. It is a fixed target that never covers prose, and the doc rule "one Continue control, no inline Continue button" stands. What changes: the Continue control is no longer muted with the rest of the rail, and it shows its shortcut. The shortcut is the at-caret trigger; the origin mark is the at-caret feedback.</p>
+<div class="frame" style="height:230px">
+  <div class="bracket" style="height:150px"></div>
+  <div class="sheet"><p>"We go around," he said.<span class="caret" style="height:1.2em;width:2px;background:var(--slate)"></span></p></div>
+  <div class="tip">Continue from the caret <span class="kbd">⌘↵</span> · press again to stop</div>
+  <div class="rail">
+    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
+    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+<div class="spec">Ctrl/Cmd+Enter   Continue / Stop                (exists; now shown on the control and in its tooltip)
+Ctrl/Cmd+K       Edit selection                 (exists; tooltip shows it)
+Ctrl/Cmd+Shift+K Dialogue box                   (NEW; reverses "no shortcut in this build" for Dialogue: owner decision)
+Ctrl/Cmd+Enter   Complete, inside the lore field (exists in spec)
+Esc              closes panels only; it does not stop a run (unchanged)</div>
+</section>
+
+<!-- 04 -->
+<section class="state" id="s04-edit-open">
+<h2>04 · Edit pane — open</h2>
+<p class="cap"><b>Items 3 and 5.</b> The "Edit selection" flag sticks out of the card (12px left, 9px above). The pink note stays inside the card padding, has no resize handle, grows to 8 lines and then scrolls. One hint row with keycaps; the model line sits beside Apply.</p>
+<div class="frame">
+  <div class="bracket"></div>
+  <div class="sheet" style="width:560px">
+    <p>Mara pulled the horse up short at the ridge. <span class="sel-pending">Below them the river had taken the lower road, and with it the only bridge Tomas trusted.</span></p>
+    <p>"We go around," he said.</p>
+  </div>
+  <div class="card">
+    <div class="flagwrap"><div class="flag">Edit selection</div></div>
+    <div class="note focus">Add more intensity. Tomas has gone through a lot<span class="caret"></span></div>
+    <div class="foot"><span class="model">Model: <a>DeepSeek V4.1 Flash</a></span><span class="btn primary">Apply <span class="kbd">↵</span></span></div>
+    <div class="keys"><span><span class="kbd">⇧↵</span> new line</span><span><span class="kbd">Esc</span> close</span></div>
+  </div>
+  <div class="rail">
+    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+</section>
+
+<!-- 05 -->
+<section class="state" id="s05-edit-running">
+<h2>05 · Edit running — target highlight persists and pulses</h2>
+<p class="cap"><b>Item 3.</b> After Apply the selection highlight does not disappear. It changes from pink (chosen) to <code>--ai-target</code> blue (being worked on) and pulses slowly. It is a CSS custom highlight, so it stays when the author selects elsewhere (browser selection shown on the last line). It ends when the first replacement text arrives.</p>
+<div class="frame">
+  <div class="bracket"></div>
+  <div class="sheet" style="width:560px">
+    <p>Mara pulled the horse up short at the ridge. <span class="sel-target"><span style="white-space:nowrap"><span class="mark"></span>Below</span> them the river had taken the lower road, and with it the only bridge Tomas trusted.</span></p>
+    <p>"We go <span class="sel-native">around," he said.</span></p>
+  </div>
+  <div class="card">
+    <div class="flagwrap"><div class="flag">Edit selection</div></div>
+    <div class="note" style="opacity:.6">Add more intensity. Tomas has gone through a lot</div>
+    <div class="foot"><span class="status"><span class="dot"></span>Rewriting…</span><span class="btn">Stop <span class="kbd">⌘↵</span></span></div>
+  </div>
+  <div class="rail">
+    <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+<div class="spec">::highlight(quillai-edit-target) { background: var(--ai-target-color) }   new highlight name, separate from quillai-edit-selection (pink)
+pulse: --ai-target-color between --ai-target and --ai-target-soft, var(--ai-pulse) 1.6s ease-in-out, infinite (registered @property on .ql-editor, as --ai-stream-color is today)
+reduced motion: static --ai-target fill with a 2px --st-blue underline; no pulse.</div>
+</section>
+
+<!-- 06 -->
+<section class="state" id="s06-edit-streaming">
+<h2>06 · Edit — replacement streams in with AI ink</h2>
+<p class="cap"><b>Item 3.</b> When the first fragment lands the target highlight is removed and the replacement streams in <code>--ai-ink</code> with the writing head, then fades exactly as Continue does (state 02).</p>
+<div class="frame" style="height:330px">
+  <div class="bracket" style="height:220px"></div>
+  <div class="sheet" style="width:560px">
+    <p>Mara pulled the horse up short at the ridge. <span class="ai"><span style="white-space:nowrap"><span class="mark"></span>The</span> river had come up in the night and eaten the lower road whole, and the bridge, the one bridge Tomas had ever</span><span class="head"></span></p>
+    <p>"We go around," he said.</p>
+  </div>
+  <div class="card">
+    <div class="flagwrap"><div class="flag">Edit selection</div></div>
+    <div class="note" style="opacity:.6">Add more intensity. Tomas has gone through a lot</div>
+    <div class="foot"><span class="status"><span class="dot"></span>Rewriting…</span><span class="btn">Stop <span class="kbd">⌘↵</span></span></div>
+  </div>
+  <div class="rail">
+    <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+</section>
+
+<!-- 07 -->
+<section class="state" id="s07-dialogue-open">
+<h2>07 · Dialogue pane — open</h2>
+<p class="cap"><b>Items 4 and 5.</b> Same card anatomy as Edit. Lavender flag sticks out; the goal note is lavender (<code>--pi-lav</code>, new StickyNote tone), not yellow, and stays inside the card. The model line is added (Dialogue has none today) and the hint row matches Edit word for word.</p>
+<div class="frame">
+  <div class="bracket"></div>
+  <div class="sheet" style="width:560px">
+    <p>Mara pulled the horse up short at the ridge. Below them the river had taken the lower road.</p>
+    <p><span class="caret" style="height:1.2em;width:2px;background:var(--slate)"></span></p>
+  </div>
+  <div class="card">
+    <div class="flagwrap"><div class="flag lav">Dialogue</div></div>
+    <p class="lbl">Speakers · 2 of 6</p>
+    <div class="chk on"><i>✓</i>Mara</div>
+    <div class="chk on"><i>✓</i>Tomas</div>
+    <div class="chk"><i></i>Old Ferrin</div>
+    <div class="note lav" style="margin-top:10px;min-height:62px"><span class="ph">Goal or topic (optional)</span></div>
+    <div class="foot"><span class="model">Model: <a>DeepSeek V4.1 Flash</a></span><span class="btn primary">Write <span class="kbd">↵</span></span></div>
+    <div class="keys"><span><span class="kbd">⇧↵</span> new line</span><span><span class="kbd">Esc</span> close</span></div>
+  </div>
+  <div class="rail">
+    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
+    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+</section>
+
+<!-- 08 -->
+<section class="state" id="s08-dialogue-running">
+<h2>08 · Dialogue running — same mark, same ink</h2>
+<p class="cap"><b>Item 4.</b> Dialogue uses the same origin mark, writing head, AI ink and fade as Continue. Before the first fragment arrives only the pulsing origin mark shows, so the author sees that something is coming and where.</p>
+<div class="frame">
+  <div class="bracket"></div><div class="gutter-tick" style="top:148px"></div>
+  <div class="sheet" style="width:560px">
+    <p>Mara pulled the horse up short at the ridge. Below them the river had taken the lower road.</p>
+    <p><span class="mark"></span><span class="ai">"You knew," Mara said.</span></p>
+    <p><span class="ai">"I guessed." Tomas did not look at her. "Guessing is not</span><span class="head"></span></p>
+  </div>
+  <div class="card">
+    <div class="flagwrap"><div class="flag lav">Dialogue</div></div>
+    <p class="lbl">Speakers · Mara, Tomas</p>
+    <div class="note lav" style="opacity:.6;min-height:48px">She confronts him about the bridge</div>
+    <div class="foot"><span class="status"><span class="dot"></span>Writing…</span><span class="btn">Stop <span class="kbd">⌘↵</span></span></div>
+  </div>
+  <div class="rail">
+    <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
+    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+  </div>
+</div>
+</section>
+
+<!-- 09 -->
+<section class="state" id="s09-hints">
+<h2>09 · Hints reconciled — before and after</h2>
+<p class="cap"><b>Item 5.</b> One footer pattern for both panes: model line and primary action on one row, then a short keycap row. The primary button carries the Enter keycap, so the hint no longer repeats it. "Esc or Edit closes" becomes "Esc close".</p>
+<div class="board cols2">
+  <div class="panel"><h3>before (today)</h3>
+    <p style="color:var(--graphite);margin:0">Edit: Enter applies · Esc or Edit closes · Shift+Enter adds a line<br><u style="color:var(--ink);font-weight:600">Model: DeepSeek V4.1 Flash</u><br>[Apply]</p>
+    <p style="color:var(--graphite);margin:12px 0 0">Dialogue: Enter writes · Esc closes · Shift+Enter adds a line<br>(no model line)<br>[Write]</p>
+  </div>
+  <div class="panel"><h3>after (both panes)</h3>
+    <div style="width:248px;font-size:12px">
+      <div class="foot" style="margin-top:0"><span class="model">Model: <a>DeepSeek V4.1 Flash</a></span><span class="btn primary">Apply <span class="kbd">↵</span></span></div>
+      <div class="keys"><span><span class="kbd">⇧↵</span> new line</span><span><span class="kbd">Esc</span> close</span></div>
+      <div class="foot" style="margin-top:20px"><span class="model">Model: <a>unknown</a></span><span class="btn primary off">Write <span class="kbd">↵</span></span></div>
+      <div class="keys"><span>Pick at least one speaker.</span></div>
+    </div>
+    <p style="color:var(--graphite);margin:14px 0 0;font-size:12px">A disabled primary swaps the keycap row for the reason it is disabled (no speakers, AI busy, save blocked). Screen readers get the full sentence: "Enter applies. Shift+Enter adds a line. Escape closes."</p>
+  </div>
+</div>
+</section>
+
+<!-- 10 -->
+<section class="state" id="s10-lore-complete">
+<h2>10 · Lore Complete — FieldAssist primitive</h2>
+<p class="cap"><b>Item 6.</b> The pencil reads as "edit". Replace it with a labelled action attached to the field it writes into: a spark glyph, the word "Complete", and its shortcut. New primitive <code>FieldAssist</code>; each panel below is one story.</p>
+<div class="board cols2">
+  <div class="panel"><h3>before · IconButton glyph ✎</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green">A scout of the ridge riders, quick-tempered and loyal to Tomas.</div>
+    <div class="fa-bar"><span style="font-size:16px" class="x">✎</span><span class="x">reads as "edit"</span></div>
+  </div>
+  <div class="panel"><h3>story: Idle</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green">A scout of the ridge riders, quick-tempered and loyal to Tomas.<span class="caret"></span></div>
+    <div class="fa-bar"><span class="btn"><span class="spark">✦</span> Complete <span class="kbd">⌘↵</span></span><span class="why">Continues from the cursor.</span></div>
+  </div>
+  <div class="panel"><h3>story: Running (field read-only, ring, Stop)</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green running ro">A scout of the ridge riders, quick-tempered and loyal to Tomas. She carries a scar across her left palm from a knife fight she refuses<span class="head" style="height:1em"></span></div>
+    <div class="fa-bar"><span class="btn">■ Stop <span class="kbd">⌘↵</span></span><span class="status"><span class="dot"></span>Writing…</span></div>
+  </div>
+  <div class="panel"><h3>story: Done (status clears after 4s)</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green">A scout of the ridge riders, quick-tempered and loyal to Tomas. She carries a scar across her left palm from a knife fight she refuses to explain.</div>
+    <div class="fa-bar"><span class="btn"><span class="spark">✦</span> Complete <span class="kbd">⌘↵</span></span><span class="why">Added 19 words. Save to keep them.</span></div>
+  </div>
+  <div class="panel"><h3>story: Disabled with reason</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green"><span class="ph">What the AI may know about this entry</span></div>
+    <div class="fa-bar"><span class="btn off"><span class="spark">✦</span> Complete <span class="kbd">⌘↵</span></span><span class="why">Name the entry first.</span></div>
+  </div>
+  <div class="panel"><h3>story: Error (text rolled back, retry allowed)</h3>
+    <p class="lbl">Visible text (AI context)</p>
+    <div class="note green">A scout of the ridge riders, quick-tempered and loyal to Tomas.</div>
+    <div class="fa-bar"><span class="btn"><span class="spark">✦</span> Complete <span class="kbd">⌘↵</span></span></div>
+    <div class="err">The AI provider did not answer. Nothing was added.</div>
+  </div>
+</div>
+<div class="spec">FieldAssist props: label, shortcut?, state: "idle" | "running" | "done" | "disabled" | "error", note?, onStart, onStop, children (the field).
+Stories: Idle, Running, Done, Disabled with reason, Error, No shortcut, Hidden (leave-out entry renders the field only), Narrow (280px drawer width, note wraps under the button).
+A textarea cannot colour part of its text, so there is no AI ink here; the ring and the "Added N words" line stand in for it.</div>
+</section>
+
+<!-- 11 -->
+<section class="state" id="s11-settings-key">
+<h2>11 · Settings → AI — no key source on screen</h2>
+<p class="cap"><b>Item 7.</b> "We should not make public how we are getting the AI key." The screen stops naming <code>quillai.env</code> anywhere. Values show one of two neutral words: "Saved here" (the author set it in this screen) or "Default". The key row shows only whether a key is set.</p>
+<div class="board cols3">
+  <div class="panel set"><h3>before</h3>
+    <h4>AI</h4>
+    <label>Base URL</label><div class="inp">https://opencode.ai/inference/opena…</div>
+    <p class="src"><span class="strike">From quillai.env</span></p>
+    <label>Continue model</label><div class="inp">DeepSeek V4.1 Flash<span>⌄</span></div>
+    <p class="src"><span class="strike">From quillai.env</span></p>
+    <p class="src" style="margin-top:14px">Key saved · <span class="strike">From quillai.env</span></p>
+    <span class="btn" style="margin:6px 0">Replace</span>
+    <p class="src"><span class="strike">Set in quillai.env. Edit that file to change it.</span></p>
+  </div>
+  <div class="panel set"><h3>after · key preset, nothing saved here</h3>
+    <h4>AI</h4>
+    <label>Base URL</label><div class="inp"><span style="color:var(--placeholder)">Default endpoint</span></div>
+    <p class="src">Default</p>
+    <label>Continue model</label><div class="inp">DeepSeek V4.1 Flash<span>⌄</span></div>
+    <p class="src">Default</p>
+    <div class="keyrow"><div><div style="color:var(--graphite);font-size:12px">API key</div><span class="pill">Key set</span></div><span class="btn">Use my own key</span></div>
+  </div>
+  <div class="panel set"><h3>after · author saved a key and a model</h3>
+    <h4>AI</h4>
+    <label>Base URL</label><div class="inp">https://api.example.com/v1</div>
+    <p class="src">Saved here</p>
+    <label>Continue model</label><div class="inp">DeepSeek V4.1 Flash<span>⌄</span></div>
+    <p class="src">Saved here</p>
+    <div class="keyrow"><div><div style="color:var(--graphite);font-size:12px">API key</div><span class="pill">Key set · Saved here</span></div><span style="display:flex;gap:6px"><span class="btn">Replace</span><span class="btn">Remove</span></span></div>
+    <p class="src">Removing your key returns to the default.</p>
+  </div>
+</div>
+<div class="spec">Removed strings: settings.ai.fromEnv "From quillai.env"; the key note "Set in quillai.env. Edit that file to change it."
+New strings: "Default", "Default endpoint", "Use my own key", "Removing your key returns to the default." No key at all: grey dot, "No key set", button "Add key".
+Open: a preset Base URL is hidden behind "Default endpoint" here. The API still returns sources: "env" and the URL value; hiding on the wire is a separate API change.</div>
+</section>
+
+<!-- 12 -->
+<section class="state" id="s12-primitives">
+<h2>12 · New and changed primitives, new tokens</h2>
+<p class="cap">Story-first list. Each tile is a primitive that needs a story before a screen uses it.</p>
+<div class="board cols4">
+  <div class="panel"><h3>FlagTab (new; today a CSS class)</h3>
+    <div style="display:grid;gap:10px;justify-items:start"><div class="flag" style="position:static">Edit selection</div><div class="flag lav" style="position:static">Dialogue</div><div class="flag lav" style="position:static">Lore match</div><div class="flag blue" style="position:static">Continue window</div></div>
+    <p class="src">tone: pink | lavender | blue · overflow: sticks out of its card</p></div>
+  <div class="panel"><h3>StickyNote (changed)</h3>
+    <div class="note lav" style="min-height:44px">tone="lavender"</div>
+    <p class="src">+ tone lavender · + contained auto-grow (maxRows 8, no resize handle) · overhang no longer used by Edit or Dialogue</p></div>
+  <div class="panel"><h3>Kbd (new)</h3>
+    <p><span class="kbd">⌘↵</span> <span class="kbd">⇧↵</span> <span class="kbd">Esc</span> <span class="kbd">⌘K</span> <span class="kbd">Ctrl+Enter</span></p>
+    <p><span class="btn primary">Apply <span class="kbd">↵</span></span></p>
+    <p class="src">platform-aware label; aria-hidden, the control carries aria-keyshortcuts</p></div>
+  <div class="panel"><h3>StreamMark (new)</h3>
+    <p style="font:21px/1.75 var(--serif);margin:0">said.<span class="mark"></span> <span class="ai">She</span><span class="head"></span></p>
+    <p class="src">kind: origin | head · positioned overlay</p>
+    <p class="status" style="margin-top:8px"><span class="dot"></span>Writing…</p><p class="src">RunStatus line (part of FieldAssist and the tool card)</p></div>
+</div>
+<div class="spec">New tokens (tokens.css):  --ai-ink #2E6E96 · --ai-target var(--pi-blue) · --ai-target-soft #E9F1F6 · --ai-fade-hold 1.5s · --ai-fade-duration 10s · --ai-fade-ease cubic-bezier(.4,0,.6,1) · --ai-pulse 1.6s
+Changed: --ai-stream-color initial value and streaming value move from --slate to --ai-ink.</div>
+</section>
+</body>
+</html>

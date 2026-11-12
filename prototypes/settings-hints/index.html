@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — Hint tip and Settings pane redesign (static mockup, GUZ-1594..1598, GUZ-1605 item 7)</title>
+<style>
+/* Tokens copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;--st-blue:#7C9BB0;--placeholder:#6b6f73;
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --panel-shadow:0 0 40px rgba(31,41,51,.12);--popover-shadow:0 8px 30px rgba(31,41,51,.12);
+  --note-focus-ring:0 0 0 2px rgba(78,98,114,.35);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,monospace;
+  /* NEW token proposed here */
+  --hover-tint:rgba(31,41,51,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1100px;margin:0 0 40px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+.frame{position:relative;background:var(--desk);overflow:hidden;border-radius:2px}
+.sheet{position:absolute;left:50%;margin-left:-300px;top:0;bottom:0;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);padding:34px 56px;font:21px/1.75 var(--serif)}
+.sheet p{margin:0 0 42px}
+.sheet.end{display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:14px}
+.sheet.end p:last-child{margin-bottom:0}
+.bracket{position:absolute;left:-26px;top:38px;bottom:-10px;width:9px;border:2px solid var(--st-blue);border-right:0;opacity:.6}
+.edge{position:absolute;left:0;right:0;bottom:0;height:0;border-top:2px dashed var(--pencil)}
+.edge span{position:absolute;right:12px;bottom:6px;font:11px/1.3 var(--mono);color:var(--graphite)}
+.h{position:relative;text-decoration:underline;text-decoration-color:var(--slate);text-decoration-thickness:2px;text-underline-offset:5px}
+.h.dim{text-decoration-color:var(--st-blue);text-decoration-thickness:1px}
+.h.lore{text-decoration:underline dotted var(--pencil);text-decoration-thickness:1px;text-underline-offset:5px}
+
+/* Hint tip: popover with pointer */
+.tip{position:absolute;z-index:4;left:-6px;max-width:300px;width:max-content;background:var(--paper);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--popover-shadow);padding:4px 9px 5px;font:400 12px/1.4 var(--sans);color:var(--ink);text-decoration:none;white-space:normal}
+.tip b{font:600 10px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-right:6px;white-space:nowrap}
+.tip::after{content:"";position:absolute;left:20px;width:8px;height:8px;background:var(--paper);border:1px solid var(--rule);transform:rotate(45deg)}
+.tip.below{top:calc(100% + 9px)}.tip.below::after{top:-5px;border-right:0;border-bottom:0}
+.tip.above{bottom:calc(100% + 5px)}.tip.above::after{bottom:-5px;border-left:0;border-top:0}
+
+/* editor frame for the pane */
+.rrail{position:absolute;right:0;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0;z-index:3}
+.rrail span{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite);opacity:.45}
+.rrail span.on{opacity:1;background:var(--pi-green);color:var(--ink);margin-top:auto}
+.top{position:absolute;left:0;right:0;top:10px;text-align:center;color:var(--graphite);font-size:11px;line-height:1.3}
+.sheet.page{top:48px;bottom:-20px}
+.sheet.page p{margin:0 0 .6em}
+.pane{position:absolute;right:56px;top:0;bottom:0;width:380px;background:var(--paper);box-shadow:var(--panel-shadow);padding:10px 16px 16px;z-index:2}
+.ph{display:flex;align-items:center;height:32px}
+.ph h3{flex:1;font:600 16px/1.5 var(--sans);margin:0}
+
+.sh{display:flex;align-items:center;gap:8px;height:24px;margin:14px 0 6px}
+.sh b{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);white-space:nowrap}
+.sh i{flex:1;height:1px;background:var(--rule)}
+.sh small{font-size:11px;color:var(--graphite);white-space:nowrap}
+.ib{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--graphite);position:relative}
+.ib.hov{background:var(--hover-tint);color:var(--ink)}
+
+/* compact toggle 28×16 */
+.tg{flex:none;width:28px;height:16px;border-radius:999px;background:var(--pencil);position:relative}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:999px;background:var(--paper)}
+.tg.on{background:var(--slate)}.tg.on::after{left:14px}
+/* compact button 24px */
+.cb{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap}
+.cb.primary{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.cb.off{opacity:.45}
+/* "?" help button 18px */
+.q{flex:none;width:18px;height:18px;border-radius:999px;border:1px solid var(--pencil);display:inline-grid;place-items:center;font:600 11px/1 var(--sans);color:var(--graphite);position:relative}
+.q.on{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.pop{position:absolute;z-index:8;top:26px;right:-14px;width:236px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--popover-shadow);padding:7px 10px 8px;font:400 12px/1.4 var(--sans);color:var(--ink);text-align:left}
+.pop::after{content:"";position:absolute;top:-5px;right:18px;width:8px;height:8px;background:var(--paper);border:1px solid var(--rule);border-right:0;border-bottom:0;transform:rotate(45deg)}
+
+.row{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13px}
+.row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .val{font-size:12px;color:var(--graphite);white-space:nowrap}
+.row.offr .nm{color:var(--graphite)}
+.row.open{background:var(--hover-tint);margin:0 -6px;padding:0 6px;border-radius:4px 4px 0 0}
+.opts{margin:0 -6px 4px;padding:6px 6px 10px 42px;background:var(--hover-tint);border-radius:0 0 4px 4px}
+.opts .ol{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--graphite);margin-bottom:4px}
+.opts .or{display:flex;align-items:center;gap:8px;font-size:13px}
+.opts .or .nm{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:4px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:4px}
+.chips span{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 4px 0 7px;border-radius:4px;background:var(--desk);font-size:12px}
+.chips span svg{width:12px;height:12px;color:var(--graphite)}
+.chips em{font-style:normal;color:var(--placeholder);font-size:12px;line-height:20px;padding:0 4px}
+.num{display:inline-flex;align-items:center;justify-content:space-between;width:56px;height:24px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:0 4px 0 8px;font-size:13px}
+.num svg{width:12px;height:12px;color:var(--graphite)}
+
+/* AI label grid */
+.lg{display:grid;grid-template-columns:136px 1fr;gap:8px 10px;align-items:start}
+.lg .l{font-size:13px;line-height:1.4;padding-top:1px;min-width:0}
+.lg .l small{display:block;font-size:11px;line-height:1.3;color:var(--graphite)}
+.inp{display:flex;align-items:center;justify-content:space-between;gap:6px;height:30px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:0 6px 0 9px;font-size:13px;min-width:0}
+.inp span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inp svg{flex:none;color:var(--graphite)}
+.inp.ph0 span{color:var(--placeholder)}
+.inp.focus{box-shadow:var(--note-focus-ring)}
+.key{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.pill::before{content:"";width:7px;height:7px;border-radius:999px;background:#6f9a66}
+.keybtns{display:flex;gap:6px;margin-top:6px}
+.foot{display:flex;justify-content:flex-end;margin-top:10px}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+  <symbol id="down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="ud" viewBox="0 0 16 16"><path d="M5 6l3-3 3 3M5 10l3 3 3-3"/></symbol>
+  <symbol id="go" viewBox="0 0 16 16"><path d="M3 3l10 5-10 5 2-5z"/></symbol>
+  <symbol id="pen" viewBox="0 0 16 16"><path d="M3 13l.7-2.9L10.6 3.2l2.2 2.2-6.9 6.9L3 13z"/></symbol>
+  <symbol id="say" viewBox="0 0 16 16"><path d="M3 4h10v6H8l-3 2.5V10H3z"/></symbol>
+  <symbol id="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M3.8 3.8l1.4 1.4M10.8 10.8l1.4 1.4M12.2 3.8l-1.4 1.4M5.2 10.8l-1.4 1.4"/></symbol>
+</svg>
+
+<h1>Hint tip and Settings pane redesign</h1>
+<p class="lede">Static rebuild of the lost mockup for GUZ-1594..1598, with the later owner rule from GUZ-1605 item 7 applied: the screen never names a settings file, source lines read only "Default" or "Saved here", and the key row reads "Key set" or "No key set".</p>
+
+<section class="state" id="a-tip-passive">
+  <h2>A · Hint tip, passive voice</h2>
+  <p class="cap"><b>A smaller tip that says something.</b> The pointer sits on the underline. The rule name is in small caps and the message explains the hint instead of repeating the name. The tip fits in the gap, so the next line stays readable.</p>
+  <div class="frame" style="height:372px">
+    <div class="sheet"><i class="bracket"></i>
+      <p>She <span class="h dim">quickly</span> ran <span class="h dim">quickly</span> to the door.</p>
+      <p>She <span class="h dim">nodded her head</span>.</p>
+      <p>The letter <span class="h">was written<span class="tip below"><b>Passive voice</b>The doer comes last or is missing. Try leading with who did it.</span></span> by <span class="h lore">Mara</span>.</p>
+      <p>She ran. <span class="h dim">She</span> stopped. She waited.</p>
+    </div>
+  </div>
+  <div class="spec">Tip: max-width 300px · padding 4px 9px · 12px/1.4 · radius 7px · --popover-shadow · 8px pointer at the underline's start
+Rule name: 10px/600, tracking .1em, upper case, slate, inline before the message. Before: 180px box, name printed twice.
+New message, hints.passive: "The doer comes last or is missing. Try leading with who did it."</div>
+</section>
+
+<section class="state" id="b-tip-param">
+  <h2>B · Hint tip with a value, flipped</h2>
+  <p class="cap"><b>The message carries the rule's numbers,</b> and near the bottom of the window the tip flips above the line, pointer down.</p>
+  <div class="frame" style="height:250px">
+    <div class="sheet end"><i class="bracket" style="top:0"></i>
+      <p>She <span class="h dim">nodded her head</span>.</p>
+      <p>The letter <span class="h dim">was written</span> by <span class="h lore">Mara</span>.</p>
+      <p>She ran. She stopped. <span class="h">She<span class="tip above"><b>Same sentence start</b>3 sentences in a row start with “She”</span></span> waited.</p>
+    </div>
+    <div class="edge"><span>window bottom</span></div>
+  </div>
+  <div class="spec">Flip rule: if the tip's bottom would pass the window bottom (8px margin), place it above the underline.
+Inside a wrapped paragraph, where there is no gap, the tip also goes above so it never covers the line being read next.</div>
+</section>
+
+<section class="state" id="c2-settings-default-pane">
+  <h2>C2 · Settings pane, default</h2>
+  <p class="cap"><b>Three sections with the drawer heading: Continue, AI, Hints.</b> AI fields sit in a label grid with the source under each label. Each hint rule is one row with its current value; the chevron opens its options. The series name sits beside "Hints".</p>
+  <div class="frame" style="height:830px" data-pane="default"></div>
+  <div class="spec">Source line under each AI label: "Default" or "Saved here". Nothing else, and no file name anywhere on screen.
+Key row: "Key set" + Use my own key (preset key) · "Key set" + Replace / Remove (own key) · "No key set" + Add key.
+Hint row: compact toggle · rule name · current value 12px graphite · chevron. Rules without options have no chevron.</div>
+</section>
+
+<section class="state" id="d2-settings-rule-options-pane">
+  <h2>D2 · Settings pane, options open</h2>
+  <p class="cap"><b>The API key is being replaced, and two rules are open.</b> Watch words shows its list. Passive voice shows its one option, relabelled from "Max adverbs inside" to "Adverbs in between", with its "?" tip open.</p>
+  <div class="frame" style="height:1040px" data-pane="open"></div>
+  <div class="spec">Primitives: compact toggle 28×16 · compact button 24px high, 12px/500 · "?" help button 18px · popover with an 8px pointer
+Relabel: rules.passive.maxAdverbs "Max adverbs inside" → "Adverbs in between"
+Replacing a key: the field takes focus and Cancel replaces the Replace / Remove buttons; the section Save stores it.</div>
+</section>
+
+<script>
+const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const tg = on => `<i class="tg ${on ? "on" : ""}"></i>`;
+const field = (l, src, v, o = {}) => `<div class="l">${l}<small>${src}</small></div><div class="inp ${o.ph ? "ph0" : ""}"><span>${v}</span>${o.sel === false ? "" : ic("down")}</div>`;
+const rule = (on, name, val, o = {}) => `<div class="row ${on ? "" : "offr"} ${o.open ? "open" : ""}">${tg(on)}<span class="nm">${name}</span><span class="val">${val || ""}</span>${o.noOpts ? `<span class="ib" style="visibility:hidden"></span>` : `<span class="ib">${ic(o.open ? "down" : "right")}</span>`}</div>${o.body || ""}`;
+
+function pane(state) {
+  const open = state === "open";
+  const key = open
+    ? `<div class="l">API key<small>Saved here</small></div><div><div class="inp focus"><span>sk-••••••••••••••••••••|</span></div><div class="keybtns"><span class="cb">Cancel</span></div></div>`
+    : `<div class="l">API key</div><div class="key"><span class="pill">Key set</span><span class="cb">Use my own key</span></div>`;
+  const watch = `<div class="opts"><div class="ol">Words</div><div class="chips"><span>very${ic("x")}</span><span>suddenly${ic("x")}</span><span>just${ic("x")}</span><em>Add a word</em></div></div>`;
+  const passive = `<div class="opts"><div class="or"><span class="nm">Adverbs in between</span><span class="q on">?<span class="pop">How many adverbs may sit between “was” and the verb and still count as passive, as in “was quickly written”.</span></span><span class="num">1${ic("ud")}</span></div></div>`;
+  return `<div class="top">Saved<br>412 words · 2,268 characters · 9 lines</div>
+  <div class="sheet page"><p>“I won’t go back,” she said — and meant it. The ’90s were over.</p><p>She fell into the shape of a wall, cursing him, and all the saints that promised her salvation and didn’t.</p><p>The road out of Emberhold still smelled of the granary.</p></div>
+  <div class="rrail"><span>${ic("go")}</span><span>${ic("pen")}</span><span>${ic("say")}</span><span class="on">${ic("gear")}</span></div>
+  <div class="pane">
+    <div class="ph"><h3>Settings</h3><span class="ib">${ic("x")}</span></div>
+    <div class="sh" style="margin-top:6px"><b>Continue</b><i></i></div>
+    <div class="row"><span class="nm">Show Continue window</span>${tg(true)}</div>
+    <div class="row"><span class="nm">Tint AI text</span>${tg(false)}</div>
+    <div class="sh"><b>AI</b><i></i></div>
+    <div class="lg">
+      ${open ? field("Base URL", "Saved here", "https://api.example.com/v1", { sel: false }) : field("Base URL", "Default", "Default endpoint", { sel: false, ph: true })}
+      ${field("Continue model", open ? "Saved here" : "Default", "DeepSeek V4.1 Flash")}
+      ${field("Edit model", "Default", "Default (DeepSeek V4.1 Flash)")}
+      ${field("Dialogue model", "Default", "Default (DeepSeek V4.1 Flash)")}
+      ${field("Lore completion model", "Default", "Default (DeepSeek V4.1 Flash)")}
+      ${field("Image model", "Default", "None", { ph: true })}
+      ${key}
+    </div>
+    <div class="foot"><span class="cb ${open ? "primary" : "off"}">Save</span></div>
+    <div class="sh"><b>Hints</b><small>The Ember Saga</small><i></i></div>
+    <div class="row"><span class="nm">Language</span><span class="cb">English${ic("down")}</span></div>
+    ${rule(true, "Adverbs", "1 per sentence")}
+    ${rule(true, "Watch words", "3 words", open ? { open: true, body: watch } : {})}
+    ${rule(true, "Repeated words", "20 words")}
+    ${rule(true, "Same sentence start", "3 in a row")}
+    ${rule(true, "Redundant phrases", "", { noOpts: true })}
+    ${rule(false, "Dialogue punctuation", "Off", { noOpts: true })}
+    ${rule(true, "Said-bookisms", "", { noOpts: true })}
+    ${rule(true, "Passive voice", "1 adverb", open ? { open: true, body: passive } : {})}
+  </div>`;
+}
+document.querySelectorAll("[data-pane]").forEach(f => { f.innerHTML = pane(f.dataset.pane); });
+</script>
+</body>
+</html>

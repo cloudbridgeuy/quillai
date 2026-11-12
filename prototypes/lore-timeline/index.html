@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — Lore states and timeline redesign (static mockup, GUZ-1583..1592)</title>
+<style>
+/* Tokens copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;--st-blue:#7C9BB0;--placeholder:#6b6f73;
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --panel-shadow:0 0 40px rgba(31,41,51,.12);--popover-shadow:0 8px 30px rgba(31,41,51,.12);--lore-shadow:0 10px 30px rgba(31,41,51,.14);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,monospace;
+  /* NEW tokens proposed here */
+  --hover-tint:rgba(31,41,51,.06); /* neutral hover, replaces the red-reading pink */
+  --here-tint:#EEF4F8;             /* the open chapter's point: column and block background */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1100px;margin:0 0 40px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+.frame{position:relative;background:var(--desk);height:660px;overflow:hidden;border-radius:2px}
+.lrail{position:absolute;left:0;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
+.lrail span{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite)}
+.lrail span.on{background:var(--pi-green);color:var(--ink)}
+.top{position:absolute;left:0;right:0;top:10px;text-align:center;color:var(--graphite);font-size:11px;line-height:1.3}
+.sheet{position:absolute;left:50%;margin-left:-300px;top:48px;bottom:-20px;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);border-radius:2px;padding:40px 56px;font:21px/1.75 var(--serif)}
+.sheet p{margin:0 0 .6em}
+.scrim{position:absolute;inset:0;background:rgba(31,41,51,.2)}
+.drawer{position:absolute;left:56px;top:0;bottom:0;width:300px;background:var(--paper);box-shadow:var(--panel-shadow);padding:6px 12px 12px;display:flex;flex-direction:column;z-index:2}
+.drawer .grow{flex:1;min-height:0}
+
+.sh{display:flex;align-items:center;gap:8px;height:24px;margin:12px 0 4px}
+.sh b{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);white-space:nowrap}
+.sh i{flex:1;height:1px;background:var(--rule)}
+.sh small{font-size:11px;color:var(--graphite);white-space:nowrap}
+.ib{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--graphite);position:relative}
+.ib.hov{background:var(--hover-tint);color:var(--ink)}
+.ib.off{opacity:.3}
+.tipb{position:absolute;z-index:6;top:-24px;right:0;background:var(--ink);color:var(--paper);font-size:11px;line-height:1.3;padding:3px 7px;border-radius:4px;white-space:nowrap}
+.tr{position:relative;display:flex;align-items:center;gap:2px;height:28px;padding-right:2px;border-radius:4px;font-size:13px;line-height:1.5}
+.tr .tw{flex:none;width:16px;height:16px;color:var(--graphite)}
+.tr .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:2px}
+.tr .tk{flex:none;font-size:11px;line-height:1.3;color:var(--graphite);white-space:nowrap;padding:0 6px 0 8px}
+.tr.sel{background:var(--pi-blue)}
+.d1{padding-left:14px}.d2{padding-left:28px}.d3{padding-left:42px}
+
+/* "This chapter happens at" block */
+.at{background:var(--here-tint);border-radius:4px;padding:8px 10px 9px;margin:2px 0 6px}
+.at label{display:block;font-size:11px;line-height:1.3;color:var(--slate);margin-bottom:4px}
+.at p{margin:5px 0 0;font-size:11px;line-height:1.3;color:var(--graphite)}
+.sel1{display:flex;align-items:center;justify-content:space-between;gap:8px;height:28px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:0 6px 0 9px;font-size:13px}
+.sel1 svg{color:var(--graphite)}
+
+/* lore row with its state line */
+.lr{padding:4px 8px 5px 18px;border-radius:4px}
+.lr .l1{display:flex;align-items:baseline;gap:8px;font-size:13px;line-height:1.5}
+.lr .l1 span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lr .l1 small{font-size:11px;color:var(--graphite)}
+.lr .l2{display:flex;align-items:center;gap:6px;font-size:11px;line-height:1.3;color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr .l2 b{font-weight:600;color:var(--ink)}
+.pip{flex:none;width:8px;height:8px;border-radius:2px;background:var(--st-blue)}
+.pip.base{background:transparent;border:1px dashed var(--pencil)}
+
+/* modal */
+.modal{position:absolute;z-index:3;left:50%;top:26px;background:var(--paper);border-radius:4px;box-shadow:var(--lore-shadow);padding:16px 22px 20px}
+.mh{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.mh h3{font:600 16px/1.5 var(--sans);margin:0}
+.mh small{color:var(--graphite);font-size:12px}
+.mh .sp{flex:1}
+.q{flex:none;width:18px;height:18px;border-radius:999px;border:1px solid var(--pencil);display:inline-grid;place-items:center;font:600 11px/1 var(--sans);color:var(--graphite);position:relative;vertical-align:middle}
+.q.on{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.pop{position:absolute;z-index:8;width:270px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--popover-shadow);padding:8px 10px;font:400 12px/1.4 var(--sans);color:var(--ink);text-align:left;letter-spacing:0;text-transform:none}
+.pop::after{content:"";position:absolute;width:9px;height:9px;background:var(--paper);border:1px solid var(--rule);border-top:0;border-left:0;transform:rotate(45deg)}
+.pop.up{bottom:26px;left:-12px}.pop.up::after{bottom:-6px;left:16px}
+.cb{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:7px;font:600 12px/1 var(--sans);border:1px solid var(--rule);background:var(--paper);color:var(--ink);white-space:nowrap}
+.btn.primary{background:var(--slate);border-color:var(--slate);color:var(--paper)}
+.btn.quiet{border-color:transparent;color:var(--graphite)}
+.tag{display:inline-block;font:500 10px/1.3 var(--sans);padding:1px 6px;border-radius:999px;background:var(--pi-blue);color:var(--ink);white-space:nowrap;vertical-align:1px}
+.tag.no{background:var(--desk);color:var(--graphite)}
+.tag.here{background:var(--slate);color:var(--paper)}
+
+/* b: timeline grid */
+.tl{display:grid;grid-template-columns:150px 92px repeat(4,1fr);column-gap:6px;row-gap:6px;position:relative}
+.tl>*{position:relative;min-width:0}
+.colhl{background:var(--here-tint);border-radius:4px;margin:-6px -3px}
+.ph{padding:2px 4px 6px;border-bottom:2px solid var(--st-blue)}
+.ph.nop{border-bottom:2px dashed var(--pencil)}
+.ph .n{display:flex;align-items:center;height:24px;font:600 10px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--graphite)}
+.ph .n span{flex:1}
+.ph .nm{font:600 13px/1.4 var(--sans);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl{font-size:13px;line-height:1.3;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl small{display:block;font-size:11px;color:var(--graphite)}
+.rl.meta{font-size:11px;color:var(--graphite);align-self:start;padding-top:4px}
+.chs{display:flex;flex-direction:column;gap:3px;padding:2px 2px 8px}
+.ch{font-size:11px;line-height:1.3;padding:2px 6px;border-radius:4px;background:var(--desk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch.open{background:var(--slate);color:var(--paper)}
+.bar{height:28px;border-radius:4px;display:flex;align-items:center;padding:0 9px;font-size:12px;line-height:1.3;overflow:visible;white-space:nowrap;background:var(--pi-blue);box-shadow:inset 3px 0 0 var(--st-blue)}
+.bar span{overflow:hidden;text-overflow:ellipsis}
+.bar.base{background:transparent;border:1px dashed var(--pencil);box-shadow:none;color:var(--graphite)}
+.bar.hov{box-shadow:inset 3px 0 0 var(--slate),0 0 0 2px rgba(78,98,114,.35)}
+.bar .tipb{top:4px;right:8px}
+.legend{display:flex;align-items:center;gap:18px;margin-top:14px;padding-top:10px;border-top:1px solid var(--rule);color:var(--graphite);font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.legend i{display:inline-block;width:22px;height:10px;border-radius:2px;background:var(--pi-blue);box-shadow:inset 3px 0 0 var(--st-blue)}
+.legend i.base{background:transparent;border:1px dashed var(--pencil);box-shadow:none}
+
+/* c: edit lore */
+.two{display:grid;grid-template-columns:1fr 392px;gap:24px}
+.two>div{min-width:0}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.f{min-width:0}.f.w{grid-column:1/-1}
+.f label{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.4;color:var(--graphite);margin:0 0 3px}
+.inp{display:flex;align-items:center;justify-content:space-between;min-height:30px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:4px 9px;font-size:13px;line-height:1.5}
+.inp svg{color:var(--graphite)}
+.ta{display:block;border:1px solid var(--rule);border-radius:4px;background:var(--paper);padding:6px 9px;font-size:13px;line-height:1.5}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px}
+.chk i{width:14px;height:14px;border:1px solid var(--pencil);border-radius:3px;display:grid;place-items:center;font-style:normal;font-size:10px;color:var(--paper);background:var(--slate);border-color:var(--slate)}
+.acts{display:flex;align-items:center;gap:8px;margin-top:14px}
+.acts .sp{flex:1}
+.vt{position:relative;margin:0;padding:0;list-style:none}
+.vt::before{content:"";position:absolute;left:8px;top:10px;bottom:16px;width:2px;background:var(--rule)}
+.vt li{position:relative;padding:0 0 10px 28px}
+.vt li::before{content:"";position:absolute;left:3px;top:5px;width:12px;height:12px;border-radius:999px;background:var(--paper);border:2px solid var(--st-blue)}
+.vt li.nop::before{border:2px dashed var(--pencil)}
+.vt li.has::before{background:var(--st-blue)}
+.vt li.here::before{border-color:var(--slate);background:var(--slate);box-shadow:0 0 0 3px var(--here-tint)}
+.vt .pt{display:flex;align-items:center;gap:8px;font:600 12px/1.8 var(--sans)}
+.vt .pt em{font-style:normal;font-weight:400;color:var(--graphite)}
+.vt .add{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px 0 4px;border:1px dashed var(--pencil);border-radius:7px;font-size:12px;color:var(--slate);margin-top:2px}
+.vt .still{font-size:11px;color:var(--graphite);margin:0 0 2px}
+.sc{border:1px solid var(--rule);border-radius:4px;padding:8px 10px 10px;margin-top:2px;background:var(--paper)}
+.sc.here{background:var(--here-tint);border-color:transparent}
+.sc.sum{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 10px}
+.sc.sum b{font-weight:600}.sc.sum>span:not(.ib){flex:1;min-width:0;color:var(--graphite);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc .f{margin-bottom:7px}
+
+/* d: empty */
+.empty{text-align:center;padding:14px 0 4px}
+.empty h4{font:600 16px/1.5 var(--sans);margin:0 0 2px}
+.empty>p{color:var(--graphite);margin:0 auto 18px;max-width:520px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left}
+.step{border:1px solid var(--rule);border-radius:4px;padding:14px 14px 16px;min-width:0}
+.step .k{font:600 10px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--graphite)}
+.step h5{font:600 13px/1.5 var(--sans);margin:2px 0 4px}
+.step p{margin:0;color:var(--graphite);font-size:12px;line-height:1.5}
+.ill{height:74px;position:relative;margin:0 0 12px;background:var(--desk);border-radius:4px;overflow:hidden}
+.ill .ln{position:absolute;left:16px;right:16px;top:28px;height:2px;background:var(--st-blue)}
+.ill .dt{position:absolute;top:22px;width:14px;height:14px;border-radius:999px;background:var(--paper);border:2px solid var(--st-blue)}
+.ill .dt.on{background:var(--slate);border-color:var(--slate)}
+.ill .tx{position:absolute;top:44px;font-size:10px;line-height:1.3;color:var(--graphite);white-space:nowrap;transform:translateX(-50%)}
+.ill .bar{position:absolute;height:20px;font-size:11px;top:42px}
+.ill .ch{position:absolute;top:44px}
+.first{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:20px}
+.first .inp{width:260px;color:var(--placeholder)}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="plus" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></symbol>
+  <symbol id="pen" viewBox="0 0 16 16"><path d="M3 13l.7-2.9L10.6 3.2l2.2 2.2-6.9 6.9L3 13zM9.3 4.5l2.2 2.2"/></symbol>
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+  <symbol id="left" viewBox="0 0 16 16"><path d="M10 4L6 8l4 4"/></symbol>
+  <symbol id="down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="home" viewBox="0 0 16 16"><path d="M2.5 8L8 3l5.5 5M4 7v6h8V7"/></symbol>
+  <symbol id="lines" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></symbol>
+</svg>
+
+<h1 class="intro">Lore states and timeline redesign</h1>
+<p class="lede intro">Static rebuild of the lost mockup for GUZ-1583..1592. Four views; add <code>?view=a</code>, <code>b</code>, <code>c</code> or <code>d</code> to show one. Side drawers overlay the desk and the sheet stays centred. A state overrides visible text and hidden notes only, never the "In AI requests" level.</p>
+
+<section class="state" id="a-drawer">
+  <h2>A · Drawer</h2>
+  <p class="cap"><b>"This chapter happens at" is a visible block at the top of Series lore.</b> Each lore row says which state applies to the open chapter and since which point. The heading counts entries with a state here. New lore is the + in the heading, with a neutral hover.</p>
+  <div class="frame" id="fa"></div>
+  <div class="spec">Lore row: line 1 name 13px + kind 11px · line 2 11px: filled pip + state name + "since &lt;point&gt;", or dashed pip + "Base text"
+Count "3 of 5 entries": entries whose text differs from base at the open chapter's point.
+Changing the select re-reads every row. "No point (base text)" stays the first option.</div>
+</section>
+
+<section class="state" id="b-timeline">
+  <h2>B · Timeline</h2>
+  <p class="cap"><b>The timeline teaches the idea by showing it.</b> Points run left to right in story order. Chapters sit under their point. Each lore entry has one bar per state, running until the next state. Click a bar to edit it. The arrows on a point move it left or right.</p>
+  <div class="frame" id="fb" style="height:480px"></div>
+  <div class="spec">Columns: entry · No point (base text) · one per point. The open chapter's column is tinted and tagged.
+Bar: starts at the state's point, ends where the next state starts. Dashed bar = base text. Click opens Edit lore on that state.
+Point header: ‹ › move the point one place (replaces Move up / Move down). Rename and delete show on hover beside them.</div>
+</section>
+
+<section class="state" id="c-edit-lore">
+  <h2>C · Edit lore</h2>
+  <p class="cap"><b>Two columns: the entry on the left, its states down a timeline on the right.</b> Fields are white with a border. Every point offers "+ Add state here"; the open chapter's point is marked. Tags show what is sent to the AI. Help text lives behind "?".</p>
+  <div class="frame" id="fc" style="height:720px"></div>
+  <div class="spec">Renames: "Save lore" → "Save" · Kind options capitalised (Character, Place, Term, Note) · select aligned with Name
+Hidden here on purpose: "Generate image" (no image model set) and "Estimated cost" (cost unknown). Both return when configured and known.
+A state has a name, visible text and hidden notes. It has no "In AI requests" level; the entry's level applies to every state.</div>
+</section>
+
+<section class="state" id="d-timeline-empty">
+  <h2>D · Timeline, first run</h2>
+  <p class="cap"><b>The empty timeline explains points, states and chapter placement</b> before asking for the first point. It replaces the bare "No timeline points yet."</p>
+  <div class="frame" id="fd" style="height:500px"></div>
+  <div class="spec">Shown while the series has no points. The three cards go away after the first point is added; the "?" in the header brings them back.</div>
+</section>
+
+<script>
+const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const ib = (n, cls = "", extra = "") => `<span class="ib ${cls}">${ic(n)}${extra}</span>`;
+const desk = dim => `<div class="lrail"><span>${ic("home")}</span><span class="on">${ic("lines")}</span></div>
+  <div class="top">Saved<br>412 words · 2,268 characters · 9 lines</div>
+  <div class="sheet"><p>“I won’t go back,” she said — and meant it. The ’90s were over.</p><p>She fell into the shape of a wall, cursing him, and all the saints that promised her salvation and didn’t.</p><p>The road out of Emberhold still smelled of the granary.</p></div>${dim ? `<div class="scrim"></div>` : ""}`;
+const trow = (d, tw, t, k, cls = "") => `<div class="tr d${d} ${cls}"><span class="tw">${tw ? ic(tw) : ""}</span><span class="tt">${t}</span><span class="tk">${k}</span></div>`;
+const lrow = (name, kind, state, since) => `<div class="lr"><div class="l1"><span>${name}</span><small>${kind}</small></div><div class="l2">`
+  + (state ? `<i class="pip"></i><b>${state}</b> · since ${since}` : `<i class="pip base"></i>Base text`) + `</div></div>`;
+
+/* A */
+document.getElementById("fa").innerHTML = desk(false) + `<div class="drawer">
+  <div class="sh"><b>Manuscript</b><i></i>${ib("plus")}</div>
+  ${trow(0, "down", "Audit Universe", "Universe")}
+  ${trow(1, "down", "The Ember Saga", "Book series")}
+  ${trow(2, "down", "Ashes of Dawn", "Book")}
+  ${trow(3, "", "The Burning Road", "Chapter", "sel")}
+  ${trow(3, "", "What the River Kept", "Chapter")}
+  <div class="sh"><b>Series lore</b><i></i><small>3 of 5 entries</small>${ib("plus", "hov", `<span class="tipb" style="top:28px">New lore</span>`)}</div>
+  <div class="at"><label>This chapter happens at</label>
+    <div class="sel1"><span>After the fire</span>${ic("down")}</div>
+    <p>Point 2 of 4. Lore below shows how it stands then.</p></div>
+  ${lrow("Mara Voss", "Character", "Scarred", "After the fire")}
+  ${lrow("Captain Hale", "Character", "Sworn to the garrison", "Before the fire")}
+  ${lrow("Emberhold", "Place", "Burned ruins", "After the fire")}
+  ${lrow("Old Tam", "Character")}
+  ${lrow("The Ember Cult", "Term")}
+  ${trow(0, "", "Timeline", "4 points")}
+  <div class="grow"></div>
+  <div class="sh"><b>Exports</b><i></i>${ib("right")}</div>
+</div>`;
+
+/* B */
+const points = ["Before the fire", "After the fire", "The siege", "Aftermath"];
+const chapters = [["Prologue"], ["Embers"], ["The Burning Road*", "The Night the Granary Burned"], ["What the River Kept"], []];
+const entries = [
+  ["Mara Voss", "Character", [[0, 1, null], [2, 3, "Scarred", true], [4, 4, "Exiled"]]],
+  ["Captain Hale", "Character", [[0, 0, null], [1, 2, "Sworn to the garrison"], [3, 4, "Deserter"]]],
+  ["Emberhold", "Place", [[0, 1, null], [2, 4, "Burned ruins"]]],
+  ["Old Tam", "Character", [[0, 2, null], [3, 4, "Missing"]]],
+  ["The Ember Cult", "Term", [[0, 4, null]]],
+];
+let g = `<div class="colhl" style="grid-column:4;grid-row:1/${entries.length + 3}"></div>`;
+g += `<div class="rl meta" style="grid-column:1;grid-row:1"></div><div class="ph nop" style="grid-column:2;grid-row:1"><div class="n"><span>No point</span></div><div class="nm">Base text</div></div>`;
+points.forEach((p, i) => {
+  g += `<div class="ph" style="grid-column:${i + 3};grid-row:1"><div class="n"><span>Point ${i + 1}</span>${ib("left", i === 0 ? "off" : i === 2 ? "hov" : "", i === 2 ? `<span class="tipb" style="letter-spacing:0;text-transform:none">Move The siege left</span>` : "")}${ib("right", i === 3 ? "off" : "")}</div><div class="nm">${p}${i === 1 ? ` <b class="tag here">Open chapter</b>` : ""}</div></div>`;
+});
+g += `<div class="rl meta" style="grid-column:1;grid-row:2">Chapters</div>`;
+chapters.forEach((cs, i) => {
+  g += `<div class="chs" style="grid-column:${i + 2};grid-row:2">` + cs.map(c => c.endsWith("*") ? `<div class="ch open">${c.slice(0, -1)}</div>` : `<div class="ch">${c}</div>`).join("") + `</div>`;
+});
+entries.forEach(([name, kind, bars], r) => {
+  g += `<div class="rl" style="grid-column:1;grid-row:${r + 3}">${name}<small>${kind}</small></div>`;
+  bars.forEach(([s, e, label, hov]) => {
+    g += `<div class="bar ${label ? "" : "base"} ${hov ? "hov" : ""}" style="grid-column:${s + 2}/${e + 3};grid-row:${r + 3}"><span>${label || "Base text"}</span>${hov ? `<span class="tipb">Click to edit “Scarred”</span>` : ""}</div>`;
+  });
+});
+document.getElementById("fb").innerHTML = desk(true) + `<div class="modal" style="width:1000px;margin-left:-500px">
+  <div class="mh"><h3>Timeline</h3><small>The Ember Saga</small><span class="q">?</span><span class="sp"></span><span class="cb">${ic("plus")}Add point</span>${ib("x")}</div>
+  <div class="tl">${g}</div>
+  <div class="legend"><span><i></i>A state: replaces the entry’s text from its point until the next state</span><span><i class="base"></i>Base text: what the entry says before any state</span></div>
+</div>`;
+
+/* C */
+const fld = (label, body, cls = "", extra = "") => `<div class="f ${cls}"><label>${label}${extra}</label>${body}</div>`;
+const q = (pop = "") => `<span class="q ${pop ? "on" : ""}">?${pop}</span>`;
+const sent = `<span class="tag">Sent to AI</span>`, never = `<span class="tag no">Never sent to AI</span>`;
+document.getElementById("fc").innerHTML = desk(true) + `<div class="modal" style="width:980px;margin-left:-490px;top:44px">
+  <div class="mh"><h3>Edit lore</h3><small>Mara Voss · Character</small><span class="sp"></span>${ib("x")}</div>
+  <div class="two"><div>
+    <div class="fg">
+      ${fld("Name", `<div class="inp">Mara Voss</div>`)}
+      ${fld("Kind", `<div class="inp">Character${ic("down")}</div>`)}
+      ${fld("Aliases", `<div class="ta" style="height:52px">Mara<br>the smith’s daughter</div>`, "", q())}
+      ${fld("Keywords", `<div class="ta" style="height:52px">forge<br>granary</div>`, "", q())}
+      ${fld("Visible text", `<div class="ta" style="height:96px">Mara Voss, 24, daughter of the Emberhold smith. Quick with her hands, slow to trust. Wants out of the town but will not leave her brother behind.</div>`, "w", sent)}
+      ${fld("Hidden notes", `<div class="ta" style="height:74px">She set the granary fire herself. Nobody knows until book two.</div>`, "w", never)}
+      ${fld("In AI requests", `<div class="inp">Include${ic("down")}</div>`)}
+      ${fld("&nbsp;", `<div class="inp" style="border-color:transparent;padding-left:0"><span class="chk"><i>✓</i>Pin in AI context ${q()}</span></div>`)}
+    </div>
+    <div class="acts"><span class="btn primary">Save</span><span class="btn">Cancel</span><span class="sp"></span><span class="btn quiet">Delete lore</span></div>
+  </div><div>
+    <div class="sh" style="margin-top:0"><b>States</b>${q(`<span class="pop up">A state replaces the visible text and hidden notes from its point onward, until the next state. Name, kind and “In AI requests” stay the same for every state.</span>`)}<i></i></div>
+    <ul class="vt">
+      <li class="nop"><div class="pt">No point <em>· base text, the fields on the left</em></div></li>
+      <li><div class="pt">1 · Before the fire</div><span class="add">${ic("plus")}Add state here</span></li>
+      <li class="has here"><div class="pt">2 · After the fire <span class="tag here">Open chapter</span></div>
+        <div class="sc here">
+          ${fld("State name", `<div class="inp">Scarred</div>`)}
+          ${fld("Visible text", `<div class="ta" style="height:72px">Burn scars along her left arm and jaw. Works the ruined forge alone. Flinches at open flame and hides it badly.</div>`, "", sent)}
+          ${fld("Hidden notes", `<div class="ta" style="height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Hale saw her that night and has said nothing.</div>`, "", never)}
+          <div class="acts" style="margin-top:8px"><span class="cb">Save state</span><span class="sp"></span><span class="cb" style="border-color:transparent;color:var(--graphite)">Delete state</span></div>
+        </div></li>
+      <li><div class="pt">3 · The siege</div><p class="still">“Scarred” still applies here.</p><span class="add">${ic("plus")}Add state here</span></li>
+      <li class="has"><div class="pt">4 · Aftermath</div><div class="sc sum"><b>Exiled</b><span>Banished from Emberhold, travelling north with…</span>${ib("pen")}</div></li>
+    </ul>
+  </div></div>
+</div>`;
+
+/* D */
+document.getElementById("fd").innerHTML = desk(true) + `<div class="modal" style="width:900px;margin-left:-450px;top:40px">
+  <div class="mh"><h3>Timeline</h3><small>The Ember Saga</small><span class="sp"></span>${ib("x")}</div>
+  <div class="empty">
+    <h4>Lore that changes as the story moves</h4>
+    <p>People and places change. The timeline lets a lore entry say different things at different moments, so the AI gets the version that fits the chapter.</p>
+    <div class="steps">
+      <div class="step"><div class="ill"><i class="ln"></i><i class="dt" style="left:44px"></i><i class="dt" style="left:122px"></i><i class="dt" style="left:200px"></i>
+        <span class="tx" style="left:51px">Before the fire</span><span class="tx" style="left:129px">After the fire</span><span class="tx" style="left:207px">The siege</span></div>
+        <div class="k">1 · Points</div><h5>Name the moments that matter</h5><p>A point is a moment in the story, such as “Before the fire”. Points stay in story order and you can move them.</p></div>
+      <div class="step"><div class="ill"><i class="ln"></i><i class="dt" style="left:44px"></i><i class="dt on" style="left:122px"></i><i class="dt" style="left:200px"></i>
+        <div class="bar" style="left:129px;right:16px"><span>Mara · Scarred</span></div></div>
+        <div class="k">2 · States</div><h5>Give an entry a state at a point</h5><p>A state replaces the entry’s visible text and hidden notes from that point on, until its next state.</p></div>
+      <div class="step"><div class="ill"><i class="ln"></i><i class="dt" style="left:44px"></i><i class="dt on" style="left:122px"></i><i class="dt" style="left:200px"></i>
+        <div class="ch open" style="left:84px">The Burning Road</div></div>
+        <div class="k">3 · Chapters</div><h5>Say when each chapter happens</h5><p>Pick a point under “This chapter happens at”. The AI then gets every entry as it stands at that moment.</p></div>
+    </div>
+    <div class="first"><div class="inp">Point name, e.g. Before the fire</div><span class="btn primary">Add point</span></div>
+  </div>
+</div>`;
+
+const view = new URLSearchParams(location.search).get("view");
+if (view) {
+  document.querySelectorAll(".intro").forEach(e => { e.style.display = "none"; });
+  document.querySelectorAll("section.state").forEach(s => { if (!s.id.startsWith(view + "-")) s.remove(); });
+}
+</script>
+</body>
+</html>
