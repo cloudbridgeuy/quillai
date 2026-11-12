@@ -14,11 +14,19 @@ export function continueClickAction(state: AiRunState): "stop" | "generate" {
     : "generate";
 }
 
+export type SaveState = "saving" | "saved" | "unsaved" | "failed";
+
 export function getSavePresentation(status: string, title: string | null, blocked: boolean, syncFailed?: boolean) {
   const prefix = `${title} · `;
   const label = title !== null && status.startsWith(prefix) ? status.slice(prefix.length) : status;
   const failed = blocked || (syncFailed ?? /stopped|failed|unavailable|interrupted|retained|export/i.test(label));
   return failed ? { label: formatMessage(defaultLocale, "editor.notSaved"), failed, detail: label } : { label, failed };
+}
+
+export function getSaveState(presentation: ReturnType<typeof getSavePresentation>): SaveState {
+  if (presentation.failed) return "failed";
+  if (presentation.label === formatMessage(defaultLocale, "sync.saved")) return "saved";
+  return presentation.label === formatMessage(defaultLocale, "sync.unsavedChanges") ? "unsaved" : "saving";
 }
 
 export function saveStatusDetail(presentation: ReturnType<typeof getSavePresentation>): string | undefined {

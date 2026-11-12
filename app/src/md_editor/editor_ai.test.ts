@@ -11,6 +11,7 @@ import {
   resolveEditSelection,
   getSavePresentation,
   saveStatusDetail,
+  getSaveState,
   shouldClearFailedRunState,
   shouldPreservePendingEditSelection,
   shouldRestoreCancelledEditSelection,
@@ -152,4 +153,13 @@ test("saveStatusDetail keeps the composed explanation for a generic failure", ()
   expect(detail).toContain("Save stopped:");
   expect(detail).toContain("Local work retained; polling will retry.");
   expect(saveStatusDetail(getSavePresentation("Saved", null, false, false))).toBeUndefined();
+});
+
+test("getSavePresentation maps the status to a save state", () => {
+  expect(getSaveState(getSavePresentation("Chapter 1 · Saved", "Chapter 1", false, false))).toBe("saved");
+  expect(getSaveState(getSavePresentation("Chapter 1 · Unsaved changes", "Chapter 1", false, false))).toBe("unsaved");
+  expect(getSaveState(getSavePresentation("Saving before leaving…", "Chapter 1", false, false))).toBe("saving");
+  expect(getSaveState(getSavePresentation("Loading chapter…", null, false, false))).toBe("saving");
+  expect(getSaveState(getSavePresentation("Save stopped: boom", null, false, true))).toBe("failed");
+  expect(getSaveState(getSavePresentation("Saved", null, true, false))).toBe("failed");
 });

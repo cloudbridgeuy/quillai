@@ -141,3 +141,5 @@ Rows of `docs/sync-push.md` "Existing E2E impact":
 - Stay (keep POST failure, API seed or remote-save fixtures; no poll dependency): the `Keep` rows, including `chapter-sync`, `save-recovery`, `alerts-toggles`, `author-guidance`, `chapter-emoji-sync`, `emoji-cursor-remote`, `real-route-stream`, `stream-remote-edit`, `continue-tie-order`, `screenplay-scroll`, `screenplay-format`, and the API-seed-only specs. The `reload-in-flight` stream-cleanup addition was not checked.
 - Stage 2 (still an `Edit` row): `continue-unsaved.spec.ts` (`:36,:45` real `deltas?since=` route, no fake), `screenplay-ai.spec.ts` (`:58` counts real `/scenes/deltas` requests during AI), `screenplay-cross-scene.spec.ts` (`polls()` at `:98`; named in nightly ticket GUZ-1514, wait until after it).
 - `screenplay-ai.spec.ts:49` is a known failure (GUZ-1212, `e2e/known-failures.txt`); no edits here.
+
+- `save-state-quiet.spec.ts` (GUZ-1567): the editor root exposes `data-save-state` (saving, saved, unsaved, failed); no visible "Saved" or "Unsaved changes" label while saves succeed, and the "Not saved" pill shows on a failed save. Specs wait with `expectSaved(page)` from `e2e/save-state.ts`.

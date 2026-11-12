@@ -32,6 +32,7 @@ import {
   resolveContinueSelection,
   resolveEditSelection,
   saveStatusDetail,
+  getSaveState,
   shouldClearFailedRunState,
   shouldPreservePendingEditSelection,
   shouldRestoreCancelledEditSelection,
@@ -1358,6 +1359,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
     ? getEditFailurePresentation(aiRunState.error)
     : null;
   const savePresentation = getSavePresentation(createBusy ? formatMessage(defaultLocale, "sync.loadingChapter") : creating ? createStatusRef.current ?? chapterSync.status : chapterSync.status, chapterSync.title, chapterSync.blocked, createBusy ? false : chapterSync.failed);
+  const saveState = getSaveState(savePresentation);
   const withThread = activeContinueWithThread ?? shouldContinueWithThread(
     threadState, normalizedInstructionText(), sectionOverrides.generate.history,
   );
@@ -1431,7 +1433,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const continueTitle = waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue");
 
   return (
-    <div className="editor-shell">
+    <div className="editor-shell" data-save-state={saveState}>
       {chapterSync.ready && hintQuill ? <><HintOverlay quill={hintQuill} hints={hints} /><HintTip quill={hintQuill} hints={hints} /></> : null}
       {desktop && showContinueWindow && (chapterSync.ready || pending) && markerQuill ? <ContinueWindow
         quill={markerQuill} start={markerWindow.start} end={markerWindow.end}
@@ -1619,9 +1621,9 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           title={saveStatusDetail(savePresentation)} aria-describedby="chapter-save-detail">
           <span>{savePresentation.label}</span>
           <span id="chapter-save-detail" className="sr-only">{saveStatusDetail(savePresentation)}</span>
-        </Alert> : <p className="editor-save-status"
-          role="status" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="polite" title={saveStatusDetail(savePresentation)}>
-          <span>{savePresentation.label}</span>
+        </Alert> : <p className={saveState === "saving" ? "editor-save-status" : "sr-only"}
+          role="status" aria-label={formatMessage(defaultLocale, "editor.chapterSaveStatus")} aria-live="polite">
+          {saveState === "unsaved" ? null : <span>{savePresentation.label}</span>}
         </p>}
         <TextCounts quillRef={quillRef} />
         </div>
