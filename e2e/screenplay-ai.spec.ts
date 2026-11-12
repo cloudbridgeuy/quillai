@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 type Op = { insert?: unknown; attributes?: Record<string, unknown> };
 type SpecWindow = { specQuill: Quill };
@@ -82,7 +83,6 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
   await post(`${api}/pieces/${two.id}/deltas`, { baseRev: 0, delta: { ops: [{ insert: "Rain falls.\n" }] } }, 200);
 
   const editor = page.locator(".ql-editor");
-  const saveStatus = page.getByRole("status", { name: "Chapter save status", exact: true });
   const stop = page.getByRole("button", { name: "Stop AI", exact: true });
   const instruction = page.getByRole("textbox", { name: "Continue instruction", exact: true });
   const inspector = page.getByRole("button", { name: "Context inspector", exact: true });
@@ -92,7 +92,7 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
   };
   const expectScenes = async (oneText: string, twoText: string) => {
     await expect.poll(() => sceneTexts(page)).toEqual([oneText, twoText]);
-    await expect(saveStatus).toHaveText("Saved");
+    await expectSaved(page);
     await expect.poll(() => serverText(one.id)).toBe(oneText);
     await expect.poll(() => serverText(two.id)).toBe(twoText);
   };
@@ -213,7 +213,7 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await select(page, await sceneOneEnd());
     const id = await arm(identity, "e2e-continue");
     const postsBefore = posts.length;
-    await expect(saveStatus).toHaveText("Saved");
+    await expectSaved(page);
     aiRunning = true;
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
     const run = await upstream(id, identity, "e2e-continue");

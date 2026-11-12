@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function edit(page: Page, request: APIRequestContext, width: number, tint: boolean) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -17,7 +18,7 @@ async function edit(page: Page, request: APIRequestContext, width: number, tint:
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   await expect(editor.locator("p")).toHaveText(["Opening line", "Later paragraph"]);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   if (!tint) {
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();

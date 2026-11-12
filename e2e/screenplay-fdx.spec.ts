@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 type SpecWindow = { specQuill: Quill };
 
@@ -67,7 +68,7 @@ test("a two-scene script downloads as a Final Draft FDX in scene order", async (
     await expect(blockType).toHaveValue(type);
     lineStart += text.length + 1;
   }
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
 
   const downloading = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download FDX", exact: true }).click();

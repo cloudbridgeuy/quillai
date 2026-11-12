@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
+import { expectSaved } from "./save-state";
 
 const rails = [
   { name: "Library", title: "Back to library", glyph: "⌂" },
@@ -25,7 +26,7 @@ async function setup(page: Page, request: APIRequestContext) {
     title: "Rail chapter", position: 0, kind: "chapter", content: { ops: [{ insert: `Opening line. ${identity}\n` }] },
   });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   return { identity, provider };
 }
 

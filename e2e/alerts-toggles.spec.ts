@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved, expectUnsaved } from "./save-state";
 
 for (const width of [1100, 1440]) {
   for (const scenario of ["chapter save", "lore load", "lore save", "manuscript load"] as const) {
@@ -34,8 +35,7 @@ for (const width of [1100, 1440]) {
         ? page.getByRole("alert", { name: "Chapter save status", exact: true })
         : page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." });
       if (scenario === "chapter save") {
-        const status = page.getByRole("status", { name: "Chapter save status", exact: true });
-        await expect(status).toHaveText("Saved");
+        await expectSaved(page);
         await page.getByRole("button", { name: "Settings", exact: true }).click();
         for (const name of ["Whole document", "Show Continue window", "Tint AI text"]) {
           const toggle = page.getByRole("checkbox", { name, exact: true });
@@ -57,7 +57,7 @@ for (const width of [1100, 1440]) {
         await editor.click();
         await page.keyboard.type(" edited");
         await pending;
-        await expect(status).toHaveText("Unsaved changes");
+        await expectUnsaved(page);
         release();
         await expect(alert.locator("span").first()).toHaveText("Not saved");
         await expect(alert.locator("span").first()).toBeVisible();

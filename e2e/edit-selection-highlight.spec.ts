@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function openChapter(page: Page, request: APIRequestContext, width: number) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -19,7 +20,7 @@ async function openChapter(page: Page, request: APIRequestContext, width: number
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   await expect(editor.locator("p")).toHaveText(["Opening line", "Later paragraph"]);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   return { editor, providerUrl, chapterUrl: `${chaptersUrl}/${chapter.id}` };
 }
 
@@ -82,7 +83,7 @@ for (const width of [1100, 1440]) {
     expect((await request.post(`${controlUrl}/finish`)).status()).toBe(200);
     expect((await generation).status()).toBe(200);
     await expect(editor.locator("p")).toHaveText(["Revised line", "Later paragraph"]);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     expect((await (await request.get(chapterUrl)).json()).content).toEqual({ ops: [{ insert: "Revised line\nLater paragraph\n" }] });
     await expect.poll(() => selectionHighlights(page)).toEqual([]);
   });

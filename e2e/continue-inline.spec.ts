@@ -1,6 +1,7 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 function snapshot(element: Element, index?: number) {
   const host = element.closest(".editor-host")!;
@@ -67,7 +68,7 @@ for (const scenario of [
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
     await expectEditorReady(editor);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     expect(await editor.evaluate(snapshot, scenario.caret)).toBe(scenario.original);
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
@@ -101,7 +102,7 @@ for (const scenario of [
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   expect(await editor.evaluate(snapshot, scenario.caret)).toBe(original);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();

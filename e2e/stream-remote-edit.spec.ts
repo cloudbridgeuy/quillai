@@ -2,6 +2,7 @@ import { createServer, type ServerResponse } from "node:http";
 import { once } from "node:events";
 import { expect, test, type Locator } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function placeCaret(editor: Locator, paragraph: number, offset: number) {
   await expectEditorReady(editor);
@@ -50,7 +51,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       await tab.goto(`/?${query}`);
       await expectEditorReady(tab.locator(".ql-editor"));
       await expect(tab.locator(".ql-editor p")).toHaveText(["Opening paragraph", "Later paragraph"]);
-      await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(tab);
     }
 
     let openStream!: (response: ServerResponse) => void;
@@ -95,7 +96,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       await placeCaret(remoteEditor, 1, 6);
       await second.keyboard.type("REMOTE ");
       expect((await remoteSave).status()).toBe(200);
-      await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(second);
       await expect(stop).toBeVisible();
       expect(stream.writableEnded).toBe(false);
       const duringResponse = await request.get(chapterUrl);
@@ -117,7 +118,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       const expectedText = `${paragraphs.join("\n")}\n`;
       for (const tab of [page, second]) {
         await expect(tab.locator(".ql-editor p")).toHaveText(paragraphs);
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         expect(await tab.locator(".ql-editor").evaluate(element => Array.from(element.querySelectorAll("p"), paragraph => `${paragraph.textContent}\n`).join(""))).toBe(expectedText);
       }
       const savedResponse = await request.get(chapterUrl);

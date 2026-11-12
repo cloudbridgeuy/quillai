@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createServer } from "node:net";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 const seeded = "The harbour was quiet before the restart.";
 const typed = " It was still there after.";
@@ -189,7 +190,7 @@ test("chapter text survives an API restart on the default file database", async 
     });
     const editor = await openChapter(page, created.query);
     await expect(editor).toHaveText(seeded);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await editor.evaluate((element) => {
       (element as HTMLElement).focus();
       const text = element.querySelector("p")?.firstChild;
@@ -203,7 +204,7 @@ test("chapter text survives an API restart on the default file database", async 
     });
     await page.keyboard.type(typed);
     await expect(editor).toHaveText(chapterText);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     const saved = await request.get(created.chapterUrl);
     expect(saved.status()).toBe(200);
     expect(insertedText((await saved.json()).content)).toBe(`${chapterText}\n`);
@@ -233,7 +234,7 @@ test("chapter text survives an API restart on the default file database", async 
     query.set("apiBaseUrl", api.url);
     const restarted = await openChapter(page, query);
     await expect(restarted).toHaveText(chapterText);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     expect(failures).toEqual([]);
   } finally {
     try {

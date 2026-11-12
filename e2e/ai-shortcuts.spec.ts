@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function openChapter(page: Page, request: APIRequestContext, width: number, action = "Continue") {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -21,7 +22,7 @@ async function openChapter(page: Page, request: APIRequestContext, width: number
   const stop = page.getByRole("button", { name: "Stop AI", exact: true });
   await expectEditorReady(editor);
   await expect(editor.locator("p")).toHaveText([identity, "Opening line"]);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const before = (await (await request.get(`${provider}/control`)).json()).length as number;

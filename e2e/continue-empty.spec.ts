@@ -1,6 +1,7 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 function snapshot(element: Element, selection?: { index: number; length: number }) {
   const host = element.closest(".editor-host")!;
@@ -43,7 +44,7 @@ test("empty Continue reports length and stop without changing chapter, selection
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const run = async (kind: string) => {
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity: identities[kind], model: "e2e-continue" } })).status()).toBe(200);
@@ -57,7 +58,7 @@ test("empty Continue reports length and stop without changing chapter, selection
   expect((await request.post(`${seed}/fragment`, { data: { text: "Seed prose." } })).status()).toBe(200);
   expect((await request.post(`${seed}/finish`, { data: { reason: "length" } })).status()).toBe(200);
   await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const beforeChapterResponse = await request.get(chapterUrl);
   expect(beforeChapterResponse.status()).toBe(200);
   const beforeChapter = await beforeChapterResponse.json();

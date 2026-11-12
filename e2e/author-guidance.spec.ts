@@ -1,5 +1,6 @@
 import { expect, test, type Page, type APIRequestContext } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function continueControlTest({ page, request }: { page: Page; request: APIRequestContext }) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -42,9 +43,9 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   const chapter = await chapterResponse.json();
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await expectEditorReady(editor);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const continueButton = page.locator(".editor-continue");
   await expect(page.getByRole("button", { name: /^Continue/ })).toHaveCount(1);
   await expect(continueButton).toHaveAccessibleName("Continue writing");
@@ -67,7 +68,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expect(editor).toHaveText("A saved beginning.");
   await expect(continueButton).toHaveAccessibleName("Continue writing from a cut-off reply");
   await expect(continueButton.getByText("from a cut-off reply", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const context = page.locator("#context-drawer");
   await expect(context.getByRole("textbox", { name: "Story Context", exact: true })).toBeVisible();
@@ -161,7 +162,7 @@ test("sticky notes preserve selection on Escape and submit Edit on Enter", async
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   await expect(editor).toHaveText("Opening line");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   let submissions = 0;
   await page.route(`${apiUrl}/ai/generate`, async (route) => {
     submissions++;
@@ -272,10 +273,9 @@ test("Edit and Continue send only their own instructions", async ({ page, reques
   });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  const saved = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expectEditorReady(editor);
   await expect(editor).toHaveText("Opening line");
-  await expect(saved).toHaveText("Saved");
+  await expectSaved(page);
   const contextToggle = page.getByRole("button", { name: "Context inspector", exact: true });
   await contextToggle.click();
   const continueNote = page.getByRole("textbox", { name: "Continue instruction", exact: true });
@@ -298,7 +298,7 @@ test("Edit and Continue send only their own instructions", async ({ page, reques
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(editNote).toBeHidden();
   await expect(editor).toHaveText("Revised line");
-  await expect(saved).toHaveText("Saved");
+  await expectSaved(page);
   expect(bodies).toHaveLength(1);
   expect(bodies[0]?.action).toBe("edit");
   expect(bodies[0]?.instruction).toBe("Replace passive verbs with active verbs");
@@ -308,7 +308,7 @@ test("Edit and Continue send only their own instructions", async ({ page, reques
   await contextToggle.click();
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(editor).toContainText("The story continues.");
-  await expect(saved).toHaveText("Saved");
+  await expectSaved(page);
   expect(bodies).toHaveLength(2);
   expect(bodies[1]?.action).toBe("generate");
   expect(bodies[1]?.instruction).toBe("Introduce a mysterious visitor");
@@ -332,7 +332,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   const gear = page.getByRole("button", { name: "Settings", exact: true });
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   await expectEditorReady(editor);
   await editor.click();
   await editor.evaluate((element) => {
@@ -354,7 +354,7 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   await expect(editor).toBeFocused();
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("The");
   await page.reload();
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   await gear.click();
   await expect(settings.getByRole("spinbutton", { name: "Window Size", exact: true })).toHaveValue("2400");
   await expect(settings.getByRole("checkbox", { name: "Whole document", exact: true })).toBeChecked();

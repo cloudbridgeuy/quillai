@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function selectText(editor: Locator) {
   await editor.click();
@@ -39,7 +40,7 @@ for (const openFirst of [false, true]) {
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
     await expectEditorReady(editor);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     const inspector = openFirst ? await openInspector(page) : page.locator("#context-drawer");
     if (openFirst) await expect(inspector.getByRole("textbox", { name: "Selection prompt section" })).toHaveValue("<selection>\nnone\n</selection>\n");
     await selectText(editor);
@@ -70,6 +71,6 @@ for (const openFirst of [false, true]) {
     expect((await request.post(`${provider}/control/${upstream.id}/fragment`, { data: { text: "The lantern flickered." } })).status()).toBe(200);
     expect((await request.post(`${provider}/control/${upstream.id}/finish`, { data: { reason: "stop" } })).status()).toBe(200);
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
   });
 }

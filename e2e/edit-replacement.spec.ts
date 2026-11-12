@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 const original = "He try to distract himself.";
 const replacement = "He tried to distract himself.";
@@ -29,7 +30,7 @@ async function openEditChapter(page: Page, request: APIRequestContext, identity:
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   await expect(editor.locator("p")).toHaveText([`${original} ${identity}`, "Later paragraph"]);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const before = (await (await request.get(`${providerUrl}/control`)).json()).length as number;
   if (!error) expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-edit" } })).status()).toBe(200);
   await editor.click();
@@ -67,7 +68,7 @@ async function openEditChapter(page: Page, request: APIRequestContext, identity:
 
 async function expectSavedChapter(page: Page, request: APIRequestContext, chapterUrl: string, paragraphs: string[]) {
   await expect(page.locator(".ql-editor p")).toHaveText(paragraphs);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const saved = await request.get(chapterUrl);
   expect(saved.status()).toBe(200);
   expect((await saved.json()).content).toEqual({ ops: [{ insert: `${paragraphs.join("\n")}\n` }] });

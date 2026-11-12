@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function runContinue(page: Page, request: APIRequestContext, width: number, beforeLoad?: () => Promise<void>) {
   const api = process.env.QUILLAI_E2E_API_URL;
@@ -20,7 +21,7 @@ async function runContinue(page: Page, request: APIRequestContext, width: number
   await beforeLoad?.();
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expectEditorReady(page.locator(".ql-editor"));
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const inspector = page.locator("#context-drawer");
   const before = await (await request.get(`${provider}/control`)).json();
@@ -35,7 +36,7 @@ async function runContinue(page: Page, request: APIRequestContext, width: number
   expect((await request.post(`${control}/finish`, { data: { reason: "stop" } })).status()).toBe(200);
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
   await expect(page.locator(".ql-editor")).toContainText("The lantern flickered.");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   return { cost: inspector.getByRole("region", { name: "Model and cost", exact: true }) };
 }
 

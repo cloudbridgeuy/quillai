@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 for (const available of [true, false]) {
   test(`requests carry no model and the Inspector shows the Settings model ${available ? "from the catalog" : "or unknown when the catalog is unavailable"}`, async ({ page, request }) => {
@@ -35,7 +36,6 @@ for (const available of [true, false]) {
     const chapter = await chapterResponse.json();
     await page.setViewportSize({ width: 1100, height: 1000 });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
-    const status = page.getByRole("status", { name: "Chapter save status", exact: true });
     const editor = page.locator(".ql-editor");
     const drawer = page.locator("#context-drawer");
     const scrollArea = drawer.locator(".editor-context-body");
@@ -46,7 +46,7 @@ for (const available of [true, false]) {
       await page.getByRole("button", { name: "Context inspector", exact: true }).click();
       await drawer.getByText("Advanced AI controls", { exact: true }).click();
     }
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     await expectEditorReady(editor);
     await openAdvanced();
     // The per-chapter model menus are gone; Settings is the one place to choose.
@@ -61,7 +61,7 @@ for (const available of [true, false]) {
       await expect(modelLine(region)).toHaveText("unknown — unresolved model");
     }
     await page.reload();
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     await openAdvanced();
     for (const width of [1100, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -163,7 +163,7 @@ for (const available of [true, false]) {
     await editor.click();
     await page.locator(".editor-continue").click();
     await expect(editor).toContainText("Revised");
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     await contextButton.click();
     const cost = drawer.getByRole("region", { name: "Model and cost", exact: true });
     await cost.scrollIntoViewIfNeeded();
@@ -189,7 +189,7 @@ for (const available of [true, false]) {
     await expect(note).toBeHidden();
     await expect.poll(() => bodies.length).toBe(2);
     await expect(page.locator(".editor-continue")).toHaveAccessibleName("Continue writing");
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     expect(bodies).toHaveLength(2);
     expect(bodies.map(({ action }) => action)).toEqual(["generate", "edit"]);
     for (const body of bodies) expect(body).not.toHaveProperty("model");

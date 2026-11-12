@@ -2,6 +2,7 @@ import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 import type Quill from "../app/node_modules/quill";
 import type { LoreMatchEntry } from "../app/src/md_editor/lore_match";
+import { expectSaved } from "./save-state";
 
 function quillSnapshot(element: Element, action: {
   selection?: { index: number; length: number };
@@ -79,7 +80,7 @@ test("Continue sends matched visible lore and previews the escaped lore block", 
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expect(editor).toContainText("Mara arrived.");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const entry = { id: 1, name: "Mara", kind: "character" as const, aliases: [], keywords: [], visible_text: "Wields <fire> & ice.", hidden_notes: "PRIVATE", pinned: false, level: "include" as const };
   await editor.evaluate((element, entries) => {
     const host = element.closest(".editor-host")!;
@@ -123,7 +124,7 @@ test("usage before done keeps length finish and arms Continue with thread", asyn
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expect(editor).toContainText("Opening line.");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await editor.evaluate(quillSnapshot, { selection: { index: 13, length: 0 } });
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
@@ -152,7 +153,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expect(editor).toContainText("Opening paragraph");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   const select = async (paragraph: number, start: number, end = start) => {
     await editor.evaluate((element, args) => {
       const walker = document.createTreeWalker(element.querySelectorAll("p")[args.paragraph]!, NodeFilter.SHOW_TEXT);
@@ -202,7 +203,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
     const selection = window.getSelection();
     return selection?.anchorNode?.textContent?.slice(0, selection.anchorOffset);
   })).toBe("OpeAUTHORKEPT");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await select(0, 1);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
@@ -213,7 +214,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await send({ type: "error", error: "Mock stream failure" });
   await expect(page.getByText("Mock stream failure", { exact: true })).toBeVisible();
   await expect(editor).toHaveText("OpeAUTHORKEPTning paragraphLater SURVIVESparagraph");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await select(0, 2, 5);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
@@ -230,7 +231,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("checkbox", { name: "Tint AI text", exact: true }).uncheck();
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.reload();
   await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -245,7 +246,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await send({ type: "cancelled" });
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
   await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.setViewportSize({ width: 1099, height: 1000 });
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
@@ -273,7 +274,7 @@ for (const outcome of [
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
     await expect(editor).toContainText("abcdef");
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await editor.evaluate(quillSnapshot, { selection: { index: 2, length: 0 } });
     await page.getByRole("button", { name: "Continue writing", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();

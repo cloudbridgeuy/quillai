@@ -1,4 +1,5 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expectSaved } from "./save-state";
 
 test("two pages save, sync, and reload one chapter", async ({ context, page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -40,7 +41,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     await tab.goto(`/?${query}`);
     await expect(tab.locator(".ql-editor")).toHaveText("Opening line");
     await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
-    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(tab);
     await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   }
 
@@ -112,7 +113,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
 
   await page.locator(".ql-editor").fill("Page one writes");
   await expect(second.locator(".ql-editor")).toHaveText("Page one writes");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await expect(page.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   const firstSaved = await request.get(chapterUrl);
   expect(firstSaved.ok()).toBe(true);
@@ -121,7 +122,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
 
   await second.locator(".ql-editor").fill("Page one writes; page two replies");
   await expect(page.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
-  await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(second);
   await expect(second.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.ok()).toBe(true);
@@ -133,7 +134,7 @@ test("two pages save, sync, and reload one chapter", async ({ context, page, req
     await tab.reload();
     await expect(tab.locator(".ql-editor")).toHaveText("Page one writes; page two replies");
     await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
-    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(tab);
     await expect(tab.getByRole("heading", { name: `E2E chapter ${test.info().project.name}`, exact: true })).toBeVisible();
   }
   expect(failures).toEqual([]);

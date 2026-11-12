@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 for (const scenario of ["continue", "typing", "stop", "edit"] as const) {
   test(`${scenario} waits for unsaved chapter changes`, async ({ page, request }) => {
@@ -21,7 +22,7 @@ for (const scenario of ["continue", "typing", "stop", "edit"] as const) {
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
     await expectEditorReady(editor);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
 
     const releases: Array<() => void> = [];
     const arrivals: Array<() => void> = [];
@@ -102,7 +103,7 @@ for (const scenario of ["continue", "typing", "stop", "edit"] as const) {
       }
       if (scenario === "stop") {
         await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
-        await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(page);
         expect(generations).toBe(0);
         expect((await (await request.get(`${provider}/control`)).json()).length).toBe(before);
         expect((await (await request.get(chapterUrl)).json()).content).toEqual({ ops: [{ insert: `Opening line ${identity} before\n` }] });

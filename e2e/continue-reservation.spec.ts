@@ -3,6 +3,7 @@ import { once } from "node:events";
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 import { installFakeEventSource } from "./fixtures/fake-event-source";
+import { expectSaved, expectUnsaved } from "./save-state";
 
 const fakeChapterPieceId = 1;
 
@@ -37,7 +38,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       await tab.setViewportSize({ width: 1100, height: 1000 });
       await tab.goto(`/?${query}`);
       await expectEditorReady(tab.locator(".ql-editor"));
-      await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(tab);
     }
     let releaseRead!: () => void;
     const readRelease = new Promise<void>(resolve => { releaseRead = resolve; });
@@ -97,7 +98,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       await page.evaluate(() => (window as unknown as { fakeEventSource: { resync: (index: number) => void } }).fakeEventSource.resync(0));
       if (outcome === "Unsaved") {
         await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
-        await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Unsaved changes");
+        await expectUnsaved(page);
       }
       await page.clock.runFor(2000);
       expect(generations).toBe(0);
@@ -128,8 +129,8 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       }
       await expect.poll(async () => {
         await page.clock.runFor(1000);
-        return page.getByRole("status", { name: "Chapter save status", exact: true }).textContent();
-      }).toBe("Saved");
+        return page.locator(".editor-shell").getAttribute("data-save-state");
+      }).toBe("saved");
       const expectedText = outcome === "Unsaved" || outcome === "Typed while waiting" ? "Retained author text\n" : outcome === "Finish" ? "\nGenerated text\n" : "\n";
       await expect.poll(async () => {
         await page.clock.runFor(1000);

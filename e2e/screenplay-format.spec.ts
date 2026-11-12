@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 type Op = { insert?: unknown; attributes?: Record<string, unknown> };
 type SpecWindow = { specQuill: Quill };
@@ -167,7 +168,7 @@ for (const width of [1100, 1440]) {
         ];
         await expect.poll(async () => lineTypes(await contents(page))).toEqual(initial);
         await expect.poll(async () => lineTypes((await getScenes()).flatMap((scene) => scene.content.ops))).toEqual(initial);
-        await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(page);
         let expected = initial;
         if (scenario === "remote") {
           const scene = (await getScenes()).find((item) => item.id === one.id)!;

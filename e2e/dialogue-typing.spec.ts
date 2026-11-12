@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 type Op = { insert?: unknown; attributes?: Record<string, unknown> };
 
@@ -21,7 +22,7 @@ async function openChapter(page: Page, request: APIRequestContext, title: string
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await editor.click();
   await page.keyboard.press("ControlOrMeta+End");
   const savedOps = async (): Promise<Op[]> => (await (await request.get(`${chapters}/${chapter.id}`)).json()).content.ops;

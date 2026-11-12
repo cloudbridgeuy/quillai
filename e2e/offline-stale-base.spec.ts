@@ -1,6 +1,7 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
 import { installFakeEventSource } from "./fixtures/fake-event-source";
+import { expectSaved } from "./save-state";
 
 const fakeChapterPieceId = 1;
 
@@ -47,7 +48,7 @@ test("offline tab rebases a stale submission without losing either tab's edits",
     await tab.goto(`/?${query}`);
     await expectEditorReady(tab.locator(".ql-editor"));
     await expect(tab.locator(".ql-editor")).toHaveText("Opening line");
-    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(tab);
   }
 
   let release!: () => void;
@@ -94,7 +95,7 @@ test("offline tab rebases a stale submission without losing either tab's edits",
     expect((await response.json()).rev).toBe(chapter.head_rev + index + 1);
     remoteText += edit;
     await expect(second.locator(".ql-editor")).toHaveText(remoteText);
-    await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(second);
   }
   const beforeReconnect = await request.get(chapterUrl);
   expect(beforeReconnect.status()).toBe(200);
@@ -118,7 +119,7 @@ test("offline tab rebases a stale submission without losing either tab's edits",
   const expected = `A offline A pending ${remoteText}`;
   for (const tab of [page, second]) {
     await expect(tab.locator(".ql-editor")).toHaveText(expected);
-    await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(tab);
   }
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.status()).toBe(200);

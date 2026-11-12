@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 test("Continue does not repeat the passage before the caret", async ({ page, request }) => {
   const api = process.env.QUILLAI_E2E_API_URL;
@@ -21,9 +22,8 @@ test("Continue does not repeat the passage before the caret", async ({ page, req
   await page.setViewportSize({ width: 1100, height: 1000 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expectEditorReady(editor);
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   // Stands in for the server resolving a Settings model: requests carry none.
   await page.route(`${api}/ai/generate`, route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model: "e2e-repeat" }) }));
   await editor.evaluate(element => {
@@ -40,7 +40,7 @@ test("Continue does not repeat the passage before the caret", async ({ page, req
   expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-repeat" } })).status()).toBe(200);
   await page.getByRole("button", { name: "Continue writing", exact: true }).click();
   await expect(editor).toContainText(continuation);
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   const uiText = await editor.innerText();
   expect.soft(uiText.split(tail)).toHaveLength(2);
   expect.soft(uiText.indexOf(continuation)).toBeGreaterThan(uiText.indexOf(tail));

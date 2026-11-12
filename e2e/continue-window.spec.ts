@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "../app/node_modules/@playwright/test/index.js";
 import { calculateDocumentWindow } from "../app/src/md_editor/window";
 import type { AiGenerateRequest } from "../app/src/md_editor/ai_contract";
+import { expectSaved } from "./save-state";
 
 const paragraphs = Array.from({ length: 50 }, (_, index) => `${index + 1}. The harbour lay quiet under the evening sky. Mara watched the lanterns move across the water and waited for the letter that would change her journey. The tide carried no answer.`);
 const text = `${paragraphs.join("\n")}\n`;
@@ -79,7 +80,7 @@ for (const width of [1100, 1440]) {
       await route.fulfill({ contentType: "application/x-ndjson", body: `${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "A lantern stirred." }] } })}\n${JSON.stringify({ type: "done", finishReason: "length" })}\n` });
     });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Settings", exact: true });
     await settings.getByRole("spinbutton", { name: "Window Size", exact: true }).fill("400");
@@ -101,7 +102,7 @@ for (const width of [1100, 1440]) {
     const typedWindow = calculateDocumentWindow({ documentLength: sourceText.length - 1, selection: { index: visibleCaret + typedText.length, length: 0 }, windowSize: 400 });
     expect(typedWindow.start).toBeGreaterThan(visibleWindow.start);
     await expectGeometry(page, typedWindow.start, typedWindow.end);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     const caret = paragraphs.slice(0, 10).reduce((sum, paragraph) => sum + paragraph.length + 1, 0) + typedText.length + 10;
     await select(page, 10);
     await page.locator(".ql-editor p").nth(10).scrollIntoViewIfNeeded();
@@ -149,7 +150,7 @@ for (const width of [1100, 1440]) {
     await expectGeometry(page, 0, (await documentText(page)).length - 1);
     expect((await documentText(page)).length - 1).toBeGreaterThan(idleEnd);
     expect((await page.locator(".editor-continue-window").boundingBox())!.height).toBeGreaterThan(idleHeight);
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await page.evaluate(() => {
       const original = window.fetch.bind(window);
       window.fetch = async (input, init) => {
@@ -192,7 +193,7 @@ for (const width of [1100, 1440]) {
     await expectGeometry(page, 0, (await documentText(page)).length - 1);
     await send(page, { type: "done", finishReason: "length" });
     await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await page.locator(".ql-editor p").nth(30).scrollIntoViewIfNeeded();
     await expect(flag).toBeVisible();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -200,7 +201,7 @@ for (const width of [1100, 1440]) {
     await expect(page.locator(".editor-continue-window")).toHaveCount(0);
     await expect(flag).toBeHidden();
     await page.reload();
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
     await expect(page.locator(".editor-continue-window")).toHaveCount(0);
     await expect(flag).toBeHidden();
     await page.getByRole("button", { name: "Settings", exact: true }).click();

@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "../app/node_modules/@playwright/test/index.js";
 import type { AiGenerateRequest } from "../app/src/md_editor/ai_contract";
+import { expectSaved } from "./save-state";
 
 async function setup(page: Page, request: APIRequestContext) {
   const api = process.env.QUILLAI_E2E_API_URL;
@@ -22,7 +23,7 @@ async function setup(page: Page, request: APIRequestContext) {
   });
   await page.setViewportSize({ width: 1100, height: 1000 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(first.id) })}`);
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const run = async (index: number) => {
     const before = await (await request.get(`${provider}/control`)).json();
@@ -34,7 +35,7 @@ async function setup(page: Page, request: APIRequestContext) {
     expect((await request.post(`${control}/fragment`, { data: { text: "A cut-off reply." } })).status()).toBe(200);
     expect((await request.post(`${control}/finish`, { data: { reason: "length" } })).status()).toBe(200);
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeHidden();
-    await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(page);
   };
   return { requests, run };
 }

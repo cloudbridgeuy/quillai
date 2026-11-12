@@ -1,4 +1,5 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
+import { expectSaved } from "./save-state";
 
 test("failed chapter save resumes after the delta route is released", async ({ page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -33,9 +34,8 @@ test("failed chapter save resumes after the delta route is released", async ({ p
   });
   await page.goto(`/?${query}`);
   const editor = page.locator(".ql-editor");
-  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expect(editor).toHaveText("Opening line");
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
 
   let releaseFailure!: () => void;
   const failureGate = new Promise<void>((resolve) => { releaseFailure = resolve; });
@@ -78,7 +78,7 @@ test("failed chapter save resumes after the delta route is released", async ({ p
     response.url() === deltaUrl && response.request().method() === "POST" && response.ok()
   ), { timeout: 15_000 });
   await resumed;
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   await expect(editor).toHaveText("Opening line before during");
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.ok()).toBe(true);

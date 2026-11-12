@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 for (const configured of [true, false]) {
   test(`Continue ${configured ? "persists text with" : "reports empty output without"} reasoning effort`, async ({ page, request }) => {
@@ -21,9 +22,8 @@ for (const configured of [true, false]) {
     await page.setViewportSize({ width: 1100, height: 1000 });
     await page.goto(`/?${new URLSearchParams({ apiBaseUrl: api, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
     const editor = page.locator(".ql-editor");
-    const status = page.getByRole("status", { name: "Chapter save status", exact: true });
     await expectEditorReady(editor);
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     // Stands in for the server resolving a Settings model: requests carry none.
     await page.route(`${api}/ai/generate`, route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model }) }));
     await editor.click();
@@ -38,7 +38,7 @@ for (const configured of [true, false]) {
       return;
     }
     await expect(editor).toContainText("Reasoned continuation.");
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     await expect.poll(async () => {
       const saved = await request.get(`${chapters}/${chapter.id}`);
       expect(saved.status()).toBe(200);

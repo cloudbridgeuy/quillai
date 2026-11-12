@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 test("lore remains usable without the Custom Highlight API", async ({ page, request }) => {
   const api = process.env.QUILLAI_E2E_API_URL;
@@ -192,7 +193,7 @@ test("series lore persists, matches near the caret, and excludes author-only not
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await editor.click();
   await page.keyboard.type("Mira studied the compass.");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const prompt = page.getByRole("textbox", { name: "Lore prompt section", exact: true });
   await expect(prompt).toHaveValue(/Mira is the ship's navigator/);

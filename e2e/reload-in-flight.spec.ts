@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 test("reload during a save keeps server text and exports the full unsaved document", async ({ page, request }) => {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -41,10 +42,9 @@ test("reload during a save keeps server text and exports the full unsaved docume
   await page.setViewportSize({ width: 1100, height: 1000 });
   await page.goto(`/?${query}`);
   const editor = page.locator(".ql-editor");
-  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   await expectEditorReady(editor);
   await expect(editor).toHaveText(initialText);
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
 
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
@@ -67,7 +67,7 @@ test("reload during a save keeps server text and exports the full unsaved docume
   release();
   await page.unrouteAll({ behavior: "wait" });
   await expectEditorReady(editor);
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
 
   const serverResponse = await request.get(chapterUrl);
   expect(serverResponse.status()).toBe(200);
@@ -95,7 +95,7 @@ test("reload during a save keeps server text and exports the full unsaved docume
   ));
   await page.keyboard.insertText(" saved after reload");
   expect((await savedPost).status()).toBe(200);
-  await expect(status).toHaveText("Saved");
+  await expectSaved(page);
   const savedResponse = await request.get(chapterUrl);
   expect(savedResponse.status()).toBe(200);
   const saved = await savedResponse.json();

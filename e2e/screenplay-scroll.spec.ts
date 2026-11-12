@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 type Op = { insert?: unknown; retain?: number; delete?: number; attributes?: Record<string, unknown> };
 type SpecWindow = { specQuill: Quill };
@@ -94,7 +95,6 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
 
   const editor = page.locator(".ql-editor");
   const breaks = editor.locator(".ql-scene-break");
-  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   const query = new URLSearchParams({ apiBaseUrl: api, pieceId: String(group.id) });
   const expectSurface = async (oneText: string, twoText: string) => {
     await expect.poll(async () => sceneSlices((await surface(page)).ops)).toEqual({ breaks: [one.id, two.id], scenes: [oneText, twoText] });
@@ -133,7 +133,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
       const view = await surface(page);
       expect(view.text).toBe("\nKettle boils.\n\nRain falls.\n");
       expect(view.length).toBe(view.text.length);
-      await expect(status).toHaveText("Saved");
+      await expectSaved(page);
     }
     expect(posts).toEqual([]);
   });
@@ -150,7 +150,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await expectServer("Kettle boils.\n", "Rain falls hard.\n");
     expect((await piece(one.id)).headRev).toBe(before.headRev);
     expect(posts.every((path) => path === `/pieces/${two.id}/deltas`)).toBe(true);
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
   });
 
   await test.step("markdown shortcuts stay off in a script", async () => {
@@ -273,7 +273,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await expectSurface("Steam. Kettle whistles.\n", "雨Thunder. Rain falls hard.\n");
     await expectServer("Steam. Kettle whistles.\n", "雨Thunder. Rain falls hard.\n");
     expect(posts.filter((path) => path.endsWith(`/${two.id}/deltas`)).length).toBe(twoSaves);
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
   });
 
   await test.step("a failed scene save shows Not saved with the scene title and recovers", async () => {
@@ -285,7 +285,7 @@ test("a script group reads as one scroll and syncs per scene", async ({ page, re
     await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveText(/^Not saved/);
     await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveAttribute("title", new RegExp(sceneTwo));
     held = false;
-    await expect(status).toHaveText("Saved");
+    await expectSaved(page);
     await expectServer("Steam. Kettle whistles.\n", "Wind. 雨Thunder. Rain falls hard.\n");
     await page.unroute(`${api}/pieces/${two.id}/deltas`);
   });

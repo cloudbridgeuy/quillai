@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Locator, type Response } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function placeCaret(editor: Locator, paragraph: number, offset: number) {
   await expectEditorReady(editor);
@@ -67,7 +68,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       await tab.goto(`/?${query}`);
       await expectEditorReady(tab.locator(".ql-editor"));
       await expect(tab.locator(".ql-editor p")).toHaveText([opening, "Later paragraph"]);
-      await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(tab);
     }
     const requestsResponse = await request.get(`${providerUrl}/control`);
     expect(requestsResponse.status()).toBe(200);
@@ -91,7 +92,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     await placeCaret(second.locator(".ql-editor"), 0, 3);
     await second.keyboard.type("REMOTE ");
     expect((await remoteSave).status()).toBe(200);
-    await expect(second.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+    await expectSaved(second);
     await expect(stop).toBeVisible();
     const duringResponse = await request.get(chapterUrl);
     expect(duringResponse.status()).toBe(200);
@@ -115,7 +116,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     try {
       for (const tab of [page, second]) {
         await expect(tab.locator(".ql-editor p")).toHaveText(paragraphs);
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
       }
     } finally {
       for (const tab of [page, second]) {

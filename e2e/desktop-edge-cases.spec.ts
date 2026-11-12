@@ -1,5 +1,6 @@
 import { expect, test, type Page, type APIRequestContext } from "../app/node_modules/@playwright/test/index.js";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function openChapter(page: Page, request: APIRequestContext) {
   const apiUrl = process.env.QUILLAI_E2E_API_URL;
@@ -46,7 +47,7 @@ async function openChapter(page: Page, request: APIRequestContext) {
   });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   await expect(page.locator(".ql-editor")).toHaveText("Opening paragraphLater paragraph");
-  await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+  await expectSaved(page);
 }
 
 async function select(page: Page, paragraph: number, start: number, end = start) {
@@ -161,7 +162,7 @@ for (const width of [1100, 1440]) {
       await expect(editor).toHaveText("OpeAI first second tailning paragraphLater AUTHOR paragraph");
       await send(page, { type: "done", finishReason: "stop" });
       await expect(stop).toBeHidden();
-      await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(page);
       await page.reload();
       await expect(editor).toHaveText("OpeAI first second tailning paragraphLater AUTHOR paragraph");
     });
@@ -192,7 +193,7 @@ for (const width of [1100, 1440]) {
       expect(await page.evaluate(() => CSS.highlights.get("quillai-stream")?.size)).toBe(0);
       await page.keyboard.type(" MORE");
       await expect(editor).toHaveText("OpeKEPT MOREning paragraphLater paragraph");
-      await expect(page.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+      await expectSaved(page);
       await page.reload();
       await expect(editor).toHaveText("OpeKEPT MOREning paragraphLater paragraph");
     });

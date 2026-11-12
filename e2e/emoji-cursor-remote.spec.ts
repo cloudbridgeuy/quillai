@@ -1,6 +1,7 @@
 import { expect, test, type Locator } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
 import { expectEditorReady } from "./editor-ready";
+import { expectSaved } from "./save-state";
 
 async function editorState(editor: Locator, selection?: { index: number; length: number }) {
   return editor.evaluate((element, selection) => {
@@ -81,7 +82,7 @@ test("remote edits keep emoji caret and selection boundaries safe", async ({ con
           await tab.goto(`/?${query}`);
           await expectEditorReady(tab.locator(".ql-editor"));
           await expect(tab.locator(".ql-editor")).toHaveText(initial);
-          await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+          await expectSaved(tab);
         }
         const editor = page.locator(".ql-editor");
         const secondEditor = tabs[1]!.locator(".ql-editor");
@@ -127,7 +128,7 @@ test("remote edits keep emoji caret and selection boundaries safe", async ({ con
         expect((await committed).status()).toBe(200);
         for (const tab of tabs) {
           await expect(tab.locator(".ql-editor")).toHaveText(expected);
-          await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+          await expectSaved(tab);
           const state = await editorState(tab.locator(".ql-editor"));
           expect(state.text).toBe(expected);
           expect(state.content).toEqual({ ops: [{ insert: expected }] });

@@ -1,5 +1,6 @@
 import { expect, test } from "../app/node_modules/@playwright/test/index.js";
 import type Quill from "../app/node_modules/quill";
+import { expectSaved } from "./save-state";
 
 for (const interleaving of ["append", "replace", "pending"] as const) {
   test(`two pages preserve emojis during concurrent ${interleaving}`, async ({ context, page, request }, testInfo) => {
@@ -63,7 +64,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         });
         await tab.goto(`/?${query}`);
         await expect(tab.locator(".ql-editor")).toHaveText(initial);
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
         await tab.route(`${chapterUrl}/deltas`, async (route) => {
           if (route.request().method() === "POST") {
@@ -113,7 +114,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         ? ["Opening 😁🚀🌟"]
         : [initial, "A😀🦊", "B🚀🐋", ...(interleaving === "pending" ? ["C😁🌈", "D🪐🐙"] : [])];
       for (const tab of tabs) {
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
         for (const part of expectedParts) await expect(tab.locator(".ql-editor")).toContainText(part);
       }
@@ -134,7 +135,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
         for (const part of [...expectedParts, "E🦄🍀", "F🐬🎉"]) {
           await expect(tab.locator(".ql-editor")).toContainText(part);
         }
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
       }
       const finalText = await page.locator(".ql-editor").innerText();
@@ -148,7 +149,7 @@ for (const interleaving of ["append", "replace", "pending"] as const) {
       for (const tab of tabs) {
         await tab.reload();
         await expect(tab.locator(".ql-editor")).toHaveText(finalText);
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Emoji chapter", exact: true })).toBeVisible();
       }
       expect(failures).toEqual([]);
@@ -222,7 +223,7 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
           await route.continue();
         });
         await tab.goto(`/?${query}`);
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Rapid emoji chapter", exact: true })).toBeVisible();
       }));
       await Promise.all(tabs.map(async (tab, index) => {
@@ -264,7 +265,7 @@ for (const seed of [730, 731, 20261019, 42, 123456789, 0xdeadbeef]) {
         events.push({ tab: index, operations });
       }));
       for (const tab of tabs) {
-        await expect(tab.getByRole("status", { name: "Chapter save status", exact: true })).toHaveText("Saved");
+        await expectSaved(tab);
         await expect(tab.getByRole("heading", { name: "Rapid emoji chapter", exact: true })).toBeVisible();
       }
       await expect.poll(async () => {
