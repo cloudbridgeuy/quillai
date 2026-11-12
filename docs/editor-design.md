@@ -1,6 +1,6 @@
 # Editor Design (v1 desktop)
 
-Approved visual and behavior spec. Visual reference: `prototypes/editor-desktop/` (`index.html`, `style.css`, `proto.js`; plain contenteditable, fake data). Values below were read from `style.css`. Where the prototype differs from the decisions, see "Prototype vs decisions".
+Approved visual and behavior spec. For header, save, Continue, Help, and counts, use `prototypes/editor-chrome/` (`index.html`; `renders/s01-default.png`, `s02-help-open.png`, `s03-save-failure.png`). `prototypes/editor-desktop/` (`index.html`, `style.css`, `proto.js`; plain contenteditable, fake data) is outdated for those details but remains the reference for other documented details. Values below were read from its `style.css`. Where prototypes differ from decisions, see "Prototype vs decisions" and "Owner review pending".
 
 ## Scope
 
@@ -68,12 +68,14 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 ## Tools
 
 - Left rail (56px): navigation (manuscript tree panel, 300px, opens at `left: 56px`).
-- Right rail (56px): Continue, Edit selection, Context inspector, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
-- Rails are muted: opacity .35, .95 on hover/focus-within. The right rail stays at .95 when the thread indicator is present so history use remains visible. Tool buttons are 36px with radius 10px and `--graphite`; Continue uses the full 56px rail width for its label and indicator.
-- At 1100px and wider, both rails have 4px top padding; the first buttons and the QuillAI label share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
-- Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all.
+- Right rail (56px): Continue, Edit selection, Context inspector, Help, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
+- Rails are muted: opacity .35, .95 on hover/focus-within. The right rail stays at .95 when the thread indicator is present so history use remains visible. Tool buttons are 36px with radius 10px and `--graphite`. Owner decision, GUZ-1566: Continue is icon-only like the other rail buttons, with its name in a tooltip.
+- At 1100px and wider, both rails have 4px top padding; the first buttons and the header share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
+- Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all. Help dismissal is pending owner review below.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
-- Product rails use IconButton for Library, manuscript, Continue/Stop, Edit selection, context inspector, and a bottom-pinned desktop Settings gear.
+- Product rails use IconButton for Library, manuscript, Continue/Stop, Edit selection, context inspector, Help, and a bottom-pinned desktop Settings gear.
+- Owner decision, GUZ-1566: add a `?` Help rail button above Settings. Help contains a page marks legend, tools and shortcuts, and a "This chapter" section.
+- Owner decision, GUZ-1566: move word, character, and line counts into Help under "This chapter".
 - The right drawer holds Story Context, Instruction, and a cut-off reply notice with Discard when a reply can resume. Existing Max Output Tokens and Thread continuation prompt controls live under Advanced AI controls in this drawer. There is no Preview Context button or separate preview modal.
 - At 1100px and wider, Settings opens a 280px popover at right 72px, bottom 18px, outside the prose. It holds Window Size, Whole document, Show Continue window, and Tint AI text, using persisted local preferences. Window controls remain disabled during AI runs; marker visibility and tint remain available. Opening it closes either drawer; opening a drawer closes Settings. Settings has no Close button: its gear toggle, click outside, and Escape close it, and the gear and Escape restore the remembered editor selection/focus. Narrow screens retain the window controls in the context drawer. Prototype-only recentering, extra text effects, and save-failure simulation are not exposed.
 - Owner decision, GUZ-691: Settings gains a Hints section with the series language and per-rule toggles, saved on the server; see `docs/rules-engine.md` (Settings toggles).
@@ -123,9 +125,9 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 
 ## Continue
 
-- One Continue control in the right rail; no separate Resume or inline Continue button. Its visible "from a cut-off reply" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
-- Continue and Edit reserve the session and save pending changes before the AI request. The control shows Saving… and remains available as Stop AI; typing remains available while saving. Save errors stop the request.
-- While streaming the same control shows Stop. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
+- One Continue control in the right rail; no separate Resume or inline Continue button. Its "from a cut-off reply" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
+- Continue and Edit reserve the session and save pending changes before the AI request. The control remains available as Stop AI and typing remains available while saving. Saving presentation is pending owner review below. Save errors stop the request.
+- While streaming the same control offers Stop; its presentation is pending owner review below. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
 - The context drawer has one Continue view, labeled "Continue · from a cut-off reply" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
 ## Lore field completion (GUZ-912)
@@ -309,10 +311,13 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 
 ## Saves
 
-- Header status: quiet dot plus "Saved" or "Unsaved changes", 12px `--graphite`, centered above the sheet; the chapter title is not repeated. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
-- Failed save or recovery failure: a floating "Not saved" pill using the shared `Alert` fail style, with `--alert` fill, white text and dot, token padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively by an alert. Saving and saved states use a status. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
+- Owner decision, GUZ-1566: the header shows the series › book path above the sheet; the chapter title remains the sheet heading.
+- Owner decision, GUZ-1566: show no normal save status; show the "Not saved" pill only on failure. Loading and switching messages remain visible. Header and sheet stay in document flow, so scrolling cannot place the status over prose. Desktop failure messages float over the desk at the top of the header without changing the sheet's top edge or covering the chapter title, toolbar, or rails.
+- Failed save or recovery failure: a floating "Not saved" pill using the shared `Alert` fail style, with `--alert` fill, white text and dot, token padding, rounded corners, and fail shadow. The unchanged detailed reason is available in the pill's `title` tooltip and visually hidden screen-reader description, announced assertively by an alert. A failed delta POST keeps that pill and resumes on a later poll after history since the submitted base revision is reconciled, so an applied submission whose response was lost is not inserted twice. History gaps still stop saving. Export remains in the left drawer.
 
 ## Model selection
+
+- Owner decision, GUZ-1566: remove the `Model: default` margin label. Show the model in Help with a link to change it. Update `e2e/model-label.spec.ts` (GUZ-1426), which checks the old margin label, while preserving its existing Edit coverage.
 
 - Settings → AI is the one place to choose a model for each text AI action: Continue, Edit, and lore completion (`crates/api/src/settings/ai.rs:21-22`, `:24`; `crates/api/src/ai/catalog.rs:204-205`, `:207`), plus Dialogue (proposed, Dialogue exchange above). The Inspector has no model menus.
 - Text action requests send no `model`. The server uses the model saved in Settings for the action, then the catalog default.
@@ -335,9 +340,23 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
 
+## Owner review pending
+
+The following are Proposed, pending owner review; they are not approved decisions:
+
+- a) Proposed: show AI pre-request Saving… in the Continue tooltip; replace the icon in the same rail slot with Stop, with accessible name and tooltip "Stop AI". Put a small cut-off badge on Continue with tooltip detail; retain the inspector explanation. Mockups labelled Stop do not settle its placement.
+- b) Proposed: show live selection counts only in Help under "This chapter", using the existing live selection wording (for example, "1 of 2 words"); no separate count outside Help.
+- c) Proposed: add no new Help opening shortcut; Esc closes Help through the existing panel dismissal behavior and restores editor selection/focus. Add no Retry pill action; retain automatic poll recovery and export.
+- d) Proposed: the series › book path replaces the QuillAI header label; preserve the sheet chapter heading.
+- e) Proposed: keep Model lines and change links inside Edit and Dialogue cards; removing the margin label does not settle card design.
+
+Mockup-only details, not approved decisions: exact failure tooltip text (retain the existing detailed-reason behavior); Help using the Settings panel shell; counts as three tiles; literal "Change" link text (the link itself is owner-approved); and "Continue window" as the rail icon name (the existing bracket name is unaffected).
+
 ## Prototype vs decisions
 
-- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a visible "from a cut-off reply" indicator; the prototype has no such indicator.
+This section describes the historical `editor-desktop` prototype; the chrome reference and owner decisions above supersede it for header, save, Continue, Help, and counts.
+
+- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a "from a cut-off reply" indicator; its placement is pending owner review above. The desktop prototype has no such indicator.
 - Off-screen marker reads `Continue window / starts ↑ N pages up`, not "window starts ↑ N pages".
 - AI text effect has four options, not an on/off switch.
 - Post-its have no rotation, and yellow lives in the drawer rather than on the sheet.
@@ -356,7 +375,7 @@ Run with `cargo xtask e2e`. Existing `e2e/continue-stream.spec.ts` covers concur
 
 ## Known gaps
 
-- Prototype "Saved" label overlaps the first line of text; the product uses a separate flowing header above the sheet.
+- The historical desktop prototype "Saved" label overlaps the first line of text; the current owner decision removes normal save status and keeps a flowing header above the sheet.
 - The shortcut hint line overlaps text on partial scroll.
 - Narrow screens untested; no typing test.
 - Plain contenteditable, not Quill; data and streaming are faked.
