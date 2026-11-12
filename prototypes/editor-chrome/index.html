@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — Editor chrome (static mockup, GUZ-1566..1571)</title>
+<style>
+/* Tokens copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;
+  --st-blue:#7C9BB0;--st-lav:#9B8BB8;--st-tan:#B79A6C;
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --panel-shadow:0 0 40px rgba(31,41,51,.12);--popover-shadow:0 8px 30px rgba(31,41,51,.12);
+  --fail-shadow:0 4px 18px rgba(180,65,47,.35);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,monospace;
+  /* proposed in prototypes/ai-interaction and prototypes/manuscript-drawer, not in tokens.css yet */
+  --ai-ink:#2E6E96;--hover-tint:rgba(31,41,51,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1100px;margin:0 0 40px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* editor frame */
+.frame{position:relative;background:var(--desk);height:640px;overflow:hidden;border-radius:2px}
+.lrail,.rrail{position:absolute;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0;z-index:3}
+.lrail{left:0}.rrail{right:0}
+/* every rail control is the same 36px icon button, Continue included */
+.rb{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite);position:relative}
+.rb.on{background:var(--pi-green);color:var(--ink)}
+.rb.hov{background:var(--hover-tint);color:var(--ink)}
+.rb.help{margin-top:auto;font:600 15px/1 var(--sans)}
+.kbd{display:inline-block;font:10px/1.3 var(--mono);color:var(--graphite);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--paper);white-space:nowrap}
+.tip{position:absolute;right:64px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:6}
+.tip .kbd{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35)}
+
+/* header: the path, nothing else */
+.top{position:absolute;left:0;right:0;top:14px;z-index:4;text-align:center;color:var(--graphite);font-size:12px;line-height:1.4}
+.top i{font-style:normal;color:var(--pencil);margin:0 6px}
+/* save failure: shared Alert fail style, floats over the desk, sheet does not move */
+.top .path{position:relative;display:inline-block}
+.fail{position:absolute;left:calc(100% + 14px);top:-6px;z-index:4;display:inline-flex;align-items:center;gap:8px;background:var(--alert);color:var(--paper);
+  font:600 12px/1.4 var(--sans);padding:5px 14px 5px 12px;border-radius:999px;box-shadow:var(--fail-shadow);white-space:nowrap}
+.fail::before{content:"";width:7px;height:7px;border-radius:999px;background:var(--paper)}
+.ftip{position:absolute;left:calc(100% + 14px);top:30px;z-index:6;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap}
+
+.sheet{position:absolute;left:50%;margin-left:-300px;top:48px;bottom:-20px;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);border-radius:2px;padding:40px 56px;font:21px/1.75 var(--serif)}
+.sheet p{margin:0 0 .6em}
+.bracket{position:absolute;left:-24px;top:44px;height:330px;width:9px;border:2px solid var(--st-blue);border-right:0;opacity:.6}
+.lore{text-decoration:underline;text-decoration-color:var(--st-lav);text-decoration-thickness:2px;text-underline-offset:5px}
+.hint{text-decoration:underline;text-decoration-color:var(--st-blue);text-decoration-thickness:1px;text-underline-offset:5px}
+.caret{display:inline-block;width:2px;height:1.2em;background:var(--slate);vertical-align:-.2em}
+
+/* Help pane: same shell as the Settings pane (prototypes/settings-hints) */
+.pane{position:absolute;right:56px;top:0;bottom:0;width:380px;background:var(--paper);box-shadow:var(--panel-shadow);padding:10px 16px 16px;z-index:2}
+.ph{display:flex;align-items:center;height:32px}
+.ph h3{flex:1;font:600 16px/1.5 var(--sans);margin:0}
+.ib{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--graphite)}
+.sh{display:flex;align-items:center;gap:8px;height:24px;margin:14px 0 6px}
+.sh b{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);white-space:nowrap}
+.sh i{flex:1;height:1px;background:var(--rule)}
+.row{display:flex;align-items:center;gap:10px;min-height:30px;font-size:13px}
+.row .sw{flex:none;width:56px;display:flex;justify-content:center;align-items:center;font:15px/1.4 var(--serif)}
+.row .gl{flex:none;width:24px;display:grid;place-items:center;color:var(--graphite)}
+.row .nm{flex:1;min-width:0}
+.row .nm small{display:block;font-size:11px;line-height:1.3;color:var(--graphite)}
+.row .val{font-size:13px;white-space:nowrap}
+.row .none{font-size:11px;color:var(--pencil)}
+.mk-br{width:9px;height:20px;border:2px solid var(--st-blue);border-right:0;opacity:.6}
+.row.leg{min-height:38px}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 8px}
+.counts div{background:var(--desk);border-radius:4px;padding:6px 10px}
+.counts b{display:block;font:600 16px/1.4 var(--sans)}
+.counts span{font-size:11px;line-height:1.3;color:var(--graphite)}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-size:12px}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="home" viewBox="0 0 16 16"><path d="M2.5 8L8 3l5.5 5M4 7v6h8V7"/></symbol>
+  <symbol id="lines" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></symbol>
+  <symbol id="play" viewBox="0 0 16 16"><path d="M5.5 3.5l6 4.5-6 4.5z" fill="currentColor"/></symbol>
+  <symbol id="pen" viewBox="0 0 16 16"><path d="M3 13l.7-2.9L10.6 3.2l2.2 2.2-6.9 6.9L3 13zM9.3 4.5l2.2 2.2"/></symbol>
+  <symbol id="quote" viewBox="0 0 16 16"><path d="M3 9.5c0-2.5 1.2-4 3-4.5M9 9.5c0-2.5 1.2-4 3-4.5M3 9.5h2.5V12H3zM9 9.5h2.5V12H9z"/></symbol>
+  <symbol id="panel" viewBox="0 0 16 16"><path d="M2.5 3.5h11v9h-11zM9.5 3.5v9"/></symbol>
+  <symbol id="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M3.8 3.8l1.4 1.4M10.8 10.8l1.4 1.4M3.8 12.2l1.4-1.4M10.8 5.2l1.4-1.4"/></symbol>
+  <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+</svg>
+
+<h1>Editor chrome</h1>
+<p class="lede">Static rebuild of the lost mockup for the owner's 2026-11-10 decision (GUZ-1566 spec, GUZ-1567..1571 builds, epic GUZ-1434). This is the current reference for the editor header and rails. It replaces the save status label and the word, character and line counts that older mockups drew above the page. Nothing here is wired; hover and open states are drawn. Sample text is invented.</p>
+
+<section class="state" id="s01-default">
+  <h2>1 · Default</h2>
+  <p class="cap"><b>The header shows only where you are: series › book.</b> There is no save label while saving works, no counts and no model label. Continue is an icon button like the others; its name and key are in the tooltip (drawn here as on hover). The "?" Help button sits above the gear.</p>
+  <div class="frame" data-state="default"></div>
+  <div class="spec">Header: path "series › book", 12px --graphite, centred above the sheet. No save label, no counts, no model label.
+Right rail, top to bottom: Continue · Edit selection · Dialogue · Continue window · (gap) · Help "?" · Settings. All 36px icon buttons.
+Continue tooltip: "Continue" + key chip. No visible label and no key chip on the rail.
+Open (GUZ-1566): where "Saving…", "Stop" and the cut-off badge go once Continue has no label. Not drawn here.</div>
+</section>
+
+<section class="state" id="s02-help-open">
+  <h2>2 · Help open</h2>
+  <p class="cap"><b>Help explains the page and holds what left the header.</b> Three sections: the marks you can see on the page, the tools with their keys, and "This chapter" with the counts and the Continue model, with a link to change it.</p>
+  <div class="frame" data-state="help"></div>
+  <div class="spec">Help pane: same shell as Settings (380px, right 56px, --panel-shadow). The "?" button is --pi-green while open. Esc, outside click or "?" close it.
+Marks on the page: one row per mark, drawn with the mark's own token. Tools: rail order, key chip on the right.
+This chapter: words, characters, lines · Continue model name · "Change" opens Settings → AI.</div>
+</section>
+
+<section class="state" id="s03-save-failure">
+  <h2>3 · Save failure</h2>
+  <p class="cap"><b>A red "Not saved" pill appears only when a save fails.</b> It floats over the desk beside the path; the path and the sheet do not move. The reason is in its tooltip (drawn here as on hover). There is no Retry link.</p>
+  <div class="frame" data-state="fail"></div>
+  <div class="spec">Pill: shared Alert fail style · --alert fill · white text and dot · radius 999px · --fail-shadow. Sits 14px right of the path; the path stays centred.
+Tooltip and screen-reader description carry the unchanged detailed reason (editor-design.md, Saves).
+Open (GUZ-1566): whether the pill gets a Retry action. Not drawn.</div>
+</section>
+
+<script>
+const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const kbd = k => `<span class="kbd">${k}</span>`;
+const leg = (sw, name, what) => `<div class="row leg"><span class="sw">${sw}</span><span class="nm">${name}<small>${what}</small></span></div>`;
+const tool = (g, name, key) => `<div class="row"><span class="gl">${g}</span><span class="nm">${name}</span>${key ? kbd(key) : `<span class="none">no key</span>`}</div>`;
+const help = `<div class="pane">
+  <div class="ph"><h3>Help</h3><span class="ib">${ic("x")}</span></div>
+  <div class="sh"><b>Marks on the page</b><i></i></div>
+  ${leg(`<i class="mk-br"></i>`, "Blue bracket in the margin", "The text Continue reads before it writes.")}
+  ${leg(`<span class="lore">Mara</span>`, "Lavender underline", "A name from your lore. Rest the pointer on it to see the entry.")}
+  ${leg(`<span class="hint">was</span>`, "Thin blue underline", "A writing hint. Rest the pointer on it to see why.")}
+  ${leg(`<span style="color:var(--ai-ink)">She</span>`, "Blue text", "Text the AI just wrote. It fades to normal ink.")}
+  <div class="sh"><b>Tools</b><i></i></div>
+  ${tool(ic("play"), "Continue", "⌘↵")}
+  ${tool(ic("pen"), "Edit selection", "⌘K")}
+  ${tool(ic("quote"), "Dialogue", "⌘⇧K")}
+  ${tool(ic("panel"), "Continue window", "")}
+  ${tool(`<span class="lore" style="font:13px/1 var(--serif)">Aa</span>`, "Open the nearest lore card", "⌥L")}
+  <div class="sh"><b>This chapter</b><i></i></div>
+  <div class="counts"><div><b>412</b><span>words</span></div><div><b>2,268</b><span>characters</span></div><div><b>9</b><span>lines</span></div></div>
+  <div class="row"><span class="nm">Continue model</span><span class="val">DeepSeek V4.1 Flash</span><a class="lnk">Change</a></div>
+</div>`;
+function frame(el) {
+  const s = el.dataset.state;
+  el.innerHTML = `
+  <div class="lrail"><span class="rb">${ic("home")}</span><span class="rb">${ic("lines")}</span></div>
+  <div class="top"><span class="path">The Ember Saga<i>›</i>Ashes of Dawn${s === "fail" ? `<span class="fail">Not saved</span><span class="ftip">The server did not answer. Your text is still on this page.</span>` : ""}</span></div>
+  <div class="sheet"><i class="bracket"></i>
+    <p>“I won’t go back,” she said — and meant it. The ’90s were over.</p>
+    <p><span class="lore">Mara</span> fell into the shape of a wall, cursing him, and all the saints that promised her salvation and didn’t.</p>
+    <p>The road out of <span class="lore">Emberhold</span> still smelled of the granary. The letter <span class="hint">was written</span> by a hand she knew.<span class="caret"></span></p>
+  </div>
+  <div class="rrail">
+    <span class="rb ${s === "default" ? "hov" : ""}">${ic("play")}</span>
+    <span class="rb">${ic("pen")}</span><span class="rb">${ic("quote")}</span><span class="rb">${ic("panel")}</span>
+    <span class="rb help ${s === "help" ? "on" : ""}">?</span>
+    <span class="rb">${ic("gear")}</span>
+  </div>
+  ${s === "default" ? `<div class="tip" style="top:17px">Continue ${kbd("⌘↵")}</div>` : ""}
+  ${s === "help" ? help : ""}`;
+}
+document.querySelectorAll(".frame").forEach(frame);
+</script>
+</body>
+</html>

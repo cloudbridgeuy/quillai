@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuillAI — Screenplay controls in the rails (static mockup)</title>
+<style>
+/* Tokens copied from app/src/ui/tokens.css */
+:root{
+  --paper:#FFFFFF;--desk:#F1EEE7;--ink:#1F2933;--slate:#4E6272;--graphite:#6F757C;--pencil:#A9ADB1;--rule:#EDE3D3;--alert:#B4412F;
+  --pi-yellow:#F4E8B5;--pi-pink:#F3D6D8;--pi-green:#D7E6D0;--pi-blue:#D2E2EC;--pi-lav:#E0D8EC;--st-blue:#7C9BB0;
+  --sheet-shadow:0 1px 2px rgba(31,41,51,.06),0 10px 34px rgba(31,41,51,.09);
+  --panel-shadow:0 0 40px rgba(31,41,51,.12);--popover-shadow:0 8px 30px rgba(31,41,51,.12);
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,monospace;
+  --hover-tint:rgba(31,41,51,.06); /* proposed in prototypes/manuscript-drawer */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e4e0d6;color:var(--ink);font:13px/1.5 var(--sans);padding:32px}
+h1{font:600 20px/1.3 var(--sans);margin:0 0 4px}
+h2{font:600 12px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 0 4px}
+.lede{color:var(--graphite);max-width:900px;margin:0 0 28px}
+section.state{width:1440px;margin:0 0 40px}
+section.state.w1100{width:1100px}
+.cap{color:var(--graphite);margin:0 0 10px;max-width:980px}
+.cap b{color:var(--ink);font-weight:600}
+.spec{font:12px/1.5 var(--mono);color:var(--slate);background:#f7f5f0;border-left:2px solid var(--st-blue);padding:8px 12px;margin:10px 0 0;white-space:pre-wrap}
+svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* editor frame */
+.frame{position:relative;background:var(--desk);height:760px;overflow:hidden;border-radius:2px}
+.lrail,.rrail{position:absolute;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0 12px;z-index:3}
+.lrail{left:0}.rrail{right:0}
+.rb{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite);opacity:.35}
+.rb.on{background:var(--pi-green);color:var(--ink);opacity:.95}
+.rrail .help{margin-top:auto;font:600 15px/1 var(--sans)}
+.rb.go{opacity:.95;color:var(--ink)}
+.cont{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;color:var(--ink)}
+.cont small{font-size:10px;line-height:1.3}
+.kbd{display:inline-block;font:10px/1.3 var(--mono);color:var(--graphite);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--paper);white-space:nowrap}
+
+/* NEW: line type rail control. The one labelled rail control; Continue is icon-only (prototypes/editor-chrome). */
+.lt{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 6px;color:var(--ink);border-radius:10px;position:relative}
+.lt small{font-size:10px;line-height:1.3;max-width:54px;text-align:center}
+.lt.on{background:var(--pi-green)}
+.lt .cap2{font-size:10px;line-height:1.3;color:var(--graphite)}
+.tip{position:absolute;right:64px;top:48px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:6}
+.tip .kbd{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35)}
+
+/* header: label left, path centre. Nothing else. */
+.top{position:absolute;top:10px;display:grid;grid-template-columns:1fr 3fr 1fr;align-items:center;color:var(--graphite)}
+.top .app{font:500 16px/1.5 var(--sans)}
+.top .st{text-align:center;font-size:12px;line-height:1.4}
+.top .st i{font-style:normal;color:var(--pencil);margin:0 6px}
+.sheet{position:absolute;top:64px;bottom:-20px;background:var(--paper);border:1px solid rgba(31,41,51,.07);box-shadow:var(--sheet-shadow);border-radius:2px 2px 0 0;padding:56px 84px;font:17px/1.6 var(--mono)}
+.sheet h3{font:600 13px/1.4 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--slate);text-align:center;margin:0 0 22px}
+.sheet p{margin:0 0 .7em;min-height:1.6em}
+.brk{border-top:1px solid var(--rule);font:12px/1.4 var(--sans);color:var(--graphite);margin:18px 0 10px;padding-top:4px}
+.brk:first-of-type{margin-top:0}
+.sh1{text-transform:uppercase;font-weight:600}
+.chr{text-transform:uppercase;text-align:center}
+.dlg{padding:0 64px}
+.par{padding:0 96px}
+.trn{text-transform:uppercase;text-align:right}
+.caret{display:inline-block;width:2px;height:1.15em;background:var(--slate);vertical-align:-.2em}
+.ghost{color:var(--pencil);margin-left:6px;text-transform:none;font-weight:400;white-space:nowrap}
+.ghost .kbd{color:var(--pencil);font-size:11px}
+
+/* line type menu */
+.ltm{position:absolute;right:64px;top:56px;width:216px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--popover-shadow);padding:10px 6px 8px;z-index:5;font-size:13px}
+.ltm.static{position:relative;right:auto;top:auto}
+.ltm h4{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);margin:0 6px 2px}
+.ltm .colh{display:flex;justify-content:space-between;color:var(--graphite);font-size:11px;line-height:1.3;margin:0 6px 4px}
+.ltm .r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px;border-radius:4px}
+.ltm .r b{display:block;font-weight:500;line-height:1.35}
+.ltm .r em{display:block;font-style:normal;font-size:11px;line-height:1.3;color:var(--graphite)}
+.ltm .r span.nx{flex:none;font-size:11px;line-height:1.3;color:var(--graphite);white-space:nowrap}
+.ltm .r.cur{background:var(--pi-green)}
+.ltm .r.hov{background:var(--hover-tint)}
+.keys{display:flex;flex-wrap:wrap;gap:4px 10px;margin:8px 6px 0;padding-top:8px;border-top:1px solid var(--rule);color:var(--graphite);font-size:11px;line-height:1.3}
+.keys span{white-space:nowrap}
+
+/* drawer, from prototypes/manuscript-drawer */
+.drawer{position:absolute;left:56px;top:0;bottom:0;width:300px;background:var(--paper);box-shadow:var(--sheet-shadow);padding:6px 12px 12px;display:flex;flex-direction:column;z-index:2}
+.drawer .grow{flex:1;min-height:0}
+.sh{display:flex;align-items:center;gap:8px;height:24px;margin:12px 0 4px}
+.sh b{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate);white-space:nowrap}
+.sh i{flex:1;height:1px;background:var(--rule)}
+.ib{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--graphite);position:relative}
+.ib.hov{background:var(--hover-tint);color:var(--ink)}
+.tr{position:relative;display:flex;align-items:center;gap:2px;height:28px;padding-right:2px;border-radius:4px;font-size:13px;line-height:1.5}
+.tr .tw{flex:none;width:16px;height:16px;color:var(--graphite)}
+.tr .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:2px}
+.tr .tk{flex:none;font-size:11px;line-height:1.3;color:var(--graphite);white-space:nowrap;padding:0 6px 0 8px}
+.tr .ta{display:none;flex:none}
+.tr.sel{background:var(--pi-blue)}
+.tr.hov{background:var(--hover-tint)}
+.tr.hov .ta{display:flex}.tr.hov .tk{display:none}
+.d0{padding-left:0}.d1{padding-left:14px}.d2{padding-left:28px}
+.tipb{position:absolute;z-index:6;top:-24px;right:0;background:var(--ink);color:var(--paper);font-size:11px;line-height:1.3;padding:3px 7px;border-radius:4px;white-space:nowrap}
+.ex{display:flex;align-items:center;gap:6px;min-height:30px;font-size:13px}
+.ex .el{flex:1;min-width:0;white-space:nowrap}
+.ex .eb{display:flex;gap:4px;flex:none}
+.cb{display:inline-flex;align-items:center;height:24px;padding:0 7px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap}
+.exnote{color:var(--graphite);font-size:11px;line-height:1.3;margin:2px 0 0}
+
+/* boards */
+.board{background:var(--desk);padding:24px;display:grid;gap:16px}
+.cols5{grid-template-columns:repeat(5,1fr)}.cols2{grid-template-columns:1fr 1fr}
+.panel{background:var(--paper);box-shadow:var(--sheet-shadow);padding:14px 16px;min-width:0}
+.panel h3{font:600 11px/1.3 var(--mono);color:var(--graphite);margin:0 0 10px}
+.panel .mini{font:14px/1.6 var(--mono);min-height:112px}
+.panel .mini p{margin:0 0 .4em;min-height:1.6em}
+.panel .mini{font-size:13px}.panel .mini .ghost{font-size:11px;margin-left:4px}.panel .mini .ghost .kbd{font-size:10px}.panel .mini .dlg{padding:0 12px}
+.panel .note{margin:10px 0 0;color:var(--graphite);font-size:12px;line-height:1.4}
+.old{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.old span{border:1px solid var(--rule);border-radius:7px;padding:5px 12px;font:600 12px/1.4 var(--sans);background:var(--paper)}
+table{border-collapse:collapse;font-size:13px;width:100%}
+td,th{text-align:left;padding:5px 12px 5px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate)}
+td.g{color:var(--graphite)}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="plus" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></symbol>
+  <symbol id="pen" viewBox="0 0 16 16"><path d="M3 13l.7-2.9L10.6 3.2l2.2 2.2-6.9 6.9L3 13zM9.3 4.5l2.2 2.2"/></symbol>
+  <symbol id="bin" viewBox="0 0 16 16"><path d="M3 4.5h10M6.3 4.5V3h3.4v1.5M4.4 4.5l.6 8.5h6l.6-8.5M6.8 7v3.6M9.2 7v3.6"/></symbol>
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+  <symbol id="down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="home" viewBox="0 0 16 16"><path d="M2.5 8L8 3l5.5 5M4 7v6h8V7"/></symbol>
+  <symbol id="lines" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></symbol>
+  <symbol id="play" viewBox="0 0 16 16"><path d="M5.5 3.5l6 4.5-6 4.5z" fill="currentColor"/></symbol>
+  <symbol id="quote" viewBox="0 0 16 16"><path d="M3 9.5c0-2.5 1.2-4 3-4.5M9 9.5c0-2.5 1.2-4 3-4.5M3 9.5h2.5V12H3zM9 9.5h2.5V12H9z"/></symbol>
+  <symbol id="panel" viewBox="0 0 16 16"><path d="M2.5 3.5h11v9h-11zM9.5 3.5v9"/></symbol>
+  <symbol id="gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2M3.8 3.8l1.4 1.4M10.8 10.8l1.4 1.4M3.8 12.2l1.4-1.4M10.8 5.2l1.4-1.4"/></symbol>
+  <symbol id="ltype" viewBox="0 0 16 16"><path d="M2.5 3.5h11M5 6.5h6M4 9.5h8M2.5 12.5h7"/></symbol>
+</svg>
+
+<h1>Screenplay controls in the rails</h1>
+<p class="lede">Static mockup. The row above the page (line type select, Download Fountain, Download FDX, New scene) is removed. Each control moves to the rail or drawer that already holds its prose equivalent. Nothing here is wired; hover and open states are drawn. Sample text is invented.</p>
+
+<section class="state" id="s01-1440-writing">
+  <h2>1 · Writing, 1440px, drawers closed</h2>
+  <p class="cap"><b>The header keeps only the app label and the path.</b> There is no save label and there are no counts (see prototypes/editor-chrome). The right rail shows the current line type under the Continue icon, with its key. An empty line names its own type and the next Tab step, as placeholder text that is never saved.</p>
+  <div class="frame" data-w="1440" data-state="write"></div>
+  <div class="spec">Line type control: full 56px rail width · glyph 16px · value 10px ink · kbd chip "Tab" · not muted (it is a status)
+Empty-line hint: --pencil, CSS placeholder only, never in the Delta · text: "{type}" + Tab chip + "{next type in the Tab cycle}"
+Header: QuillAI label left, path "universe › script title" centred. No buttons, no save label, no counts.
+Right rail: Continue is an icon button (name and key in its tooltip); Help "?" sits above the gear.</div>
+</section>
+
+<section class="state" id="s02-1440-line-type-menu">
+  <h2>2 · Line type menu, 1440px</h2>
+  <p class="cap"><b>Clicking the rail control opens the menu.</b> It lists the six types in Tab order, says in plain words what each is for, and shows what Enter gives next. Clicking a row changes the caret line. It replaces the select.</p>
+  <div class="frame" data-w="1440" data-state="menu"></div>
+  <div class="spec">Menu: 216px wide · right 64px · top 56px · popover shadow · rows in Tab cycle order (script_blocks.ts BLOCK_TYPES)
+"then" column = AFTER_ENTER map. Current row --pi-green (active tool). Esc, outside click or the rail control close it and restore the caret.
+Opening it closes either drawer (same rule as Settings).</div>
+</section>
+
+<section class="state" id="s03-1440-drawer">
+  <h2>3 · Manuscript drawer, 1440px: New scene and export</h2>
+  <p class="cap"><b>New scene is the + on the script row.</b> Scenes are rows under the script. <b>Fountain and FDX are a Script row in Exports</b>, in the place of the Chapter and Book rows.</p>
+  <div class="frame" data-w="1440" data-state="drawer"></div>
+  <div class="spec">Script row + → "Add scene" (no menu; appends after the last scene, focus goes to the outline as for a new chapter)
+Exports while a script is open: Script [Fountain] [FDX] · Backup [Download]. Chapter and Book rows are hidden.
+Sheet: 760px, centred in the desk left after 356px (rail + drawer) and 56px (right rail).</div>
+</section>
+
+<section class="state w1100" id="s04-1100-line-type-menu">
+  <h2>4 · Line type menu, 1100px</h2>
+  <p class="cap"><b>Same menu, same place.</b> The sheet is 700px wide here. The menu overlaps 72px of the sheet's 84px right padding and covers no text.</p>
+  <div class="frame" data-w="1100" data-state="menu"></div>
+  <div class="spec">1100px closed: sheet 700px, 200px desk each side. Menu spans 64px to 280px from the right edge.
+Below 1100px: the line type control and menu move into the document flow with the rails, as other panels do.</div>
+</section>
+
+<section class="state w1100" id="s05-1100-drawer">
+  <h2>5 · Manuscript drawer, 1100px</h2>
+  <p class="cap"><b>Drawer open at 1100px.</b> The sheet is 640px and both edges stay visible. The line type control stays on the right rail; its menu would cover text here, so opening the menu closes the drawer first.</p>
+  <div class="frame" data-w="1100" data-state="drawer"></div>
+</section>
+
+<section class="state" id="s06-enter-tab-flow">
+  <h2>6 · How Enter and Tab teach the flow</h2>
+  <p class="cap"><b>Five steps of one exchange.</b> Each panel shows the page, and the rail value at that moment. This is current behaviour (use_script_sync.ts Tab and Enter handling); only the hint and the rail value are new.</p>
+  <div class="board cols5" id="flow"></div>
+  <div class="board cols2">
+    <div class="panel"><h3>menu, drawn alone</h3><div id="menu-alone"></div></div>
+    <div class="panel"><h3>where each old control went</h3>
+      <table>
+        <tr><th>Old header control</th><th>New place</th></tr>
+        <tr><td>Line type select ("Action")</td><td>Right rail control + menu; Tab and Enter on the page</td></tr>
+        <tr><td>New scene button</td><td>Manuscript drawer, + on the script row</td></tr>
+        <tr><td>Download Fountain, Download FDX</td><td>Manuscript drawer, Exports, Script row</td></tr>
+        <tr><td>Save status</td><td>Gone while saving works; a red "Not saved" pill only when a save fails (prototypes/editor-chrome)</td></tr>
+        <tr><td>Counts</td><td>Help panel, "This script" section: scenes and pages</td></tr>
+      </table>
+      <p class="note">Removed row, for reference:</p>
+      <div class="old"><span>Action ▾</span><span>Download Fountain</span><span>Download FDX</span><span>New scene</span></div>
+    </div>
+  </div>
+</section>
+
+<script>
+const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const ib = (n, cls = "", extra = "") => `<span class="ib ${cls}">${ic(n)}${extra}</span>`;
+const TYPES = [
+  ["Scene heading", "Where and when", "Action"],
+  ["Action", "What we see", "Action"],
+  ["Character", "Who speaks", "Dialogue"],
+  ["Dialogue", "What they say", "Action"],
+  ["Parenthetical", "How they say it", "Dialogue"],
+  ["Transition", "How a scene ends", "Scene heading"],
+];
+function menu(cur, cls = "") {
+  return `<div class="ltm ${cls}"><h4>Line type</h4><div class="colh"><span>Type</span><span>Enter gives</span></div>`
+    + TYPES.map(([n, d, nx]) => `<div class="r ${n === cur ? "cur" : ""}"><span><b>${n}</b><em>${d}</em></span><span class="nx">↵ ${nx}</span></div>`).join("")
+    + `<div class="keys"><span><span class="kbd">Tab</span> next type</span><span><span class="kbd">⇧Tab</span> previous</span><span><span class="kbd">↵</span> new line</span></div></div>`;
+}
+function row(depth, tw, title, kind, o = {}) {
+  const twisty = `<span class="tw">${tw ? ic(tw) : ""}</span>`;
+  const plus = o.noPlus ? "" : ib("plus", o.plusCls || "", o.tip ? `<span class="tipb">${o.tip}</span>` : "");
+  return `<div class="tr d${depth} ${o.cls || ""}">${twisty}<span class="tt">${title}</span><span class="tk">${kind}</span><span class="ta">${plus}${ib("pen")}${ib("bin")}</span></div>`;
+}
+const heading = (label, icon, cls = "") => `<div class="sh"><b>${label}</b><i></i>${ib(icon, cls)}</div>`;
+const page = `
+  <h3>The Forge</h3>
+  <div class="brk">The forge at night</div>
+  <p class="sh1">INT. FORGE - NIGHT</p>
+  <p>Mara works the bellows. Sparks climb into the dark.</p>
+  <p class="chr">Tomas</p>
+  <p class="par">(from the door)</p>
+  <p class="dlg">You said you were done with blades.</p>
+  <p class="chr">Mara</p>
+  <p class="dlg"><span class="caret"></span><span class="ghost">Dialogue · <span class="kbd">Tab</span> Parenthetical</span></p>
+  <div class="brk">The road at dawn</div>
+  <p class="sh1">EXT. ROAD - DAWN</p>
+  <p>Tomas leads the mule. Mara does not look back.</p>`;
+function frame(el) {
+  const W = +el.dataset.w, state = el.dataset.state, open = state === "drawer";
+  const L = open ? 356 : 0, rem = W - L - (open ? 56 : 0);
+  const sw = open ? Math.min(760, rem - 48) : Math.min(760, W - 400);
+  const sl = L + (rem - sw) / 2;
+  el.innerHTML = `
+  <div class="lrail"><span class="rb">${ic("home")}</span><span class="rb ${open ? "on" : ""}">${ic("lines")}</span></div>
+  <div class="top" style="left:${sl}px;width:${sw}px"><span class="app">QuillAI</span><span class="st">Audit Universe<i>›</i>The Forge</span><span></span></div>
+  <div class="sheet" style="left:${sl}px;width:${sw}px">${page}</div>
+  <div class="rrail">
+    <span class="rb go">${ic("play")}</span>
+    <div class="lt ${state === "menu" ? "on" : ""}">${ic("ltype")}<small>Dialogue</small><span class="kbd">Tab</span></div>
+    <span class="rb">${ic("pen")}</span><span class="rb">${ic("quote")}</span><span class="rb">${ic("panel")}</span>
+    <span class="rb help">?</span><span class="rb">${ic("gear")}</span>
+  </div>
+  ${state === "write" ? `<div class="tip">Line type: Dialogue · <span class="kbd">Tab</span> changes it · <span class="kbd">↵</span> then Action</div>` : ""}
+  ${state === "menu" ? menu("Dialogue") : ""}
+  ${open ? `<div class="drawer">
+    ${heading("Manuscript", "plus")}
+    ${row(0, "down", "Audit Universe", "Universe")}
+    ${row(1, "down", "The Forge", "Script", { cls: "hov", plusCls: "hov", tip: "Add scene" })}
+    ${row(2, "", "The forge at night", "Scene", { cls: "sel", noPlus: true })}
+    ${row(2, "", "The road at dawn", "Scene", { noPlus: true })}
+    ${row(1, "right", "The Ember Saga", "Book series")}
+    ${heading("Series lore", "plus")}
+    ${row(0, "", "Mara Voss", "Character", { noPlus: true })}
+    ${row(0, "", "Tomas Reyne", "Character", { noPlus: true })}
+    ${row(0, "", "The forge", "Place", { noPlus: true })}
+    ${row(0, "", "Timeline", "2 points", { noPlus: true })}
+    <div class="grow"></div>
+    ${heading("Exports", "down")}
+    <div class="ex"><span class="el">Script</span><span class="eb"><span class="cb">Fountain</span><span class="cb">FDX</span></span></div>
+    <div class="ex"><span class="el">Backup</span><span class="eb"><span class="cb">Download</span></span></div>
+    <p class="exnote">Script: The Forge · 2 scenes</p>
+  </div>` : ""}`;
+}
+document.querySelectorAll(".frame").forEach(frame);
+const caret = `<span class="caret"></span>`, g = (t, n) => `<span class="ghost">${t} · <span class="kbd">Tab</span> ${n}</span>`;
+const steps = [
+  ["1 · empty line", "Action", `<p>${caret}${g("Action", "Character")}</p>`, "A new line after action is Action. The hint names the next Tab step."],
+  ["2 · press Tab", "Character", `<p class="chr">${caret}${g("Character", "Dialogue")}</p>`, "Tab moves to Character. The line centres and types in capitals."],
+  ["3 · type the name, Enter", "Dialogue", `<p class="chr">Mara</p><p class="dlg">${caret}${g("Dialogue", "Parenthetical")}</p>`, "Enter after a Character gives Dialogue. No Tab needed."],
+  ["4 · type the line, Enter", "Action", `<p class="chr">Mara</p><p class="dlg">I lied.</p><p>${caret}${g("Action", "Character")}</p>`, "Enter after Dialogue gives Action. Tab once for the next speaker."],
+  ["5 · Shift+Tab", "Scene heading", `<p class="chr">Mara</p><p class="dlg">I lied.</p><p class="sh1">${caret}${g("Scene heading", "Action")}</p>`, "Shift+Tab steps back: Action to Scene heading."],
+];
+document.getElementById("flow").innerHTML = steps.map(([h, v, body, note]) =>
+  `<div class="panel"><h3>${h}</h3><div class="mini">${body}</div><div style="display:flex;align-items:center;gap:8px;border-top:1px solid var(--rule);padding-top:8px"><span class="cap2" style="color:var(--graphite);font-size:11px">Rail shows</span><span class="lt" style="width:auto;padding:0;flex-direction:row;gap:6px">${ic("ltype")}<small style="max-width:none;font-size:12px">${v}</small></span></div><p class="note">${note}</p></div>`).join("");
+document.getElementById("menu-alone").innerHTML = menu("Character", "static");
+</script>
+</body>
+</html>

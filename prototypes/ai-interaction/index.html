@@ -48,9 +48,12 @@ section.state{width:1100px;margin:0 0 40px}
 .rail .cont{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;color:var(--ink);font-size:16px}
 .rail .cont small{font-size:10px;line-height:1.3}
 .rail .cont.stop{color:var(--ai-ink)}
-.rail .gear{margin-top:auto}
+.rail .ib.go{opacity:.95;color:var(--ink)} /* Continue idle: icon only, name in the tooltip (prototypes/editor-chrome) */
+.rail .help{margin-top:auto;font:600 15px/1 var(--sans)} /* Help "?" above the gear */
+.top{position:absolute;top:4px;text-align:center;color:var(--graphite);font-size:12px;line-height:1.4} /* header path */
+.top i{font-style:normal;color:var(--pencil);margin:0 6px}
 .kbd{display:inline-block;font:10px/1.3 var(--mono);color:var(--graphite);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--paper);white-space:nowrap}
-.tip{position:absolute;right:64px;top:12px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap}
+.tip{position:absolute;right:64px;top:17px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;padding:4px 8px;border-radius:4px;white-space:nowrap}
 .tip .kbd{background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35)}
 
 /* 1. AI ink */
@@ -145,12 +148,12 @@ section.state{width:1100px;margin:0 0 40px}
 </head>
 <body>
 <h1>QuillAI — AI interaction redesign</h1>
-<p class="lede">Static mockup for the owner's audit notes 1–7. Design only; no product code. All colours are existing tokens from <code>app/src/ui/tokens.css</code> except the new <code>--ai-*</code> tokens listed in state 11. Renders of each state are in <code>renders/</code>.</p>
+<p class="lede">Static mockup for the owner's audit notes 1–7. Design only; no product code. All colours are existing tokens from <code>app/src/ui/tokens.css</code> except the new <code>--ai-*</code> tokens listed in state 11. Renders of each state are in <code>renders/</code>. Header and rails follow <code>prototypes/editor-chrome</code>: series › book path, no save label, no counts, icon-only Continue, Help "?" above the gear.</p>
 
 <!-- 01 -->
 <section class="state" id="s01-continue-streaming">
 <h2>01 · Continue streaming — AI ink, origin mark, writing head</h2>
-<p class="cap"><b>Items 1 and 2.</b> Fresh AI text is <code>--ai-ink</code> (blue), clearly not author ink. A pin stays at the caret where Continue was triggered; a soft block shows where text is arriving. The rail Continue control is Stop, at full opacity, with its shortcut.</p>
+<p class="cap"><b>Items 1 and 2.</b> Fresh AI text is <code>--ai-ink</code> (blue), clearly not author ink. A pin stays at the caret where Continue was triggered; a soft block shows where text is arriving. The rail Continue control is Stop, at full opacity, with its shortcut. (Open in GUZ-1566: how Stop looks now that idle Continue is icon-only. The labelled Stop is kept here until that is decided.)</p>
 <div class="frame">
   <div class="bracket"></div><div class="gutter-tick" style="top:185px"></div>
   <div class="sheet">
@@ -159,7 +162,7 @@ section.state{width:1100px;margin:0 0 40px}
   </div>
   <div class="rail">
     <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
-    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 <div class="spec">origin mark: 2px --ai-ink bar + 8px dot at the insertion anchor, plus a 12px gutter tick. Overlay element positioned from the tracked anchor (same technique as the Continue bracket). Never Delta content.
@@ -189,17 +192,17 @@ Settings "Tint AI text" off: plain ink throughout; origin mark and writing head 
 <!-- 03 -->
 <section class="state" id="s03-continue-idle">
 <h2>03 · Continue control — placement and shortcut</h2>
-<p class="cap"><b>Item 2.</b> Recommendation: Continue stays at the top of the right rail. It is a fixed target that never covers prose, and the doc rule "one Continue control, no inline Continue button" stands. What changes: the Continue control is no longer muted with the rest of the rail, and it shows its shortcut. The shortcut is the at-caret trigger; the origin mark is the at-caret feedback.</p>
+<p class="cap"><b>Item 2.</b> Recommendation: Continue stays at the top of the right rail. It is a fixed target that never covers prose, and the doc rule "one Continue control, no inline Continue button" stands. What changes: the Continue control is no longer muted with the rest of the rail. It is an icon button like the others; its name and shortcut are in the tooltip (drawn here as on hover) and in Help. The shortcut is the at-caret trigger; the origin mark is the at-caret feedback.</p>
 <div class="frame" style="height:230px">
   <div class="bracket" style="height:150px"></div>
   <div class="sheet"><p>"We go around," he said.<span class="caret" style="height:1.2em;width:2px;background:var(--slate)"></span></p></div>
   <div class="tip">Continue from the caret <span class="kbd">⌘↵</span> · press again to stop</div>
   <div class="rail">
-    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
-    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib go">▸</div>
+    <div class="ib">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
-<div class="spec">Ctrl/Cmd+Enter   Continue / Stop                (exists; now shown on the control and in its tooltip)
+<div class="spec">Ctrl/Cmd+Enter   Continue / Stop                (exists; now shown in the tooltip and in Help)  
 Ctrl/Cmd+K       Edit selection                 (exists; tooltip shows it)
 Ctrl/Cmd+Shift+K Dialogue box                   (NEW; reverses "no shortcut in this build" for Dialogue: owner decision)
 Ctrl/Cmd+Enter   Complete, inside the lore field (exists in spec)
@@ -223,8 +226,8 @@ Esc              closes panels only; it does not stop a run (unchanged)</div>
     <div class="keys"><span><span class="kbd">⇧↵</span> new line</span><span><span class="kbd">Esc</span> close</span></div>
   </div>
   <div class="rail">
-    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
-    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib go">▸</div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 </section>
@@ -246,7 +249,7 @@ Esc              closes panels only; it does not stop a run (unchanged)</div>
   </div>
   <div class="rail">
     <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
-    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 <div class="spec">::highlight(quillai-edit-target) { background: var(--ai-target-color) }   new highlight name, separate from quillai-edit-selection (pink)
@@ -271,7 +274,7 @@ reduced motion: static --ai-target fill with a 2px --st-blue underline; no pulse
   </div>
   <div class="rail">
     <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
-    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib on" style="background:var(--pi-pink)">✎</div><div class="ib">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 </section>
@@ -297,8 +300,8 @@ reduced motion: static --ai-target fill with a 2px --st-blue underline; no pulse
     <div class="keys"><span><span class="kbd">⇧↵</span> new line</span><span><span class="kbd">Esc</span> close</span></div>
   </div>
   <div class="rail">
-    <div class="cont"><span>▸</span><small>Continue</small><span class="kbd">⌘↵</span></div>
-    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib go">▸</div>
+    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 </section>
@@ -322,7 +325,7 @@ reduced motion: static --ai-target fill with a 2px --st-blue underline; no pulse
   </div>
   <div class="rail">
     <div class="cont stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>
-    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib gear">⚙</div>
+    <div class="ib">✎</div><div class="ib on lav">❝</div><div class="ib">◫</div><div class="ib help">?</div><div class="ib">⚙</div>
   </div>
 </div>
 </section>
@@ -451,5 +454,9 @@ Open: a preset Base URL is hidden behind "Default endpoint" here. The API still 
 <div class="spec">New tokens (tokens.css):  --ai-ink #2E6E96 · --ai-target var(--pi-blue) · --ai-target-soft #E9F1F6 · --ai-fade-hold 1.5s · --ai-fade-duration 10s · --ai-fade-ease cubic-bezier(.4,0,.6,1) · --ai-pulse 1.6s
 Changed: --ai-stream-color initial value and streaming value move from --slate to --ai-ink.</div>
 </section>
+<script>
+/* header path, centred over each frame's sheet (prototypes/editor-chrome) */
+document.querySelectorAll(".frame").forEach(f => { const s = f.querySelector(".sheet"); const t = document.createElement("div"); t.className = "top"; t.style.left = s.offsetLeft + "px"; t.style.width = s.offsetWidth + "px"; t.innerHTML = "The Ember Saga<i>›</i>Ashes of Dawn"; f.appendChild(t); });
+</script>
 </body>
 </html>

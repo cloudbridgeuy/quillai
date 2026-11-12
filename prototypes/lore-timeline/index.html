@@ -31,7 +31,9 @@ svg.i{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-
 .lrail{position:absolute;left:0;top:0;bottom:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0}
 .lrail span{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--graphite)}
 .lrail span.on{background:var(--pi-green);color:var(--ink)}
-.top{position:absolute;left:0;right:0;top:10px;text-align:center;color:var(--graphite);font-size:11px;line-height:1.3}
+/* header: series › book path only; no save label, no counts (prototypes/editor-chrome) */
+.top{position:absolute;left:0;right:0;top:14px;text-align:center;color:var(--graphite);font-size:12px;line-height:1.4}
+.top i{font-style:normal;color:var(--pencil);margin:0 6px}
 .sheet{position:absolute;left:50%;margin-left:-300px;top:48px;bottom:-20px;width:600px;background:var(--paper);box-shadow:var(--sheet-shadow);border-radius:2px;padding:40px 56px;font:21px/1.75 var(--serif)}
 .sheet p{margin:0 0 .6em}
 .scrim{position:absolute;inset:0;background:rgba(31,41,51,.2)}
@@ -217,7 +219,7 @@ A state has a name, visible text and hidden notes. It has no "In AI requests" le
 const ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
 const ib = (n, cls = "", extra = "") => `<span class="ib ${cls}">${ic(n)}${extra}</span>`;
 const desk = dim => `<div class="lrail"><span>${ic("home")}</span><span class="on">${ic("lines")}</span></div>
-  <div class="top">Saved<br>412 words · 2,268 characters · 9 lines</div>
+  <div class="top">The Ember Saga<i>›</i>Ashes of Dawn</div>
   <div class="sheet"><p>“I won’t go back,” she said — and meant it. The ’90s were over.</p><p>She fell into the shape of a wall, cursing him, and all the saints that promised her salvation and didn’t.</p><p>The road out of Emberhold still smelled of the granary.</p></div>${dim ? `<div class="scrim"></div>` : ""}`;
 const trow = (d, tw, t, k, cls = "") => `<div class="tr d${d} ${cls}"><span class="tw">${tw ? ic(tw) : ""}</span><span class="tt">${t}</span><span class="tk">${k}</span></div>`;
 const lrow = (name, kind, state, since) => `<div class="lr"><div class="l1"><span>${name}</span><small>${kind}</small></div><div class="l2">`
