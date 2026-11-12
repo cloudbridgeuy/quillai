@@ -24,8 +24,37 @@ export const Pressed: Story = {
   },
 };
 
-export const WithBadge: Story = { name: "With badge", args: { badge: <span className="text-micro">3</span> } };
+export const WithBadge: Story = {
+  name: "With badge",
+  args: { badge: <span className="text-micro">3</span> },
+  play: ({ canvasElement }) => {
+    const button = canvasElement.querySelector("button");
+    if (button?.getAttribute("aria-label") !== "Bookmark") throw new Error("badge must not replace the accessible name");
+    if (button.querySelector("span")?.textContent !== "3") throw new Error("badge missing");
+  },
+};
 
-export const Continue: Story = { args: { kind: "continue", label: "Continue", glyph: "→" } };
+export const Continue: Story = {
+  args: { kind: "continue", label: "Continue", glyph: "→" },
+  play: ({ canvasElement }) => {
+    const button = canvasElement.querySelector("button");
+    if (!button) throw new Error("missing button");
+    if (button.getAttribute("aria-label") !== "Continue") throw new Error(`expected accessible name Continue, got ${button.getAttribute("aria-label")}`);
+    if (button.getAttribute("title") !== "Continue") throw new Error(`expected tooltip Continue, got ${button.getAttribute("title")}`);
+    if (button.textContent?.includes("Continue")) throw new Error(`expected icon only, got ${button.textContent}`);
+    if (!button.className.includes("size-9")) throw new Error("expected the shared icon size");
+  },
+};
+
+export const ContinueBadge: Story = {
+  name: "Continue badge",
+  args: { kind: "continue", label: "Continue", glyph: "→", badge: <span role="img" aria-label="from a cut-off reply" /> },
+  play: ({ canvasElement }) => {
+    const button = canvasElement.querySelector("button");
+    if (button?.getAttribute("aria-label") !== "Continue") throw new Error("badge must not replace the accessible name");
+    if (button.querySelector("[role=img]")?.getAttribute("aria-label") !== "from a cut-off reply") throw new Error("badge missing");
+    if (button.textContent?.includes("Continue")) throw new Error("expected icon only");
+  },
+};
 
 export const Disabled: Story = { args: { disabled: true } };

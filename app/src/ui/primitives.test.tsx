@@ -59,23 +59,32 @@ describe("ButtonLink", () => {
 });
 
 describe("IconButton", () => {
-  test("kinds", () => {
+  test("icon size", () => {
     expect(iconButtonClassName({})).toContain("size-9");
-    expect(iconButtonClassName({ kind: "continue" })).toContain("w-14");
+    expect(iconButtonClassName({ className: "extra" })).toEndWith("extra");
   });
 
-  test("Continue label, accessible name and badge", () => {
+  test("Continue is icon-only, with its name in the tooltip", () => {
     const html = renderToStaticMarkup(<IconButton label="Continue" aria-label="Continue writing" glyph="➤" kind="continue" badge={<span>Pending</span>} />);
     expect(html).toContain('aria-label="Continue writing"');
-    expect(html).toContain('>Continue</span><span>Pending</span>');
-    expect(renderToStaticMarkup(<IconButton label="Continue" glyph="➤" kind="continue" />)).toContain('aria-label="Continue"');
+    expect(html).toContain('title="Continue"');
+    expect(html).not.toContain(">Continue<");
+    expect(html).toContain(">Pending<");
+    const idle = renderToStaticMarkup(<IconButton label="Continue" glyph="➤" kind="continue" />);
+    expect(idle).toContain('aria-label="Continue"');
+    expect(idle).toContain('title="Continue"');
+    expect(idle).toContain("size-9");
+    expect(idle).not.toContain("w-14");
   });
 
   test("label and pressed", () => {
     const html = renderToStaticMarkup(<IconButton label="Open" glyph="+" pressed />);
     expect(html).toContain('aria-label="Open"');
     expect(html).toContain('aria-pressed="true"');
-    expect(renderToStaticMarkup(<IconButton label="Open" glyph="+" kind="continue" />)).toContain("<span");
+    expect(html).not.toContain("title=");
+    const named = renderToStaticMarkup(<IconButton label="Open" glyph="+" kind="continue" />);
+    expect(named).toContain('title="Open"');
+    expect(named).not.toContain(">Open<");
   });
 });
 

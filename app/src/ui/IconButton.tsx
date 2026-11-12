@@ -9,23 +9,21 @@ type IconButtonProps = Omit<ComponentProps<"button">, "children"> & {
   kind?: "continue";
 };
 
-export function iconButtonClassName({ kind, className }: Pick<IconButtonProps, "kind" | "className">): string {
+export function iconButtonClassName({ className }: Pick<IconButtonProps, "className">): string {
   return cx(
-    "shrink-0 rounded-icon border-0 bg-transparent text-graphite transition-colors",
+    "relative shrink-0 size-9 rounded-icon border-0 bg-transparent text-title text-graphite transition-colors",
     "hover:bg-pi-pink hover:text-ink focus-visible:bg-pi-pink focus-visible:text-ink",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "aria-pressed:bg-pi-green aria-pressed:text-ink",
-    kind === "continue" ? "flex min-h-12 w-14 flex-col items-center gap-1 py-1 text-title" : "size-9 text-title",
     className,
   );
 }
 
-export function IconButton({ label, glyph, badge, pressed, kind, className, type = "button", ...props }: IconButtonProps) {
+export function IconButton({ label, glyph, badge, pressed, kind, className, type = "button", title, ...props }: IconButtonProps) {
   return (
-    <button {...props} type={type} aria-label={props["aria-label"] ?? label} aria-pressed={pressed} className={iconButtonClassName({ kind, className })}>
+    <button {...props} type={type} aria-label={props["aria-label"] ?? label} title={title ?? (kind === "continue" ? label : undefined)} aria-pressed={pressed} className={iconButtonClassName({ className })}>
       {glyph}
-      {kind === "continue" ? <span className="text-micro">{label}</span> : null}
-      {badge}
+      {badge ? <span className="absolute top-0 right-0">{badge}</span> : null}
     </button>
   );
 }
