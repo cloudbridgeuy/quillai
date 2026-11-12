@@ -329,7 +329,6 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   await page.setViewportSize({ width: 1100, height: 1000 });
   await page.goto(`/?${new URLSearchParams({ apiBaseUrl: apiUrl, seriesId: String(series.id), bookId: String(book.id), chapterId: String(chapter.id) })}`);
   const editor = page.locator(".ql-editor");
-  const status = page.getByRole("status", { name: "Chapter save status", exact: true });
   const gear = page.getByRole("button", { name: "Settings", exact: true });
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await expectSaved(page);
@@ -370,28 +369,12 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(status).toBeInViewport();
+    await expectSaved(page);
+    await expect(page.getByText("Saved", { exact: true })).toBeHidden();
     const sheet = await page.locator(".editor-page").boundingBox();
-    const label = await status.boundingBox();
-    if (!sheet || !label) throw new Error("Missing sheet or status");
+    if (!sheet) throw new Error("Missing sheet");
     savedSheetTops.set(width, sheet.y);
-    expect(label.y + label.height).toBeLessThan(sheet.y);
-    expect(Math.abs(label.x + label.width / 2 - sheet.x - sheet.width / 2)).toBeLessThan(1);
-    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/saved-${width}.png` });
-    await gear.click();
-    await expect(settings).toBeVisible();
-    await expect(status).toBeInViewport();
-    const prose = await editor.boundingBox();
-    const popover = await settings.boundingBox();
-    if (!prose || !popover) throw new Error("Missing prose or settings");
-    expect(prose.x + prose.width).toBeLessThan(popover.x);
-    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/gear-${width}.png` });
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
   }
-  await page.evaluate(() => window.scrollTo(0, 400));
-  const scrolledStatus = await status.boundingBox();
-  expect(scrolledStatus?.y).toBeLessThan(0);
-  await page.evaluate(() => window.scrollTo(0, 0));
   let saveAttempts = 0;
   await page.route(`${chaptersUrl}/${chapter.id}/deltas`, async (route) => {
     if (route.request().method() !== "POST") return route.continue();
@@ -411,21 +394,50 @@ test("settings persist outside the sheet and failed saves show the red recovery 
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveAttribute("aria-live", "assertive");
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveCSS("background-color", "rgb(180, 65, 47)");
   await expect(page.getByRole("alert", { name: "Chapter save status", exact: true })).toHaveCSS("color", "rgb(255, 255, 255)");
+  const pill = page.getByRole("alert", { name: "Chapter save status", exact: true });
+  const title = page.locator(".editor-chapter-title");
+  const toolbar = page.locator(".editor-page .ql-toolbar");
+  const clearOfChrome = async () => {
+    const pillBox = await pill.boundingBox();
+    if (!pillBox) throw new Error("Missing failure pill");
+    for (const chrome of [title, toolbar]) {
+      const box = await chrome.boundingBox();
+      if (!box) throw new Error("Missing editor chrome");
+      const apart = pillBox.x + pillBox.width <= box.x || box.x + box.width <= pillBox.x
+        || pillBox.y + pillBox.height <= box.y || box.y + box.height <= pillBox.y;
+      expect(apart).toBe(true);
+    }
+  };
   for (const width of [1100, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(pill).toBeVisible();
     const sheet = await page.locator(".editor-page").boundingBox();
-    const pill = await page.getByRole("alert", { name: "Chapter save status", exact: true }).boundingBox();
-    if (!sheet || !pill) throw new Error("Missing sheet or failure pill");
+    const pillBox = await pill.boundingBox();
+    if (!sheet || !pillBox) throw new Error("Missing sheet or failure pill");
     const savedTop = savedSheetTops.get(width);
     if (savedTop === undefined) throw new Error("Missing saved sheet top");
     expect(Math.abs(sheet.y - savedTop)).toBeLessThanOrEqual(1);
     console.log(JSON.stringify({ width, savedSheetTop: savedTop, failedSheetTop: sheet.y }));
-    expect(pill.y + pill.height).toBeLessThan(sheet.y);
-    expect(pill.x).toBeGreaterThanOrEqual(56);
-    expect(pill.x + pill.width).toBeLessThanOrEqual(width - 56);
+    expect(pillBox.y + pillBox.height).toBeLessThan(sheet.y);
+    expect(pillBox.x).toBeGreaterThanOrEqual(56);
+    expect(pillBox.x + pillBox.width).toBeLessThanOrEqual(width - 56);
+    await clearOfChrome();
     await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/failed-${width}.png` });
+    await gear.click();
+    await expect(settings).toBeVisible();
+    await expect(pill).toBeInViewport();
+    const prose = await editor.boundingBox();
+    const popover = await settings.boundingBox();
+    if (!prose || !popover) throw new Error("Missing prose or settings");
+    expect(prose.x + prose.width).toBeLessThan(popover.x);
+    await page.screenshot({ path: `../target/guz-758/${test.info().project.name}/gear-${width}.png` });
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await expect(settings).toBeHidden();
   }
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await clearOfChrome();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByRole("button", { name: "Manuscript", exact: true }).click();
   await expect(page.getByRole("region", { name: "Manuscript outline", exact: true }).getByRole("button", { name: "Settings chapter", exact: true })).toBeVisible();
   const download = page.waitForEvent("download");
