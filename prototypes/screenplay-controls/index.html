@@ -118,6 +118,67 @@ table{border-collapse:collapse;font-size:13px;width:100%}
 td,th{text-align:left;padding:5px 12px 5px 0;border-bottom:1px solid var(--rule);vertical-align:top}
 th{font:600 11px/1.3 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--slate)}
 td.g{color:var(--graphite)}
+
+/* ===== GUZ-1613/1614 follow-up: standard page, one font, AI stream in a script ===== */
+:root{
+  /* proposed tokens */
+  --font-script:"Courier Prime",Courier,"Courier New",monospace; /* one face for every script line */
+  --text-script:17px;--text-script-lh:1.2;                        /* 1ch = 10.2px, 60ch = 612px */
+  --text-script-tight:16px;                                       /* sheet narrower than 660px: 60ch = 576px */
+  /* copied from prototypes/ai-interaction (GUZ-1605) */
+  --ai-ink:#2E6E96;--ai-target:var(--pi-blue);--ai-target-soft:#E9F1F6;--ai-pulse:1.6s;
+}
+.sframe{position:relative;background:var(--desk);height:760px;overflow:hidden;border-radius:2px}
+.sframe.tall{height:880px}
+.sheet.std{padding:48px 0;font:var(--text-script)/var(--text-script-lh) var(--font-script)}
+.sheet.std.tight{font-size:var(--text-script-tight)}
+.sheet.std.scrolled{top:-640px;border-radius:0}
+.std .col{width:60ch;margin:0 auto;position:relative}
+.std h3{font:600 13px/1.4 var(--sans)}
+.std p{margin:1lh 0 0;min-height:1lh}
+.std .sh1{font-weight:400}
+.std .chr{text-align:left;margin-left:22ch}
+.std .par{padding:0;margin-top:0;margin-left:16ch;max-width:20ch}
+.std .dlg{padding:0;margin-top:0;margin-left:10ch;max-width:35ch}
+.std .trn{text-align:right}
+.std .brk{margin:1lh 0 0;padding-top:4px;min-height:0}
+.std .brk.bare{padding:0;font-size:0;line-height:0}
+.std .brk:first-of-type{margin-top:0}
+.std .brk + p{margin-top:.6lh}
+.std .ghost{font:12px/1.4 var(--sans)}
+.ruler{position:absolute;left:0;right:0;top:-30px;height:22px;font:10px/1.3 var(--sans);color:var(--st-blue);pointer-events:none}
+.ruler i{position:absolute;top:0;bottom:-2000px;border-left:1px dashed rgba(124,155,176,.55);padding-left:3px;font-style:normal;white-space:nowrap}
+/* AI marks, same drawing as prototypes/ai-interaction */
+.ai{color:var(--ai-ink)}
+.mark{position:relative;display:inline-block;width:0;height:1em;vertical-align:baseline}
+.mark::before{content:"";position:absolute;left:-1px;top:-.2em;width:2px;height:1.3em;background:var(--ai-ink);border-radius:1px}
+.mark::after{content:"";position:absolute;left:-4px;top:-.45em;width:8px;height:8px;border-radius:999px;background:var(--ai-ink);box-shadow:0 0 0 4px rgba(46,110,150,.18);animation:mark-pulse var(--ai-pulse) ease-in-out infinite}
+@keyframes mark-pulse{0%,100%{box-shadow:0 0 0 0 rgba(46,110,150,.45)}50%{box-shadow:0 0 0 6px rgba(46,110,150,0)}}
+.head{display:inline-block;width:.6em;height:1em;margin-left:1px;vertical-align:-.12em;background:var(--ai-ink);opacity:.55;border-radius:1px}
+.gtick{position:absolute;left:-30px;width:12px;height:2px;background:var(--ai-ink)}
+.bracket{position:absolute;left:-24px;width:9px;border:2px solid var(--st-blue);border-right:0;border-radius:7px 0 0 7px;opacity:.6}
+.sel-target{background:var(--ai-target);box-shadow:0 2px 0 var(--st-blue);animation:target-pulse var(--ai-pulse) ease-in-out infinite}
+@keyframes target-pulse{0%,100%{background:var(--ai-target)}50%{background:var(--ai-target-soft)}}
+.stop{width:56px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;color:var(--ai-ink);font-size:14px;line-height:1.2}
+.stop small{font-size:10px;line-height:1.3}
+.lt.locked{opacity:.5}
+.cols4{grid-template-columns:repeat(4,1fr)}.cols3{grid-template-columns:repeat(3,1fr)}
+.panel .smini{font:12px/1.2 var(--font-script);min-height:150px;width:30ch;max-width:100%;position:relative}
+.panel .smini p{margin:1lh 0 0;min-height:1lh}
+.panel .smini .chr{text-align:left;margin-left:11ch}
+.panel .smini .par{padding:0;margin-top:0;margin-left:8ch}
+.panel .smini .dlg{padding:0;margin-top:0;margin-left:5ch;max-width:22ch}
+.railnow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--rule);padding-top:8px;margin-top:10px;color:var(--graphite);font-size:11px}
+.railnow b{color:var(--ink);font-weight:500;font-size:12px}
+.railnow .s{color:var(--ai-ink);font-weight:500;font-size:12px}
+.was{position:relative;border:1px solid var(--rule);padding:10px 12px 10px 40px;min-height:118px;overflow:hidden}
+.was .tb{display:flex;gap:12px;color:var(--graphite);font:13px/1.5 var(--sans);border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:8px}
+.was .t1{font:12px/1.4 var(--sans);color:var(--graphite)}
+.was .t2{font:600 15px/1.4 var(--mono)}
+.was .t3{font:15px/1.6 var(--serif)}
+.was .ml{position:absolute;left:-20px;top:46px;font:600 10px/1.3 var(--serif);text-decoration:underline}
+.strike{text-decoration:line-through;color:var(--graphite)}
+td code,.cap code{font:12px/1.4 var(--mono)}
 </style>
 </head>
 <body>
@@ -198,6 +259,85 @@ Below 1100px: the line type control and menu move into the document flow with th
       </table>
       <p class="note">Removed row, for reference:</p>
       <div class="old"><span>Action ▾</span><span>Download Fountain</span><span>Download FDX</span><span>New scene</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="state" id="s07-1440-standard-page">
+  <h2>7 · Standard page, 1440px: one font, no toolbar, no repeated title</h2>
+  <p class="cap"><b>Every line is the script font at one size.</b> The column is 60 characters wide, as on a US Letter page (6.0in of text at 10 characters per inch). Indents are counted in characters from the column's left edge. The formatting toolbar is gone. The rule above a scene shows the scene title only when it differs from the heading line under it. The dashed guides are drawn for this mockup only.</p>
+  <div class="sframe tall" data-w="1440" data-state="std" data-ruler="1"></div>
+  <div class="spec">.ql-editor (script) : font var(--text-script)/var(--text-script-lh) var(--font-script) = 17px/1.2 · column width 60ch, centred in the 760px sheet (74px each side)
+action, scene heading : margin-left 0 · width 60ch · one blank line above (margin-top 1lh)
+character             : margin-left 22ch · left aligned, not centred · uppercase · dialogue follows with no blank line
+parenthetical         : margin-left 16ch · max-width 20ch · margin-top 0
+dialogue              : margin-left 10ch · max-width 35ch · margin-top 0
+transition            : text-align right · uppercase
+scene heading weight 400 (was 600). Uppercase stays display-only (text-transform); stored text is as typed.
+Toolbar: not rendered for a script. ⌘B ⌘I ⌘U still work. Break rule: title text only when title ≠ first heading line (trimmed, case-insensitive).</div>
+</section>
+
+<section class="state w1100" id="s08-1100-standard-page">
+  <h2>8 · Standard page, 1100px</h2>
+  <p class="cap"><b>Same 60-character column at 1100px.</b> The sheet is 700px; the column is 612px and leaves 44px each side. With the manuscript drawer open the sheet is 640px, so the size steps down to 16px (column 576px, 32px each side). Line breaks do not change between the two sizes, because every width is in characters.</p>
+  <div class="sframe" data-w="1100" data-state="std"></div>
+  <div class="spec">@container sheet (max-width: 659px) { font-size: var(--text-script-tight) }   16px · 1ch 9.6px · 60ch 576px
+Below 600px sheet width the column wraps early; page counts come from the 60ch model, not from screen wraps.</div>
+</section>
+
+<section class="state" id="s09-1440-scrolled">
+  <h2>9 · Scrolled down the script, 1440px</h2>
+  <p class="cap"><b>The header has scrolled away and nothing is lost.</b> The header holds only the app label and the path. The line type is in the right rail, which does not scroll, so it is still in view and still follows the caret (here on a Character line).</p>
+  <div class="sframe" data-w="1440" data-state="scrolled"></div>
+  <div class="spec">Rails: position fixed to the viewport (unchanged). Line type control reads the caret line on every selection change.
+Old top-bar select: removed (state 6 table). Nothing that reacts to the caret is left in the header.</div>
+</section>
+
+<section class="state" id="s10-1440-continue-streaming">
+  <h2>10 · Continue streaming into a script, 1440px</h2>
+  <p class="cap"><b>Continue writes the next speaker and their line.</b> The pin stays at the caret where Continue was pressed, with its gutter tick. Each streamed line lands in its own block type as it arrives: the name at the character indent, the parenthetical and the speech at theirs. Fresh text is AI ink (blue). The writing block marks the end of the stream. The rail shows Stop.</p>
+  <div class="sframe" data-w="1440" data-state="stream"></div>
+  <div class="spec">Block type while a line is still arriving: line 1 of the run = character · a line starting "(" = parenthetical · any other line = dialogue. Decided at the line's first character, so no line jumps indent mid-stream.
+Pin, gutter tick, writing block, --ai-ink, fade (1.5s hold, 10s to --ink): as prototypes/ai-interaction states 01–02. Overlays only; never Delta content.
+Editor is locked during the run (docs/editor-design.md:279). The line type control is dimmed and keeps the caret line's type. No model label on the page.</div>
+</section>
+
+<section class="state" id="s11-stream-steps">
+  <h2>11 · The stream, step by step, and Edit in a script</h2>
+  <p class="cap"><b>Four moments of one Continue run, then an Edit run on a speech.</b> Each panel shows the page and what the right rail shows at that moment.</p>
+  <div class="board cols5" id="steps2"></div>
+</section>
+
+<section class="state" id="s12-standard-and-decisions">
+  <h2>12 · Standard values, and four things on the live page</h2>
+  <p class="cap"><b>Left: the print standard and what we draw.</b> Print values are for 12pt Courier (10 characters per inch, 6 lines per inch) on US Letter. <b>Right: the four items from the owner's screenshot.</b></p>
+  <div class="board cols2">
+    <div class="panel"><h3>format</h3>
+      <table>
+        <tr><th>Element</th><th>Print, from page left</th><th>On screen</th><th>Caps</th></tr>
+        <tr><td>Page</td><td class="g">12pt Courier · margins 1.5in left, 1in top, right, bottom · about 55 lines</td><td><code>60ch</code> column · 17px/1.2</td><td class="g"></td></tr>
+        <tr><td>Scene heading</td><td class="g">1.5in</td><td><code>0</code> · 60ch</td><td>All caps</td></tr>
+        <tr><td>Action</td><td class="g">1.5in</td><td><code>0</code> · 60ch</td><td class="g">Sentence case</td></tr>
+        <tr><td>Character</td><td class="g">3.7in</td><td><code>22ch</code></td><td>All caps</td></tr>
+        <tr><td>Parenthetical</td><td class="g">3.1in · up to 2in wide</td><td><code>16ch</code> · max 20ch</td><td class="g">Lower case</td></tr>
+        <tr><td>Dialogue</td><td class="g">2.5in · 35 characters wide</td><td><code>10ch</code> · max 35ch</td><td class="g">Sentence case</td></tr>
+        <tr><td>Transition</td><td class="g">Flush right</td><td><code>text-align:right</code></td><td>All caps, ends "TO:"</td></tr>
+        <tr><td>Spacing</td><td class="g">Single spaced · one blank line between elements · none between character, parenthetical and dialogue</td><td><code>margin-top:1lh</code> or <code>0</code></td><td class="g"></td></tr>
+      </table>
+      <p class="note">Sources and dates are in the hand-off report. Screen line height 1.2 is a reading allowance; print is 1.0.</p>
+    </div>
+    <div class="panel"><h3>live page today → decision</h3>
+      <div class="was"><span class="ml">4.1 Flash</span>
+        <div class="tb"><span>Normal ▾</span><b>B</b><i>I</i><u>U</u><span>🔗</span><span>≡</span><span>≡</span><span>Tx</span></div>
+        <div class="t1">INT. FORGE - NIGHT</div><div class="t2">INT. FORGE - NIGHT</div><div class="t3">Coals pulse under a hood of black iron.</div>
+      </div>
+      <table style="margin-top:10px">
+        <tr><th>Item</th><th>Bug or design</th><th>Decision</th></tr>
+        <tr><td>Formatting toolbar</td><td class="g">Design gap. It is the prose toolbar; headings, lists and links have no script meaning.</td><td>Not shown for a script. Bold, italic and underline stay on their keys.</td></tr>
+        <tr><td>Title above the same heading</td><td class="g">Built as designed (the break rule draws the scene title), but wrong when both read the same.</td><td>Rule only when title equals the heading; title shown when it differs.</td></tr>
+        <tr><td>Clipped "4.1 Flash"</td><td class="g">Bug. The label hangs left of the Continue bracket and is cut by the sheet edge.</td><td>Removed from the page. Model name is in Help (prototypes/editor-chrome).</td></tr>
+        <tr><td>Two fonts</td><td class="g">Bug. Action has no block class, so it kept the prose serif.</td><td>The script surface sets the font once, on the editor.</td></tr>
+      </table>
     </div>
   </div>
 </section>
@@ -285,6 +425,92 @@ const steps = [
 document.getElementById("flow").innerHTML = steps.map(([h, v, body, note]) =>
   `<div class="panel"><h3>${h}</h3><div class="mini">${body}</div><div style="display:flex;align-items:center;gap:8px;border-top:1px solid var(--rule);padding-top:8px"><span class="cap2" style="color:var(--graphite);font-size:11px">Rail shows</span><span class="lt" style="width:auto;padding:0;flex-direction:row;gap:6px">${ic("ltype")}<small style="max-width:none;font-size:12px">${v}</small></span></div><p class="note">${note}</p></div>`).join("");
 document.getElementById("menu-alone").innerHTML = menu("Character", "static");
+
+/* ===== standard page, scrolled, AI stream ===== */
+const brk = t => t ? `<div class="brk">${t}</div>` : `<div class="brk bare"></div>`;
+const stdTop = `
+  <h3>The Forge</h3>
+  ${brk("")}
+  <p class="sh1">INT. FORGE - NIGHT</p>
+  <p>Coals pulse under a hood of black iron. MARA (30s, soot to the elbows) hammers a blade that will not take its shape.</p>
+  <p>The door bangs open. TOMAS (40s, road-worn, a satchel clutched to his chest) stumbles in out of the rain.</p>
+  <p class="chr">Mara</p>
+  <p class="par">(without looking up)</p>
+  <p class="dlg">We're closed. We've been closed since the war.</p>
+  <p class="chr">Tomas</p>
+  <p class="dlg">Then open. They burned the mill at Halden. They're two days behind me.</p>
+  <p>Mara sets the hammer down. Finally looks at him.</p>`;
+const stdRest = `
+  <p class="chr">Mara</p>
+  <p class="dlg">Who's they?</p>
+  <p>Tomas opens the satchel. Inside: a sword hilt, its crossguard shaped like a flame. The coals flare white.</p>
+  <p class="chr">Tomas</p>
+  <p class="dlg">The ones who want this back.</p>
+  <p class="trn">Cut to:</p>
+  ${brk("The road at dawn")}
+  <p class="sh1">EXT. ROAD - DAWN</p>
+  <p>Tomas leads the mule. Mara does not look back.</p>`;
+const scrolledPage = stdTop + `
+  <p class="chr">Mara</p>
+  <p class="dlg">Who's they?</p>
+  <p>Tomas opens the satchel. Inside: a sword hilt, its crossguard shaped like a flame. The coals flare white.</p>
+  <p class="chr">Tomas</p>
+  <p class="dlg">The ones who want this back.</p>
+  <p class="trn">Cut to:</p>
+  ${brk("The road at dawn")}
+  <p class="sh1">EXT. ROAD - DAWN</p>
+  <p>Tomas leads the mule. Mara walks ahead and does not look back.</p>
+  <p class="chr">Tomas</p>
+  <p class="dlg">You could say something.</p>
+  <p class="chr">Mara<span class="caret"></span></p>
+  <p>The mule stops. Tomas pulls. The mule wins.</p>
+  <p class="chr">Tomas</p>
+  <p class="par">(to the mule)</p>
+  <p class="dlg">Not you as well.</p>
+  <p>Mara reaches the crest. Smoke stands over the valley behind them, thin and straight.</p>
+  <p class="chr">Mara</p>
+  <p class="dlg">That's Halden.</p>
+  <p class="chr">Tomas</p>
+  <p class="dlg">That was Halden.</p>`;
+const streamPage = stdTop.replace("Finally looks at him.</p>", `Finally looks at him.<span class="mark" title="Continue started here"></span></p>
+  <p class="chr"><span class="ai">Mara</span></p>
+  <p class="par"><span class="ai">(quietly)</span></p>
+  <p class="dlg"><span class="ai">Who's they? And why would they follow a man</span><span class="head"></span></p>`);
+function sframe(el) {
+  const W = +el.dataset.w, state = el.dataset.state;
+  const sw = Math.min(760, W - 400), sl = (W - sw) / 2;
+  const scrolled = state === "scrolled", stream = state === "stream";
+  const body = scrolled ? scrolledPage : stream ? streamPage : stdTop + stdRest;
+  const ruler = el.dataset.ruler ? `<div class="ruler"><i style="left:0">0 · action, heading</i><i style="left:10ch;top:-11px">10ch · dialogue</i><i style="left:16ch">16ch · parenthetical</i><i style="left:22ch;top:-11px">22ch · character</i><i style="left:45ch">45ch · dialogue ends</i><i style="left:60ch;top:-11px">60ch</i></div>` : "";
+  const lt = scrolled ? "Character" : stream ? "Action" : "Scene heading";
+  const marks = stream ? `<div class="bracket" style="top:2.4lh;height:17.4lh"></div><div class="gtick" id="gt"></div>` : "";
+  el.innerHTML = `
+  <div class="lrail"><span class="rb">${ic("home")}</span><span class="rb">${ic("lines")}</span></div>
+  ${scrolled ? "" : `<div class="top" style="left:${sl}px;width:${sw}px"><span class="app">QuillAI</span><span class="st">Audit Universe<i>›</i>The Forge</span><span></span></div>`}
+  <div class="sheet std ${scrolled ? "scrolled" : ""}" style="left:${sl}px;width:${sw}px"><div class="col">${ruler}${marks}${body}</div></div>
+  <div class="rrail">
+    ${stream ? `<div class="stop"><span>■</span><small>Stop</small><span class="kbd">⌘↵</span></div>` : `<span class="rb go">${ic("play")}</span>`}
+    <div class="lt ${stream ? "locked" : ""}">${ic("ltype")}<small>${lt}</small><span class="kbd">Tab</span></div>
+    <span class="rb">${ic("pen")}</span><span class="rb">${ic("quote")}</span><span class="rb">${ic("panel")}</span>
+    <span class="rb help">?</span><span class="rb">${ic("gear")}</span>
+  </div>
+  ${scrolled ? `<div class="tip" style="top:54px">Line type: Character · <span class="kbd">Tab</span> changes it · <span class="kbd">↵</span> then Dialogue</div>` : ""}`;
+  const gt = el.querySelector("#gt"), mk = el.querySelector(".mark");
+  if (gt && mk) { gt.removeAttribute("id"); gt.style.top = (mk.getBoundingClientRect().top - el.querySelector(".col").getBoundingClientRect().top + 8) + "px"; }
+}
+document.querySelectorAll(".sframe").forEach(sframe);
+const lead = `<p>Mara sets the hammer down. Finally looks at him.`;
+const pin = `<span class="mark"></span>`, hd = `<span class="head"></span>`, ai = t => `<span class="ai">${t}</span>`;
+const half = t => `<span style="color:#27485F">${t}</span>`;
+const steps2 = [
+  ["1 · Continue pressed", `${lead}${pin}</p>`, `<span class="s">■ Stop</span> · line type dimmed`, "Before the first text arrives only the pin pulses, at the caret."],
+  ["2 · the name arrives", `${lead}${pin}</p><p class="chr">${ai("Mar")}${hd}</p>`, `<span class="s">■ Stop</span>`, "The first line of the run is a Character line from its first letter."],
+  ["3 · the speech arrives", `${lead}${pin}</p><p class="chr">${ai("Mara")}</p><p class="par">${ai("(quietly)")}</p><p class="dlg">${ai("Who's they? And why")}${hd}</p>`, `<span class="s">■ Stop</span>`, "A line that opens with a bracket is a Parenthetical. Any other line is Dialogue."],
+  ["4 · run ended, fading", `${lead}</p><p class="chr">${half("Mara")}</p><p class="par">${half("(quietly)")}</p><p class="dlg">${half("Who's they? And why would they follow a man like you?")}<span class="caret"></span></p>`, `<b>Dialogue</b> · Continue is back`, "Pin and writing block are gone. Ink is part way from blue to black (10s). The caret sits at the end."],
+  ["5 · Edit on a speech", `<p class="chr">Tomas</p><p class="dlg"><span class="sel-target">Then open. They burned the mill at Halden.</span> They're two days behind me.</p>`, `<span class="s">■ Stop</span> · Rewriting…`, "The Edit target pulses blue until the first replacement text lands, then streams as in step 3. The block type does not change."],
+];
+document.getElementById("steps2").innerHTML = steps2.map(([h, body, rail, note]) =>
+  `<div class="panel"><h3>${h}</h3><div class="smini">${body}</div><div class="railnow"><span>Rail shows</span><span>${rail}</span></div><p class="note">${note}</p></div>`).join("");
 </script>
 </body>
 </html>
