@@ -28,7 +28,7 @@ for (const configured of [true, false]) {
     await page.route(`${api}/ai/generate`, route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model }) }));
     await editor.click();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model } })).status()).toBe(200);
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     if (!configured) {
       await expect(page.locator('.editor-scene-notice[role="status"]')).toHaveText("The model used its whole budget without writing any text. Try again or pick another model.");
       await expect(editor).toHaveText(`Opening ${identity}`);

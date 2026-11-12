@@ -129,7 +129,7 @@ for (const width of [1100, 1440]) {
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       const settings = page.getByRole("dialog", { name: "Settings", exact: true });
       await select(page, 0, 3);
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       await expect(stop).toBeVisible();
       await send(page, { type: "delta", delta: { ops: [{ insert: "AI first" }] } });
       await expect(editor.locator("p").nth(0)).toHaveText("OpeAI firstning paragraph");
@@ -177,7 +177,7 @@ for (const width of [1100, 1440]) {
       await openChapter(page, request);
       const editor = page.locator(".ql-editor");
       await select(page, 0, 3);
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await expect(stop).toBeVisible();
       await send(page, { type: "delta", delta: { ops: [{ insert: "Generated words" }] } });

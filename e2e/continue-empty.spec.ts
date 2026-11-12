@@ -48,7 +48,7 @@ test("empty Continue reports length and stop without changing chapter, selection
   const run = async (kind: string) => {
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity: identities[kind], model: "e2e-continue" } })).status()).toBe(200);
-    await page.getByRole("button", { name: /^Continue writing/ }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const upstream = await (await request.get(`${provider}/control/${before.length}/request`)).json();
     expect(upstream.identity).toBe(identities[kind]);
     return `${provider}/control/${upstream.id}`;
@@ -57,7 +57,7 @@ test("empty Continue reports length and stop without changing chapter, selection
   const seed = await run("seed");
   expect((await request.post(`${seed}/fragment`, { data: { text: "Seed prose." } })).status()).toBe(200);
   expect((await request.post(`${seed}/finish`, { data: { reason: "length" } })).status()).toBe(200);
-  await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue", exact: true }).getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
   await expectSaved(page);
   const beforeChapterResponse = await request.get(chapterUrl);
   expect(beforeChapterResponse.status()).toBe(200);

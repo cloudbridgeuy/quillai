@@ -16,7 +16,7 @@ async function startSampling(page: Page, actionEvent: "click" | "keydown", expec
     const baseline = Array.from(document.querySelectorAll<HTMLButtonElement>(".editor-rail button, .ql-toolbar button, .editor-manuscript-tree button")).filter(element => !element.disabled && getComputedStyle(element).opacity === "1");
     const frame = () => {
       const controls = baseline.filter(element => element.isConnected);
-      const continueButton = document.querySelector<HTMLButtonElement>('.editor-rail button[aria-label="Continue writing"]');
+      const continueButton = document.querySelector<HTMLButtonElement>('.editor-rail button[aria-label="Continue"]');
       state.flashSamples.push({
         at: performance.now(),
         opacity: Array.from(controls, element => Number(getComputedStyle(element).opacity)),

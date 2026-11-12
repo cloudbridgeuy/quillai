@@ -159,9 +159,9 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     await select(page, await sceneTwoStart());
     await page.keyboard.type("Mi");
     await holding;
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(stop).toBeVisible();
-    await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
+    await expect(stop).toHaveAttribute("title", /Saving…/);
     expect(await providerCount()).toBe(before);
     expect(await serverText(two.id)).toBe("Rain falls.\n");
     await held.continue();
@@ -215,7 +215,7 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     const postsBefore = posts.length;
     await expectSaved(page);
     aiRunning = true;
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const run = await upstream(id, identity, "e2e-continue");
     await run.fragment("Steam rises.");
     await expect(stop).toBeVisible();
@@ -246,7 +246,7 @@ test("Continue and Edit on the script surface stay inside one scene at 1100px", 
     const id = await arm(identity, "e2e-continue");
     const postsBefore = posts.length;
     const heads = [(await server(one.id)).headRev, (await server(two.id)).headRev];
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const run = await upstream(id, identity, "e2e-continue");
     await run.fragment("Thunder.");
     await expect.poll(() => sceneTexts(page)).toEqual(["Kettle boils.\nSteam rises. Lid rattles.\n", "Far Mist. Snow falls.\nThunder.\n"]);

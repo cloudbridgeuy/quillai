@@ -79,11 +79,11 @@ for (const scenario of ["continue", "typing", "stop", "edit"] as const) {
         await page.getByRole("textbox", { name: "Edit instruction", exact: true }).fill("Revise");
         await page.getByRole("button", { name: "Apply", exact: true }).click();
       } else {
-        await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+        await page.getByRole("button", { name: "Continue", exact: true }).click();
       }
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await expect(stop).toBeVisible();
-      await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
+      await expect(stop).toHaveAttribute("title", /Saving…/);
       expect(generations).toBe(0);
       if (scenario === "typing") {
         await editor.click();
@@ -97,7 +97,7 @@ for (const scenario of ["continue", "typing", "stop", "edit"] as const) {
       releasePoll();
       if (scenario === "typing") {
         await held[1];
-        await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
+        await expect(stop).toHaveAttribute("title", /Saving…/);
         expect(generations).toBe(0);
         releases[1]();
       }

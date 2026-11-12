@@ -100,7 +100,7 @@ test("Continue sends matched visible lore and previews the escaped lore block", 
   const lore = page.getByRole("textbox", { name: "Lore prompt section", exact: true });
   await expect(lore).toHaveValue("<lore>\nName: Mara\nKind: character\nText: Wields &lt;fire&gt; &amp; ice.\n</lore>\n");
   await expect(lore).toHaveAttribute("readonly", "");
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   const sent = await page.evaluate(() => JSON.parse(document.documentElement.dataset.loreRequest!));
   expect(sent.lore).toEqual([{ name: "Mara", kind: "character", visible_text: entry.visible_text, level: "include" }]);
@@ -126,7 +126,7 @@ test("usage before done keeps length finish and arms Continue with thread", asyn
   await expect(editor).toContainText("Opening line.");
   await expectSaved(page);
   await editor.evaluate(quillSnapshot, { selection: { index: 13, length: 0 } });
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   const send = async (detail: unknown) => page.evaluate((detail) => {
     window.dispatchEvent(new CustomEvent("ai-test-event", { detail }));
@@ -136,7 +136,7 @@ test("usage before done keeps length finish and arms Continue with thread", asyn
   await send({ type: "usage", promptTokens: 11, completionTokens: 4 });
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await send({ type: "done", finishReason: "length" });
-  await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue", exact: true }).getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
   await expect(editor).toContainText("More prose.");
 });
 
@@ -173,7 +173,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   }, detail);
   const fragment = async (text: string) => send({ type: "delta", delta: { ops: [{ insert: text }] } });
   await select(0, 3);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await expectEditorReady(editor);
   await page.keyboard.type("AUTHOR");
@@ -205,7 +205,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   })).toBe("OpeAUTHORKEPT");
   await expectSaved(page);
   await select(0, 1);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await fragment("Failed AI");
   await expect(editor).toContainText("Failed AI");
@@ -216,7 +216,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expect(editor).toHaveText("OpeAUTHORKEPTning paragraphLater SURVIVESparagraph");
   await expectSaved(page);
   await select(0, 2, 5);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await fragment("Completed AI");
   await expect(editor).toContainText("Completed AI");
@@ -238,7 +238,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expect(page.getByRole("checkbox", { name: "Tint AI text", exact: true })).not.toBeChecked();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await select(0, 1);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await fragment("Server cancelled AI");
   await expect(editor).toContainText("Server cancelled AI");
@@ -248,7 +248,7 @@ test("desktop Continue preserves concurrent typing, selection and exact rollback
   await expect(editor).toHaveText("OpeAUCompleted AITHORKEPTning paragraphLater SURVIVESparagraph");
   await expectSaved(page);
   await page.setViewportSize({ width: 1099, height: 1000 });
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await expect(editor).toHaveAttribute("contenteditable", "false");
   await page.setViewportSize({ width: 1100, height: 1000 });
@@ -276,7 +276,7 @@ for (const outcome of [
     await expect(editor).toContainText("abcdef");
     await expectSaved(page);
     await editor.evaluate(quillSnapshot, { selection: { index: 2, length: 0 } });
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
     const send = async (detail: unknown) => page.evaluate((detail) => {
       window.dispatchEvent(new CustomEvent("ai-test-event", { detail }));

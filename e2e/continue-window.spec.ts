@@ -119,8 +119,8 @@ for (const width of [1100, 1440]) {
     await expect(flag).toBeHidden();
     await expect.poll(() => page.locator(".editor-continue-window").evaluate((node) => Math.abs(node.getBoundingClientRect().top - 24))).toBeLessThan(1);
     const scrollBefore = await page.evaluate(() => window.scrollY);
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Continue", exact: true }).getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
     expect(requests[0]!.document.text).toBe(sourceText.slice(documentWindow.start, documentWindow.end));
     expect(requests[0]!.selection?.range).toEqual({ index: caret - documentWindow.start, length: 0 });
     expect(documentWindow.end).toBeGreaterThan(caret);
@@ -175,7 +175,7 @@ for (const width of [1100, 1440]) {
         }), { headers: { "Content-Type": "application/x-ndjson" } });
       };
     });
-    await page.getByRole("button", { name: /Continue writing/ }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
     const streamHeight = (await page.locator(".editor-continue-window").boundingBox())!.height;
     await send(page, { type: "delta", delta: { ops: [{ insert: "Streamed lanterns cross the harbour. ".repeat(8) }] } });
@@ -192,7 +192,7 @@ for (const width of [1100, 1440]) {
     await expect(page.locator(".ql-editor")).toContainText("More distant lanterns");
     await expectGeometry(page, 0, (await documentText(page)).length - 1);
     await send(page, { type: "done", finishReason: "length" });
-    await expect(page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue", exact: true }).getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
     await expectSaved(page);
     await page.locator(".ql-editor p").nth(30).scrollIntoViewIfNeeded();
     await expect(flag).toBeVisible();

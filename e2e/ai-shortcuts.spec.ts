@@ -18,7 +18,7 @@ async function openChapter(page: Page, request: APIRequestContext, width: number
   const edit = page.getByRole("button", { name: "Edit selection", exact: true });
   const note = page.getByRole("textbox", { name: "Edit instruction", exact: true });
   const dialog = page.getByRole("dialog", { name: "Edit instruction", exact: true });
-  const continueButton = page.getByRole("button", { name: "Continue writing", exact: true });
+  const continueButton = page.getByRole("button", { name: "Continue", exact: true });
   const stop = page.getByRole("button", { name: "Stop AI", exact: true });
   await expectEditorReady(editor);
   await expect(editor.locator("p")).toHaveText([identity, "Opening line"]);

@@ -90,14 +90,14 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
         await editor.click();
         await page.keyboard.type("Retained author text");
       }
-      const continueButton = page.getByRole("button", { name: "Continue writing", exact: true });
+      const continueButton = page.getByRole("button", { name: "Continue", exact: true });
       await expect(continueButton).toBeEnabled();
       await continueButton.click();
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await expect(stop).toBeVisible();
       await page.evaluate(() => (window as unknown as { fakeEventSource: { resync: (index: number) => void } }).fakeEventSource.resync(0));
       if (outcome === "Unsaved") {
-        await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
+        await expect(stop).toHaveAttribute("title", /Saving…/);
         await expectUnsaved(page);
       }
       await page.clock.runFor(2000);
@@ -110,7 +110,7 @@ for (const outcome of ["Finish", "Stop", "Stop waiting", "Unsaved", "Typed while
       if (outcome === "Typed while waiting") {
         await editor.click();
         await page.keyboard.type("Retained author text");
-        await expect(page.getByText("Saving…", { exact: true })).toBeVisible();
+        await expect(stop).toHaveAttribute("title", /Saving…/);
       }
       if (outcome === "Unsaved" || outcome === "Typed while waiting") {
         await stop.click();

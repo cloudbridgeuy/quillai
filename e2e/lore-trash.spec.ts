@@ -32,9 +32,9 @@ for (const width of [1100, 1440]) {
       const start = bodies.length;
       await editor.click();
       await page.keyboard.press("Control+End");
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       await expect.poll(() => bodies.length).toBe(start + 1);
-      await expect(page.getByRole("button", { name: /^Continue writing/ })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
       await editor.selectText();
       await page.getByRole("button", { name: "Edit selection", exact: true }).click();
       await page.getByRole("button", { name: "Apply", exact: true }).click();

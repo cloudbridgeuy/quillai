@@ -30,9 +30,9 @@ test("Continue and Edit show their model and open Settings on the matching menu"
   const editor = page.locator(".ql-editor");
   await expectEditorReady(editor);
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
-  const continueButton = page.getByRole("button", { name: "Continue writing", exact: true });
+  const continueButton = page.getByRole("button", { name: "Continue", exact: true });
 
-  await expect(continueButton).toHaveAttribute("title", "Continue writing (Ctrl/Cmd+Enter) · Precise");
+  await expect(continueButton).toHaveAttribute("title", "Continue (Ctrl/Cmd+Enter) · Precise");
 
   await editor.click();
   const continueLink = page.locator(".editor-continue-window-model");

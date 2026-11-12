@@ -43,9 +43,9 @@ test("placing a piece in another container of its universe keeps its text and Co
   const continueOnce = async (count: number) => {
     await editor.click();
     await page.keyboard.press("Control+End");
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect.poll(() => bodies.length).toBe(count);
-    await expect(page.getByRole("button", { name: /^Continue writing/ })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
   };
   await continueOnce(1);
   const loreSent = JSON.parse(bodies[0]).lore;

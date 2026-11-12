@@ -23,7 +23,7 @@ test("AI setup errors are friendly across the editor", async ({ page, request })
   await expect(page.locator("#context-drawer").getByText(friendly, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await editor.click();
-  await page.getByRole("button", { name: /^Continue writing/ }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.locator(".editor-run-status")).toHaveText(friendly);
   await editor.click();
   await editor.evaluate(element => {

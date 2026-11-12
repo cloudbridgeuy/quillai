@@ -119,6 +119,7 @@ import { editorUrl, landingUrl } from "../../landing/routes";
 import { appendContinueFragment, createContinueStream, transformContinueSelection, transformContinueStream, type ContinueStream } from "../continue_stream";
 import { editTintRemoval, renderContinueTint } from "../continue_tint";
 import { trackEditSelectionHighlight } from "../edit_selection_highlight";
+import { ContinueRailButton } from "./ContinueRailButton";
 import { ContinueWindow } from "./ContinueWindow";
 import { DialogueBox } from "./DialogueBox";
 import { createDialogueStream, dialogueCaret, dialogueRunRequest, feedDialogue, finishDialogue, type DialogueChoice, type DialogueFeed } from "../dialogue_stream";
@@ -1430,8 +1431,6 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
   const continueModel = actionModelDisplay(modelCatalog, "generate");
   const editModel = actionModelDisplay(modelCatalog, "edit");
   const modelName = (model: { name: string } | null) => model?.name ?? formatMessage(defaultLocale, "editor.modelDefault");
-  const continueTitle = waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue");
-
   return (
     <div className="editor-shell" data-save-state={saveState}>
       {chapterSync.ready && hintQuill ? <><HintOverlay quill={hintQuill} hints={hints} /><HintTip quill={hintQuill} hints={hints} /></> : null}
@@ -1448,11 +1447,7 @@ export const Container = ({ loreEntries: suppliedLoreEntries, scriptGroupId }: {
           onClick={() => togglePanel("manuscript")} />
       </nav>
       <nav inert={pending || undefined} className="editor-rail editor-rail-right" aria-label={formatMessage(defaultLocale, "editor.aiTools")}>
-        <IconButton ref={continueTriggerRef} kind="continue" className="editor-continue" label={waitingForSave ? formatMessage(defaultLocale, "action.saving") : isBusy ? formatMessage(defaultLocale, "editor.stop") : formatMessage(defaultLocale, "editor.continue")} glyph={<span aria-hidden="true">{isBusy ? "■" : "➤"}</span>}
-          badge={withThread ? <span className="editor-thread-indicator text-micro">{formatMessage(defaultLocale, "thread.resumeIndicator")}</span> : null}
-          aria-label={isBusy ? formatMessage(defaultLocale, "shortcut.stop") : withThread ? formatMessage(defaultLocale, "thread.resumeAction") : formatMessage(defaultLocale, "shortcut.continue")}
-          title={(title => continueModel ? formatMessage(defaultLocale, "editor.withModel", { title, model: continueModel.name }) : title)(formatMessage(defaultLocale, "shortcut.title", { action: continueTitle, keys: "Ctrl/Cmd+Enter" }))}
-          aria-keyshortcuts="Control+Enter Meta+Enter"
+        <ContinueRailButton ref={continueTriggerRef} saving={waitingForSave} busy={isBusy} cutOff={withThread} modelName={continueModel?.name ?? null}
           disabled={!isBusy && (!visuallyReady || chapterSync.blocked)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={continueOrStop} />

@@ -59,7 +59,7 @@ for (const openFirst of [false, true]) {
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     const sent = page.waitForRequest(req => req.url() === `${api}/ai/generate` && req.method() === "POST");
-    await page.getByRole("button", { name: /^Continue writing/ }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const payload = (await sent).postDataJSON();
     expect(payload.sectionOverrides?.selection).toBeUndefined();
     expect(payload.selection.text).toBe("");

@@ -93,9 +93,9 @@ for (const width of [1100, 1440]) {
       const count = bodies.length;
       await editor.click();
       await page.keyboard.press("Control+End");
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       await expect.poll(() => bodies.length).toBe(count + 1);
-      await expect(page.getByRole("button", { name: /^Continue writing/ })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
       return bodies[count]!;
     };
     await page.setViewportSize({ width, height: 1000 });

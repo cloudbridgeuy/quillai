@@ -42,9 +42,9 @@ test("pieces in a universe without a book series open and send that universe's l
   const continueOnce = async (count: number) => {
     await editor.click();
     await page.keyboard.press("Control+End");
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect.poll(() => bodies.length).toBe(count);
-    await expect(page.getByRole("button", { name: /^Continue writing/ })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
   };
   await continueOnce(1);
 

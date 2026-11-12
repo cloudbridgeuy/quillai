@@ -4,7 +4,7 @@ import { expectSaved } from "./save-state";
 const rails = [
   { name: "Library", title: "Back to library", glyph: "⌂" },
   { name: "Manuscript", title: "Manuscript (Ctrl/Cmd+[)", glyph: "☰" },
-  { name: "Continue writing", title: "Continue writing (Ctrl/Cmd+Enter)", glyph: "➤" },
+  { name: "Continue", title: "Continue (Ctrl/Cmd+Enter)", glyph: "➤" },
   { name: "Edit selection", title: "Edit selection (Ctrl/Cmd+K)", glyph: "✎" },
   { name: "Context inspector", title: "Context inspector (Ctrl/Cmd+])", glyph: "◫" },
   { name: "Settings", title: "Settings", glyph: "⚙" },
@@ -55,7 +55,7 @@ test("rail glyph centres, names, and selection at desktop widths", async ({ page
       const button = page.getByRole("button", { name: rail.name, exact: true });
       await expect(button).toHaveAccessibleName(rail.name);
       // Continue also names its model once the catalog loads (GUZ-1426).
-      await expect(button).toHaveAttribute("title", rail.name === "Continue writing" ? new RegExp(`^${rail.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( · .+)?$`) : rail.title);
+      await expect(button).toHaveAttribute("title", rail.name === "Continue" ? new RegExp(`^${rail.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( · .+)?$`) : rail.title);
       const delta = await button.evaluate((element, glyph) => {
         const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
         let node: Node | null;
@@ -68,16 +68,6 @@ test("rail glyph centres, names, and selection at desktop widths", async ({ page
           const text = range.getBoundingClientRect();
           let top = text.top;
           let bottom = text.bottom;
-          if (glyph === "➤") {
-            let label: Node | null;
-            while ((label = walker.nextNode()) && label.textContent?.trim() !== "Continue") {}
-            if (!label) throw new Error("Missing Continue label");
-            const labelRange = document.createRange();
-            labelRange.selectNodeContents(label);
-            const labelRect = labelRange.getBoundingClientRect();
-            top = Math.min(top, labelRect.top);
-            bottom = Math.max(bottom, labelRect.bottom);
-          }
           const button = element.getBoundingClientRect();
           return { x: text.x + text.width / 2 - button.x - button.width / 2, y: (top + bottom) / 2 - button.y - button.height / 2 };
         }
@@ -90,7 +80,7 @@ test("rail glyph centres, names, and selection at desktop widths", async ({ page
   await testInfo.attach("rail-glyph-centres.json", { body: JSON.stringify(measurements, null, 2), contentType: "application/json" });
   for (const measurement of measurements) {
     expect.soft(Math.abs(measurement.x), `${measurement.width} ${measurement.name} x`).toBeLessThanOrEqual(1);
-    expect.soft(Math.abs(measurement.y), `${measurement.width} ${measurement.name} y`).toBeLessThanOrEqual(measurement.name === "Continue writing" ? 1.5 : 1);
+    expect.soft(Math.abs(measurement.y), `${measurement.width} ${measurement.name} y`).toBeLessThanOrEqual(measurement.name === "Continue" ? 1.5 : 1);
   }
 });
 
@@ -150,7 +140,7 @@ for (const width of [1100, 1440]) {
     await context.click();
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const upstream = await (await request.get(`${provider}/control/${before.length}/request`)).json();
     expect(upstream.identity).toBe(identity);
     const stop = page.getByRole("button", { name: "Stop AI", exact: true });
@@ -159,8 +149,10 @@ for (const width of [1100, 1440]) {
     const control = `${provider}/control/${upstream.id}`;
     expect((await request.post(`${control}/fragment`, { data: { text: "A cut-off reply." } })).status()).toBe(200);
     expect((await request.post(`${control}/finish`, { data: { reason: "length" } })).status()).toBe(200);
-    const resume = page.getByRole("button", { name: "Continue writing from a cut-off reply", exact: true });
-    await expect(resume).toHaveAttribute("title", /^Continue writing from a cut-off reply \(Ctrl\/Cmd\+Enter\)( · .+)?$/);
-    await expect(resume.locator(".editor-thread-indicator")).toHaveText("from a cut-off reply");
+    const resume = page.getByRole("button", { name: "Continue", exact: true });
+    await expect(resume).toHaveAttribute("title", /^Continue \(Ctrl\/Cmd\+Enter\)( · .+)?$/);
+    const badge = resume.getByRole("img", { name: "from a cut-off reply", exact: true });
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveAttribute("title", "Continue writing from a cut-off reply");
   });
 }

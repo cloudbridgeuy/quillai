@@ -70,7 +70,7 @@ for (const scenario of [
     await expectEditorReady(editor);
     await expectSaved(page);
     expect(await editor.evaluate(snapshot, scenario.caret)).toBe(scenario.original);
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new CustomEvent("ai-test-event", { detail: { type: "delta", delta: { ops: [{ insert: "slowly" }] } } })));
     await expect.poll(() => editor.evaluate(snapshot)).toBe(scenario.expected);
@@ -104,7 +104,7 @@ for (const scenario of [
   await expectEditorReady(editor);
   await expectSaved(page);
   expect(await editor.evaluate(snapshot, scenario.caret)).toBe(original);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
   await page.evaluate(fragment => window.dispatchEvent(new CustomEvent("ai-test-event", { detail: { type: "delta", delta: { ops: [{ insert: fragment }] } } })), scenario.fragment);
   await expect.poll(() => editor.evaluate(snapshot)).toBe(scenario.expected);

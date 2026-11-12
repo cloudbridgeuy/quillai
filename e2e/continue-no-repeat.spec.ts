@@ -38,7 +38,7 @@ test("Continue does not repeat the passage before the caret", async ({ page, req
     selection.addRange(range);
   });
   expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-repeat" } })).status()).toBe(200);
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(editor).toContainText(continuation);
   await expectSaved(page);
   const uiText = await editor.innerText();

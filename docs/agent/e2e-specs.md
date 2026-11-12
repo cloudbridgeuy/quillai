@@ -71,6 +71,8 @@
 
 `continue-empty.spec.ts` arms one-use real-provider identities at 1100px and checks empty length and stop finishes, exact Alerts, unchanged chapter/piece, selection and AI thread, and Alert clearing.
 
+`continue-icon.spec.ts` (GUZ-1568, written, not run) checks at 1100px and 1440px that Continue is icon-only with accessible name "Continue", that Stop replaces that icon in the same rail button, and that a cut-off reply shows as a badge on Continue with its tooltip. The inspector cut-off explanation stays in the context drawer.
+
 `continue-reasoning.spec.ts` arms real-provider identities at 1100px: a model with low reasoning effort writes text that persists on server GET; a model without it returns an empty length finish and leaves the chapter unchanged.
 
 `continue-tie-order.spec.ts` also arms one-use real-provider identities at 1100px: server-priority ties place remote typing before inline AI text; Finish retains both, and Stop keeps only the remote text, with exact two-tab/server convergence and no API errors.

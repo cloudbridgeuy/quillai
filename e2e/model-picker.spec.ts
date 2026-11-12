@@ -188,7 +188,7 @@ for (const available of [true, false]) {
     await note.press("Enter");
     await expect(note).toBeHidden();
     await expect.poll(() => bodies.length).toBe(2);
-    await expect(page.locator(".editor-continue")).toHaveAccessibleName("Continue writing");
+    await expect(page.locator(".editor-continue")).toHaveAccessibleName("Continue");
     await expectSaved(page);
     expect(bodies).toHaveLength(2);
     expect(bodies.map(({ action }) => action)).toEqual(["generate", "edit"]);

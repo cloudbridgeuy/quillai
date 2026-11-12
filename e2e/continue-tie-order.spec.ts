@@ -78,7 +78,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
     await placeCaret(editor, 0, 3);
     expect((await request.post(`${providerUrl}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
     const generationResponse = page.waitForResponse(response => response.url() === `${apiUrl}/ai/generate` && response.request().method() === "POST");
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const recorded = await request.get(`${providerUrl}/control/${before}/request`);
     expect(recorded.status()).toBe(200);
     const upstream = await recorded.json();

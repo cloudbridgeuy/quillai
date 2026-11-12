@@ -115,7 +115,7 @@ for (const width of [1100, 1440]) {
         };
       });
       const { editor, saved } = await openChapter(page, request, `Stream ${width}`, "Mara walked\n");
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       await expect(page.getByRole("button", { name: "Stop AI", exact: true })).toBeVisible();
       await page.evaluate(() => window.dispatchEvent(new CustomEvent("ai-test-event", { detail: { type: "delta", delta: { ops: [{ insert: " and said \"Go\"" }] } } })));
       await expect(editor).toContainText("and said \"Go\"");

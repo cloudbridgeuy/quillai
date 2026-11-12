@@ -47,7 +47,7 @@ for (const width of [1100, 1440]) {
     await openEditor(page, request, width);
     await expect(page.locator(".editor-rail-left")).toHaveCSS("padding-left", "12px");
     await expect(page.locator(".editor-topbar")).toHaveCSS("margin-top", "8px");
-    await expect(page.getByRole("button", { name: "Continue writing", exact: true })).toHaveCSS("padding-top", "4px");
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toHaveCSS("width", "36px");
     const bracket = page.locator(".editor-continue-window");
     await expect(bracket).toBeVisible();
     await expect(bracket).toBeInViewport();

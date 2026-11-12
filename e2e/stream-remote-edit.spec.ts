@@ -83,7 +83,7 @@ for (const outcome of ["Finish", "Stop"] as const) {
       const remoteEditor = second.locator(".ql-editor");
       const stop = page.getByRole("button", { name: "Stop AI", exact: true });
       await placeCaret(editor, 0, 3);
-      await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
       const stream = await streaming;
       await expect(stop).toBeVisible();
       stream.write(`${JSON.stringify({ type: "delta", delta: { ops: [{ insert: "AI first" }] } })}\n`);

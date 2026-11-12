@@ -191,7 +191,7 @@ for (const width of [1100, 1440]) {
           }
           expect((await request.post(`${provider}/control/arm`, { data: { identity, model } })).status()).toBe(200);
           if (edit) await page.getByRole("textbox", { name: "Edit instruction", exact: true }).press("Enter");
-          else await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+          else await page.getByRole("button", { name: "Continue", exact: true }).click();
           const upstream = await request.get(`${provider}/control/${id}/request`);
           expect(await upstream.json()).toMatchObject({ id, identity, model });
           expect((await request.post(`${provider}/control/${id}/fragment`, { data: { text: edit ? "<replacement>Revised</replacement>" : "More." } })).status()).toBe(200);

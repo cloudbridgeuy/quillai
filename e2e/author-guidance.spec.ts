@@ -48,7 +48,7 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await expectSaved(page);
   const continueButton = page.locator(".editor-continue");
   await expect(page.getByRole("button", { name: /^Continue/ })).toHaveCount(1);
-  await expect(continueButton).toHaveAccessibleName("Continue writing");
+  await expect(continueButton).toHaveAccessibleName("Continue");
   await expect(continueButton.locator(".editor-thread-indicator")).toHaveCount(0);
   await expect(page.locator(".editor-controls-panel")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Preview Context", exact: true })).toHaveCount(0);
@@ -66,8 +66,8 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   }
   await continueButton.click();
   await expect(editor).toHaveText("A saved beginning.");
-  await expect(continueButton).toHaveAccessibleName("Continue writing from a cut-off reply");
-  await expect(continueButton.getByText("from a cut-off reply", { exact: true })).toBeVisible();
+  await expect(continueButton).toHaveAccessibleName("Continue");
+  await expect(continueButton.getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
   await expectSaved(page);
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   const context = page.locator("#context-drawer");
@@ -84,13 +84,13 @@ async function continueControlTest({ page, request }: { page: Page; request: API
   await page.getByRole("button", { name: "Context inspector", exact: true }).click();
   await continueButton.click();
   await expect(continueButton).toHaveAccessibleName("Stop AI");
-  await expect(continueButton.getByText("from a cut-off reply", { exact: true })).toBeVisible();
+  await expect(continueButton.getByRole("img", { name: "from a cut-off reply", exact: true })).toBeVisible();
   await expect(editor).toContainText("More words.");
   await continueButton.click();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
   await expectEditorReady(editor);
   await expect(editor).toHaveText("A saved beginning.");
-  await expect(continueButton).toHaveAccessibleName("Continue writing");
+  await expect(continueButton).toHaveAccessibleName("Continue");
   await expect(continueButton.locator(".editor-thread-indicator")).toHaveCount(0);
   const proof = await page.evaluate(() => (window as unknown as { continueProof: {
     requests: Array<{ messages: Array<{ role: string; content: string }> }>; aborts: number;
@@ -306,7 +306,7 @@ test("Edit and Continue send only their own instructions", async ({ page, reques
   await contextToggle.click();
   await expect(continueNote).toHaveValue("Introduce a mysterious visitor");
   await contextToggle.click();
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(editor).toContainText("The story continues.");
   await expectSaved(page);
   expect(bodies).toHaveLength(2);

@@ -77,7 +77,7 @@ for (const width of [1100, 1440]) {
     await expectEditorReady(page.locator(".ql-editor"));
     const before = await (await request.get(`${provider}/control`)).json();
     expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
-    await page.getByRole("button", { name: /^Continue writing/ }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     const upstream = await (await request.get(`${provider}/control/${before.length}/request`)).json();
     expect(upstream.identity).toBe(identity);
     expect((await request.post(`${provider}/control/${upstream.id}/finish`, { data: { reason: "stop" } })).status()).toBe(200);

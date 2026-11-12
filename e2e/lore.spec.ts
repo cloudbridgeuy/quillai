@@ -130,7 +130,7 @@ for (const width of [1100, 1440]) {
       bodies.push(route.request().postData() ?? "");
       await route.fulfill({ contentType: "application/x-ndjson", body: `${JSON.stringify({ type: "done", finishReason: "stop" })}\n` });
     });
-    await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
     await expect.poll(() => bodies.length).toBe(1);
     expect(JSON.parse(bodies[0]!).lore.map((entry: { name: string }) => entry.name)).toEqual(["Always", "Mira"]);
     expect(bodies[0]).not.toContain(secret);
@@ -220,9 +220,9 @@ test("series lore persists, matches near the caret, and excludes author-only not
   });
   await editor.click();
   await page.keyboard.press("Control+End");
-  await page.getByRole("button", { name: "Continue writing", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect.poll(() => bodies.length).toBe(1);
-  await expect(page.getByRole("button", { name: /^Continue writing/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
   expect(bodies[0]).not.toContain(secret);
   expect(JSON.parse(bodies[0]!).lore).toEqual([{ name: "Mira", kind: "character", visible_text: "Mira is the ship's navigator.", level: "known_dont_reveal" }]);
   await editor.selectText();

@@ -26,7 +26,7 @@ async function runContinue(page: Page, request: APIRequestContext, width: number
   const inspector = page.locator("#context-drawer");
   const before = await (await request.get(`${provider}/control`)).json();
   expect((await request.post(`${provider}/control/arm`, { data: { identity, model: "e2e-continue" } })).status()).toBe(200);
-  await page.getByRole("button", { name: /^Continue writing/ }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   const upstream = await (await request.get(`${provider}/control/${before.length}/request`)).json();
   expect(upstream.identity).toBe(identity);
   expect(upstream.model).toBe("e2e-continue");
