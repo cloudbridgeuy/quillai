@@ -1,6 +1,6 @@
 # Editor Design (v1 desktop)
 
-Approved visual and behavior spec. For header, save, Continue, Help, and counts, use `prototypes/editor-chrome/` (`index.html`; `renders/s01-default.png`, `s02-help-open.png`, `s03-save-failure.png`). `prototypes/editor-desktop/` (`index.html`, `style.css`, `proto.js`; plain contenteditable, fake data) is outdated for those details but remains the reference for other documented details. Values below were read from its `style.css`. Where prototypes differ from decisions, see "Prototype vs decisions" and "Owner review pending".
+Approved visual and behavior spec. For header, save, Continue, Help, and counts, use `prototypes/editor-chrome/` (`index.html`; `renders/s01-default.png`, `s02-help-open.png`, `s03-save-failure.png`). `prototypes/editor-desktop/` (`index.html`, `style.css`, `proto.js`; plain contenteditable, fake data) is outdated for those details but remains the reference for other documented details. Values below were read from its `style.css`. Where prototypes differ from decisions, see "Prototype vs decisions" and "Owner decisions on the open points".
 
 ## Scope
 
@@ -71,7 +71,7 @@ Also used: panel shadow `0 0 40px rgba(31,41,51,.12)`; popovers `0 8px 30px rgba
 - Right rail (56px): Continue, Edit selection, Context inspector, Help, Settings (gear pinned bottom). Inspector drawer 300px at `right: 56px`.
 - Rails are muted: opacity .35, .95 on hover/focus-within. The right rail stays at .95 when the thread indicator is present so history use remains visible. Tool buttons are 36px with radius 10px and `--graphite`. Owner decision, GUZ-1566: Continue is icon-only like the other rail buttons, with its name in a tooltip.
 - At 1100px and wider, both rails have 4px top padding; the first buttons and the header share the context drawer heading's centre line near 22px from the viewport top. The app header has a 10px top margin. The right rail and drawer heading define this alignment.
-- Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all. Help dismissal is pending owner review below.
+- Hover = more contrast (`--ink`), `--pi-pink` background, `translateY(-1px)`. Hover never opens or closes a panel. Panels toggle by key or click; Esc closes all. Help dismissal is covered by the owner decisions below.
 - Rail buttons use `mousedown preventDefault` so they do not steal caret or selection.
 - Product rails use IconButton for Library, manuscript, Continue/Stop, Edit selection, context inspector, Help, and a bottom-pinned desktop Settings gear.
 - Owner decision, GUZ-1566: add a `?` Help rail button above Settings. Help contains a page marks legend, tools and shortcuts, and a "This chapter" section.
@@ -126,8 +126,8 @@ Arrow-shaped flag tabs (`clip-path`, 11px sans, `--note-shadow`) label the edit 
 ## Continue
 
 - One Continue control in the right rail; no separate Resume or inline Continue button. Its "from a cut-off reply" indicator appears whenever the next request includes history, including inspector history overrides. Clearing history overrides removes the indicator; instruction changes, thread reset, chapter changes, and cancellation use the existing thread lifecycle.
-- Continue and Edit reserve the session and save pending changes before the AI request. The control remains available as Stop AI and typing remains available while saving. Saving presentation is pending owner review below. Save errors stop the request.
-- While streaming the same control offers Stop; its presentation is pending owner review below. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
+- Continue and Edit reserve the session and save pending changes before the AI request. The control remains available as Stop AI and typing remains available while saving. Saving presentation is covered by the owner decisions below. Save errors stop the request.
+- While streaming the same control offers Stop; its presentation is covered by the owner decisions below. Desktop Continue rolls back only surviving AI-owned text. Edit and narrow-screen Continue keep their previous cancellation behavior.
 - The context drawer has one Continue view, labeled "Continue · from a cut-off reply" when history is included, otherwise "Continue". Edit selection remains a separate request view. Prompt text and payload assembly are unchanged.
 
 ## Lore field completion (GUZ-912)
@@ -340,15 +340,15 @@ Spec for a later build ticket (part of GUZ-916). "Proposed" marks decisions this
 | Alt+? (or ? outside text) | Toggle state switcher (idle, streaming, panel open, lore card, save stopped) | Prototype-only |
 | Settings "Simulate Save stopped" | Force the red pill | Prototype-only |
 
-## Owner review pending
+## Owner decisions on the open points
 
-The following are Proposed, pending owner review; they are not approved decisions:
+The following decisions are owner-approved:
 
-- a) Proposed: show AI pre-request Saving… in the Continue tooltip; replace the icon in the same rail slot with Stop, with accessible name and tooltip "Stop AI". Put a small cut-off badge on Continue with tooltip detail; retain the inspector explanation. Mockups labelled Stop do not settle its placement.
-- b) Proposed: show live selection counts only in Help under "This chapter", using the existing live selection wording (for example, "1 of 2 words"); no separate count outside Help.
-- c) Proposed: add no new Help opening shortcut; Esc closes Help through the existing panel dismissal behavior and restores editor selection/focus. Add no Retry pill action; retain automatic poll recovery and export.
-- d) Proposed: the series › book path replaces the QuillAI header label; preserve the sheet chapter heading.
-- e) Proposed: keep Model lines and change links inside Edit and Dialogue cards; removing the margin label does not settle card design.
+- a) Owner decision, GUZ-1566: show AI pre-request Saving… in the Continue tooltip; replace the icon in the same rail slot with Stop, with accessible name and tooltip "Stop AI". Put a small cut-off badge on Continue with tooltip detail; retain the inspector explanation. Mockups labelled Stop do not settle its placement.
+- b) Owner decision, GUZ-1566: show live selection counts only in Help under "This chapter", using the existing live selection wording (for example, "1 of 2 words"); no separate count outside Help.
+- c) Owner decision, GUZ-1566: add no new Help opening shortcut; Esc closes Help through the existing panel dismissal behavior and restores editor selection/focus. Add no Retry pill action; retain automatic poll recovery and export.
+- d) Owner decision, GUZ-1566: the series › book path replaces the QuillAI header label; preserve the sheet chapter heading.
+- e) Owner decision, GUZ-1566: keep Model lines and change links inside Edit and Dialogue cards; removing the margin label does not settle card design.
 
 Mockup-only details, not approved decisions: exact failure tooltip text (retain the existing detailed-reason behavior); Help using the Settings panel shell; counts as three tiles; literal "Change" link text (the link itself is owner-approved); and "Continue window" as the rail icon name (the existing bracket name is unaffected).
 
@@ -356,7 +356,7 @@ Mockup-only details, not approved decisions: exact failure tooltip text (retain 
 
 This section describes the historical `editor-desktop` prototype; the chrome reference and owner decisions above supersede it for header, save, Continue, Help, and counts.
 
-- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a "from a cut-off reply" indicator; its placement is pending owner review above. The desktop prototype has no such indicator.
+- The prototype's second lavender window marker is obsolete. The product uses one Continue view with a "from a cut-off reply" indicator; its placement is covered by the owner decisions above. The desktop prototype has no such indicator.
 - Off-screen marker reads `Continue window / starts ↑ N pages up`, not "window starts ↑ N pages".
 - AI text effect has four options, not an on/off switch.
 - Post-its have no rotation, and yellow lives in the drawer rather than on the sheet.
